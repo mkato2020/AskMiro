@@ -1103,19 +1103,22 @@
                     <p class="section-subtitle">Professional commercial cleaning services in London and across the UK.</p>
                 </div>
                 
-                <form class="contact-form" action="/thank-you.html" 
-                      name="contact" 
-                      method="POST" 
-                      data-netlify="true" 
-                      netlify-honeypot="bot-field"
-                      aria-label="Contact form">
-                   <in<put type="hidden" name="form-name" value="contact">    
+                <form class="contact-form"
+                  name="contact"
+                  method="POST"
+                  action="/thank-you.html"
+                  data-netlify="true"
+                  data-netlify-honeypot="bot-field"
+                  aria-label="Contact form">
+
+              <input type="hidden" name="form-name" value="contact" />
+
                     
                     <!-- Honeypot for spam prevention -->
-                    <p style="display: none;">
-                      <label>Don't fill this out if you're human: <input name="bot-field" /></label>
-                    </p>
-                    
+                  <p style="display: none;">
+                    <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+                  </p>
+
                     <div class="form-group">
                         <label for="company">Company Name <span class="required">*</span></label>
                         <input type="text" id="company" name="company" required aria-required="true">
