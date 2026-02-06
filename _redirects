@@ -1,0 +1,6 @@
+# Redirect naked domain to www
+https://askmiro.co.uk/* https://www.askmiro.co.uk/:splat 301!
+
+# Force HTTPS
+http://www.askmiro.co.uk/* https://www.askmiro.co.uk/:splat 301!
+http://askmiro.co.uk/* https://www.askmiro.co.uk/:splat 301!
