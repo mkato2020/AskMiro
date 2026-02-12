@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Free commercial cleaning margin calculator. Calculate gross margin, net profit, and minimum viable hourly rate for cleaning contracts.">
+    <title>Margin Calculator | AskMiro Cleaning Services London</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Clean logo using SVG and text */
+        .logo-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+        }
+        
+        .logo-text {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2A8094;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo-text .ask {
+            color: #636E72;
+        }
+        
+        .logo-text .miro {
+            color: #2A8094;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #2A8094;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+            font-size: 0.95em;
+        }
+        
+        .back-link:hover {
+            color: #20344B;
+        }
+        
+        .back-link::before {
+            content: "← ";
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .header h1 {
+            color: #2A8094;
+            font-size: 2.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #636E72;
+            font-size: 1.1em;
+        }
+        
+        .calculator {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-banner {
+            background: #E8F4F8;
+            border-left: 4px solid #2A8094;
+            padding: 16px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: #20344B;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #20344B;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2A8094;
+        }
+        
+        .toggle-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn:hover {
+            border-color: #2A8094;
+        }
+        
+        .toggle-btn.active {
+            background: #2A8094;
+            color: white;
+            border-color: #2A8094;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            color: #20344B;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #2A8094;
+        }
+        
+        .input-prefix {
+            position: relative;
+        }
+        
+        .input-prefix input {
+            padding-left: 30px;
+        }
+        
+        .input-prefix::before {
+            content: '£';
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #636E72;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        
+        .results {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .results-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #20344B;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e1e8ed;
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            font-weight: 500;
+            color: #636E72;
+        }
+        
+        .result-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #20344B;
+        }
+        
+        .margin-indicator {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95em;
+            margin-left: 10px;
+        }
+        
+        .margin-red {
+            background: #fee;
+            color: #c33;
+        }
+        
+        .margin-orange {
+            background: #ffecd1;
+            color: #d97706;
+        }
+        
+        .margin-green {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        .highlight-box {
+            background: #E8F4F8;
+            border-left: 4px solid #2A8094;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        
+        .highlight-box h3 {
+            color: #2A8094;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .highlight-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #20344B;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+        
+        .reset-btn {
+            flex: 1;
+            padding: 15px;
+            background: #20344B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .reset-btn:hover {
+            background: #2A8094;
+        }
+        
+        .share-btn {
+            padding: 15px 30px;
+            background: white;
+            color: #2A8094;
+            border: 2px solid #2A8094;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .share-btn:hover {
+            background: #2A8094;
+            color: white;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e8ed;
+            color: #636E72;
+        }
+        
+        .footer a {
+            color: #2A8094;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .calculator {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .logo-icon {
+                width: 38px;
+                height: 38px;
+            }
+            
+            .logo-text {
+                font-size: 26px;
+            }
+            
+            .result-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">Back to AskMiro</a>
+        
+        <!-- Clean SVG Logo -->
+        <div class="logo-header">
+            <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="#2A8094"/>
+                <path d="M 35,45 L 45,55 L 65,35" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="logo-text">
+                <span class="ask">Ask</span><span class="miro">Miro</span>
+            </div>
+        </div>
+        
+        <div class="header">
+            <h1>Cleaning Margin Calculator</h1>
+            <p>Calculate gross margin and minimum viable hourly rate for commercial cleaning contracts</p>
+        </div>
+        
+        <div class="calculator">
+            <div class="info-banner">
+                💡 <strong>Pro Tip:</strong> Target 15% minimum gross margin for sustainable profitability. Calculations update automatically as you type.
+            </div>
+            
+            <!-- Labour Type Toggle -->
+            <div class="section">
+                <div class="toggle-container">
+                    <button class="toggle-btn active" onclick="setLabourType('employees')">Use Employees</button>
+                    <button class="toggle-btn" onclick="setLabourType('subcontractors')">Use Subcontractors</button>
+                </div>
+            </div>
+            
+            <!-- Section 1: Contract Details -->
+            <div class="section">
+                <h2 class="section-title">Contract Details</h2>
+                
+                <div class="input-group">
+                    <label for="hoursPerWeek">Hours per week</label>
+                    <input type="number" id="hoursPerWeek" value="20" min="0" step="0.5" oninput="calculate()">
+                </div>
+                
+                <div class="input-group input-prefix">
+                    <label for="clientRate">Hourly rate charged to client</label>
+                    <input type="number" id="clientRate" value="15" min="0" step="0.5" oninput="calculate()">
+                </div>
+                
+                <div class="input-group">
+                    <label for="weeksPerMonth">Weeks per month</label>
+                    <input type="number" id="weeksPerMonth" value="4.33" min="0" step="0.01" oninput="calculate()">
+                </div>
+            </div>
+            
+            <!-- Section 2: Labour Cost -->
+            <div class="section">
+                <h2 class="section-title">Labour Cost</h2>
+                
+                <div class="input-group input-prefix">
+                    <label for="labourRate" id="labourRateLabel">Cleaner hourly rate</label>
+                    <input type="number" id="labourRate" value="11.50" min="0" step="0.25" oninput="calculate()">
+                </div>
+            </div>
+            
+            <!-- Section 3: Monthly Direct Costs -->
+            <div class="section">
+                <h2 class="section-title">Monthly Direct Costs</h2>
+                
+                <div class="input-group input-prefix">
+                    <label for="supplies">Supplies per month</label>
+                    <input type="number" id="supplies" value="50" min="0" step="5" oninput="calculate()">
+                </div>
+                
+                <div class="input-group input-prefix">
+                    <label for="equipment">Equipment allowance per month</label>
+                    <input type="number" id="equipment" value="30" min="0" step="5" oninput="calculate()">
+                </div>
+                
+                <div class="input-group input-prefix">
+                    <label for="travel">Travel/Admin allocation per month</label>
+                    <input type="number" id="travel" value="40" min="0" step="5" oninput="calculate()">
+                </div>
+                
+                <div class="input-group input-prefix">
+                    <label for="other">Other site costs per month</label>
+                    <input type="number" id="other" value="0" min="0" step="5" oninput="calculate()">
+                </div>
+            </div>
+            
+            <!-- Section 4: Overhead Allocation -->
+            <div class="section">
+                <h2 class="section-title">Overhead Allocation (Optional)</h2>
+                
+                <div class="input-group input-prefix">
+                    <label for="overhead">Monthly overhead allocation</label>
+                    <input type="number" id="overhead" value="0" min="0" step="10" oninput="calculate()">
+                </div>
+            </div>
+            
+            <!-- Results -->
+            <div class="results">
+                <h3 class="results-title">Calculation Results</h3>
+                
+                <div class="result-row">
+                    <span class="result-label">Monthly Revenue</span>
+                    <span class="result-value" id="monthlyRevenue">£0.00</span>
+                </div>
+                
+                <div class="result-row">
+                    <span class="result-label">Total Direct Cost</span>
+                    <span class="result-value" id="totalDirectCost">£0.00</span>
+                </div>
+                
+                <div class="result-row">
+                    <span class="result-label">Gross Profit</span>
+                    <span class="result-value" id="grossProfit">£0.00</span>
+                </div>
+                
+                <div class="result-row">
+                    <span class="result-label">Gross Margin %</span>
+                    <span class="result-value">
+                        <span id="grossMargin">0.0%</span>
+                        <span class="margin-indicator" id="marginIndicator">--</span>
+                    </span>
+                </div>
+                
+                <div class="result-row">
+                    <span class="result-label">Net Operating Profit</span>
+                    <span class="result-value" id="netProfit">£0.00</span>
+                </div>
+                
+                <div class="highlight-box">
+                    <h3>Minimum Required Hourly Rate</h3>
+                    <p style="color: #636E72; margin-bottom: 10px;">To achieve 15% gross margin:</p>
+                    <div class="highlight-value" id="minRate">£0.00/hour</div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="reset-btn" onclick="resetForm()">Reset Calculator</button>
+                <button class="share-btn" onclick="shareCalculator()">Share Tool</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Built by <a href="https://www.askmiro.com">AskMiro Cleaning Services</a> | Professional commercial cleaning in London</p>
+        </div>
+    </div>
+    
+    <script>
+        let labourType = 'employees';
+        
+        function setLabourType(type) {
+            labourType = type;
+            
+            const buttons = document.querySelectorAll('.toggle-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const label = document.getElementById('labourRateLabel');
+            if (type === 'subcontractors') {
+                label.textContent = 'Subcontractor hourly rate';
+            } else {
+                label.textContent = 'Cleaner hourly rate';
+            }
+            
+            calculate();
+        }
+        
+        function calculate() {
+            const hoursPerWeek = parseFloat(document.getElementById('hoursPerWeek').value) || 0;
+            const clientRate = parseFloat(document.getElementById('clientRate').value) || 0;
+            const weeksPerMonth = parseFloat(document.getElementById('weeksPerMonth').value) || 4.33;
+            const labourRate = parseFloat(document.getElementById('labourRate').value) || 0;
+            const supplies = parseFloat(document.getElementById('supplies').value) || 0;
+            const equipment = parseFloat(document.getElementById('equipment').value) || 0;
+            const travel = parseFloat(document.getElementById('travel').value) || 0;
+            const other = parseFloat(document.getElementById('other').value) || 0;
+            const overhead = parseFloat(document.getElementById('overhead').value) || 0;
+            
+            const monthlyHours = hoursPerWeek * weeksPerMonth;
+            const monthlyRevenue = monthlyHours * clientRate;
+            
+            let labourCost = monthlyHours * labourRate;
+            if (labourType === 'employees') {
+                labourCost = labourCost * 1.2887;
+            }
+            
+            const totalDirectCost = labourCost + supplies + equipment + travel + other;
+            const grossProfit = monthlyRevenue - totalDirectCost;
+            const grossMarginPercent = monthlyRevenue > 0 ? (grossProfit / monthlyRevenue) * 100 : 0;
+            const netProfit = grossProfit - overhead;
+            
+            const nonLabourCosts = supplies + equipment + travel + other;
+            let minRequiredRate = 0;
+            
+            if (monthlyHours > 0) {
+                let labourMultiplier = labourType === 'employees' ? 1.2887 : 1;
+                minRequiredRate = ((labourRate * labourMultiplier * monthlyHours) + nonLabourCosts) / (monthlyHours * 0.85);
+            }
+            
+            document.getElementById('monthlyRevenue').textContent = '£' + monthlyRevenue.toFixed(2);
+            document.getElementById('totalDirectCost').textContent = '£' + totalDirectCost.toFixed(2);
+            document.getElementById('grossProfit').textContent = '£' + grossProfit.toFixed(2);
+            document.getElementById('grossMargin').textContent = grossMarginPercent.toFixed(1) + '%';
+            document.getElementById('netProfit').textContent = '£' + netProfit.toFixed(2);
+            document.getElementById('minRate').textContent = '£' + minRequiredRate.toFixed(2) + '/hour';
+            
+            const indicator = document.getElementById('marginIndicator');
+            if (grossMarginPercent < 15) {
+                indicator.textContent = 'LOW';
+                indicator.className = 'margin-indicator margin-red';
+            } else if (grossMarginPercent < 20) {
+                indicator.textContent = 'MODERATE';
+                indicator.className = 'margin-indicator margin-orange';
+            } else {
+                indicator.textContent = 'HEALTHY';
+                indicator.className = 'margin-indicator margin-green';
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('hoursPerWeek').value = 20;
+            document.getElementById('clientRate').value = 15;
+            document.getElementById('weeksPerMonth').value = 4.33;
+            document.getElementById('labourRate').value = 11.50;
+            document.getElementById('supplies').value = 50;
+            document.getElementById('equipment').value = 30;
+            document.getElementById('travel').value = 40;
+            document.getElementById('other').value = 0;
+            document.getElementById('overhead').value = 0;
+            
+            labourType = 'employees';
+            document.querySelectorAll('.toggle-btn').forEach((btn, idx) => {
+                if (idx === 0) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            document.getElementById('labourRateLabel').textContent = 'Cleaner hourly rate';
+            
+            calculate();
+        }
+        
+        function shareCalculator() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'AskMiro Cleaning Margin Calculator',
+                    text: 'Check out this free cleaning margin calculator!',
+                    url: window.location.href
+                }).catch(() => copyLink());
+            } else {
+                copyLink();
+            }
+        }
+        
+        function copyLink() {
+            const url = window.location.href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Link copied to clipboard!');
+                }).catch(() => {
+                    alert('Share this link: ' + url);
+                });
+            } else {
+                alert('Share this link: ' + url);
+            }
+        }
+        
+        calculate();
+    </script>
+</body>
+</html>
