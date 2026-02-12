@@ -1,113 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Get a Commercial Cleaning Quote | AskMiro Cleaning Services London</title>
-  <meta name="description" content="Request a professional commercial cleaning quote in London. Offices, warehouses, schools and healthcare facilities. 24-hour response. Managed service.">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="canonical" href="https://www.askmiro.com/get-quote.html">
-  <meta property="og:title" content="Get a Commercial Cleaning Quote | AskMiro">
-  <meta property="og:description" content="Professional managed commercial cleaning services in London & UK. Request your free quote today.">
-  <meta property="og:url" content="https://www.askmiro.com/get-quote.html">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a Commercial Cleaning Quote | AskMiro Cleaning Services</title>
+<meta name="description" content="Request a professional commercial cleaning quote in London. Offices, warehouses, schools and healthcare facilities. 24-hour response guaranteed.">
+
+<style>
+:root {
+  --navy: #1f2f46;
+  --teal: #2f6f7e;
+  --light: #f4f7f9;
+  --white: #ffffff;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--light);
+  color: var(--navy);
+}
+
+header {
+  background: var(--navy);
+  padding: 20px;
+}
+
+header a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.hero {
+  background: linear-gradient(135deg, var(--navy), var(--teal));
+  color: white;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+.hero p {
+  margin-top: 15px;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.why {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.why h3 {
+  margin-top: 0;
+}
+
+.why ul {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+form {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 18px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  background: var(--teal);
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+button:hover {
+  background: var(--navy);
+}
+
+footer {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+  opacity: 0.7;
+}
+</style>
 </head>
 
 <body>
 
-<!-- SIMPLE NAV LINK BACK -->
-<div style="padding:20px;">
-  <a href="/" style="text-decoration:none; font-weight:600;">← Back to Homepage</a>
+<header>
+  <a href="/">← Back to Homepage</a>
+</header>
+
+<section class="hero">
+  <h1>Request Your Commercial Cleaning Quote</h1>
+  <p>Tell us about your premises and we will respond within 24 hours.</p>
+</section>
+
+<div class="container">
+  <div class="grid">
+
+    <div class="why">
+      <h3>Why AskMiro?</h3>
+      <ul>
+        <li>✔ Managed commercial cleaning service</li>
+        <li>✔ Consistent cleaning teams</li>
+        <li>✔ COSHH compliant processes</li>
+        <li>✔ London & nationwide coverage</li>
+        <li>✔ Quality control inspections</li>
+      </ul>
+    </div>
+
+    <form name="quote-request" method="POST" data-netlify="true" action="/thank-you.html">
+      <input type="hidden" name="form-name" value="quote-request">
+
+      <label>Name *</label>
+      <input type="text" name="name" required>
+
+      <label>Email *</label>
+      <input type="email" name="email" required>
+
+      <label>Phone *</label>
+      <input type="tel" name="phone" required>
+
+      <label>Postcode *</label>
+      <input type="text" name="postcode" required placeholder="e.g. SW11, EC1, UB3">
+
+      <label>Type of Premises *</label>
+      <select name="sector" required>
+        <option value="">Select...</option>
+        <option>Office</option>
+        <option>Warehouse</option>
+        <option>School</option>
+        <option>Healthcare Facility</option>
+        <option>Gym</option>
+        <option>Residential Block</option>
+        <option>Other</option>
+      </select>
+
+      <label>Cleaning Frequency *</label>
+      <select name="frequency" required>
+        <option value="">Select...</option>
+        <option>Daily</option>
+        <option>3x per week</option>
+        <option>Weekly</option>
+        <option>Fortnightly</option>
+        <option>One-off Deep Clean</option>
+      </select>
+
+      <label>Tell us about your requirements *</label>
+      <textarea name="message" rows="4" required placeholder="Site size, access hours, key areas, current cleaning issues..."></textarea>
+
+      <button type="submit">Request Free Quote</button>
+    </form>
+
+  </div>
 </div>
 
-<section class="contact" id="quote" style="padding-top:40px;">
-  <div class="container">
-
-    <div class="section-header">
-      <span class="section-tag">Get a Quote</span>
-      <h1>Request Your Commercial Cleaning Quote</h1>
-      <p>Tell us about your site and we will respond within <strong>24 hours</strong>.</p>
-    </div>
-
-    <div class="contact-grid">
-
-      <div class="contact-info">
-        <h3>Why AskMiro?</h3>
-        <ul style="margin-top:20px; line-height:1.8;">
-          <li>✔ Managed cleaning service</li>
-          <li>✔ Consistent cleaning teams</li>
-          <li>✔ COSHH compliant</li>
-          <li>✔ London & Nationwide Coverage</li>
-          <li>✔ Quality control inspections</li>
-        </ul>
-      </div>
-
-      <form name="quote-request"
-            method="POST"
-            data-netlify="true"
-            action="/thank-you.html"
-            class="contact-form">
-
-        <input type="hidden" name="form-name" value="quote-request">
-
-        <div class="form-group">
-          <label>Name *</label>
-          <input type="text" name="name" required>
-        </div>
-
-        <div class="form-group">
-          <label>Email *</label>
-          <input type="email" name="email" required>
-        </div>
-
-        <div class="form-group">
-          <label>Phone *</label>
-          <input type="tel" name="phone" required>
-        </div>
-
-        <div class="form-group">
-          <label>Postcode *</label>
-          <input type="text" name="postcode" required placeholder="e.g. SW11, EC1, UB3">
-        </div>
-
-        <div class="form-group">
-          <label>Type of Premises *</label>
-          <select name="sector" required>
-            <option value="">Select...</option>
-            <option>Office</option>
-            <option>Warehouse</option>
-            <option>School</option>
-            <option>Healthcare Facility</option>
-            <option>Gym</option>
-            <option>Residential Block</option>
-            <option>Other</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Cleaning Frequency *</label>
-          <select name="frequency" required>
-            <option value="">Select...</option>
-            <option>Daily</option>
-            <option>3x per week</option>
-            <option>Weekly</option>
-            <option>Fortnightly</option>
-            <option>One-off Deep Clean</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Tell us about your requirements *</label>
-          <textarea name="message" required placeholder="Site size, hours, issues, current cleaning problems..."></textarea>
-        </div>
-
-        <button type="submit" class="form-submit">
-          Request Free Quote
-        </button>
-
-      </form>
-
-    </div>
-  </div>
-</section>
+<footer>
+  © 2026 AskMiro Cleaning Services | London & UK
+</footer>
 
 </body>
 </html>
