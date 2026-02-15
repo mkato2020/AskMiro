@@ -151,6 +151,12 @@
           "name": "Gym Cleaning",
           "description": "Fitness facility and gym cleaning services",
           "provider": {"@type": "Organization", "name": "AskMiro Cleaning Services"}
+        },
+        {
+          "@type": "Service",
+          "name": "Automotive Cleaning",
+          "description": "Car dealership, showroom, and automotive facility cleaning services",
+          "provider": {"@type": "Organization", "name": "AskMiro Cleaning Services"}
         }
       ]
     }
@@ -207,7 +213,7 @@
           "name": "How quickly can you start?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Typically within 5-7 working days after the site visit and agreement. For urgent needs, we can often start sooner."
+            "text": "Typically within 5–7 working days after the site visit and agreement. For urgent needs, we can often start sooner."
           }
         },
         {
@@ -215,7 +221,7 @@
           "name": "Do you have insurance?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. We carry public liability insurance and employer's liability insurance. Documentation provided on request."
+            "text": "Yes. We carry public liability and employer's liability insurance. Certificates provided on request."
           }
         },
         {
@@ -223,1078 +229,1277 @@
           "name": "How do you handle quality issues?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "You have a single point of contact. If something isn't right, report it and we'll address it within 24 hours. We conduct regular quality checks to maintain standards."
+            "text": "You have a single point of contact. Report issues and we'll address them within 24 hours. We conduct regular quality checks."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What's the contract length?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Rolling monthly contracts after an initial 3-month period. No long-term lock-in unless you prefer it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do your cleaners have DBS checks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For schools, healthcare, or sites requiring DBS checks, yes. Enhanced DBS arranged for relevant staff."
           }
         }
       ]
     }
     </script>
     
-    <style>
-        :root {
-            --navy: #20344B;
-            --teal: #2A8094;
-            --charcoal: #2D3436;
-            --steel: #636E72;
-            --light-grey: #DFE6E9;
-            --white: #FFFFFF;
-            --off-white: #F8F9FA;
-            --success: #27AE60;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html {
-            scroll-behavior: smooth;
-        }
-        
-        body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--charcoal);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-        
-        /* Skip to main */
-        .skip-to-main {
-            position: absolute;
-            left: -9999px;
-            z-index: 9999;
-            padding: 1em;
-            background: var(--navy);
-            color: white;
-            text-decoration: none;
-        }
-        
-        .skip-to-main:focus {
-            left: 50%;
-            transform: translateX(-50%);
-            top: 1em;
-        }
-        
-        /* GDPR Cookie Banner */
-        .cookie-consent {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(32, 52, 75, 0.98);
-            color: white;
-            padding: 1.5rem 2rem;
-            z-index: 10000;
-            display: none;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
-        }
-        
-        .cookie-consent.show {
-            display: block;
-        }
-        
-        .cookie-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .cookie-text {
-            flex: 1;
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-        
-        .cookie-text a {
-            color: var(--teal);
-            text-decoration: underline;
-        }
-        
-        .cookie-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .cookie-btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'DM Sans', sans-serif;
-        }
-        
-        .cookie-accept {
-            background: white;
-            color: var(--navy);
-        }
-        
-        .cookie-accept:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255,255,255,0.3);
-        }
-        
-        .cookie-decline {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-        
-        .cookie-decline:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        /* NAVIGATION */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            border-bottom: 1px solid var(--light-grey);
-            transition: all 0.3s ease;
-        }
-        
-        nav.scrolled {
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-        }
-        
-        .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            flex-shrink: 0;
-        }
-        
-        .logo-text {
-            display: flex;
-            align-items: baseline;
-        }
-        
-        .logo-text .ask {
-            color: var(--steel);
-        }
-        
-        .logo-text .miro {
-            color: var(--teal);
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-            align-items: center;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--charcoal);
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-        
-        .nav-links a:hover {
-            color: var(--teal);
-        }
-        
-        .nav-cta {
-            padding: 0.75rem 1.5rem;
-            background: var(--teal);
-            color: white;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-        
-        .nav-cta:hover {
-            background: var(--navy);
-            color: white;
-        }
-        
-        .mobile-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--navy);
-        }
-        
-        /* HERO CAROUSEL */
-        .hero {
-            margin-top: 70px;
-            position: relative;
-            height: 600px;
-            overflow: hidden;
-        }
-        
-        .carousel-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .carousel-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .carousel-slide.active {
-            opacity: 1;
-        }
-        
-        .carousel-slide::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(32, 52, 75, 0.85), rgba(42, 128, 148, 0.75));
-        }
-        
-        .hero-content {
-            position: relative;
-            z-index: 2;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            color: white;
-        }
-        
-        .hero-tag {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            width: fit-content;
-        }
-        
-        .hero-content h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            max-width: 800px;
-            margin-bottom: 1.5rem;
-        }
-        
-        .hero-content p {
-            font-size: 1.25rem;
-            max-width: 700px;
-            margin-bottom: 2rem;
-            line-height: 1.7;
-        }
-        
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 1rem 2rem;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-block;
-            cursor: pointer;
-            border: none;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 1rem;
-        }
-        
-        .btn-primary {
-            background: white;
-            color: var(--navy);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255,255,255,0.3);
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .carousel-controls {
-            position: absolute;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 3;
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .carousel-btn {
-            background: rgba(255,255,255,0.3);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.2rem;
-        }
-        
-        .carousel-btn:hover {
-            background: rgba(255,255,255,0.5);
-        }
-        
-        .carousel-dots {
-            position: absolute;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 3;
-            display: flex;
-            gap: 0.75rem;
-        }
-        
-        .carousel-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.5);
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .carousel-dot.active {
-            background: white;
-            width: 30px;
-            border-radius: 6px;
-        }
-        
-        /* SECTIONS */
-        section {
-            padding: 5rem 2rem;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .section-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-        
-        .section-tag {
-            display: inline-block;
-            background: var(--teal);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .section-header h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2.75rem;
-            color: var(--navy);
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .section-header p {
-            font-size: 1.2rem;
-            color: var(--steel);
-            max-width: 800px;
-            margin: 0 auto;
-            line-height: 1.7;
-        }
-        
-        /* WHY ASKMIRO */
-        .why-askmiro {
-            background: var(--off-white);
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-        
-        .feature-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-        
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .feature-card h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            color: var(--navy);
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-        
-        .feature-card p {
-            color: var(--steel);
-            line-height: 1.7;
-        }
-        
-        .promise-box {
-            background: var(--navy);
-            color: white;
-            padding: 3rem;
-            border-radius: 8px;
-            margin-top: 3rem;
-            text-align: center;
-        }
-        
-        .promise-box h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .promise-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            text-align: left;
-        }
-        
-        .promise-item {
-            display: flex;
-            align-items: start;
-            gap: 1rem;
-        }
-        
-        .promise-check {
-            color: var(--success);
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-        
-        /* HOW IT WORKS */
-        .how-it-works {
-            background: white;
-        }
-        
-        .steps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 3rem;
-            margin-top: 3rem;
-        }
-        
-        .step-card {
-            text-align: center;
-            position: relative;
-        }
-        
-        .step-number {
-            width: 60px;
-            height: 60px;
-            background: var(--teal);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin: 0 auto 1.5rem;
-        }
-        
-        .step-card h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            color: var(--navy);
-            margin-bottom: 1rem;
-        }
-        
-        .step-card p {
-            color: var(--steel);
-            line-height: 1.7;
-        }
-        
-        /* SERVICES */
-        .services {
-            background: var(--off-white);
-        }
-        
-        .service-sector {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 3rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        }
-        
-        .service-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-        }
-        
-        .service-image {
-            width: 100%;
-            height: 400px;
-            object-fit: cover;
-        }
-        
-        .service-text {
-            padding: 3rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .service-text h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2rem;
-            color: var(--navy);
-            margin-bottom: 1.5rem;
-        }
-        
-        .service-text h4 {
-            font-weight: 600;
-            color: var(--navy);
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        .service-text ul {
-            list-style: none;
-            margin-bottom: 1.5rem;
-        }
-        
-        .service-text li {
-            padding-left: 1.5rem;
-            position: relative;
-            margin-bottom: 0.5rem;
-            color: var(--steel);
-        }
-        
-        .service-text li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: var(--teal);
-            font-weight: 700;
-        }
-        
-        /* ECO-FRIENDLY */
-        .eco-friendly {
-            background: var(--navy);
-            color: white;
-        }
-        
-        .eco-friendly .section-header h2,
-        .eco-friendly .section-header p {
-            color: white;
-        }
-        
-        .eco-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-        
-        .eco-card {
-            background: rgba(255,255,255,0.1);
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .eco-card h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            color: white;
-        }
-        
-        .eco-card p {
-            line-height: 1.7;
-            opacity: 0.9;
-        }
-        
-        /* TRUST STRIP */
-        .trust-strip {
-            background: var(--off-white);
-            padding: 3rem 2rem;
-        }
-        
-        .trust-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .trust-item {
-            text-align: center;
-        }
-        
-        .trust-item h4 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.2rem;
-            color: var(--navy);
-            margin-bottom: 0.5rem;
-        }
-        
-        .trust-item p {
-            color: var(--steel);
-            font-size: 0.95rem;
-        }
-        
-        /* CASE STUDIES */
-        .case-studies {
-            background: white;
-        }
-        
-        .case-study {
-            background: var(--off-white);
-            border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .case-study:hover {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        
-        .case-study-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .case-study h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            color: var(--navy);
-        }
-        
-        .case-toggle {
-            font-size: 1.5rem;
-            color: var(--teal);
-            transition: transform 0.3s ease;
-        }
-        
-        .case-study.expanded .case-toggle {
-            transform: rotate(180deg);
-        }
-        
-        .case-content {
-            display: none;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 2px solid var(--light-grey);
-        }
-        
-        .case-study.expanded .case-content {
-            display: block;
-        }
-        
-        .case-content h4 {
-            font-weight: 600;
-            color: var(--navy);
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .case-content p {
-            color: var(--steel);
-            line-height: 1.7;
-        }
-        
-        /* FAQs */
-        .faqs {
-            background: var(--off-white);
-        }
-        
-        .faq-list {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
-        .faq-item {
-            background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .faq-item:hover {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        
-        .faq-question {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .faq-question h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.2rem;
-            color: var(--navy);
-            font-weight: 600;
-        }
-        
-        .faq-toggle {
-            font-size: 1.5rem;
-            color: var(--teal);
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-        
-        .faq-item.expanded .faq-toggle {
-            transform: rotate(180deg);
-        }
-        
-        .faq-answer {
-            display: none;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 2px solid var(--light-grey);
-            color: var(--steel);
-            line-height: 1.7;
-        }
-        
-        .faq-item.expanded .faq-answer {
-            display: block;
-        }
-        
-        /* GALLERY */
-        .gallery {
-            background: white;
-        }
-        
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-            margin-top: 3rem;
-        }
-        
-        .gallery-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 8px;
-            aspect-ratio: 4/3;
-        }
-        
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        
-        .gallery-item:hover img {
-            transform: scale(1.05);
-        }
-        
-        /* CONTACT FORM */
-        .contact {
-            background: var(--off-white);
-        }
-        
-        .contact-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: start;
-        }
-        
-        .contact-info h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.75rem;
-            color: var(--navy);
-            margin-bottom: 1.5rem;
-        }
-        
-        .contact-details {
-            margin-bottom: 2rem;
-        }
-        
-        .contact-item {
-            display: flex;
-            align-items: start;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .contact-icon {
-            font-size: 1.5rem;
-            color: var(--teal);
-        }
-        
-        .contact-form {
-            background: white;
-            padding: 3rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--navy);
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid var(--light-grey);
-            border-radius: 4px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--teal);
-        }
-        
-        .form-group textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-        
-        .form-submit {
-            width: 100%;
-            padding: 1rem;
-            background: var(--teal);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .form-submit:hover {
-            background: var(--navy);
-        }
-        
-        /* FOOTER */
-        footer {
-            background: var(--navy);
-            color: white;
-            padding: 4rem 2rem 2rem;
-        }
-        
-        .footer-content {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 3rem;
-            margin-bottom: 3rem;
-        }
-        
-        .footer-about h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .footer-about p {
-            line-height: 1.7;
-            opacity: 0.9;
-            margin-bottom: 1rem;
-        }
-        
-        .footer-section h4 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .footer-links {
-            list-style: none;
-        }
-        
-        .footer-links li {
-            margin-bottom: 0.75rem;
-        }
-        
-        .footer-links a {
-            color: white;
-            text-decoration: none;
-            opacity: 0.8;
-            transition: opacity 0.3s ease;
-        }
-        
-        .footer-links a:hover {
-            opacity: 1;
-            text-decoration: underline;
-        }
-        
-        .footer-bottom {
-            text-align: center;
-            padding-top: 2rem;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            opacity: 0.8;
-            font-size: 0.9rem;
-        }
-        
-        /* RESPONSIVE */
-        @media (max-width: 968px) {
-            .nav-links {
-                display: none;
-            }
-            
-            .mobile-toggle {
-                display: block;
-            }
-            
-            .hero-content h1 {
-                font-size: 2.5rem;
-            }
-            
-            .section-header h2 {
-                font-size: 2rem;
-            }
-            
-            .service-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .contact-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 2rem;
-            }
-        }
-        
-        @media (max-width: 640px) {
-            .hero {
-                height: 500px;
-            }
-            
-            .hero-content h1 {
-                font-size: 2rem;
-            }
-            
-            .hero-content p {
-                font-size: 1rem;
-            }
-            
-            section {
-                padding: 3rem 1rem;
-            }
-            
-            .footer-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Skip to main content -->
-    <a href="#main" class="skip-to-main">Skip to main content</a>
+<style>
+/* ROOT VARIABLES */
+:root {
+    --teal: #0D9488;
+    --teal-dark: #0F766E;
+    --charcoal: #1F2937;
+    --slate: #475569;
+    --off-white: #F9FAFB;
+    --white: #FFFFFF;
+    --border: #E5E7EB;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* RESET */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--charcoal);
+    background: var(--white);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* TYPOGRAPHY */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--charcoal);
+    margin-bottom: 1rem;
+}
+
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); }
+h2 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
+h3 { font-size: clamp(1.25rem, 3vw, 1.75rem); }
+h4 { font-size: 1.25rem; }
+
+p {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--slate);
+    margin-bottom: 1rem;
+}
+
+a {
+    color: var(--teal);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--teal-dark);
+}
+
+/* LAYOUT */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+section {
+    padding: 5rem 0;
+}
+
+@media (max-width: 768px) {
+    section {
+        padding: 3rem 0;
+    }
+}
+
+/* BUTTONS */
+.btn {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.btn-primary {
+    background: var(--teal);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--teal-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--white);
+    border: 2px solid var(--white);
+}
+
+.btn-secondary:hover {
+    background: var(--white);
+    color: var(--teal);
+}
+
+/* NAVIGATION */
+nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    transition: var(--transition);
+    border-bottom: 1px solid transparent;
+}
+
+nav.scrolled {
+    box-shadow: var(--shadow);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: var(--charcoal);
+    text-decoration: none;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.logo-text .ask {
+    color: var(--charcoal);
+}
+
+.logo-text .miro {
+    color: var(--teal);
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    align-items: center;
+}
+
+.nav-links a {
+    color: var(--charcoal);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: var(--transition);
+}
+
+.nav-links a:hover {
+    color: var(--teal);
+}
+
+.nav-cta {
+    background: var(--teal);
+    color: var(--white) !important;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+}
+
+.nav-cta:hover {
+    background: var(--teal-dark);
+    transform: translateY(-1px);
+}
+
+.mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--charcoal);
+}
+
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
     
-    <!-- GDPR Cookie Consent -->
-    <div id="cookieConsent" class="cookie-consent">
+    .mobile-toggle {
+        display: block;
+    }
+}
+
+/* HERO CAROUSEL */
+.hero {
+    margin-top: 70px;
+    position: relative;
+    height: 600px;
+    overflow: hidden;
+}
+
+.carousel-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.carousel-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.carousel-slide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.85) 0%, rgba(15, 118, 110, 0.75) 100%);
+}
+
+.carousel-slide.active {
+    opacity: 1;
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 900px;
+    padding: 2rem;
+    color: var(--white);
+}
+
+.hero-tag {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+    color: var(--white);
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero p {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 2rem;
+    line-height: 1.7;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.carousel-controls {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2rem;
+    z-index: 3;
+}
+
+.carousel-btn {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: var(--white);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.carousel-dots {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.75rem;
+    z-index: 3;
+}
+
+.carousel-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.carousel-dot.active {
+    background: var(--white);
+    transform: scale(1.2);
+}
+
+.carousel-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 768px) {
+    .hero {
+        height: 500px;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .carousel-controls {
+        padding: 0 1rem;
+    }
+    
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+    }
+}
+
+/* SECTION HEADER */
+.section-header {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 4rem;
+}
+
+.section-tag {
+    display: inline-block;
+    background: var(--teal);
+    color: var(--white);
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+}
+
+/* WHY ASKMIRO */
+.why-askmiro {
+    background: var(--off-white);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.feature-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    margin-bottom: 1rem;
+    color: var(--charcoal);
+}
+
+.feature-card p {
+    font-size: 1rem;
+    color: var(--slate);
+    margin-bottom: 0;
+}
+
+.promise-box {
+    background: var(--white);
+    border: 2px solid var(--teal);
+    border-radius: 12px;
+    padding: 2.5rem;
+    margin-top: 3rem;
+}
+
+.promise-box h3 {
+    text-align: center;
+    color: var(--teal);
+    margin-bottom: 2rem;
+    font-size: 1.75rem;
+}
+
+.promise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.promise-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.promise-check {
+    color: var(--teal);
+    font-size: 1.5rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.promise-item strong {
+    color: var(--charcoal);
+}
+
+.promise-item br + text {
+    color: var(--slate);
+}
+
+/* HOW IT WORKS */
+.how-it-works {
+    background: var(--white);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2.5rem;
+}
+
+.step-card {
+    text-align: center;
+    padding: 2rem;
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: var(--teal);
+    color: var(--white);
+    border-radius: 50%;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.step-card h3 {
+    margin-bottom: 1rem;
+}
+
+.step-card p {
+    color: var(--slate);
+    font-size: 1rem;
+}
+
+/* SERVICES */
+.services {
+    background: var(--off-white);
+}
+
+.service-sector {
+    margin-bottom: 4rem;
+}
+
+.service-sector:last-child {
+    margin-bottom: 0;
+}
+
+.service-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.service-content:nth-child(even) {
+    direction: rtl;
+}
+
+.service-content:nth-child(even) > * {
+    direction: ltr;
+}
+
+.service-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    min-height: 400px;
+}
+
+.service-text {
+    padding: 2.5rem;
+}
+
+.service-text h3 {
+    color: var(--charcoal);
+    margin-bottom: 1rem;
+}
+
+.service-text p {
+    color: var(--slate);
+    margin-bottom: 1.5rem;
+}
+
+.service-text h4 {
+    color: var(--charcoal);
+    font-size: 1.125rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.service-text ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+
+.service-text ul li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--slate);
+}
+
+.service-text ul li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+    font-weight: 700;
+}
+
+@media (max-width: 968px) {
+    .service-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .service-content:nth-child(even) {
+        direction: ltr;
+    }
+    
+    .service-image {
+        min-height: 300px;
+    }
+}
+
+/* ECO-FRIENDLY */
+.eco-friendly {
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+    color: var(--white);
+}
+
+.eco-friendly .section-header h2,
+.eco-friendly .section-header p {
+    color: var(--white);
+}
+
+.eco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.eco-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: var(--transition);
+}
+
+.eco-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.eco-card h3 {
+    color: var(--white);
+    margin-bottom: 1rem;
+}
+
+.eco-card p {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+}
+
+/* TRUST STRIP */
+.trust-strip {
+    background: var(--charcoal);
+    padding: 3rem 0;
+}
+
+.trust-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    text-align: center;
+}
+
+.trust-item h4 {
+    color: var(--white);
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+}
+
+.trust-item p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9375rem;
+    margin-bottom: 0;
+}
+
+/* CASE STUDIES */
+.case-studies {
+    background: var(--off-white);
+}
+
+.case-study {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.case-study:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.case-study-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.case-study-header h3 {
+    color: var(--charcoal);
+    margin-bottom: 0;
+}
+
+.case-toggle {
+    font-size: 1.5rem;
+    color: var(--teal);
+    transition: var(--transition);
+}
+
+.case-study.expanded .case-toggle {
+    transform: rotate(180deg);
+}
+
+.case-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.case-study.expanded .case-content {
+    max-height: 1000px;
+    margin-top: 1.5rem;
+}
+
+.case-content h4 {
+    color: var(--teal);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.125rem;
+}
+
+.case-content h4:first-child {
+    margin-top: 0;
+}
+
+.case-content p {
+    color: var(--slate);
+    margin-bottom: 1rem;
+}
+
+/* FAQs */
+.faqs {
+    background: var(--white);
+}
+
+.faq-list {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: var(--off-white);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.faq-item:hover {
+    background: #F3F4F6;
+}
+
+.faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.faq-question h3 {
+    color: var(--charcoal);
+    font-size: 1.125rem;
+    margin-bottom: 0;
+}
+
+.faq-toggle {
+    font-size: 1.5rem;
+    color: var(--teal);
+    transition: var(--transition);
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.faq-item.expanded .faq-toggle {
+    transform: rotate(180deg);
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.faq-item.expanded .faq-answer {
+    max-height: 500px;
+    margin-top: 1rem;
+}
+
+.faq-answer p {
+    color: var(--slate);
+    margin-bottom: 0;
+}
+
+/* GALLERY / TEAM */
+.gallery {
+    text-align: center;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+}
+
+.gallery-item {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.gallery-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    display: block;
+}
+
+/* CONTACT */
+.contact {
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+    color: var(--white);
+}
+
+.contact .section-header h2,
+.contact .section-header p {
+    color: var(--white);
+}
+
+.contact-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+}
+
+.contact-info h3 {
+    color: var(--white);
+    margin-bottom: 1.5rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.contact-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.contact-details h4 {
+    color: var(--white);
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.contact-details p,
+.contact-details a {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+}
+
+.contact-details a:hover {
+    color: var(--white);
+}
+
+.contact-form {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 2.5rem;
+}
+
+.contact-form h3 {
+    color: var(--white);
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    color: var(--white);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.875rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    font-size: 1rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: var(--transition);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--white);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-group select {
+    cursor: pointer;
+}
+
+.form-group select option {
+    background: var(--charcoal);
+    color: var(--white);
+}
+
+.form-consent {
+    display: flex;
+    align-items: start;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-consent input[type="checkbox"] {
+    width: auto;
+    margin-top: 0.25rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.form-consent label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.form-consent a {
+    color: var(--white);
+    text-decoration: underline;
+}
+
+.contact-form .btn-primary {
+    width: 100%;
+    background: var(--white);
+    color: var(--teal);
+    font-weight: 600;
+}
+
+.contact-form .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 968px) {
+    .contact-content {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+}
+
+/* FOOTER */
+footer {
+    background: var(--charcoal);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 4rem 0 2rem;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+}
+
+.footer-about h3 {
+    color: var(--white);
+    margin-bottom: 1rem;
+}
+
+.footer-about p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.footer-section h4 {
+    color: var(--white);
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+}
+
+.footer-links {
+    list-style: none;
+}
+
+.footer-links li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9375rem;
+    transition: var(--transition);
+}
+
+.footer-links a:hover {
+    color: var(--white);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 2rem;
+    text-align: center;
+}
+
+.footer-bottom p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+@media (max-width: 968px) {
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 568px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* COOKIE CONSENT */
+#cookieConsent {
+    position: fixed;
+    bottom: -200px;
+    left: 0;
+    right: 0;
+    background: var(--charcoal);
+    color: var(--white);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    transition: bottom 0.4s ease;
+}
+
+#cookieConsent.show {
+    bottom: 0;
+}
+
+.cookie-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.cookie-text {
+    flex: 1;
+    min-width: 300px;
+}
+
+.cookie-text p {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+    font-size: 0.9375rem;
+}
+
+.cookie-text a {
+    color: var(--white);
+    text-decoration: underline;
+}
+
+.cookie-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.cookie-buttons button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'DM Sans', sans-serif;
+}
+
+.cookie-accept {
+    background: var(--teal);
+    color: var(--white);
+}
+
+.cookie-accept:hover {
+    background: var(--teal-dark);
+}
+
+.cookie-decline {
+    background: transparent;
+    color: var(--white);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.cookie-decline:hover {
+    border-color: var(--white);
+}
+
+@media (max-width: 768px) {
+    .cookie-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .cookie-buttons {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .cookie-buttons button {
+        width: 100%;
+    }
+}
+
+/* ACCESSIBILITY */
+:focus {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* PRINT STYLES */
+@media print {
+    nav,
+    .hero,
+    .carousel-controls,
+    .carousel-dots,
+    #cookieConsent,
+    footer {
+        display: none;
+    }
+    
+    body {
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+    
+    section {
+        page-break-inside: avoid;
+    }
+}
+</style>
+</head>
+
+<body>
+    <!-- COOKIE CONSENT -->
+    <div id="cookieConsent">
         <div class="cookie-content">
             <div class="cookie-text">
-                <strong>We value your privacy</strong><br>
-                We use essential cookies to make our site work. With your consent, we may also use non-essential cookies to improve user experience and analyze website traffic. By clicking "Accept," you agree to our website's cookie use as described in our <a href="#privacy-policy">Cookie Policy</a>.
+                <p>We use cookies to improve your experience and analyze site traffic. By clicking "Accept", you consent to our use of cookies. <a href="#privacy-policy">Privacy Policy</a></p>
             </div>
             <div class="cookie-buttons">
-                <button onclick="acceptCookies()" class="cookie-btn cookie-accept">Accept All Cookies</button>
-                <button onclick="declineCookies()" class="cookie-btn cookie-decline">Essential Only</button>
+                <button class="cookie-accept" onclick="acceptCookies()">Accept Cookies</button>
+                <button class="cookie-decline" onclick="declineCookies()">Decline</button>
             </div>
         </div>
     </div>
@@ -1356,6 +1561,18 @@
                 </div>
             </div>
             
+            <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=1600&h=900&fit=crop');">
+                <div class="hero-content">
+                    <span class="hero-tag">Automotive Dealership Cleaning</span>
+                    <h1>Car dealership cleaning services that understand your operations</h1>
+                    <p>Showroom presentation, handover bay standards, and workshop hygiene—managed cleaning for franchised and independent dealerships across London and the UK.</p>
+                    <div class="hero-buttons">
+                        <a href="#contact" class="btn btn-primary">Request a Quote</a>
+                        <a href="#automotive-cleaning" class="btn btn-secondary">Automotive Services</a>
+                    </div>
+                </div>
+            </div>
+            
             <div class="carousel-controls">
                 <button class="carousel-btn" onclick="changeSlide(-1)" aria-label="Previous slide">‹</button>
                 <button class="carousel-btn" onclick="changeSlide(1)" aria-label="Next slide">›</button>
@@ -1365,6 +1582,7 @@
                 <button class="carousel-dot active" onclick="goToSlide(0)" role="tab" aria-selected="true" aria-label="Slide 1"></button>
                 <button class="carousel-dot" onclick="goToSlide(1)" role="tab" aria-selected="false" aria-label="Slide 2"></button>
                 <button class="carousel-dot" onclick="goToSlide(2)" role="tab" aria-selected="false" aria-label="Slide 3"></button>
+                <button class="carousel-dot" onclick="goToSlide(3)" role="tab" aria-selected="false" aria-label="Slide 4"></button>
             </div>
         </div>
     </section>
@@ -1499,16 +1717,16 @@
                         
                         <h4>What We Clean</h4>
                         <ul>
-                            <li>Desks, workstations, and shared surfaces</li>
-                            <li>Meeting rooms, boardrooms, and breakout areas</li>
-                            <li>Kitchens, washrooms, and high-traffic zones</li>
+                            <li>Desks, meeting rooms, and workstations</li>
+                            <li>Kitchens, breakout areas, and washrooms</li>
+                            <li>Reception areas, corridors, and communal spaces</li>
                         </ul>
                         
                         <h4>Why It Matters</h4>
                         <ul>
-                            <li>Creates a professional environment for staff and visitors</li>
-                            <li>Reduces absenteeism through better hygiene standards</li>
-                            <li>Maintains equipment and surfaces with proper care</li>
+                            <li>A clean workspace improves staff morale and productivity</li>
+                            <li>Professional presentation for clients and visitors</li>
+                            <li>Reduced sick days through better hygiene management</li>
                         </ul>
                         
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Office Cleaning</a>
@@ -1516,53 +1734,53 @@
                 </div>
             </div>
             
-            <!-- Residential Blocks -->
+            <!-- Residential Block Cleaning -->
             <div class="service-sector" id="residential-cleaning">
                 <div class="service-content">
                     <div class="service-text">
-                        <h3>Residential Blocks & Communal Areas</h3>
-                        <p>Entrance lobbies, stairwells, corridors, lifts, and shared spaces for residential developments and managed blocks. Regular service schedules with quality oversight.</p>
+                        <h3>Residential Blocks</h3>
+                        <p>Communal area cleaning for residential developments, apartment blocks, and managed estates. Daily or weekly schedules to keep lobbies, corridors, and shared spaces presentable.</p>
                         
                         <h4>What We Clean</h4>
                         <ul>
-                            <li>Lobbies, reception areas, and entrance halls</li>
-                            <li>Stairwells, corridors, and lift interiors</li>
-                            <li>Communal bins, post rooms, and storage areas</li>
+                            <li>Entrance lobbies, lifts, and reception areas</li>
+                            <li>Corridors, stairwells, and landings</li>
+                            <li>Bin stores, post rooms, and communal facilities</li>
                         </ul>
                         
                         <h4>Why It Matters</h4>
                         <ul>
-                            <li>Maintains property value and resident satisfaction</li>
-                            <li>Reduces complaints from tenants and leaseholders</li>
-                            <li>Keeps communal areas safe and presentable</li>
+                            <li>First impressions for residents and visitors</li>
+                            <li>Reduces complaints and improves tenant satisfaction</li>
+                            <li>Maintains property value and marketability</li>
                         </ul>
                         
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Residential Cleaning</a>
                     </div>
-                    <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop" alt="Residential building lobby" class="service-image" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop" alt="Residential lobby" class="service-image" loading="lazy">
                 </div>
             </div>
             
             <!-- Warehouse Cleaning -->
             <div class="service-sector" id="warehouse-cleaning">
                 <div class="service-content">
-                    <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&h=600&fit=crop" alt="Warehouse facility" class="service-image" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=600&fit=crop" alt="Warehouse" class="service-image" loading="lazy">
                     <div class="service-text">
-                        <h3>Warehouses & Industrial Sites</h3>
-                        <p>Floor cleaning, loading bay maintenance, and general site hygiene for distribution centers, warehouses, and industrial facilities. Scheduled to avoid operational disruption.</p>
+                        <h3>Warehouses & Distribution</h3>
+                        <p>Industrial cleaning for warehouses, distribution centres, and logistics facilities. Floor cleaning, welfare areas, and operational hygiene—scheduled around your shifts.</p>
                         
                         <h4>What We Clean</h4>
                         <ul>
-                            <li>Warehouse floors, loading bays, and dispatch areas</li>
-                            <li>Office sections, staff facilities, and welfare areas</li>
-                            <li>Dust control, spillage cleanup, and site maintenance</li>
+                            <li>Warehouse floors, loading bays, and picking areas</li>
+                            <li>Office spaces, meeting rooms, and staff facilities</li>
+                            <li>Washrooms, canteens, and rest areas</li>
                         </ul>
                         
                         <h4>Why It Matters</h4>
                         <ul>
-                            <li>Maintains health and safety compliance</li>
-                            <li>Reduces accident risk from debris and spillages</li>
-                            <li>Supports audits and site inspections</li>
+                            <li>Health and safety compliance for audits</li>
+                            <li>Cleaner working environment for staff</li>
+                            <li>Reduced risk of accidents and contamination</li>
                         </ul>
                         
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Warehouse Cleaning</a>
@@ -1575,20 +1793,20 @@
                 <div class="service-content">
                     <div class="service-text">
                         <h3>Schools & Education</h3>
-                        <p>DBS-checked cleaning teams for schools, nurseries, and education facilities. Term-time or year-round schedules with enhanced hygiene protocols.</p>
+                        <p>DBS-checked cleaning teams for schools, nurseries, and education facilities. Hygienic, child-safe cleaning for classrooms, halls, and washrooms.</p>
                         
                         <h4>What We Clean</h4>
                         <ul>
                             <li>Classrooms, corridors, and assembly halls</li>
-                            <li>Washrooms, staff rooms, and reception areas</li>
-                            <li>Sports halls, playgrounds, and outdoor equipment</li>
+                            <li>Toilets, changing rooms, and sports facilities</li>
+                            <li>Staff rooms, offices, and reception areas</li>
                         </ul>
                         
                         <h4>Why It Matters</h4>
                         <ul>
-                            <li>Creates a safe, hygienic environment for children</li>
-                            <li>Reduces spread of illness and absenteeism</li>
-                            <li>Supports safeguarding requirements with DBS checks</li>
+                            <li>Protects children and staff from illness</li>
+                            <li>Creates a safe, clean learning environment</li>
+                            <li>Meets Ofsted and safeguarding requirements</li>
                         </ul>
                         
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for School Cleaning</a>
@@ -1602,21 +1820,21 @@
                 <div class="service-content">
                     <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=600&fit=crop" alt="Healthcare facility" class="service-image" loading="lazy">
                     <div class="service-text">
-                        <h3>Healthcare & Clinics</h3>
-                        <p>COSHH-aware cleaning for hospitals, clinics, and medical facilities. Full compliance documentation, infection control protocols, and risk-assessed products.</p>
+                        <h3>Healthcare & Medical</h3>
+                        <p>Specialist cleaning for clinics, surgeries, and healthcare facilities. COSHH-compliant, infection control-aware teams trained in clinical environment hygiene.</p>
                         
                         <h4>What We Clean</h4>
                         <ul>
-                            <li>Patient areas, consulting rooms, and treatment spaces</li>
-                            <li>Reception areas, waiting rooms, and corridors</li>
-                            <li>Staff facilities, washrooms, and communal areas</li>
+                            <li>Consulting rooms, treatment areas, and waiting rooms</li>
+                            <li>Washrooms, staff areas, and reception spaces</li>
+                            <li>High-touch surfaces and clinical waste management</li>
                         </ul>
                         
                         <h4>Why It Matters</h4>
                         <ul>
-                            <li>Supports infection prevention and control (IPC)</li>
-                            <li>Meets CQC and regulatory requirements</li>
-                            <li>Protects patients, staff, and visitors</li>
+                            <li>Infection control and patient safety</li>
+                            <li>Meets CQC and NHS cleanliness standards</li>
+                            <li>Professional environment for patients and staff</li>
                         </ul>
                         
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Healthcare Cleaning</a>
@@ -1648,6 +1866,37 @@
                         <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Gym Cleaning</a>
                     </div>
                     <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop" alt="Gym facility" class="service-image" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- AUTOMOTIVE CLEANING -->
+    <section class="services" id="automotive-cleaning">
+        <div class="container">
+            <div class="service-sector">
+                <div class="service-content">
+                    <img src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&h=600&fit=crop" alt="Car showroom" class="service-image" loading="lazy">
+                    <div class="service-text">
+                        <h3>Automotive Cleaning</h3>
+                        <p>Managed car dealership cleaning services for franchised and independent operators across London and the UK. We understand showroom presentation standards, manufacturer audit requirements, and the operational rhythms of automotive retail and aftersales. Site-specific plans, trained teams, and supervisor oversight—delivered consistently.</p>
+                        
+                        <h4>What We Clean</h4>
+                        <ul>
+                            <li>Showroom glass, floors, and vehicle presentation areas—dust-free displays and reflection management</li>
+                            <li>Handover bays, customer lounges, and service reception—maintaining first-impression standards</li>
+                            <li>Workshop floors, parts counters, and technician welfare areas—spill management and compliant hygiene</li>
+                        </ul>
+                        
+                        <h4>Why It Matters</h4>
+                        <ul>
+                            <li>Showroom presentation directly influences customer perception and conversion—standards matter</li>
+                            <li>Manufacturer audits assess facility cleanliness—your dealership cleaning contractor should understand compliance</li>
+                            <li>Aftersales retention depends on service centre cleanliness and professionalism—not just mechanical quality</li>
+                        </ul>
+                        
+                        <a href="/get-quote.html" class="btn btn-primary" style="background: var(--teal); color: white; margin-top: 1rem;">Request a Quote for Automotive Cleaning</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1898,218 +2147,122 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-tag">Our Team</span>
-                <h2>The AskMiro Team</h2>
-                <p>Professional, trained, and committed to delivering consistent quality across every site we manage.</p>
-            </div>
-            
-            <div style="max-width: 1000px; margin: 3rem auto;">
-                <img src="/askmiro-team-photo.png" alt="AskMiro cleaning team" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-            </div>
-            
-            <div style="max-width: 800px; margin: 2rem auto; text-align: center;">
-                <p style="font-size: 1.1rem; color: var(--steel); line-height: 1.8;">
-                    Our teams are trained, supervised, and equipped with everything needed to deliver consistent cleaning standards. You'll see the same faces at your site, building familiarity and reliability over time.
-                </p>
-            </div>
-        </div>
-    </section>
-    
-    <!-- GALLERY -->
-    <section class="gallery">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Our Work</span>
-                <h2>Gallery</h2>
-                <p>Professional cleaning across offices, residential blocks, and facilities.</p>
+                <h2>The People Behind the Service</h2>
+                <p>Trained, supervised, and managed—our teams deliver consistent cleaning across London and the UK.</p>
             </div>
             
             <div class="gallery-grid">
                 <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=450&fit=crop" alt="Modern office space" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1556745753-b2904692b3cd?w=600&h=600&fit=crop" alt="Cleaning team member">
                 </div>
                 <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=450&fit=crop" alt="Residential building lobby" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=600&fit=crop" alt="Professional cleaning">
                 </div>
                 <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=600&h=450&fit=crop" alt="Office workspace" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=600&h=600&fit=crop" alt="Office maintenance">
                 </div>
                 <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=450&fit=crop" alt="Modern office building" loading="lazy">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=600&h=450&fit=crop" alt="Industrial warehouse" loading="lazy">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=450&fit=crop" alt="Gym facility" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&h=600&fit=crop" alt="Team collaboration">
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- CONTACT FORM -->
+    <!-- CONTACT -->
     <section class="contact" id="contact">
         <div class="container">
             <div class="section-header">
-                <span class="section-tag">Get In Touch</span>
-                <h2>Request a Quote</h2>
-                <p>Tell us about your site and we'll arrange a visit to assess your requirements.</p>
+                <span class="section-tag" style="background: rgba(255,255,255,0.2);">Get In Touch</span>
+                <h2>Request a Quote or Site Visit</h2>
+                <p>Tell us about your requirements, and we'll arrange a site visit to provide a detailed quote.</p>
             </div>
             
-            <div class="contact-grid">
+            <div class="contact-content">
                 <div class="contact-info">
                     <h3>Contact Information</h3>
-                    <p>Speak to us directly or fill in the form and we'll get back to you within 24 hours.</p>
                     
-                    <div class="contact-details">
-                        <div class="contact-item">
-                            <span class="contact-icon">📞</span>
-                            <div>
-                                <strong>Phone</strong><br>
-                                <a href="tel:+447549354362" style="color: var(--teal); text-decoration: none;">075 4935 4362</a>
-                            </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div class="contact-details">
+                            <h4>Phone</h4>
+                            <p><a href="tel:+442071234567">020 7123 4567</a></p>
                         </div>
-                        
-                        <div class="contact-item">
-                            <span class="contact-icon">📧</span>
-                            <div>
-                                <strong>Email</strong><br>
-                                <a href="mailto:info@askmiro.com" style="color: var(--teal); text-decoration: none;"> info@askmiro.com</a>
-                            </div>
-
-                            </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">✉️</div>
+                        <div class="contact-details">
+                            <h4>Email</h4>
+                            <p><a href="mailto:info@askmiro.com"><span class="__cf_email__" data-cfemail="73161b1a061316011e3316001600161a1b5d101c1e">[email&#160;protected]</span></a></p>
                         </div>
-                        
-                        <div class="contact-item">
-                            <span class="contact-icon">📍</span>
-                            <div>
-                                <strong>Service Area</strong><br>
-                                London & UK-Wide
-                            </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">📍</div>
+                        <div class="contact-details">
+                            <h4>Service Area</h4>
+                            <p>London & UK-wide</p>
                         </div>
-                        
-                        <div class="contact-item">
-                            <span class="contact-icon">🕐</span>
-                            <div>
-                                <strong>Office Hours</strong><br>
-                                Monday – Friday: 8:00 AM – 6:00 PM
-                            </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">⏰</div>
+                        <div class="contact-details">
+                            <h4>Office Hours</h4>
+                            <p>Monday – Friday<br>8:00 AM – 6:00 PM</p>
                         </div>
                     </div>
                 </div>
                 
-    <form name="contact"
-      method="POST"
-      data-netlify="true"
-      data-netlify-honeypot="bot-field"
-      action="/thank-you.html"
-      class="contact-form">
+                <div class="contact-form">
+                    <h3>Send Us a Message</h3>
+                    <form action="/submit-quote.php" method="POST">
+                        <input type="hidden" name="form-time" id="form-time" value="">
+                        
+                        <div class="form-group">
+                            <label for="name">Your Name *</label>
+                            <input type="text" id="name" name="name" required placeholder="John Smith">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required placeholder="john@company.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="service">Service Required *</label>
+                            <select id="service" name="service" required>
+                                <option value="">Select a service</option>
+                                <option value="office">Office Cleaning</option>
+                                <option value="residential">Residential Block Cleaning</option>
+                                <option value="warehouse">Warehouse Cleaning</option>
+                                <option value="school">School Cleaning</option>
+                                <option value="healthcare">Healthcare Cleaning</option>
+                                <option value="gym">Gym & Leisure Cleaning</option>
+                                <option value="automotive">Automotive Cleaning</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Additional Details</label>
+                            <textarea id="message" name="message" rows="4" placeholder="Tell us about your site, frequency requirements, and any specific concerns..."></textarea>
+                        </div>
+                        
+                        <div class="form-consent">
+                            <input type="checkbox" id="consent" name="consent" required>
+                            <label for="consent">I consent to AskMiro storing my information and contacting me about my enquiry. See our <a href="#privacy-policy">Privacy Policy</a>.</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Send Enquiry</button>
+                    </form>
 
-    <!-- Required hidden field for Netlify -->
-    <input type="hidden" name="form-name" value="contact">
-
-    <!-- Honeypot spam protection -->
-    <p style="display:none;">
-        <label>Leave this field empty:
-            <input name="bot-field" autocomplete="off">
-        </label>
-    </p>
-
-    <!-- Time-based anti-spam -->
-    <input type="hidden" name="form-time" id="form-time">
-
-    <div class="form-group">
-        <label for="name">Your Name *</label>
-        <input type="text"
-               id="name"
-               name="name"
-               required
-               minlength="2"
-               maxlength="100">
-    </div>
-
-    <div class="form-group">
-        <label for="email">Email Address *</label>
-        <input type="email"
-               id="email"
-               name="email"
-               required>
-    </div>
-
-    <div class="form-group">
-        <label for="phone">Phone Number *</label>
-        <input type="tel"
-               id="phone"
-               name="phone"
-               required
-               pattern="[0-9+\s]{7,15}"
-               title="Please enter a valid phone number">
-    </div>
-
-    <div class="form-group">
-        <label for="postcode">Postcode *</label>
-        <input type="text"
-               id="postcode"
-               name="postcode"
-               required
-               minlength="3"
-               maxlength="10"
-               placeholder="e.g. SW11 2BA">
-    </div>
-
-    <div class="form-group">
-        <label for="sector">Type of Facility *</label>
-        <select id="sector"
-                name="sector"
-                required>
-            <option value="">Please select...</option>
-            <option value="Office">Office</option>
-            <option value="Residential Block">Residential Block</option>
-            <option value="Warehouse">Warehouse / Industrial</option>
-            <option value="School">School / Education</option>
-            <option value="Healthcare">Healthcare / Clinic</option>
-            <option value="Gym">Gym / Leisure</option>
-            <option value="Other">Other</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label for="frequency">Cleaning Frequency *</label>
-        <select id="frequency"
-                name="frequency"
-                required>
-            <option value="">Please select...</option>
-            <option value="Daily">Daily</option>
-            <option value="3x per week">3x per week</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Fortnightly">Fortnightly</option>
-            <option value="One-off Deep Clean">One-off Deep Clean</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label for="message">Tell us about your requirements *</label>
-        <textarea id="message"
-                  name="message"
-                  required
-                  minlength="20"
-                  rows="4"
-                  placeholder="Size of site, access hours, current cleaning issues, any specific requirements..."></textarea>
-    </div>
-
-    <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f4f7f9; border-radius: 4px; font-size: 0.9rem; line-height: 1.6;">
-        <strong>Privacy Notice:</strong>
-        By submitting this form, you consent to AskMiro storing and processing your personal information to respond to your enquiry.
-        We will not share your data with third parties.
-    </div>
-
-    <button type="submit" class="form-submit">
-        Request Free Quote
-    </button>
-
-</form>
-
-<!-- Anti-bot timing protection -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("form-time").value = Date.now();
 });
@@ -2123,6 +2276,7 @@ document.querySelector("form").addEventListener("submit", function(e) {
 });
 </script>
 
+                </div>
             </div>
         </div>
     </section>
@@ -2147,6 +2301,7 @@ document.querySelector("form").addEventListener("submit", function(e) {
                         <li><a href="#school-cleaning">School Cleaning</a></li>
                         <li><a href="#healthcare-cleaning">Healthcare Cleaning</a></li>
                         <li><a href="#gym-cleaning">Gym Cleaning</a></li>
+                        <li><a href="#automotive-cleaning">Automotive Cleaning</a></li>
                     </ul>
                 </div>
                 
@@ -2311,8 +2466,14 @@ document.querySelector("form").addEventListener("submit", function(e) {
     </script>
     
     <!-- Google Analytics 4 -->
-    <!-- INSTRUCTION: Replace G-XXXXXXXXXX with your actual Measurement ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
     <script>
         if (localStorage.getItem('cookieConsent') === 'accepted') {
-            (function() {
-                var script = document.createElem
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-XXXXXXXXXX');
+        }
+    </script>
+</body>
+</html>
