@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AskMiro Outreach Tracker</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --teal: #0D9488;
+            --teal-dark: #0F766E;
+            --charcoal: #1F2937;
+            --slate: #475569;
+            --off-white: #F9FAFB;
+            --white: #FFFFFF;
+            --border: #E5E7EB;
+            --error: #DC2626;
+            --success: #059669;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--off-white);
+            color: var(--charcoal);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: var(--white);
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header img {
+            height: 50px;
+            width: auto;
+        }
+        
+        .header-text h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 5px;
+        }
+        
+        .header-text p {
+            color: var(--slate);
+            font-size: 0.9375rem;
+        }
+        
+        .token-setup {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+        
+        .token-setup h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            color: var(--charcoal);
+            margin-bottom: 15px;
+        }
+        
+        .token-setup.hidden {
+            display: none;
+        }
+        
+        .main-form {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .main-form.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--teal);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        label {
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 6px;
+            font-size: 0.9375rem;
+        }
+        
+        .required::after {
+            content: ' *';
+            color: var(--error);
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="url"],
+        input[type="date"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--charcoal);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        select {
+            cursor: pointer;
+            background: var(--white);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .btn-primary {
+            background: var(--teal);
+            color: var(--white);
+            flex: 1;
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--teal-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: var(--white);
+            color: var(--charcoal);
+            border: 2px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--teal);
+            color: var(--teal);
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #D1FAE5;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+        
+        .alert-error {
+            background: #FEE2E2;
+            color: var(--error);
+            border-left: 4px solid var(--error);
+        }
+        
+        .help-text {
+            font-size: 0.875rem;
+            color: var(--slate);
+            margin-top: 4px;
+        }
+        
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--teal);
+            color: var(--white);
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 100;
+            font-weight: 600;
+        }
+        
+        .skip-link:focus {
+            top: 10px;
+            left: 10px;
+        }
+        
+        /* Loading state */
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+            
+            .main-form,
+            .token-setup {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-form" class="skip-link">Skip to main content</a>
+    
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <img src="askmiro-logo.png" alt="AskMiro Cleaning Services">
+            <div class="header-text">
+                <h1>Outreach Tracker</h1>
+                <p>Log and track all business development outreach activities</p>
+            </div>
+        </header>
+        
+        <!-- Token Setup Section -->
+        <section class="token-setup" id="token-setup">
+            <h2>Security Setup</h2>
+            <p class="help-text" style="margin-bottom: 15px;">Enter your access token to use the tracker. This token is stored securely in your browser session.</p>
+            
+            <div class="form-group">
+                <label for="access-token" class="required">Access Token</label>
+                <input 
+                    type="password" 
+                    id="access-token" 
+                    aria-required="true"
+                    placeholder="Enter your secret token">
+            </div>
+            
+            <button type="button" class="btn-primary" onclick="setupToken()" style="margin-top: 15px;">
+                Unlock Tracker
+            </button>
+            
+            <div id="token-alert" class="alert" role="alert" aria-live="polite"></div>
+        </section>
+        
+        <!-- Alert Messages -->
+        <div id="alert" class="alert" role="alert" aria-live="polite" aria-atomic="true"></div>
+        
+        <!-- Main Form -->
+        <main class="main-form disabled" id="main-form">
+            <form id="outreach-form" novalidate>
+                
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h2>Basic Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="date" class="required">Date</label>
+                            <input 
+                                type="date" 
+                                id="date" 
+                                name="date" 
+                                required 
+                                aria-required="true">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="company" class="required">Company</label>
+                            <input 
+                                type="text" 
+                                id="company" 
+                                name="company" 
+                                required 
+                                aria-required="true"
+                                placeholder="e.g., ABC Corporation">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-name" class="required">Contact Name</label>
+                            <input 
+                                type="text" 
+                                id="contact-name" 
+                                name="contactName" 
+                                required 
+                                aria-required="true"
+                                placeholder="e.g., John Smith">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="role">Role / Title</label>
+                            <input 
+                                type="text" 
+                                id="role" 
+                                name="role"
+                                placeholder="e.g., Facilities Manager">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Outreach Details -->
+                <div class="form-section">
+                    <h2>Outreach Details</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="channel" class="required">Channel</label>
+                            <select id="channel" name="channel" required aria-required="true">
+                                <option value="">Select channel...</option>
+                                <option value="LinkedIn InMail">LinkedIn InMail</option>
+                                <option value="LinkedIn Connection">LinkedIn Connection</option>
+                                <option value="Email">Email</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Walk-in">Walk-in</option>
+                                <option value="Website Form">Website Form</option>
+                                <option value="Referral">Referral</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message-type">Message Type</label>
+                            <select id="message-type" name="messageType">
+                                <option value="">Select type...</option>
+                                <option value="Initial">Initial</option>
+                                <option value="Follow-up 1">Follow-up 1</option>
+                                <option value="Follow-up 2">Follow-up 2</option>
+                                <option value="Proposal Sent">Proposal Sent</option>
+                                <option value="Site Visit">Site Visit</option>
+                                <option value="Negotiation">Negotiation</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status" class="required">Status</label>
+                            <select id="status" name="status" required aria-required="true">
+                                <option value="">Select status...</option>
+                                <option value="Sent">Sent</option>
+                                <option value="Opened">Opened</option>
+                                <option value="Replied">Replied</option>
+                                <option value="Meeting Booked">Meeting Booked</option>
+                                <option value="Proposal Requested">Proposal Requested</option>
+                                <option value="Won">Won</option>
+                                <option value="Declined">Declined</option>
+                                <option value="No Response">No Response</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="follow-up-date">Follow-up Date</label>
+                            <input 
+                                type="date" 
+                                id="follow-up-date" 
+                                name="followUpDate">
+                            <span class="help-text">When to follow up next</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="form-section">
+                    <h2>Contact Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email"
+                                placeholder="contact@company.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input 
+                                type="tel" 
+                                id="phone" 
+                                name="phone"
+                                placeholder="020 1234 5678">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="linkedin-url">LinkedIn URL</label>
+                            <input 
+                                type="url" 
+                                id="linkedin-url" 
+                                name="linkedinUrl"
+                                placeholder="https://www.linkedin.com/in/...">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Details -->
+                <div class="form-section">
+                    <h2>Additional Details</h2>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="notes">Notes</label>
+                            <textarea 
+                                id="notes" 
+                                name="notes"
+                                placeholder="Add any relevant notes about this outreach..."></textarea>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="outcome">Outcome</label>
+                            <textarea 
+                                id="outcome" 
+                                name="outcome"
+                                placeholder="Result of this outreach (optional)"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn-primary" id="submit-btn">
+                        Save to Google Sheet
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="clearForm()">
+                        Clear Form
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+    
+    <script>
+        // CONFIGURATION
+        // Replace this URL with your deployed Google Apps Script Web App URL
+        const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date as default
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // Check if token exists in session
+            const token = sessionStorage.getItem('askmiro_token');
+            if (token) {
+                unlockTracker();
+            }
+        });
+        
+        /**
+         * Setup token and unlock tracker
+         */
+        function setupToken() {
+            const tokenInput = document.getElementById('access-token');
+            const token = tokenInput.value.trim();
+            const alert = document.getElementById('token-alert');
+            
+            if (!token) {
+                showAlert(alert, 'error', 'Please enter an access token');
+                return;
+            }
+            
+            // Store token in session storage
+            sessionStorage.setItem('askmiro_token', token);
+            
+            // Clear token input for security
+            tokenInput.value = '';
+            
+            // Show success and unlock tracker
+            showAlert(alert, 'success', 'Access granted! Tracker unlocked.');
+            
+            setTimeout(() => {
+                unlockTracker();
+            }, 1000);
+        }
+        
+        /**
+         * Unlock the tracker form
+         */
+        function unlockTracker() {
+            document.getElementById('token-setup').classList.add('hidden');
+            document.getElementById('main-form').classList.remove('disabled');
+            document.getElementById('company').focus();
+        }
+        
+        /**
+         * Handle form submission
+         */
+        document.getElementById('outreach-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get token
+            const token = sessionStorage.getItem('askmiro_token');
+            if (!token) {
+                showAlert(document.getElementById('alert'), 'error', 'Security token missing. Please refresh and enter your token.');
+                return;
+            }
+            
+            // Validate required fields
+            const company = document.getElementById('company').value.trim();
+            const contactName = document.getElementById('contact-name').value.trim();
+            const status = document.getElementById('status').value;
+            const channel = document.getElementById('channel').value;
+            
+            if (!company) {
+                showAlert(document.getElementById('alert'), 'error', 'Company name is required');
+                document.getElementById('company').focus();
+                return;
+            }
+            
+            if (!contactName) {
+                showAlert(document.getElementById('alert'), 'error', 'Contact name is required');
+                document.getElementById('contact-name').focus();
+                return;
+            }
+            
+            if (!channel) {
+                showAlert(document.getElementById('alert'), 'error', 'Channel is required');
+                document.getElementById('channel').focus();
+                return;
+            }
+            
+            if (!status) {
+                showAlert(document.getElementById('alert'), 'error', 'Status is required');
+                document.getElementById('status').focus();
+                return;
+            }
+            
+            // Collect form data
+            const formData = {
+                date: document.getElementById('date').value,
+                company: company,
+                contactName: contactName,
+                role: document.getElementById('role').value.trim(),
+                channel: channel,
+                messageType: document.getElementById('message-type').value,
+                status: status,
+                followUpDate: document.getElementById('follow-up-date').value,
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                linkedinUrl: document.getElementById('linkedin-url').value.trim(),
+                notes: document.getElementById('notes').value.trim(),
+                outcome: document.getElementById('outcome').value.trim()
+            };
+            
+            // Disable submit button and show loading
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Saving';
+            submitBtn.classList.add('loading');
+            
+            try {
+                // Send to Google Apps Script
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ...formData,
+                        token: token
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(document.getElementById('alert'), 'success', 
+                        `✓ ${result.message || 'Entry saved successfully!'}`);
+                    clearForm();
+                } else {
+                    showAlert(document.getElementById('alert'), 'error', 
+                        `Error: ${result.error || 'Failed to save entry'}`);
+                }
+                
+            } catch (error) {
+                console.error('Submission error:', error);
+                showAlert(document.getElementById('alert'), 'error', 
+                    'Network error: Unable to connect to server. Please check your connection and try again.');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('loading');
+            }
+        });
+        
+        /**
+         * Clear the form
+         */
+        function clearForm() {
+            document.getElementById('outreach-form').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('company').focus();
+        }
+        
+        /**
+         * Show alert message
+         */
+        function showAlert(element, type, message) {
+            element.className = `alert alert-${type} show`;
+            element.textContent = message;
+            element.setAttribute('role', 'alert');
+            
+            // Auto-hide after 5 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.classList.remove('show');
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
