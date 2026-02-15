@@ -1,215 +1,515 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Get a Commercial Cleaning Quote | AskMiro Cleaning Services</title>
-<meta name="description" content="Request a professional commercial cleaning quote in London. Offices, warehouses, schools and healthcare facilities. 24-hour response guaranteed.">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get a Commercial Cleaning Quote | AskMiro Cleaning Services</title>
+    <meta name="description" content="Request a professional commercial cleaning quote in London. Offices, warehouses, schools, healthcare facilities, and automotive dealerships. 24-hour response guaranteed.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.png" type="image/png">
 
-<style>
-:root {
-  --navy: #1f2f46;
-  --teal: #2f6f7e;
-  --light: #f4f7f9;
-  --white: #ffffff;
-}
+    <style>
+        :root {
+            --teal: #0D9488;
+            --teal-dark: #0F766E;
+            --charcoal: #1F2937;
+            --slate: #475569;
+            --off-white: #F9FAFB;
+            --white: #FFFFFF;
+            --border: #E5E7EB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: var(--light);
-  color: var(--navy);
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-header {
-  background: var(--navy);
-  padding: 20px;
-}
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--off-white);
+            color: var(--charcoal);
+            line-height: 1.6;
+        }
 
-header a {
-  color: white;
-  text-decoration: none;
-  font-weight: 600;
-}
+        header {
+            background: var(--white);
+            padding: 1.25rem 2rem;
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+        }
 
-.hero {
-  background: linear-gradient(135deg, var(--navy), var(--teal));
-  color: white;
-  padding: 80px 20px;
-  text-align: center;
-}
+        header a {
+            color: var(--charcoal);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-.hero h1 {
-  margin: 0;
-  font-size: 2.5rem;
-}
+        header a:hover {
+            color: var(--teal);
+        }
 
-.hero p {
-  margin-top: 15px;
-  font-size: 1.1rem;
-  opacity: 0.9;
-}
+        .hero {
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+            color: var(--white);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
 
-.container {
-  max-width: 1000px;
-  margin: 60px auto;
-  padding: 0 20px;
-}
+        .hero h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin: 0 0 1rem 0;
+        }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 50px;
-}
+        .hero p {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto;
+        }
 
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
+        .container {
+            max-width: 1100px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
 
-.why {
-  background: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-}
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 3rem;
+            align-items: start;
+        }
 
-.why h3 {
-  margin-top: 0;
-}
+        @media (max-width: 968px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-.why ul {
-  padding-left: 20px;
-  line-height: 1.8;
-}
+        .why {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 2rem;
+        }
 
-form {
-  background: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-}
+        .why h3 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--teal);
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+        }
 
-label {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 6px;
-}
+        .why ul {
+            list-style: none;
+            padding: 0;
+        }
 
-input, select, textarea {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 18px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
+        .why li {
+            padding: 0.75rem 0;
+            padding-left: 1.75rem;
+            position: relative;
+            line-height: 1.6;
+            color: var(--slate);
+        }
 
-textarea {
-  resize: vertical;
-}
+        .why li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--teal);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
 
-button {
-  width: 100%;
-  padding: 15px;
-  background: var(--teal);
-  color: white;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
+        .trust-badge {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
 
-button:hover {
-  background: var(--navy);
-}
+        .trust-badge p {
+            color: var(--slate);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
 
-footer {
-  text-align: center;
-  padding: 40px 20px;
-  font-size: 14px;
-  opacity: 0.7;
-}
-</style>
+        .trust-badge strong {
+            color: var(--charcoal);
+        }
+
+        form {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        form h3 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--charcoal);
+            margin: 0 0 1.5rem 0;
+            font-size: 1.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--charcoal);
+            font-size: 0.9375rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.875rem;
+            margin-bottom: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.3s ease;
+            color: var(--charcoal);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        select {
+            cursor: pointer;
+            background: var(--white);
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--teal);
+            color: var(--white);
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            box-shadow: var(--shadow);
+        }
+
+        button:hover {
+            background: var(--teal-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .form-note {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--off-white);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--slate);
+            border-left: 3px solid var(--teal);
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            font-size: 0.875rem;
+            color: var(--slate);
+            background: var(--white);
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 968px) {
+            .why {
+                position: static;
+            }
+            
+            .hero {
+                padding: 3rem 1.5rem;
+            }
+            
+            .container {
+                margin: 3rem auto;
+                padding: 0 1.5rem;
+            }
+            
+            form, .why {
+                padding: 2rem;
+            }
+        }
+
+        .error-message {
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        input.error, select.error, textarea.error {
+            border-color: #DC2626;
+        }
+
+        input.success, select.success, textarea.success {
+            border-color: #059669;
+        }
+    </style>
 </head>
 
 <body>
 
 <header>
-  <a href="/">← Back to Homepage</a>
+    <a href="/">← Back to Homepage</a>
 </header>
 
 <section class="hero">
-  <h1>Request Your Commercial Cleaning Quote</h1>
-  <p>Tell us about your premises and we will respond within 24 hours.</p>
+    <h1>Request Your Commercial Cleaning Quote</h1>
+    <p>Tell us about your premises and we'll respond within 24 hours with a detailed, no-obligation quote.</p>
 </section>
 
 <div class="container">
-  <div class="grid">
+    <div class="grid">
 
-    <div class="why">
-      <h3>Why AskMiro?</h3>
-      <ul>
-        <li>✔ Managed commercial cleaning service</li>
-        <li>✔ Consistent cleaning teams</li>
-        <li>✔ COSHH compliant processes</li>
-        <li>✔ London & nationwide coverage</li>
-        <li>✔ Quality control inspections</li>
-      </ul>
+        <div class="why">
+            <h3>Why AskMiro?</h3>
+            <ul>
+                <li>Managed commercial cleaning service</li>
+                <li>Consistent cleaning teams</li>
+                <li>COSHH compliant processes</li>
+                <li>London & nationwide coverage</li>
+                <li>Quality control inspections</li>
+                <li>Supervisor oversight</li>
+                <li>Eco-conscious methods</li>
+            </ul>
+            
+            <div class="trust-badge">
+                <p><strong>Fixed monthly rates.</strong> No hidden fees, no surprises. After a site visit, we provide a detailed quote showing exactly what's included.</p>
+            </div>
+        </div>
+
+        <form name="quote-request" method="POST" data-netlify="true" action="/thank-you.html" id="quoteForm" novalidate>
+            <input type="hidden" name="form-name" value="quote-request">
+            <input type="hidden" name="form-timestamp" id="form-timestamp" value="">
+            
+            <h3>Get Your Free Quote</h3>
+
+            <label for="name">Name *</label>
+            <input type="text" id="name" name="name" required placeholder="Your full name" minlength="2" maxlength="100">
+            <div class="error-message" id="name-error">Please enter your full name (at least 2 characters)</div>
+
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" required placeholder="your.email@company.com">
+            <div class="error-message" id="email-error">Please enter a valid email address</div>
+
+            <label for="phone">Phone *</label>
+            <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678" pattern="^[\d\s\+\(\)\-]+$">
+            <div class="error-message" id="phone-error">Please enter a valid phone number</div>
+
+            <label for="postcode">Postcode *</label>
+            <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" pattern="^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$" maxlength="10">
+            <div class="error-message" id="postcode-error">Please enter a valid UK postcode</div>
+
+            <label for="sector">Type of Premises *</label>
+            <select id="sector" name="sector" required>
+                <option value="">Select...</option>
+                <option>Office</option>
+                <option>Warehouse / Distribution Centre</option>
+                <option>School / Education Facility</option>
+                <option>Healthcare Facility</option>
+                <option>Gym / Leisure Centre</option>
+                <option>Residential Block</option>
+                <option>Automotive Dealership</option>
+                <option>Other</option>
+            </select>
+            <div class="error-message" id="sector-error">Please select a premises type</div>
+
+            <label for="frequency">Cleaning Frequency *</label>
+            <select id="frequency" name="frequency" required>
+                <option value="">Select...</option>
+                <option>Daily</option>
+                <option>3x per week</option>
+                <option>2x per week</option>
+                <option>Weekly</option>
+                <option>Fortnightly</option>
+                <option>Monthly</option>
+                <option>One-off Deep Clean</option>
+            </select>
+            <div class="error-message" id="frequency-error">Please select a cleaning frequency</div>
+
+            <label for="message">Tell us about your requirements *</label>
+            <textarea id="message" name="message" rows="5" required placeholder="Site size, access hours, key areas to clean, any current cleaning issues or special requirements..." minlength="20" maxlength="1000"></textarea>
+            <div class="error-message" id="message-error">Please provide details about your requirements (at least 20 characters)</div>
+
+            <button type="submit" id="submitBtn">Request Free Quote</button>
+            
+            <div class="form-note">
+                <strong>What happens next?</strong> We'll contact you within 24 hours to arrange a site visit and provide a detailed quote tailored to your premises.
+            </div>
+        </form>
+
     </div>
-
-    <form name="quote-request" method="POST" data-netlify="true" action="/thank-you.html">
-      <input type="hidden" name="form-name" value="quote-request">
-
-      <label>Name *</label>
-      <input type="text" name="name" required>
-
-      <label>Email *</label>
-      <input type="email" name="email" required>
-
-      <label>Phone *</label>
-      <input type="tel" name="phone" required>
-
-      <label>Postcode *</label>
-      <input type="text" name="postcode" required placeholder="e.g. SW11, EC1, UB3">
-
-      <label>Type of Premises *</label>
-      <select name="sector" required>
-        <option value="">Select...</option>
-        <option>Office</option>
-        <option>Warehouse</option>
-        <option>School</option>
-        <option>Healthcare Facility</option>
-        <option>Gym</option>
-        <option>Residential Block</option>
-        <option>Other</option>
-      </select>
-
-      <label>Cleaning Frequency *</label>
-      <select name="frequency" required>
-        <option value="">Select...</option>
-        <option>Daily</option>
-        <option>3x per week</option>
-        <option>Weekly</option>
-        <option>Fortnightly</option>
-        <option>One-off Deep Clean</option>
-      </select>
-
-      <label>Tell us about your requirements *</label>
-      <textarea name="message" rows="4" required placeholder="Site size, access hours, key areas, current cleaning issues..."></textarea>
-
-      <button type="submit">Request Free Quote</button>
-    </form>
-
-  </div>
 </div>
 
 <footer>
-  © 2026 AskMiro Cleaning Services | London & UK
+    © 2025 AskMiro Cleaning Services | A trading name of Miro Partners Ltd | London & UK
 </footer>
+
+<script>
+// Form validation and anti-spam
+(function() {
+    const form = document.getElementById('quoteForm');
+    const submitBtn = document.getElementById('submitBtn');
+    let formLoadTime = Date.now();
+    
+    // Set timestamp on page load
+    document.getElementById('form-timestamp').value = formLoadTime;
+    
+    // Validation patterns
+    const patterns = {
+        name: /^[a-zA-Z\s\-']{2,100}$/,
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        phone: /^[\d\s\+\(\)\-]{10,}$/,
+        postcode: /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i
+    };
+    
+    // Real-time validation
+    const fields = ['name', 'email', 'phone', 'postcode', 'sector', 'frequency', 'message'];
+    
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + '-error');
+        
+        field.addEventListener('blur', function() {
+            validateField(field, errorDiv);
+        });
+        
+        field.addEventListener('input', function() {
+            if (field.classList.contains('error')) {
+                validateField(field, errorDiv);
+            }
+        });
+    });
+    
+    function validateField(field, errorDiv) {
+        const value = field.value.trim();
+        let isValid = true;
+        
+        // Check if field is empty
+        if (!value) {
+            isValid = false;
+        } else if (field.type === 'text' && field.id === 'name') {
+            isValid = patterns.name.test(value);
+        } else if (field.type === 'email') {
+            isValid = patterns.email.test(value);
+        } else if (field.type === 'tel') {
+            isValid = patterns.phone.test(value);
+        } else if (field.id === 'postcode') {
+            isValid = patterns.postcode.test(value.toUpperCase());
+        } else if (field.tagName === 'SELECT') {
+            isValid = value !== '';
+        } else if (field.tagName === 'TEXTAREA') {
+            isValid = value.length >= 20;
+        }
+        
+        if (isValid) {
+            field.classList.remove('error');
+            field.classList.add('success');
+            errorDiv.classList.remove('show');
+        } else {
+            field.classList.add('error');
+            field.classList.remove('success');
+            errorDiv.classList.add('show');
+        }
+        
+        return isValid;
+    }
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Anti-spam: Check if form was submitted too quickly (less than 3 seconds)
+        const timeSinceLoad = Date.now() - formLoadTime;
+        if (timeSinceLoad < 3000) {
+            alert('Please take a moment to review your submission.');
+            return false;
+        }
+        
+        // Validate all fields
+        let isFormValid = true;
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            if (!validateField(field, errorDiv)) {
+                isFormValid = false;
+            }
+        });
+        
+        if (isFormValid) {
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.style.opacity = '0.7';
+            
+            // Submit the form
+            form.submit();
+        } else {
+            // Scroll to first error
+            const firstError = form.querySelector('.error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
+        }
+    });
+    
+    // Auto-format postcode
+    document.getElementById('postcode').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
+    });
+    
+    // Phone number formatting helper
+    document.getElementById('phone').addEventListener('input', function(e) {
+        // Remove any non-digit, non-space, non-plus, non-bracket, non-hyphen characters
+        this.value = this.value.replace(/[^\d\s\+\(\)\-]/g, '');
+    });
+})();
+</script>
 
 </body>
 </html>
