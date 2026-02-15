@@ -2177,118 +2177,308 @@ footer {
         </div>
     </section>
     
-    <!-- CONTACT -->
-    <section class="contact" id="contact">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag" style="background: rgba(255,255,255,0.2);">Get In Touch</span>
-                <h2>Request a Quote or Site Visit</h2>
-                <p>Tell us about your requirements, and we'll arrange a site visit to provide a detailed quote.</p>
-            </div>
-            
-            <div class="contact-content">
-                <div class="contact-info">
-                    <h3>Contact Information</h3>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">📞</div>
-                        <div class="contact-details">
-                            <h4>Phone</h4>
-                            <p><a href="tel:+442071234567">020 7123 4567</a></p>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">✉️</div>
-                        <div class="contact-details">
-                            <h4>Email</h4>
-                            <p><a href="mailto:info@askmiro.com"><span class="__cf_email__" data-cfemail="73161b1a061316011e3316001600161a1b5d101c1e">[email&#160;protected]</span></a></p>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">📍</div>
-                        <div class="contact-details">
-                            <h4>Service Area</h4>
-                            <p>London & UK-wide</p>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">⏰</div>
-                        <div class="contact-details">
-                            <h4>Office Hours</h4>
-                            <p>Monday – Friday<br>8:00 AM – 6:00 PM</p>
-                        </div>
+   <!-- CONTACT -->
+<section class="contact" id="contact">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag" style="background: rgba(255,255,255,0.2);">Get In Touch</span>
+            <h2>Request a Quote or Site Visit</h2>
+            <p>Tell us about your requirements, and we'll arrange a site visit to provide a detailed quote.</p>
+        </div>
+        
+        <div class="contact-content">
+            <div class="contact-info">
+                <h3>Contact Information</h3>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">📞</div>
+                    <div class="contact-details">
+                        <h4>Phone</h4>
+                        <p><a href="tel:+447549354363">075 4935 4362</a></p>
                     </div>
                 </div>
                 
-                <div class="contact-form">
-                    <h3>Send Us a Message</h3>
-                    <form action="/submit-quote.php" method="POST">
-                        <input type="hidden" name="form-time" id="form-time" value="">
-                        
-                        <div class="form-group">
-                            <label for="name">Your Name *</label>
-                            <input type="text" id="name" name="name" required placeholder="John Smith">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="email">Email Address *</label>
-                            <input type="email" id="email" name="email" required placeholder="john@company.com">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="phone">Phone Number *</label>
-                            <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="service">Service Required *</label>
-                            <select id="service" name="service" required>
-                                <option value="">Select a service</option>
-                                <option value="office">Office Cleaning</option>
-                                <option value="residential">Residential Block Cleaning</option>
-                                <option value="warehouse">Warehouse Cleaning</option>
-                                <option value="school">School Cleaning</option>
-                                <option value="healthcare">Healthcare Cleaning</option>
-                                <option value="gym">Gym & Leisure Cleaning</option>
-                                <option value="automotive">Automotive Cleaning</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="message">Additional Details</label>
-                            <textarea id="message" name="message" rows="4" placeholder="Tell us about your site, frequency requirements, and any specific concerns..."></textarea>
-                        </div>
-                        
-                        <div class="form-consent">
-                            <input type="checkbox" id="consent" name="consent" required>
-                            <label for="consent">I consent to AskMiro storing my information and contacting me about my enquiry. See our <a href="#privacy-policy">Privacy Policy</a>.</label>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">Send Enquiry</button>
-                    </form>
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("form-time").value = Date.now();
-});
-
-document.querySelector("form").addEventListener("submit", function(e) {
-    const submittedAt = document.getElementById("form-time").value;
-    const now = Date.now();
-    if ((now - submittedAt) < 4000) {
-        e.preventDefault();
-    }
-});
-</script>
-
+                <div class="contact-item">
+                    <div class="contact-icon">✉️</div>
+                    <div class="contact-details">
+                        <h4>Email</h4>
+                        <p><a href="mailto:info@askmiro.com">info@askmiro.com</a></p>
+                    </div>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">📍</div>
+                    <div class="contact-details">
+                        <h4>Service Area</h4>
+                        <p>London & UK-wide</p>
+                    </div>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">⏰</div>
+                    <div class="contact-details">
+                        <h4>Office Hours</h4>
+                        <p>Monday – Friday<br>8:00 AM – 6:00 PM</p>
+                    </div>
                 </div>
             </div>
+            
+            <div class="contact-form">
+                <h3>Send Us a Message</h3>
+                <form name="contact"
+                      method="POST"
+                      data-netlify="true"
+                      data-netlify-honeypot="bot-field"
+                      action="/thank-you.html"
+                      id="contactForm">
+                    
+                    <input type="hidden" name="form-name" value="contact">
+                    
+                    <!-- Honeypot spam protection -->
+                    <p style="display:none;">
+                        <label>Leave this field empty:
+                            <input name="bot-field" autocomplete="off">
+                        </label>
+                    </p>
+                    
+                    <!-- Time-based anti-spam -->
+                    <input type="hidden" name="form-time" id="form-time">
+                    
+                    <div class="form-group">
+                        <label for="contact-name">Your Name *</label>
+                        <input type="text"
+                               id="contact-name"
+                               name="name"
+                               required
+                               minlength="2"
+                               maxlength="100"
+                               placeholder="John Smith">
+                        <div class="error-message" id="contact-name-error">Please enter your full name (at least 2 characters)</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-email">Email Address *</label>
+                        <input type="email"
+                               id="contact-email"
+                               name="email"
+                               required
+                               placeholder="john@company.com">
+                        <div class="error-message" id="contact-email-error">Please enter a valid email address</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-phone">Phone Number *</label>
+                        <input type="tel"
+                               id="contact-phone"
+                               name="phone"
+                               required
+                               pattern="^[\d\s\+\(\)\-]{10,}$"
+                               placeholder="020 1234 5678">
+                        <div class="error-message" id="contact-phone-error">Please enter a valid phone number</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-postcode">Postcode *</label>
+                        <input type="text"
+                               id="contact-postcode"
+                               name="postcode"
+                               required
+                               minlength="3"
+                               maxlength="10"
+                               pattern="^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$"
+                               placeholder="e.g. SW11 2BA">
+                        <div class="error-message" id="contact-postcode-error">Please enter a valid UK postcode</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-sector">Type of Facility *</label>
+                        <select id="contact-sector"
+                                name="sector"
+                                required>
+                            <option value="">Please select...</option>
+                            <option value="Office">Office</option>
+                            <option value="Residential Block">Residential Block</option>
+                            <option value="Warehouse">Warehouse / Industrial</option>
+                            <option value="School">School / Education</option>
+                            <option value="Healthcare">Healthcare / Clinic</option>
+                            <option value="Gym">Gym / Leisure</option>
+                            <option value="Automotive">Automotive Dealership</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="error-message" id="contact-sector-error">Please select a facility type</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-frequency">Cleaning Frequency *</label>
+                        <select id="contact-frequency"
+                                name="frequency"
+                                required>
+                            <option value="">Please select...</option>
+                            <option value="Daily">Daily</option>
+                            <option value="3x per week">3x per week</option>
+                            <option value="2x per week">2x per week</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Fortnightly">Fortnightly</option>
+                            <option value="One-off Deep Clean">One-off Deep Clean</option>
+                        </select>
+                        <div class="error-message" id="contact-frequency-error">Please select a cleaning frequency</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="contact-message">Tell us about your requirements *</label>
+                        <textarea id="contact-message"
+                                  name="message"
+                                  required
+                                  minlength="20"
+                                  maxlength="1000"
+                                  rows="4"
+                                  placeholder="Size of site, access hours, current cleaning issues, any specific requirements..."></textarea>
+                        <div class="error-message" id="contact-message-error">Please provide details about your requirements (at least 20 characters)</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.1); border-radius: 8px; font-size: 0.9rem; line-height: 1.6; border-left: 3px solid rgba(255, 255, 255, 0.3);">
+                        <strong>Privacy Notice:</strong>
+                        By submitting this form, you consent to AskMiro storing and processing your personal information to respond to your enquiry.
+                        We will not share your data with third parties.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="contactSubmitBtn" style="width: 100%; background: var(--white); color: var(--teal); font-weight: 600;">
+                        Request Free Quote
+                    </button>
+                </form>
+            </div>
         </div>
-    </section>
+    </div>
+</section>
+
+<!-- Contact Form Validation Script -->
+<script>
+(function() {
+    const form = document.getElementById('contactForm');
+    const submitBtn = document.getElementById('contactSubmitBtn');
+    let formLoadTime = Date.now();
+    
+    // Set timestamp on page load
+    document.getElementById('form-time').value = formLoadTime;
+    
+    // Validation patterns
+    const patterns = {
+        name: /^[a-zA-Z\s\-']{2,100}$/,
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        phone: /^[\d\s\+\(\)\-]{10,}$/,
+        postcode: /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i
+    };
+    
+    // Field definitions
+    const fields = [
+        'contact-name',
+        'contact-email',
+        'contact-phone',
+        'contact-postcode',
+        'contact-sector',
+        'contact-frequency',
+        'contact-message'
+    ];
+    
+    // Attach validation listeners
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + '-error');
+        
+        field.addEventListener('blur', function() {
+            validateField(field, errorDiv);
+        });
+        
+        field.addEventListener('input', function() {
+            if (field.classList.contains('error')) {
+                validateField(field, errorDiv);
+            }
+        });
+    });
+    
+    function validateField(field, errorDiv) {
+        const value = field.value.trim();
+        let isValid = true;
+        
+        // Check if field is empty
+        if (!value) {
+            isValid = false;
+        } else if (field.id === 'contact-name') {
+            isValid = patterns.name.test(value);
+        } else if (field.id === 'contact-email') {
+            isValid = patterns.email.test(value);
+        } else if (field.id === 'contact-phone') {
+            isValid = patterns.phone.test(value);
+        } else if (field.id === 'contact-postcode') {
+            isValid = patterns.postcode.test(value.toUpperCase());
+        } else if (field.tagName === 'SELECT') {
+            isValid = value !== '';
+        } else if (field.id === 'contact-message') {
+            isValid = value.length >= 20;
+        }
+        
+        if (isValid) {
+            field.classList.remove('error');
+            field.classList.add('success');
+            errorDiv.classList.remove('show');
+        } else {
+            field.classList.add('error');
+            field.classList.remove('success');
+            errorDiv.classList.add('show');
+        }
+        
+        return isValid;
+    }
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        // Anti-spam: Check if form was submitted too quickly (less than 4 seconds)
+        const timeSinceLoad = Date.now() - formLoadTime;
+        if (timeSinceLoad < 4000) {
+            e.preventDefault();
+            alert('Please take a moment to review your submission.');
+            return false;
+        }
+        
+        // Validate all fields
+        let isFormValid = true;
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            if (!validateField(field, errorDiv)) {
+                isFormValid = false;
+            }
+        });
+        
+        if (!isFormValid) {
+            e.preventDefault();
+            // Scroll to first error
+            const firstError = form.querySelector('.error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
+        } else {
+            // Form is valid, let it submit naturally to Netlify
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.style.opacity = '0.7';
+            // Don't prevent default - let Netlify handle it
+        }
+    });
+    
+    // Auto-format postcode
+    document.getElementById('contact-postcode').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
+    });
+    
+    // Phone number formatting helper
+    document.getElementById('contact-phone').addEventListener('input', function(e) {
+        // Remove any non-digit, non-space, non-plus, non-bracket, non-hyphen characters
+        this.value = this.value.replace(/[^\d\s\+\(\)\-]/g, '');
+    });
+})();
+</script>
     
     <!-- FOOTER -->
     <footer>
