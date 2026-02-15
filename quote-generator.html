@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Generator | AskMiro Cleaning Services</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0D9488">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --teal: #0D9488;
+            --teal-dark: #0F766E;
+            --charcoal: #1F2937;
+            --slate: #475569;
+            --off-white: #F9FAFB;
+            --white: #FFFFFF;
+            --border: #E5E7EB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--off-white);
+            color: var(--charcoal);
+            line-height: 1.6;
+            padding: 0;
+        }
+        
+        /* NAVIGATION */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            color: var(--charcoal);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-text .ask {
+            color: var(--charcoal);
+        }
+
+        .logo-text .miro {
+            color: var(--teal);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--charcoal);
+            font-weight: 500;
+            font-size: 0.9375rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-links a:hover {
+            color: var(--teal);
+        }
+
+        .nav-cta {
+            background: var(--teal);
+            color: var(--white) !important;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+        }
+
+        .nav-cta:hover {
+            background: var(--teal-dark);
+            transform: translateY(-1px);
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--charcoal);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 80px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            color: var(--charcoal);
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: var(--slate);
+        }
+        
+        .calculator {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            color: var(--charcoal);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--teal);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 6px;
+            font-size: 0.9375rem;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+        
+        select {
+            cursor: pointer;
+            background: var(--white);
+        }
+        
+        .results {
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+            color: var(--white);
+            padding: 40px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+        
+        .results h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .quote-details {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .quote-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .quote-row:last-child {
+            border-bottom: none;
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding-top: 20px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            background: var(--teal);
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-primary:hover {
+            background: var(--teal-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-secondary {
+            background: var(--white);
+            color: var(--teal);
+            border: 2px solid var(--teal);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--teal);
+            color: var(--white);
+        }
+        
+        .info-banner {
+            background: rgba(13, 148, 136, 0.1);
+            border-left: 4px solid var(--teal);
+            padding: 16px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .help-text {
+            font-size: 0.875rem;
+            color: var(--slate);
+            margin-top: 4px;
+        }
+        
+        .error-message {
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        input.error, select.error {
+            border-color: #DC2626;
+        }
+
+        input.success, select.success {
+            border-color: #059669;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin-top: 70px;
+            }
+            
+            .calculator, .results {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+        }
+        
+        @media print {
+            nav, .calculator, button {
+                display: none;
+            }
+            
+            .results {
+                background: var(--white);
+                color: var(--charcoal);
+                box-shadow: none;
+            }
+            
+            .quote-details {
+                background: var(--off-white);
+                border: 1px solid var(--border);
+            }
+            
+            .quote-row {
+                border-bottom-color: var(--border);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav id="nav">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/favicon.svg" alt="" class="logo-icon">
+                <span class="logo-text"><span class="ask">Ask</span><span class="miro">Miro</span></span>
+            </a>
+            <button class="mobile-toggle" aria-label="Menu">☰</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/margin-calculator.html">Margin Calculator</a></li>
+                <li><a href="/tracker.html">Outreach Tracker</a></li>
+                <li><a href="/quote-generator.html" class="nav-cta">Quote Generator</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Commercial Cleaning Quote Generator</h1>
+            <p>Generate instant pricing estimates for cleaning services</p>
+        </div>
+        
+        <div class="calculator">
+            <div class="info-banner">
+                💡 <strong>Quick Quote:</strong> Enter your facility details below to receive an instant estimate. Final pricing subject to site visit.
+            </div>
+            
+            <form id="quote-form">
+                <!-- Client Information -->
+                <div class="section">
+                    <h2>Client Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="client-name">Client Name</label>
+                            <input 
+                                type="text" 
+                                id="client-name" 
+                                placeholder="Company or individual name"
+                                minlength="2"
+                                maxlength="100">
+                            <div class="error-message" id="client-name-error">Please enter a valid name (at least 2 characters)</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                placeholder="client@company.com">
+                            <div class="error-message" id="email-error">Please enter a valid email address</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Facility Details -->
+                <div class="section">
+                    <h2>Facility Details</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="facility-type">Facility Type <span style="color: #DC2626;">*</span></label>
+                            <select id="facility-type" onchange="validateAndCalculate()" required>
+                                <option value="">Select type...</option>
+                                <option value="office">Office</option>
+                                <option value="warehouse">Warehouse / Industrial</option>
+                                <option value="school">School / Education</option>
+                                <option value="healthcare">Healthcare Facility</option>
+                                <option value="gym">Gym / Leisure Centre</option>
+                                <option value="residential">Residential Block</option>
+                                <option value="automotive">Automotive Dealership</option>
+                                <option value="retail">Retail / Shop</option>
+                            </select>
+                            <div class="error-message" id="facility-type-error">Please select a facility type</div>
+                            <span class="help-text">Different facilities have different cleaning requirements</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="square-feet">Square Footage <span style="color: #DC2626;">*</span></label>
+                            <input 
+                                type="number" 
+                                id="square-feet" 
+                                value="5000" 
+                                min="500" 
+                                max="500000"
+                                step="100" 
+                                oninput="validateAndCalculate()"
+                                required>
+                            <div class="error-message" id="square-feet-error">Please enter square footage (500-500,000 sq ft)</div>
+                            <span class="help-text">Total cleanable area in sq ft</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="frequency">Cleaning Frequency</label>
+                            <select id="frequency" onchange="validateAndCalculate()">
+                                <option value="5">Daily (5x per week)</option>
+                                <option value="3" selected>3x per week</option>
+                                <option value="2">2x per week</option>
+                                <option value="1">Weekly</option>
+                                <option value="0.5">Fortnightly</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="service-level">Service Level</label>
+                            <select id="service-level" onchange="validateAndCalculate()">
+                                <option value="basic">Basic (£0.08/sq ft)</option>
+                                <option value="standard" selected>Standard (£0.12/sq ft)</option>
+                                <option value="premium">Premium (£0.18/sq ft)</option>
+                                <option value="deep">Deep Clean (£0.25/sq ft)</option>
+                            </select>
+                            <span class="help-text">Higher levels include more detailed cleaning</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Services -->
+                <div class="section">
+                    <h2>Additional Services (Optional)</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="carpet-cleaning" onchange="validateAndCalculate()"> 
+                                Carpet Cleaning (+£200/month)
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="window-cleaning" onchange="validateAndCalculate()"> 
+                                Window Cleaning (+£150/month)
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="waste-management" onchange="validateAndCalculate()"> 
+                                Waste Management (+£100/month)
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="supplies" onchange="validateAndCalculate()"> 
+                                Include Supplies (+15%)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-primary" onclick="calculate()">Calculate Quote</button>
+                    <button type="button" class="btn-secondary" onclick="downloadQuote()">Download PDF</button>
+                    <button type="button" class="btn-secondary" onclick="emailQuote()">Email Quote</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h3>📋 Your Quote Estimate</h3>
+            
+            <div class="quote-details">
+                <div class="quote-row">
+                    <span>Facility Type:</span>
+                    <span id="result-facility">-</span>
+                </div>
+                <div class="quote-row">
+                    <span>Square Footage:</span>
+                    <span id="result-sqft">-</span>
+                </div>
+                <div class="quote-row">
+                    <span>Cleaning Frequency:</span>
+                    <span id="result-frequency">-</span>
+                </div>
+                <div class="quote-row">
+                    <span>Service Level:</span>
+                    <span id="result-level">-</span>
+                </div>
+                <div class="quote-row">
+                    <span>Base Monthly Cost:</span>
+                    <span id="result-base">£0.00</span>
+                </div>
+                <div class="quote-row" id="additional-row" style="display: none;">
+                    <span>Additional Services:</span>
+                    <span id="result-additional">£0.00</span>
+                </div>
+                <div class="quote-row">
+                    <span>Total Monthly Cost:</span>
+                    <span id="result-total">£0.00</span>
+                </div>
+            </div>
+            
+            <p style="text-align: center; font-size: 0.9rem; opacity: 0.9;">
+                ✓ This is an estimate. Final pricing confirmed after site visit.<br>
+                ✓ All prices include VAT. Contract terms: 3-12 months.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Validation patterns
+        const patterns = {
+            name: /^[a-zA-Z\s\-']{2,100}$/,
+            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        };
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Attach blur validation for client info
+            document.getElementById('client-name').addEventListener('blur', function() {
+                validateField('client-name');
+            });
+            
+            document.getElementById('email').addEventListener('blur', function() {
+                validateField('email');
+            });
+            
+            document.getElementById('square-feet').addEventListener('blur', function() {
+                validateField('square-feet');
+            });
+            
+            // Initial calculation
+            validateAndCalculate();
+        });
+        
+        /**
+         * Validate individual field
+         */
+        function validateField(fieldId) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            const value = field.value.trim();
+            let isValid = true;
+            
+            if (fieldId === 'client-name') {
+                if (value && !patterns.name.test(value)) {
+                    isValid = false;
+                }
+            } else if (fieldId === 'email') {
+                if (value && !patterns.email.test(value)) {
+                    isValid = false;
+                }
+            } else if (fieldId === 'square-feet') {
+                const sqft = parseFloat(value);
+                if (!sqft || sqft < 500 || sqft > 500000) {
+                    isValid = false;
+                }
+            } else if (fieldId === 'facility-type') {
+                if (!value) {
+                    isValid = false;
+                }
+            }
+            
+            if (errorDiv) {
+                if (isValid) {
+                    field.classList.remove('error');
+                    field.classList.add('success');
+                    errorDiv.classList.remove('show');
+                } else {
+                    field.classList.add('error');
+                    field.classList.remove('success');
+                    errorDiv.classList.add('show');
+                }
+            }
+            
+            return isValid;
+        }
+        
+        /**
+         * Validate required fields and calculate
+         */
+        function validateAndCalculate() {
+            // Validate required fields
+            const facilityValid = validateField('facility-type');
+            const sqftValid = validateField('square-feet');
+            
+            // Only calculate if required fields are valid
+            if (facilityValid && sqftValid) {
+                calculate();
+            }
+        }
+        
+        /**
+         * Calculate quote
+         */
+        function calculate() {
+            const facilityType = document.getElementById('facility-type').value;
+            const squareFeet = parseFloat(document.getElementById('square-feet').value) || 0;
+            const frequency = parseFloat(document.getElementById('frequency').value);
+            const serviceLevel = document.getElementById('service-level').value;
+            
+            if (!facilityType || squareFeet === 0 || squareFeet < 500) {
+                document.getElementById('results').style.display = 'none';
+                return;
+            }
+            
+            // Get rate per sq ft based on service level
+            let rate;
+            let levelName;
+            switch(serviceLevel) {
+                case 'basic':
+                    rate = 0.08;
+                    levelName = 'Basic';
+                    break;
+                case 'standard':
+                    rate = 0.12;
+                    levelName = 'Standard';
+                    break;
+                case 'premium':
+                    rate = 0.18;
+                    levelName = 'Premium';
+                    break;
+                case 'deep':
+                    rate = 0.25;
+                    levelName = 'Deep Clean';
+                    break;
+                default:
+                    rate = 0.12;
+                    levelName = 'Standard';
+            }
+            
+            // Calculate base cost
+            const weeklyCleans = frequency;
+            const weeksPerMonth = 4.33;
+            const baseCost = squareFeet * rate * weeklyCleans * weeksPerMonth;
+            
+            // Add optional services
+            let additionalCost = 0;
+            const addons = [];
+            
+            if (document.getElementById('carpet-cleaning').checked) {
+                additionalCost += 200;
+                addons.push('Carpet Cleaning');
+            }
+            if (document.getElementById('window-cleaning').checked) {
+                additionalCost += 150;
+                addons.push('Window Cleaning');
+            }
+            if (document.getElementById('waste-management').checked) {
+                additionalCost += 100;
+                addons.push('Waste Management');
+            }
+            
+            let totalCost = baseCost + additionalCost;
+            
+            // Add supplies markup if selected
+            if (document.getElementById('supplies').checked) {
+                const suppliesCost = totalCost * 0.15;
+                additionalCost += suppliesCost;
+                totalCost += suppliesCost;
+                addons.push('Supplies & Consumables');
+            }
+            
+            // Update display
+            document.getElementById('result-facility').textContent = 
+                facilityType.charAt(0).toUpperCase() + facilityType.slice(1);
+            document.getElementById('result-sqft').textContent = squareFeet.toLocaleString() + ' sq ft';
+            
+            let freqText;
+            switch(frequency) {
+                case 5: freqText = 'Daily (5x per week)'; break;
+                case 3: freqText = '3x per week'; break;
+                case 2: freqText = '2x per week'; break;
+                case 1: freqText = 'Weekly'; break;
+                case 0.5: freqText = 'Fortnightly'; break;
+                default: freqText = frequency + 'x per week';
+            }
+            document.getElementById('result-frequency').textContent = freqText;
+            document.getElementById('result-level').textContent = levelName;
+            document.getElementById('result-base').textContent = '£' + baseCost.toFixed(2);
+            
+            if (additionalCost > 0) {
+                document.getElementById('additional-row').style.display = 'flex';
+                document.getElementById('result-additional').textContent = '£' + additionalCost.toFixed(2);
+            } else {
+                document.getElementById('additional-row').style.display = 'none';
+            }
+            
+            document.getElementById('result-total').textContent = '£' + totalCost.toFixed(2);
+            
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        /**
+         * Download quote as PDF
+         */
+        function downloadQuote() {
+            // Validate required fields first
+            const facilityType = document.getElementById('facility-type').value;
+            const squareFeet = parseFloat(document.getElementById('square-feet').value) || 0;
+            
+            if (!facilityType) {
+                alert('Please select a facility type first');
+                document.getElementById('facility-type').focus();
+                return;
+            }
+            
+            if (!squareFeet || squareFeet < 500) {
+                alert('Please enter a valid square footage (minimum 500 sq ft)');
+                document.getElementById('square-feet').focus();
+                return;
+            }
+            
+            // Use browser print as simple PDF generation
+            window.print();
+        }
+        
+        /**
+         * Email quote
+         */
+        function emailQuote() {
+            const email = document.getElementById('email').value.trim();
+            const clientName = document.getElementById('client-name').value.trim();
+            
+            // Validate email
+            if (!email) {
+                alert('Please enter a client email address');
+                document.getElementById('email').focus();
+                return;
+            }
+            
+            if (!validateField('email')) {
+                alert('Please enter a valid email address');
+                document.getElementById('email').focus();
+                return;
+            }
+            
+            // Validate required fields
+            const facilityType = document.getElementById('facility-type').value;
+            const squareFeet = parseFloat(document.getElementById('square-feet').value) || 0;
+            
+            if (!facilityType || !squareFeet || squareFeet < 500) {
+                alert('Please complete all required fields (Facility Type and Square Footage)');
+                return;
+            }
+            
+            // Get quote details
+            const totalCost = document.getElementById('result-total').textContent;
+            const frequency = document.getElementById('result-frequency').textContent;
+            const level = document.getElementById('result-level').textContent;
+            
+            // Create mailto link with quote details
+            const subject = encodeURIComponent('AskMiro Cleaning Services - Quote Estimate');
+            const body = encodeURIComponent(`Dear ${clientName || 'Valued Client'},
+
+Thank you for your interest in AskMiro Cleaning Services.
+
+QUOTE ESTIMATE:
+Facility Type: ${facilityType.charAt(0).toUpperCase() + facilityType.slice(1)}
+Square Footage: ${squareFeet.toLocaleString()} sq ft
+Cleaning Frequency: ${frequency}
+Service Level: ${level}
+
+Estimated Monthly Cost: ${totalCost}
+
+This is an estimate based on the information provided. Final pricing will be confirmed after a site visit.
+
+All prices include VAT. Standard contract terms: 3-12 months.
+
+Best regards,
+AskMiro Cleaning Services
+www.askmiro.com`);
+            
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+        }
+    </script>
+</body>
+</html>
