@@ -4,55 +4,188 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thank You | AskMiro Cleaning Services</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    
     <style>
+        :root {
+            --teal: #0D9488;
+            --teal-dark: #0F766E;
+            --charcoal: #1F2937;
+            --slate: #475569;
+            --off-white: #F9FAFB;
+            --white: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #20344B 0%, #2A8094 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+            color: var(--white);
             text-align: center;
             padding: 2rem;
         }
+        
         .container {
             max-width: 600px;
+            animation: fadeIn 0.6s ease-in;
         }
-        h1 {
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 3rem;
+            margin: 0 auto 2rem;
+            animation: scaleIn 0.5s ease-in 0.2s both;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
             margin-bottom: 1rem;
+            color: var(--white);
         }
+        
         p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
         }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .info-box p {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-box strong {
+            color: var(--white);
+        }
+        
         a {
             display: inline-block;
-            background: white;
-            color: #20344B;
+            background: var(--white);
+            color: var(--teal);
             padding: 1rem 2.5rem;
             text-decoration: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 600;
-            transition: transform 0.3s ease;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+        
         a:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.95);
         }
-        .checkmark {
-            font-size: 5rem;
-            margin-bottom: 1rem;
+        
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-text .ask {
+            color: var(--white);
+        }
+        
+        .logo-text .miro {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .checkmark {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="logo">
+            <span class="logo-text"><span class="ask">Ask</span><span class="miro">Miro</span></span>
+        </div>
+        
         <div class="checkmark">✓</div>
+        
         <h1>Thank You!</h1>
+        
         <p>We've received your enquiry and will respond within 24 hours.</p>
+        
+        <div class="info-box">
+            <p><strong>What happens next?</strong></p>
+            <p>Our team will review your requirements and contact you to arrange a site visit and provide a detailed quote.</p>
+        </div>
+        
         <a href="/">Return to Homepage</a>
     </div>
 </body>
