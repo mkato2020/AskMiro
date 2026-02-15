@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Free commercial cleaning margin calculator. Calculate gross margin, net profit, and minimum viable hourly rate for cleaning contracts.">
-     <!-- Favicons -->
+    
+    <!-- Favicons -->
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -12,10 +13,27 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#0D9488">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 
     <title>Margin Calculator | AskMiro Cleaning Services London</title>
     
     <style>
+        :root {
+            --teal: #0D9488;
+            --teal-dark: #0F766E;
+            --charcoal: #1F2937;
+            --slate: #475569;
+            --off-white: #F9FAFB;
+            --white: #FFFFFF;
+            --border: #E5E7EB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -23,10 +41,11 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f7fa;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--off-white);
             padding: 20px;
             line-height: 1.6;
+            color: var(--charcoal);
         }
         
         .container {
@@ -49,32 +68,32 @@
         }
         
         .logo-text {
+            font-family: 'Outfit', sans-serif;
             font-size: 32px;
-            font-weight: 700;
-            color: #2A8094;
+            font-weight: 800;
             letter-spacing: -0.5px;
         }
         
         .logo-text .ask {
-            color: #636E72;
+            color: var(--charcoal);
         }
         
         .logo-text .miro {
-            color: #2A8094;
+            color: var(--teal);
         }
         
         .back-link {
             display: inline-block;
-            color: #2A8094;
+            color: var(--teal);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 20px;
             transition: color 0.2s;
             font-size: 0.95em;
         }
         
         .back-link:hover {
-            color: #20344B;
+            color: var(--teal-dark);
         }
         
         .back-link::before {
@@ -87,32 +106,33 @@
         }
         
         .header h1 {
-            color: #2A8094;
+            font-family: 'Outfit', sans-serif;
+            color: var(--charcoal);
             font-size: 2.2em;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 10px;
         }
         
         .header p {
-            color: #636E72;
+            color: var(--slate);
             font-size: 1.1em;
         }
         
         .calculator {
-            background: white;
+            background: var(--white);
             border-radius: 12px;
             padding: 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-lg);
         }
         
         .info-banner {
-            background: #E8F4F8;
-            border-left: 4px solid #2A8094;
+            background: rgba(13, 148, 136, 0.1);
+            border-left: 4px solid var(--teal);
             padding: 16px 20px;
             margin-bottom: 30px;
             border-radius: 8px;
             font-size: 0.95em;
-            color: #20344B;
+            color: var(--charcoal);
         }
         
         .section {
@@ -120,12 +140,13 @@
         }
         
         .section-title {
+            font-family: 'Outfit', sans-serif;
             font-size: 1.2em;
             font-weight: 600;
-            color: #20344B;
+            color: var(--charcoal);
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #2A8094;
+            border-bottom: 2px solid var(--teal);
         }
         
         .toggle-container {
@@ -137,23 +158,26 @@
         .toggle-btn {
             flex: 1;
             padding: 12px;
-            border: 2px solid #ddd;
-            background: white;
+            border: 2px solid var(--border);
+            background: var(--white);
             border-radius: 8px;
             cursor: pointer;
             font-size: 1em;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--charcoal);
             transition: all 0.2s;
         }
         
         .toggle-btn:hover {
-            border-color: #2A8094;
+            border-color: var(--teal);
+            color: var(--teal);
         }
         
         .toggle-btn.active {
-            background: #2A8094;
-            color: white;
-            border-color: #2A8094;
+            background: var(--teal);
+            color: var(--white);
+            border-color: var(--teal);
         }
         
         .input-group {
@@ -162,8 +186,8 @@
         
         label {
             display: block;
-            font-weight: 500;
-            color: #20344B;
+            font-weight: 600;
+            color: var(--charcoal);
             margin-bottom: 8px;
             font-size: 0.95em;
         }
@@ -171,15 +195,18 @@
         input[type="number"] {
             width: 100%;
             padding: 12px 15px;
-            border: 2px solid #e1e8ed;
+            border: 2px solid var(--border);
             border-radius: 8px;
             font-size: 1em;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--charcoal);
             transition: border-color 0.2s;
         }
         
         input[type="number"]:focus {
             outline: none;
-            border-color: #2A8094;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
         
         .input-prefix {
@@ -196,22 +223,23 @@
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: #636E72;
-            font-weight: 500;
+            color: var(--slate);
+            font-weight: 600;
             pointer-events: none;
         }
         
         .results {
-            background: #f8f9fa;
+            background: var(--off-white);
             padding: 30px;
             border-radius: 10px;
             margin-top: 30px;
         }
         
         .results-title {
+            font-family: 'Outfit', sans-serif;
             font-size: 1.3em;
             font-weight: 600;
-            color: #20344B;
+            color: var(--charcoal);
             margin-bottom: 20px;
             text-align: center;
         }
@@ -221,7 +249,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 0;
-            border-bottom: 1px solid #e1e8ed;
+            border-bottom: 1px solid var(--border);
         }
         
         .result-row:last-child {
@@ -230,13 +258,13 @@
         
         .result-label {
             font-weight: 500;
-            color: #636E72;
+            color: var(--slate);
         }
         
         .result-value {
             font-size: 1.2em;
             font-weight: 600;
-            color: #20344B;
+            color: var(--charcoal);
         }
         
         .margin-indicator {
@@ -249,38 +277,44 @@
         }
         
         .margin-red {
-            background: #fee;
-            color: #c33;
+            background: #FEE2E2;
+            color: #DC2626;
         }
         
         .margin-orange {
-            background: #ffecd1;
-            color: #d97706;
+            background: #FED7AA;
+            color: #D97706;
         }
         
         .margin-green {
-            background: #d1fae5;
+            background: #D1FAE5;
             color: #059669;
         }
         
         .highlight-box {
-            background: #E8F4F8;
-            border-left: 4px solid #2A8094;
+            background: rgba(13, 148, 136, 0.1);
+            border-left: 4px solid var(--teal);
             padding: 20px;
             margin-top: 20px;
             border-radius: 8px;
         }
         
         .highlight-box h3 {
-            color: #2A8094;
+            font-family: 'Outfit', sans-serif;
+            color: var(--teal);
             margin-bottom: 10px;
             font-size: 1.1em;
         }
         
+        .highlight-box p {
+            color: var(--slate);
+        }
+        
         .highlight-value {
+            font-family: 'Outfit', sans-serif;
             font-size: 1.8em;
             font-weight: 700;
-            color: #20344B;
+            color: var(--charcoal);
         }
         
         .button-group {
@@ -292,53 +326,58 @@
         .reset-btn {
             flex: 1;
             padding: 15px;
-            background: #20344B;
-            color: white;
+            background: var(--teal);
+            color: var(--white);
             border: none;
             border-radius: 8px;
             font-size: 1.05em;
             font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
         }
         
         .reset-btn:hover {
-            background: #2A8094;
+            background: var(--teal-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
         
         .share-btn {
             padding: 15px 30px;
-            background: white;
-            color: #2A8094;
-            border: 2px solid #2A8094;
+            background: var(--white);
+            color: var(--teal);
+            border: 2px solid var(--teal);
             border-radius: 8px;
             font-size: 1.05em;
             font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
             cursor: pointer;
             transition: all 0.2s;
         }
         
         .share-btn:hover {
-            background: #2A8094;
-            color: white;
+            background: var(--teal);
+            color: var(--white);
         }
         
         .footer {
             text-align: center;
             margin-top: 40px;
             padding-top: 20px;
-            border-top: 1px solid #e1e8ed;
-            color: #636E72;
+            border-top: 1px solid var(--border);
+            color: var(--slate);
         }
         
         .footer a {
-            color: #2A8094;
+            color: var(--teal);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
         }
         
         .footer a:hover {
-            text-decoration: underline;
+            color: var(--teal-dark);
         }
         
         @media (max-width: 768px) {
@@ -378,8 +417,8 @@
         <!-- Clean SVG Logo -->
         <div class="logo-header">
             <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="#2A8094"/>
-                <path d="M 35,45 L 45,55 L 65,35" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect width="100" height="100" rx="18" fill="#0D9488"/>
+                <path d="M 20,63 L 30,38 L 40,63 L 50,38 L 60,63" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <div class="logo-text">
                 <span class="ask">Ask</span><span class="miro">Miro</span>
@@ -503,7 +542,7 @@
                 
                 <div class="highlight-box">
                     <h3>Minimum Required Hourly Rate</h3>
-                    <p style="color: #636E72; margin-bottom: 10px;">To achieve 15% gross margin:</p>
+                    <p style="margin-bottom: 10px;">To achieve 15% gross margin:</p>
                     <div class="highlight-value" id="minRate">£0.00/hour</div>
                 </div>
             </div>
