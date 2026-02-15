@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AskMiro Outreach Tracker</title>
+    
     <!-- Favicons -->
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -11,8 +13,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#0D9488">
-    
-    <title>AskMiro Outreach Tracker</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,41 +45,113 @@
             background: var(--off-white);
             color: var(--charcoal);
             line-height: 1.6;
-            padding: 20px;
+            padding: 0;
+        }
+        
+        /* NAVIGATION */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid transparent;
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            color: var(--charcoal);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-text .ask {
+            color: var(--charcoal);
+        }
+
+        .logo-text .miro {
+            color: var(--teal);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--charcoal);
+            font-weight: 500;
+            font-size: 0.9375rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-links a:hover {
+            color: var(--teal);
+        }
+
+        .nav-cta {
+            background: var(--teal);
+            color: var(--white) !important;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+        }
+
+        .nav-cta:hover {
+            background: var(--teal-dark);
+            transform: translateY(-1px);
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--charcoal);
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
         }
         
         .container {
             max-width: 900px;
             margin: 0 auto;
-        }
-        
-        .header {
-            background: var(--white);
-            padding: 25px 30px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .header img {
-            height: 50px;
-            width: auto;
-        }
-        
-        .header-text h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--charcoal);
-            margin-bottom: 5px;
-        }
-        
-        .header-text p {
-            color: var(--slate);
-            font-size: 0.9375rem;
+            padding: 20px;
+            margin-top: 80px;
         }
         
         .token-setup {
@@ -92,9 +164,15 @@
         
         .token-setup h2 {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             color: var(--charcoal);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .token-setup > p:first-of-type {
+            font-size: 1.1rem;
+            color: var(--slate);
+            margin-bottom: 20px;
         }
         
         .token-setup.hidden {
@@ -298,7 +376,12 @@
         
         @media (max-width: 768px) {
             body {
+                padding: 0;
+            }
+            
+            .container {
                 padding: 15px;
+                margin-top: 70px;
             }
             
             .form-grid {
@@ -309,12 +392,6 @@
                 flex-direction: column;
             }
             
-            .header {
-                flex-direction: column;
-                text-align: center;
-                padding: 20px;
-            }
-            
             .main-form,
             .token-setup {
                 padding: 20px;
@@ -323,21 +400,33 @@
     </style>
 </head>
 <body>
+    <!-- NAVIGATION -->
+    <nav id="nav">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/favicon.svg" alt="" class="logo-icon">
+                <span class="logo-text"><span class="ask">Ask</span><span class="miro">Miro</span></span>
+            </a>
+            <button class="mobile-toggle" aria-label="Menu">☰</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/margin-calculator.html">Margin Calculator</a></li>
+                <li><a href="/tracker.html">Outreach Tracker</a></li>
+                <li><a href="/quote-generator.html" class="nav-cta">Quote Generator</a></li>
+            </ul>
+        </div>
+    </nav>
+    
     <a href="#main-form" class="skip-link">Skip to main content</a>
     
     <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <img src="askmiro-logo.png" alt="AskMiro Cleaning Services">
-            <div class="header-text">
-                <h1>Outreach Tracker</h1>
-                <p>Log and track all business development outreach activities</p>
-            </div>
-        </header>
+        <!-- Alert Messages -->
+        <div id="alert" class="alert" role="alert" aria-live="polite" aria-atomic="true"></div>
         
         <!-- Token Setup Section -->
         <section class="token-setup" id="token-setup">
-            <h2>Security Setup</h2>
+            <h2>🔐 Outreach Tracker</h2>
+            <p>Log and track all business development outreach activities</p>
             <p class="help-text" style="margin-bottom: 15px;">Enter your access token to use the tracker. This token is stored securely in your browser session.</p>
             
             <div class="form-group">
@@ -355,9 +444,6 @@
             
             <div id="token-alert" class="alert" role="alert" aria-live="polite"></div>
         </section>
-        
-        <!-- Alert Messages -->
-        <div id="alert" class="alert" role="alert" aria-live="polite" aria-atomic="true"></div>
         
         <!-- Main Form -->
         <main class="main-form disabled" id="main-form">
@@ -537,7 +623,6 @@
     
     <script>
         // CONFIGURATION
-        // Replace this URL with your deployed Google Apps Script Web App URL
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBlr_WwPYU1jkJRKpLfI1E8bSeAwP5EbyxuATKZgUIUYTx5lkWTCWqPr07u5oFLlIkWQ/exec';
         
         // Initialize on page load
