@@ -622,184 +622,197 @@
     </div>
     
     <script>
-        // CONFIGURATION
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwIVSSKwwKcK9EgsDcXAMuKvYhGjhuwLshqNjR9dTk_ewUsQBa4uYoDmtCTSpPzeEe0A/exec';
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set today's date as default
-            document.getElementById('date').valueAsDate = new Date();
-            
-            // Check if token exists in session
-            const token = sessionStorage.getItem('askmiro_token');
-            if (token) {
-                unlockTracker();
-            }
-        });
-        
-        /**
-         * Setup token and unlock tracker
-         */
-        function setupToken() {
-            const tokenInput = document.getElementById('access-token');
-            const token = tokenInput.value.trim();
-            const alert = document.getElementById('token-alert');
-            
-            if (!token) {
-                showAlert(alert, 'error', 'Please enter an access token');
-                return;
-            }
-            
-            // Store token in session storage
-            sessionStorage.setItem('askmiro_token', token);
-            
-            // Clear token input for security
-            tokenInput.value = '';
-            
-            // Show success and unlock tracker
-            showAlert(alert, 'success', 'Access granted! Tracker unlocked.');
-            
-            setTimeout(() => {
-                unlockTracker();
-            }, 1000);
-        }
-        
-        /**
-         * Unlock the tracker form
-         */
-        function unlockTracker() {
-            document.getElementById('token-setup').classList.add('hidden');
-            document.getElementById('main-form').classList.remove('disabled');
-            document.getElementById('company').focus();
-        }
-        
-        /**
-         * Handle form submission
-         */
-        document.getElementById('outreach-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Get token
-            const token = sessionStorage.getItem('askmiro_token');
-            if (!token) {
-                showAlert(document.getElementById('alert'), 'error', 'Security token missing. Please refresh and enter your token.');
-                return;
-            }
-            
-            // Validate required fields
-            const company = document.getElementById('company').value.trim();
-            const contactName = document.getElementById('contact-name').value.trim();
-            const status = document.getElementById('status').value;
-            const channel = document.getElementById('channel').value;
-            
-            if (!company) {
-                showAlert(document.getElementById('alert'), 'error', 'Company name is required');
-                document.getElementById('company').focus();
-                return;
-            }
-            
-            if (!contactName) {
-                showAlert(document.getElementById('alert'), 'error', 'Contact name is required');
-                document.getElementById('contact-name').focus();
-                return;
-            }
-            
-            if (!channel) {
-                showAlert(document.getElementById('alert'), 'error', 'Channel is required');
-                document.getElementById('channel').focus();
-                return;
-            }
-            
-            if (!status) {
-                showAlert(document.getElementById('alert'), 'error', 'Status is required');
-                document.getElementById('status').focus();
-                return;
-            }
-            
-            // Collect form data
-            const formData = {
-                date: document.getElementById('date').value,
-                company: company,
-                contactName: contactName,
-                role: document.getElementById('role').value.trim(),
-                channel: channel,
-                messageType: document.getElementById('message-type').value,
-                status: status,
-                followUpDate: document.getElementById('follow-up-date').value,
-                email: document.getElementById('email').value.trim(),
-                phone: document.getElementById('phone').value.trim(),
-                linkedinUrl: document.getElementById('linkedin-url').value.trim(),
-                notes: document.getElementById('notes').value.trim(),
-                outcome: document.getElementById('outcome').value.trim()
-            };
-            
-            // Disable submit button and show loading
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Saving';
-            submitBtn.classList.add('loading');
-            
-            try {
-                // Send to Google Apps Script
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        ...formData,
-                        token: token
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert(document.getElementById('alert'), 'success', 
-                        `✓ ${result.message || 'Entry saved successfully!'}`);
-                    clearForm();
-                } else {
-                    showAlert(document.getElementById('alert'), 'error', 
-                        `Error: ${result.error || 'Failed to save entry'}`);
-                }
-                
-            } catch (error) {
-                console.error('Submission error:', error);
-                showAlert(document.getElementById('alert'), 'error', 
-                    'Network error: Unable to connect to server. Please check your connection and try again.');
-            } finally {
-                // Re-enable submit button
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-                submitBtn.classList.remove('loading');
-            }
-        });
-        
-        /**
-         * Clear the form
-         */
-        function clearForm() {
-            document.getElementById('outreach-form').reset();
-            document.getElementById('date').valueAsDate = new Date();
-            document.getElementById('company').focus();
-        }
-        
-        /**
-         * Show alert message
-         */
-        function showAlert(element, type, message) {
-            element.className = `alert alert-${type} show`;
-            element.textContent = message;
-            element.setAttribute('role', 'alert');
-            
-            // Auto-hide after 5 seconds for success messages
-            if (type === 'success') {
-                setTimeout(() => {
-                    element.classList.remove('show');
-                }, 5000);
-            }
-        }
-    </script>
+  // CONFIGURATION (UPDATED URL)
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrf9d_iNt1tdGZX18Z3556nP-m5DCgaojfxDm--2u3l_5HiHlrKH_pj7Tkv0vQh8HLCA/exec";
+
+  // Initialize on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    // Set today's date as default
+    document.getElementById("date").valueAsDate = new Date();
+
+    // Check if token exists in session
+    const token = sessionStorage.getItem("askmiro_token");
+    if (token) {
+      unlockTracker();
+    }
+  });
+
+  /**
+   * Setup token and unlock tracker
+   */
+  function setupToken() {
+    const tokenInput = document.getElementById("access-token");
+    const token = tokenInput.value.trim();
+    const alert = document.getElementById("token-alert");
+
+    if (!token) {
+      showAlert(alert, "error", "Please enter an access token");
+      return;
+    }
+
+    // Store token in session storage
+    sessionStorage.setItem("askmiro_token", token);
+
+    // Clear token input for security
+    tokenInput.value = "";
+
+    // Show success and unlock tracker
+    showAlert(alert, "success", "Access granted! Tracker unlocked.");
+
+    setTimeout(() => {
+      unlockTracker();
+    }, 1000);
+  }
+
+  /**
+   * Unlock the tracker form
+   */
+  function unlockTracker() {
+    document.getElementById("token-setup").classList.add("hidden");
+    document.getElementById("main-form").classList.remove("disabled");
+    document.getElementById("company").focus();
+  }
+
+  /**
+   * Handle form submission
+   */
+  document.getElementById("outreach-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    // Get token
+    const token = sessionStorage.getItem("askmiro_token");
+    if (!token) {
+      showAlert(
+        document.getElementById("alert"),
+        "error",
+        "Security token missing. Please refresh and enter your token."
+      );
+      return;
+    }
+
+    // Validate required fields
+    const company = document.getElementById("company").value.trim();
+    const contactName = document.getElementById("contact-name").value.trim();
+    const status = document.getElementById("status").value;
+    const channel = document.getElementById("channel").value;
+
+    if (!company) {
+      showAlert(document.getElementById("alert"), "error", "Company name is required");
+      document.getElementById("company").focus();
+      return;
+    }
+
+    if (!contactName) {
+      showAlert(document.getElementById("alert"), "error", "Contact name is required");
+      document.getElementById("contact-name").focus();
+      return;
+    }
+
+    if (!channel) {
+      showAlert(document.getElementById("alert"), "error", "Channel is required");
+      document.getElementById("channel").focus();
+      return;
+    }
+
+    if (!status) {
+      showAlert(document.getElementById("alert"), "error", "Status is required");
+      document.getElementById("status").focus();
+      return;
+    }
+
+    // Collect form data
+    const formData = {
+      token: token, // IMPORTANT: include token
+      date: document.getElementById("date").value,
+      company: company,
+      contactName: contactName,
+      role: document.getElementById("role").value.trim(),
+      channel: channel,
+      messageType: document.getElementById("message-type").value,
+      status: status,
+      followUpDate: document.getElementById("follow-up-date").value,
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      linkedinUrl: document.getElementById("linkedin-url").value.trim(),
+      notes: document.getElementById("notes").value.trim(),
+      outcome: document.getElementById("outcome").value.trim()
+    };
+
+    // Disable submit button and show loading
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Saving";
+    submitBtn.classList.add("loading");
+
+    try {
+      // ✅ Send as SIMPLE POST (no JSON, no headers) to avoid CORS/preflight issues
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body: new URLSearchParams(formData)
+      });
+
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (err) {
+        result = { success: response.ok, message: text };
+      }
+
+      if (result.success) {
+        showAlert(
+          document.getElementById("alert"),
+          "success",
+          `✓ ${result.message || "Entry saved successfully!"}`
+        );
+        clearForm();
+      } else {
+        showAlert(
+          document.getElementById("alert"),
+          "error",
+          `Error: ${result.error || "Failed to save entry"}`
+        );
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      showAlert(
+        document.getElementById("alert"),
+        "error",
+        "Network error: Unable to connect to server. Please try again."
+      );
+    } finally {
+      // Re-enable submit button
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+      submitBtn.classList.remove("loading");
+    }
+  });
+
+  /**
+   * Clear the form
+   */
+  function clearForm() {
+    document.getElementById("outreach-form").reset();
+    document.getElementById("date").valueAsDate = new Date();
+    document.getElementById("company").focus();
+  }
+
+  /**
+   * Show alert message
+   */
+  function showAlert(element, type, message) {
+    element.className = `alert alert-${type} show`;
+    element.textContent = message;
+    element.setAttribute("role", "alert");
+
+    // Auto-hide after 5 seconds for success messages
+    if (type === "success") {
+      setTimeout(() => {
+        element.classList.remove("show");
+      }, 5000);
+    }
+  }
+</script>
 </body>
 </html>
