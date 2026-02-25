@@ -2,12 +2,13 @@
 <html lang="en-GB">
 <head>
     <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
-<!-- End Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
+    <!-- End Google Tag Manager -->
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Get a Commercial Cleaning Quote | AskMiro Cleaning Services</title>
@@ -20,6 +21,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Google tag — tracks quote page visits for retargeting audience -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-PJ7M23PN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GT-PJ7M23PN');
+      gtag('config', 'AW-17948916112');
+    </script>
+
     <style>
         :root {
             --teal: #0D9488; --teal-dark: #0F766E; --charcoal: #1F2937;
@@ -62,8 +74,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         .error-message.show{display:block}
         input.error,select.error,textarea.error{border-color:#DC2626}
         input.success,select.success,textarea.success{border-color:#059669}
-
-        /* Success overlay */
         .success-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center}
         .success-overlay.show{display:flex}
         .success-card{background:#fff;border-radius:20px;padding:40px 44px;max-width:440px;width:90%;text-align:center;box-shadow:0 40px 80px rgba(0,0,0,.3);animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
@@ -73,203 +83,225 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
 
-<!-- Success overlay -->
-<div class="success-overlay" id="successOverlay">
-  <div class="success-card">
-    <div class="success-icon">
-      <svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <h2 style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#1F2937;margin:0 0 8px;letter-spacing:-.3px">Quote Request Received!</h2>
-    <p style="font-size:14px;color:#64748B;line-height:1.7;margin:0 0 24px">We've received your request and our team has been notified. <strong style="color:#1F2937">Mike will be in touch within 24 hours</strong> to arrange a site visit.</p>
-    <div style="background:#F0FDF9;border:1px solid #A7F3D0;border-radius:10px;padding:14px 16px;margin-bottom:24px;text-align:left">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#0D9488;margin-bottom:6px">What happens next?</div>
-      <div style="font-size:13px;color:#0F766E;line-height:1.8">
-        1. Mike reviews your requirements<br>
-        2. We arrange a free site visit<br>
-        3. You receive a detailed proposal
+    <!-- Success overlay -->
+    <div class="success-overlay" id="successOverlay">
+      <div class="success-card">
+        <div class="success-icon">
+          <svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h2 style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#1F2937;margin:0 0 8px;letter-spacing:-.3px">Quote Request Received!</h2>
+        <p style="font-size:14px;color:#64748B;line-height:1.7;margin:0 0 24px">We've received your request and our team has been notified. <strong style="color:#1F2937">Mike will be in touch within 24 hours</strong> to arrange a site visit.</p>
+        <div style="background:#F0FDF9;border:1px solid #A7F3D0;border-radius:10px;padding:14px 16px;margin-bottom:24px;text-align:left">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#0D9488;margin-bottom:6px">What happens next?</div>
+          <div style="font-size:13px;color:#0F766E;line-height:1.8">
+            1. Mike reviews your requirements<br>
+            2. We arrange a free site visit<br>
+            3. You receive a detailed proposal
+          </div>
+        </div>
+        <a href="/" style="display:block;background:#0D9488;color:#fff;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:700;text-decoration:none">← Back to AskMiro</a>
       </div>
     </div>
-    <a href="/" style="display:block;background:#0D9488;color:#fff;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:700;text-decoration:none">← Back to AskMiro</a>
-  </div>
-</div>
 
-<header>
-    <a href="/">← Back to Homepage</a>
-</header>
+    <header>
+        <a href="/">← Back to Homepage</a>
+    </header>
 
-<section class="hero">
-    <h1>Request Your Commercial Cleaning Quote</h1>
-    <p>Tell us about your premises and we'll respond within 24 hours with a detailed, no-obligation quote.</p>
-</section>
+    <section class="hero">
+        <h1>Request Your Commercial Cleaning Quote</h1>
+        <p>Tell us about your premises and we'll respond within 24 hours with a detailed, no-obligation quote.</p>
+    </section>
 
-<div class="container">
-    <div class="grid">
-        <div class="why">
-            <h3>Why AskMiro?</h3>
-            <ul>
-                <li>Managed commercial cleaning service</li>
-                <li>Consistent cleaning teams</li>
-                <li>COSHH compliant processes</li>
-                <li>London & nationwide coverage</li>
-                <li>Quality control inspections</li>
-                <li>Supervisor oversight</li>
-                <li>Eco-conscious methods</li>
-            </ul>
-            <div class="trust-badge">
-                <p><strong>Fixed monthly rates.</strong> No hidden fees, no surprises. After a site visit, we provide a detailed quote showing exactly what's included.</p>
+    <div class="container">
+        <div class="grid">
+            <div class="why">
+                <h3>Why AskMiro?</h3>
+                <ul>
+                    <li>Managed commercial cleaning service</li>
+                    <li>Consistent cleaning teams</li>
+                    <li>COSHH compliant processes</li>
+                    <li>London & nationwide coverage</li>
+                    <li>Quality control inspections</li>
+                    <li>Supervisor oversight</li>
+                    <li>Eco-conscious methods</li>
+                </ul>
+                <div class="trust-badge">
+                    <p><strong>Fixed monthly rates.</strong> No hidden fees, no surprises. After a site visit, we provide a detailed quote showing exactly what's included.</p>
+                </div>
             </div>
+
+            <form name="quote-request" method="POST" data-netlify="true" id="quoteForm" novalidate>
+                <input type="hidden" name="form-name" value="quote-request">
+                <input type="hidden" name="form-timestamp" id="form-timestamp" value="">
+                <h3>Get Your Free Quote</h3>
+
+                <label for="name">Name *</label>
+                <input type="text" id="name" name="name" required placeholder="Your full name" minlength="2" maxlength="100">
+                <div class="error-message" id="name-error">Please enter your full name (at least 2 characters)</div>
+
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required placeholder="your.email@company.com">
+                <div class="error-message" id="email-error">Please enter a valid email address</div>
+
+                <label for="phone">Phone *</label>
+                <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678">
+                <div class="error-message" id="phone-error">Please enter a valid phone number</div>
+
+                <label for="postcode">Postcode *</label>
+                <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" maxlength="10">
+                <div class="error-message" id="postcode-error">Please enter a valid UK postcode</div>
+
+                <label for="sector">Type of Premises *</label>
+                <select id="sector" name="sector" required>
+                    <option value="">Select...</option>
+                    <option>Office</option>
+                    <option>Warehouse / Distribution Centre</option>
+                    <option>School / Education Facility</option>
+                    <option>Healthcare Facility</option>
+                    <option>Gym / Leisure Centre</option>
+                    <option>Residential Block</option>
+                    <option>Automotive Dealership</option>
+                    <option>Other</option>
+                </select>
+                <div class="error-message" id="sector-error">Please select a premises type</div>
+
+                <label for="frequency">Cleaning Frequency *</label>
+                <select id="frequency" name="frequency" required>
+                    <option value="">Select...</option>
+                    <option>Daily</option>
+                    <option>3x per week</option>
+                    <option>2x per week</option>
+                    <option>Weekly</option>
+                    <option>Fortnightly</option>
+                    <option>Monthly</option>
+                    <option>One-off Deep Clean</option>
+                </select>
+                <div class="error-message" id="frequency-error">Please select a cleaning frequency</div>
+
+                <label for="message">Tell us about your requirements *</label>
+                <textarea id="message" name="message" rows="5" required placeholder="Site size, access hours, key areas to clean, any current issues or special requirements..." minlength="20" maxlength="1000"></textarea>
+                <div class="error-message" id="message-error">Please provide details (at least 20 characters)</div>
+
+                <button type="submit" id="submitBtn">Request Free Quote</button>
+                <div class="form-note">
+                    <strong>What happens next?</strong> We'll contact you within 24 hours to arrange a site visit and provide a detailed quote tailored to your premises.
+                </div>
+            </form>
         </div>
-
-        <form name="quote-request" method="POST" data-netlify="true" id="quoteForm" novalidate>
-            <input type="hidden" name="form-name" value="quote-request">
-            <input type="hidden" name="form-timestamp" id="form-timestamp" value="">
-            <h3>Get Your Free Quote</h3>
-
-            <label for="name">Name *</label>
-            <input type="text" id="name" name="name" required placeholder="Your full name" minlength="2" maxlength="100">
-            <div class="error-message" id="name-error">Please enter your full name (at least 2 characters)</div>
-
-            <label for="email">Email *</label>
-            <input type="email" id="email" name="email" required placeholder="your.email@company.com">
-            <div class="error-message" id="email-error">Please enter a valid email address</div>
-
-            <label for="phone">Phone *</label>
-            <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678">
-            <div class="error-message" id="phone-error">Please enter a valid phone number</div>
-
-            <label for="postcode">Postcode *</label>
-            <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" maxlength="10">
-            <div class="error-message" id="postcode-error">Please enter a valid UK postcode</div>
-
-            <label for="sector">Type of Premises *</label>
-            <select id="sector" name="sector" required>
-                <option value="">Select...</option>
-                <option>Office</option><option>Warehouse / Distribution Centre</option>
-                <option>School / Education Facility</option><option>Healthcare Facility</option>
-                <option>Gym / Leisure Centre</option><option>Residential Block</option>
-                <option>Automotive Dealership</option><option>Other</option>
-            </select>
-            <div class="error-message" id="sector-error">Please select a premises type</div>
-
-            <label for="frequency">Cleaning Frequency *</label>
-            <select id="frequency" name="frequency" required>
-                <option value="">Select...</option>
-                <option>Daily</option><option>3x per week</option><option>2x per week</option>
-                <option>Weekly</option><option>Fortnightly</option><option>Monthly</option>
-                <option>One-off Deep Clean</option>
-            </select>
-            <div class="error-message" id="frequency-error">Please select a cleaning frequency</div>
-
-            <label for="message">Tell us about your requirements *</label>
-            <textarea id="message" name="message" rows="5" required placeholder="Site size, access hours, key areas to clean, any current issues or special requirements..." minlength="20" maxlength="1000"></textarea>
-            <div class="error-message" id="message-error">Please provide details (at least 20 characters)</div>
-
-            <button type="submit" id="submitBtn">Request Free Quote</button>
-            <div class="form-note">
-                <strong>What happens next?</strong> We'll contact you within 24 hours to arrange a site visit and provide a detailed quote tailored to your premises.
-            </div>
-        </form>
     </div>
-</div>
 
-<footer>© 2025 AskMiro Cleaning Services | A trading name of Miro Partners Ltd | London & UK</footer>
+    <footer>© 2026 AskMiro Cleaning Services | A trading name of Miro Partners Ltd | London & UK</footer>
 
-<script>
-(function() {
-    const form = document.getElementById('quoteForm');
-    const submitBtn = document.getElementById('submitBtn');
-    let formLoadTime = Date.now();
-    document.getElementById('form-timestamp').value = formLoadTime;
+    <script>
+    (function() {
+        const form = document.getElementById('quoteForm');
+        const submitBtn = document.getElementById('submitBtn');
+        let formLoadTime = Date.now();
+        document.getElementById('form-timestamp').value = formLoadTime;
 
-    const patterns = {
-        name: /^[a-zA-Z\s\-']{2,100}$/,
-        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        phone: /^[\d\s\+\(\)\-]{10,}$/,
-        postcode: /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i
-    };
+        const patterns = {
+            name: /^[a-zA-Z\s\-']{2,100}$/,
+            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            phone: /^[\d\s\+\(\)\-]{10,}$/,
+            postcode: /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i
+        };
 
-    const fields = ['name','email','phone','postcode','sector','frequency','message'];
+        const fields = ['name','email','phone','postcode','sector','frequency','message'];
 
-    fields.forEach(id => {
-        const f = document.getElementById(id);
-        const e = document.getElementById(id + '-error');
-        f.addEventListener('blur', () => validateField(f, e));
-        f.addEventListener('input', () => { if (f.classList.contains('error')) validateField(f, e); });
-    });
-
-    function validateField(field, errorDiv) {
-        const v = field.value.trim();
-        let ok = !!v;
-        if (ok) {
-            if (field.id === 'name') ok = patterns.name.test(v);
-            else if (field.type === 'email') ok = patterns.email.test(v);
-            else if (field.type === 'tel') ok = patterns.phone.test(v);
-            else if (field.id === 'postcode') ok = patterns.postcode.test(v.toUpperCase());
-            else if (field.tagName === 'SELECT') ok = v !== '';
-            else if (field.tagName === 'TEXTAREA') ok = v.length >= 20;
-        }
-        field.classList.toggle('error', !ok);
-        field.classList.toggle('success', ok);
-        errorDiv.classList.toggle('show', !ok);
-        return ok;
-    }
-
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        if (Date.now() - formLoadTime < 3000) return;
-
-        let valid = true;
         fields.forEach(id => {
             const f = document.getElementById(id);
-            if (!validateField(f, document.getElementById(id + '-error'))) valid = false;
+            const e = document.getElementById(id + '-error');
+            f.addEventListener('blur', () => validateField(f, e));
+            f.addEventListener('input', () => { if (f.classList.contains('error')) validateField(f, e); });
         });
 
-        if (!valid) {
-            const firstErr = form.querySelector('.error');
-            if (firstErr) { firstErr.scrollIntoView({behavior:'smooth',block:'center'}); firstErr.focus(); }
-            return;
+        function validateField(field, errorDiv) {
+            const v = field.value.trim();
+            let ok = !!v;
+            if (ok) {
+                if (field.id === 'name') ok = patterns.name.test(v);
+                else if (field.type === 'email') ok = patterns.email.test(v);
+                else if (field.type === 'tel') ok = patterns.phone.test(v);
+                else if (field.id === 'postcode') ok = patterns.postcode.test(v.toUpperCase());
+                else if (field.tagName === 'SELECT') ok = v !== '';
+                else if (field.tagName === 'TEXTAREA') ok = v.length >= 20;
+            }
+            field.classList.toggle('error', !ok);
+            field.classList.toggle('success', ok);
+            errorDiv.classList.toggle('show', !ok);
+            return ok;
         }
 
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting…';
-        submitBtn.style.opacity = '0.7';
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (Date.now() - formLoadTime < 3000) return;
 
-        // 1. Submit to Netlify (saves the form entry)
-        const formData = new FormData(form);
-        try {
-            await fetch('/', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams(formData).toString() });
-        } catch(_) {}
-
-        // 2. Fire to AskMiro Ops API (creates CRM lead + notifies Mike)
-        try {
-            const qs = new URLSearchParams({
-                action: 'webhook.lead',
-                name: formData.get('name') || '',
-                email: formData.get('email') || '',
-                phone: formData.get('phone') || '',
-                postcode: formData.get('postcode') || '',
-                sector: formData.get('sector') || '',
-                frequency: formData.get('frequency') || '',
-                message: formData.get('message') || '',
+            let valid = true;
+            fields.forEach(id => {
+                const f = document.getElementById(id);
+                if (!validateField(f, document.getElementById(id + '-error'))) valid = false;
             });
-            const API = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
-            // Use no-cors image trick to fire-and-forget without CORS issues
-            const img = new Image();
-            img.src = API + '?' + qs.toString() + '&callback=_noop';
-        } catch(_) {}
 
-        // 3. Show success overlay
-        document.getElementById('successOverlay').classList.add('show');
-    });
+            if (!valid) {
+                const firstErr = form.querySelector('.error');
+                if (firstErr) { firstErr.scrollIntoView({behavior:'smooth',block:'center'}); firstErr.focus(); }
+                return;
+            }
 
-    document.getElementById('postcode').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
-    document.getElementById('phone').addEventListener('input', function() { this.value = this.value.replace(/[^\d\s\+\(\)\-]/g,''); });
-    window._noop = function() {};
-})();
-</script>
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting…';
+            submitBtn.style.opacity = '0.7';
+
+            const formData = new FormData(form);
+
+            // 1. Fire Google Ads conversion
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'conversion', {
+                    'send_to': 'AW-17948916112',
+                    'value': 1.0,
+                    'currency': 'GBP'
+                });
+                gtag('event', 'generate_lead');
+            }
+
+            // 2. Submit to Netlify
+            try {
+                await fetch('/', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(formData).toString()
+                });
+            } catch(_) {}
+
+            // 3. Fire to AskMiro Ops API (creates CRM lead + notifies Mike)
+            try {
+                const qs = new URLSearchParams({
+                    action: 'webhook.lead',
+                    name: formData.get('name') || '',
+                    email: formData.get('email') || '',
+                    phone: formData.get('phone') || '',
+                    postcode: formData.get('postcode') || '',
+                    sector: formData.get('sector') || '',
+                    frequency: formData.get('frequency') || '',
+                    message: formData.get('message') || '',
+                });
+                const API = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
+                const img = new Image();
+                img.src = API + '?' + qs.toString() + '&callback=_noop';
+            } catch(_) {}
+
+            // 4. Show success overlay
+            document.getElementById('successOverlay').classList.add('show');
+        });
+
+        document.getElementById('postcode').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+        document.getElementById('phone').addEventListener('input', function() { this.value = this.value.replace(/[^\d\s\+\(\)\-]/g,''); });
+        window._noop = function() {};
+    })();
+    </script>
 </body>
 </html>
