@@ -2,31 +2,49 @@
 <html lang="en-GB">
 <head>
     <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
-<!-- End Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
+    <!-- End Google Tag Manager -->
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thank You | AskMiro Cleaning Services</title>
-    
+    <meta name="robots" content="noindex">
+
+    <!-- Google tag — Conversion tracking fires on this page -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-PJ7M23PN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GT-PJ7M23PN');
+      gtag('config', 'AW-17948916112');
+      // 🎯 Conversion — fires every time someone lands on thank-you
+      gtag('event', 'conversion', {
+        'send_to': 'AW-17948916112',
+        'value': 1.0,
+        'currency': 'GBP'
+      });
+      gtag('event', 'generate_lead');
+    </script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-    
 
     <!-- Favicons -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#0D9488">
-    
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0D9488">
+
     <style>
         :root {
             --teal: #0D9488;
@@ -36,13 +54,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             --off-white: #F9FAFB;
             --white: #FFFFFF;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
@@ -55,45 +67,27 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             text-align: center;
             padding: 2rem;
         }
-        
         .container {
             max-width: 600px;
             animation: fadeIn 0.6s ease-in;
         }
-        
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
         .checkmark {
-            width: 80px;
-            height: 80px;
+            width: 80px; height: 80px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
             font-size: 3rem;
             margin: 0 auto 2rem;
             animation: scaleIn 0.5s ease-in 0.2s both;
         }
-        
         @keyframes scaleIn {
-            from {
-                transform: scale(0);
-            }
-            to {
-                transform: scale(1);
-            }
+            from { transform: scale(0); }
+            to { transform: scale(1); }
         }
-        
         h1 {
             font-family: 'Outfit', sans-serif;
             font-size: clamp(2rem, 5vw, 3rem);
@@ -101,38 +95,46 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             margin-bottom: 1rem;
             color: var(--white);
         }
-        
         p {
             font-size: clamp(1rem, 3vw, 1.25rem);
             line-height: 1.6;
             margin-bottom: 2.5rem;
             opacity: 0.95;
         }
-        
         .info-box {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 2.5rem;
         }
-        
-        .info-box p {
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
+        .info-box p { margin-bottom: 0.5rem; font-size: 1rem; }
+        .info-box p:last-child { margin-bottom: 0; }
+        .info-box strong { color: var(--white); }
+        .steps { text-align: left; margin-top: 1rem; }
+        .step { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .step-num {
+            width: 24px; height: 24px; min-width: 24px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700;
         }
-        
-        .info-box p:last-child {
-            margin-bottom: 0;
+        .step p { margin: 0; font-size: 1rem; opacity: 1; }
+        .contact-row {
+            display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; justify-content: center;
         }
-        
-        .info-box strong {
-            color: var(--white);
+        .contact-pill {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9375rem;
         }
-        
-        a {
+        .contact-pill a { color: var(--white); text-decoration: none; font-weight: 600; }
+        a.back-btn {
             display: inline-block;
             background: var(--white);
             color: var(--teal);
@@ -142,68 +144,66 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             font-weight: 600;
             font-size: 1rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
-        
-        a:hover {
+        a.back-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.95);
         }
-        
         .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 800;
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            font-size: 1.5rem; font-weight: 800;
             font-family: 'Outfit', sans-serif;
             margin-bottom: 2rem;
         }
-        
-        .logo-text .ask {
-            color: var(--white);
-        }
-        
-        .logo-text .miro {
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
         @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .checkmark {
-                width: 60px;
-                height: 60px;
-                font-size: 2rem;
-            }
+            .container { padding: 1rem; }
+            .checkmark { width: 60px; height: 60px; font-size: 2rem; }
         }
     </style>
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
     <div class="container">
         <div class="logo">
-            <span class="logo-text"><span class="ask">Ask</span><span class="miro">Miro</span></span>
+            <span>Ask<span style="color:rgba(255,255,255,0.8)">Miro</span></span>
         </div>
-        
+
         <div class="checkmark">✓</div>
-        
-        <h1>Thank You!</h1>
-        
+
+        <h1>Quote Request Received!</h1>
+
         <p>We've received your enquiry and will respond within 24 hours.</p>
-        
+
         <div class="info-box">
             <p><strong>What happens next?</strong></p>
-            <p>Our team will review your requirements and contact you to arrange a site visit and provide a detailed quote.</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <p>We reviews your requirements — usually within a few hours</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <p>We arrange a <strong>free site visit</strong> at a time that suits you</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <p>You receive a <strong>detailed proposal</strong> — fixed monthly rate, no hidden costs</p>
+                </div>
+            </div>
         </div>
-        
-        <a href="/">Return to Homepage</a>
+
+        <div class="contact-row">
+            <div class="contact-pill">📞 <a href="tel:02080730621">020 8073 0621</a></div>
+            <div class="contact-pill">✉️ <a href="mailto:info@askmiro.com">info@askmiro.com</a></div>
+        </div>
+
+        <a href="/" class="back-btn">← Return to Homepage</a>
     </div>
 </body>
 </html>
