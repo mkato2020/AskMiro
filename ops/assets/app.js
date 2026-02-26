@@ -1,6 +1,11 @@
 // ============================================================
 // AskMiro Ops — app.js  (bootstrap)
 // ============================================================
+import { supabase } from "./supabaseClient.js";
+
+window.supabase = supabase;
+
+// your existing code continues below...
 (async () => {
   // Register all routes
   Router.register('dashboard', Dashboard.render);
