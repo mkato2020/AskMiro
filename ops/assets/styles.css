@@ -208,3 +208,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--of); color: var(--c
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+
+/* ── EMAIL MODULE ─────────────────────────────────────────────── */
+.el-layout { display: grid; grid-template-columns: 200px 1fr; gap: 0; height: calc(100vh - 130px); border: 1px solid var(--bd); border-radius: var(--rs); overflow: hidden; background: var(--wh); }
+.el-sidebar { border-right: 1px solid var(--bd); padding: 12px; background: var(--of); display: flex; flex-direction: column; gap: 2px; }
+.el-tab { padding: 9px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--sl); display: flex; align-items: center; transition: var(--tr); }
+.el-tab:hover { background: var(--wh); color: var(--dk); }
+.el-tab.active { background: var(--wh); color: var(--t); font-weight: 600; box-shadow: var(--sh); }
+.el-body { padding: 20px; overflow-y: auto; }
