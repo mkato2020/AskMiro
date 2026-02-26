@@ -4,16 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AskMiro Ops</title>
-
-<!-- FIX: allow Apps Script JSONP domains -->
-<meta http-equiv="Content-Security-Policy" content="
-default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
-script-src 'self' 'unsafe-inline' https://esm.sh https://cdn.jsdelivr.net;
-style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-connect-src 'self' https://ijpuizwmcxkictqyjcrf.supabase.co wss://ijpuizwmcxkictqyjcrf.supabase.co;
-img-src 'self' data:;
-">
-
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:;">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
@@ -133,6 +124,6 @@ img-src 'self' data:;
 <script src="modules/finance.js"></script>
 <script src="modules/admin.js"></script>
 <script src="modules/email.js"></script>
-<script type="module" src="assets/app.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
