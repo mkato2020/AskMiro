@@ -236,75 +236,90 @@ const Email = (() => {
 
     'Introduction': {
       icon: '👋', badge: 'Outreach',
-      desc: 'First contact with a new prospect. Professional, warm, focused on value.',
+      desc: 'First contact with a new prospect.',
       subject: 'Managed Commercial Cleaning — AskMiro Cleaning Services',
-      html: (name = '') => _wrap('Client Introduction', T.teal,
-        'Discover managed commercial cleaning that actually works — AskMiro Cleaning Services',
+      fields: [
+        { id:'name', label:'Contact Name', ph:'e.g. Sarah Collins' },
+      ],
+      html: (f={}) => _wrap('Client Introduction', T.teal,
+        'Discover managed commercial cleaning that actually works',
         _h('Professional Cleaning. Properly Managed.') +
         _sub('AskMiro Cleaning Services — London &amp; UK') +
-        _gr(name) +
+        _gr(f.name) +
         _p(`We are <strong style="color:${T.charcoal}">AskMiro Cleaning Services</strong> — a managed commercial cleaning company serving offices, warehouses, schools, healthcare facilities, and automotive dealerships across London and the UK.`) +
         _p(`Unlike typical cleaning contractors, we don't just supply staff — we <strong style="color:${T.charcoal}">manage the entire service end-to-end</strong>: consistent teams, supervisor oversight, quality checklists, and a single point of contact for everything.`) +
         _checklist([
-          '<strong>Consistent, site-trained teams</strong> — the same people at your site every visit, not rotating agency staff',
+          '<strong>Consistent, site-trained teams</strong> — the same people at your site every visit',
           '<strong>Supervisor oversight &amp; written quality inspections</strong> — we check the work so you never have to',
           '<strong>COSHH-compliant processes</strong> — full risk assessments and RAMS documentation as standard',
-          '<strong>Eco-conscious products</strong> — dilution control systems and biodegradable chemicals throughout',
-          '<strong>Absence cover guaranteed</strong> — we arrange replacements so your schedule is never disrupted',
+          '<strong>Eco-conscious products</strong> — dilution control systems and biodegradable chemicals',
+          '<strong>Absence cover guaranteed</strong> — replacements arranged, your schedule is never disrupted',
           '<strong>Single point of contact</strong> — reach our team directly, not a call centre',
         ]) +
         _quote(`We don't just supply cleaners — we manage the service. Our clients don't worry about cleaning because we handle everything, every time.`) +
-        _p(`We'd love to arrange a <strong style="color:${T.charcoal}">free, no-obligation site visit</strong> to understand your requirements. Most proposals are returned within 48 hours, with a fixed monthly rate and no hidden costs.`) +
-        _cta('&#128197;&nbsp; Book a Free Site Visit', `mailto:${EMAIL}?subject=Site Visit Request`) +
+        _p(`We'd love to arrange a <strong style="color:${T.charcoal}">free, no-obligation site visit</strong>. Most proposals are returned within 48 hours with a fixed monthly rate and no hidden costs.`) +
+        _cta('&#128197; Book a Free Site Visit', `mailto:${EMAIL}?subject=Site Visit Request`) +
         _div() +
-        _sm('AskMiro Cleaning Services is fully insured, COSHH compliant, and covered by public liability insurance. References available on request.')
-      )
+        _sm('AskMiro Cleaning Services is fully insured, COSHH compliant, and covered by public liability insurance.')
+      ),
     },
 
     'Proposal / Quote': {
       icon: '📋', badge: 'Proposal',
-      desc: 'Post-site-visit proposal with pricing, inclusions, and a clear accept CTA.',
-      subject: 'AskMiro — Cleaning Proposal for [Company Name]',
-      html: (name = '') => _wrap('Cleaning Proposal', T.tealDark,
+      desc: 'Post-site-visit proposal with pricing and inclusions.',
+      subject: 'AskMiro — Cleaning Proposal for [Company]',
+      fields: [
+        { id:'name',   label:'Contact Name',    ph:'e.g. Sarah Collins'          },
+        { id:'site',   label:'Company / Site',  ph:'e.g. Acme Ltd, 12 High St'   },
+        { id:'amount', label:'Monthly Fee (£)', ph:'e.g. 1200'                   },
+        { id:'visits', label:'Visits per Week', ph:'e.g. 5'                      },
+        { id:'days',   label:'Days',            ph:'e.g. Mon–Fri'                },
+        { id:'hours',  label:'Hours per Visit', ph:'e.g. 3'                      },
+        { id:'areas',  label:'Areas Covered',   ph:'e.g. Offices, Kitchen, WCs'  },
+      ],
+      html: (f={}) => _wrap('Cleaning Proposal', T.tealDark,
         'Your AskMiro cleaning proposal — fixed monthly rate, no hidden costs',
         _h('Your Cleaning Proposal.') +
         _sub('Prepared following our site visit — valid for 30 days') +
-        _gr(name) +
-        _p(`Thank you for your time during our site visit to <strong style="color:${T.charcoal}">[Site Name / Address]</strong>. We're pleased to present our proposal for managed commercial cleaning services.`) +
+        _gr(f.name) +
+        _p(`Thank you for your time during our site visit to <strong style="color:${T.charcoal}">${f.site||'your site'}</strong>. We're pleased to present our proposal for managed commercial cleaning services.`) +
         _statBand([
-          { label: 'Monthly Investment', value: '£[AMOUNT]', sub: 'Fixed — no hidden costs' },
-          { label: 'Visits per Week',    value: '[N]',       sub: '[DAY/S]'                },
-          { label: 'Hours per Visit',    value: '[HRS]hrs',  sub: 'Dedicated team'         },
+          { label:'Monthly Investment', value: f.amount ? '£'+f.amount : '£TBC', sub:'Fixed — no hidden costs' },
+          { label:'Visits per Week',    value: f.visits||'TBC',                  sub: f.days||'To confirm'     },
+          { label:'Hours per Visit',    value: f.hours ? f.hours+'hrs':'TBC',    sub:'Dedicated team'          },
         ]) +
         _p(`<strong style="color:${T.charcoal}">What's included in your service:</strong>`) +
         _checklist([
-          '<strong>[AREAS TO BE CLEANED]</strong>',
+          `<strong>${f.areas||'All agreed areas'}</strong>`,
           'Dedicated cleaning team — inducted and briefed to your site specification',
           'All professional equipment, chemicals and consumables supplied',
           'COSHH risk assessments and full RAMS documentation',
           'Monthly supervisor quality inspection with written report',
           'Absence cover — your schedule is never disrupted',
         ]) +
-        _amber(`<strong>&#9200;&nbsp; This proposal is valid for 30 days from the date of this email.</strong><br>
-          Reply to confirm and we can have your service live within <strong>5–7 working days</strong>.
-          A signed service agreement follows on acceptance.`) +
-        _cta('&#10003;&nbsp; Accept This Proposal', `mailto:${EMAIL}?subject=Accepting Proposal — [Company Name]`) +
+        _amber(`<strong>&#9200; This proposal is valid for 30 days from the date of this email.</strong><br>
+          Reply to confirm and we can have your service live within <strong>5–7 working days</strong>. A signed service agreement follows on acceptance.`) +
+        _cta('&#10003; Accept This Proposal', `mailto:${EMAIL}?subject=Accepting Proposal — ${f.site||''}`) +
         _div() +
-        _sm(`All prices quoted exclusive of VAT. Payment terms: 30 days from invoice. If you'd like to adjust the scope, please get in touch — we're happy to discuss.`)
-      )
+        _sm(`All prices quoted exclusive of VAT. Payment terms: 30 days from invoice. Contact us to adjust scope or frequency.`)
+      ),
     },
 
     'Follow-up': {
       icon: '🔔', badge: 'Follow-up',
-      desc: 'Gentle, professional nudge after a proposal. Keeps the conversation open.',
+      desc: 'Gentle nudge after sending a proposal.',
       subject: 'Following Up — Your AskMiro Cleaning Proposal',
-      html: (name = '') => _wrap('Proposal Follow-up', '#D97706',
+      fields: [
+        { id:'name', label:'Contact Name',   ph:'e.g. Sarah Collins' },
+        { id:'site', label:'Company / Site', ph:'e.g. Acme Ltd'      },
+      ],
+      html: (f={}) => _wrap('Proposal Follow-up', '#D97706',
         'A quick follow-up regarding your AskMiro cleaning proposal',
         _h('Just Checking In.') +
         _sub('Regarding our recent proposal') +
-        _gr(name) +
-        _p(`We hope you're well. We're following up on the proposal we sent for cleaning services at <strong style="color:${T.charcoal}">[Company / Site Name]</strong>.`) +
-        _p(`We'll keep this brief — if the proposal works for you, simply reply and we can get things moving straight away. If you'd like anything adjusted, we're happy to revisit the scope, frequency, or pricing.`) +
+        _gr(f.name) +
+        _p(`We hope you're well. We're following up on the proposal we sent for cleaning services at <strong style="color:${T.charcoal}">${f.site||'your site'}</strong>.`) +
+        _p(`If the proposal works for you, simply reply and we can get things moving straight away. If you'd like anything adjusted, we're happy to revisit the scope, frequency, or pricing.`) +
         _quote(`Every client has our commitment: if something isn't right, we fix it within 24 hours. That's not a policy — it's simply how we operate.`) +
         _checklist([
           'No long-term lock-in for initial contracts',
@@ -312,93 +327,119 @@ const Email = (() => {
           'Dedicated account contact — not a call centre',
           'Consistent teams, not rotating agency staff',
         ]) +
-        _p(`If the timing isn't right just now — no problem at all. Simply let us know and we'll follow up when it suits you better.`) +
-        _cta('&#9993;&nbsp; Reply to This Email', `mailto:${EMAIL}`, '#D97706') +
+        _p(`If the timing isn't right just now — no problem at all. Simply let us know and we'll follow up when it suits.`) +
+        _cta('&#9993; Reply to This Email', `mailto:${EMAIL}`, '#D97706') +
         _div() +
-        _sm(`To stop further follow-up emails, please reply with "Unsubscribe" and we will remove you from our outreach list immediately.`)
-      )
+        _sm(`To stop further follow-up emails please reply with "Unsubscribe".`)
+      ),
     },
 
     'Welcome Onboard': {
       icon: '🎉', badge: 'Welcome',
-      desc: 'New client onboarding. Confirms service details, next steps and contact.',
+      desc: 'New client onboarding with full service details.',
       subject: 'Welcome to AskMiro — Your Service Starts [DATE]',
-      html: (name = '') => _wrap('Welcome Onboard', '#059669',
+      fields: [
+        { id:'name',      label:'Contact Name',    ph:'e.g. Sarah Collins'      },
+        { id:'site',      label:'Site Address',    ph:'e.g. 12 High St, London' },
+        { id:'startDate', label:'Start Date',      ph:'e.g. 1 March 2026'       },
+        { id:'schedule',  label:'Schedule',        ph:'e.g. Mon–Fri, 6–9am'     },
+        { id:'team',      label:'Team Size',       ph:'e.g. 2'                  },
+        { id:'amount',    label:'Monthly Fee (£)', ph:'e.g. 1200'               },
+      ],
+      html: (f={}) => _wrap('Welcome Onboard', '#059669',
         'Welcome to AskMiro — your service details and what to expect',
         _h('Welcome to AskMiro.') +
         _sub("We're delighted to be working with you") +
-        _gr(name) +
-        _p(`On behalf of everyone at AskMiro Cleaning Services — <strong style="color:${T.charcoal}">welcome aboard</strong>. Your service is confirmed and our team is ready to get started. Please find your service details below for reference.`) +
+        _gr(f.name) +
+        _p(`On behalf of everyone at AskMiro Cleaning Services — <strong style="color:${T.charcoal}">welcome aboard</strong>. Your service is confirmed and our team is ready to get started.`) +
         _table([
-          ['Site Address',  '[SITE ADDRESS]'],
-          ['Service Start', '[DATE]'],
-          ['Schedule',      '[DAYS &amp; TIMES]'],
-          ['Team Size',     '[N] dedicated cleaners'],
-          ['Monthly Fee',   '£[AMOUNT] + VAT',   true, true],
+          ['Site Address',  f.site      || '—'],
+          ['Service Start', f.startDate || '—'],
+          ['Schedule',      f.schedule  || '—'],
+          ['Team Size',     f.team ? f.team+' dedicated cleaners' : '—'],
+          ['Monthly Fee',   f.amount ? '£'+f.amount+' + VAT' : '—', true, true],
           ['Invoice Day',   'Last working day of each month'],
-          ['Contact',       `${PHONE} &mdash; ${EMAIL}`],
+          ['Contact',       PHONE+' — '+EMAIL],
         ]) +
-        _p(`<strong style="color:${T.charcoal}">What happens over the next few days:</strong>`) +
         _checklist([
-          '<strong>Site briefing</strong> — our team visits before the first clean to walk the site and confirm the checklist',
-          '<strong>Schedule confirmation</strong> — your full cleaning schedule will be sent to you in writing',
+          '<strong>Site briefing</strong> — our team visits before the first clean to walk the site',
+          '<strong>Schedule confirmation</strong> — your full cleaning schedule sent to you in writing',
           '<strong>Direct contact</strong> — you will have a dedicated contact number for anything urgent',
           '<strong>First invoice</strong> — issued at the end of your first month of service',
         ]) +
-        _quote(`We work hard to be the kind of cleaning company you never have to think about. If anything isn't right, contact us and we will resolve it personally.`) +
-        _cta(`&#9742;&nbsp; Call Us — ${PHONE}`, 'tel:02039000000', '#059669') +
+        _quote(`We work hard to be the kind of cleaning company you never have to think about. If anything isn't right, contact us and we'll resolve it personally.`) +
+        _cta(`&#9742; Call Us — ${PHONE}`, 'tel:02080730621', '#059669') +
         _div() +
         _sm(`Welcome confirmation sent by AskMiro Cleaning Services. Please retain this email for your records.`)
-      )
+      ),
     },
 
     'Invoice': {
       icon: '💷', badge: 'Invoice',
-      desc: 'Professional invoice email with payment details and bank transfer reference.',
+      desc: 'Professional invoice with bank transfer details.',
       subject: '[INV-XXX] Invoice — AskMiro Cleaning Services',
-      html: (name = '') => _wrap('Invoice', T.navy,
-        'Invoice from AskMiro Cleaning Services — payment details enclosed',
-        _h('Invoice [INV-XXX].') +
-        _sub('[MONTH YEAR] — [Site Name]') +
-        _gr(name) +
-        _p(`Please find below your invoice for commercial cleaning services at <strong style="color:${T.charcoal}">[Site Name]</strong> for the period <strong style="color:${T.charcoal}">[Month Year]</strong>.`) +
-        _table([
-          ['Invoice Number', '[INV-XXX]'],
-          ['Service Period', '[MONTH YEAR]'],
-          ['Site',           '[SITE NAME]'],
-          ['Issue Date',     '[DATE]'],
-          ['Payment Due',    '[DUE DATE]'],
-          ['Subtotal',       '£[AMOUNT]'],
-          ['VAT (20%)',      '£[VAT]'],
-        ], ['Total Due', '£[TOTAL]']) +
-        _amber(`<strong>&#127974;&nbsp; Bank Transfer Details</strong><br><br>
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:28px;line-height:2">Account Name<br>Sort Code<br>Account Number<br>Reference</td>
-              <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2">Miro Partners Ltd<br>04-06-05<br>26672911<br>[INV-XXX]</td>
-            </tr>
-          </table>`) +
-        _p(`Payment is due within <strong style="color:${T.charcoal}">30 days</strong>. For any queries, please reply to this email or call us on ${PHONE}.`) +
-        _div() +
-        _sm('Late payments may be subject to statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998. Please quote the invoice number as your payment reference.')
-      )
+      fields: [
+        { id:'name',     label:'Contact Name',    ph:'e.g. Sarah Collins'         },
+        { id:'invNum',   label:'Invoice Number',  ph:'e.g. INV-001'               },
+        { id:'site',     label:'Company / Site',  ph:'e.g. Acme Ltd'              },
+        { id:'period',   label:'Service Period',  ph:'e.g. February 2026'         },
+        { id:'amount',   label:'Net Amount (£)',  ph:'e.g. 1200  (VAT auto-calc)' },
+        { id:'dueDate',  label:'Payment Due',     ph:'e.g. 31 March 2026'         },
+      ],
+      html: (f={}) => {
+        const net   = parseFloat(f.amount||0);
+        const vat   = net ? (net*0.2).toFixed(2)   : '—';
+        const total = net ? (net*1.2).toFixed(2)   : '—';
+        const netFmt= net ? net.toFixed(2)         : '—';
+        return _wrap('Invoice', T.navy,
+          'Invoice from AskMiro Cleaning Services — payment details enclosed',
+          _h(`Invoice ${f.invNum||'[INV-XXX]'}.`) +
+          _sub(`${f.period||'[Month Year]'} — ${f.site||'[Site]'}`) +
+          _gr(f.name) +
+          _p(`Please find below your invoice for commercial cleaning services at <strong style="color:${T.charcoal}">${f.site||'your site'}</strong> for <strong style="color:${T.charcoal}">${f.period||'the service period'}</strong>.`) +
+          _table([
+            ['Invoice Number', f.invNum  || '—'],
+            ['Service Period', f.period  || '—'],
+            ['Site',           f.site    || '—'],
+            ['Issue Date',     new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})],
+            ['Payment Due',    f.dueDate || '—'],
+            ['Subtotal',       net ? '£'+netFmt : '—'],
+            ['VAT (20%)',      net ? '£'+vat    : '—'],
+          ], ['Total Due', net ? '£'+total : '—']) +
+          _amber(`<strong>&#127974; Bank Transfer Details</strong><br><br>
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:28px;line-height:2.2">Account Name<br>Sort Code<br>Account Number<br>Reference</td>
+              <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2.2">Miro Partners Ltd<br>04-06-05<br>26672911<br>${f.invNum||'[INV-XXX]'}</td>
+            </tr></table>`) +
+          _p(`Payment is due within <strong style="color:${T.charcoal}">30 days</strong>. For any queries please reply or call us on ${PHONE}.`) +
+          _div() +
+          _sm('Late payments may be subject to statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998.')
+        );
+      },
     },
 
     'Contract Renewal': {
       icon: '🔄', badge: 'Renewal',
-      desc: 'Renewal notice with current service summary and one-click confirm CTA.',
+      desc: 'Renewal notice with current service summary.',
       subject: 'Service Agreement Renewal — AskMiro Cleaning Services',
-      html: (name = '') => _wrap('Service Renewal', '#7C3AED',
-        'Your AskMiro service agreement is due for renewal — confirm in one click',
+      fields: [
+        { id:'name',      label:'Contact Name',    ph:'e.g. Sarah Collins'  },
+        { id:'site',      label:'Company / Site',  ph:'e.g. Acme Ltd'       },
+        { id:'renewDate', label:'Renewal Date',    ph:'e.g. 1 April 2026'   },
+        { id:'schedule',  label:'Schedule',        ph:'e.g. Mon–Fri, 6–9am' },
+        { id:'amount',    label:'Monthly Fee (£)', ph:'e.g. 1200'           },
+      ],
+      html: (f={}) => _wrap('Service Renewal', '#7C3AED',
+        'Your AskMiro service agreement is due for renewal',
         _h('Your Service Agreement Is Up for Renewal.') +
         _sub("We'd love to continue working with you") +
-        _gr(name) +
-        _p(`Your current service agreement for <strong style="color:${T.charcoal}">[Site Name]</strong> is due for renewal on <strong style="color:${T.charcoal}">[DATE]</strong>. We would love to continue working with you.`) +
+        _gr(f.name) +
+        _p(`Your current service agreement for <strong style="color:${T.charcoal}">${f.site||'your site'}</strong> is due for renewal on <strong style="color:${T.charcoal}">${f.renewDate||'[DATE]'}</strong>. We would love to continue working with you.`) +
         _table([
-          ['Site',          '[SITE NAME]'],
-          ['Renewal Date',  '[DATE]'],
-          ['Schedule',      '[DAYS &amp; TIMES]'],
-          ['Monthly Fee',   '£[AMOUNT] + VAT', true, true],
+          ['Site',          f.site      || '—'],
+          ['Renewal Date',  f.renewDate || '—'],
+          ['Schedule',      f.schedule  || '—'],
+          ['Monthly Fee',   f.amount ? '£'+f.amount+' + VAT' : '—', true, true],
           ['Contract Term', '12 months from renewal date'],
         ]) +
         _p(`If you're happy to continue on the same terms, simply reply with <em style="color:${T.charcoal}">&ldquo;Confirmed&rdquo;</em> and we will keep everything running without interruption.`) +
@@ -408,11 +449,11 @@ const Email = (() => {
           'Happy to discuss any changes to scope or frequency',
           'Renewed agreement valid for 12 months from renewal date',
         ]) +
-        _quote(`It has been a genuine pleasure working with you this year. We don't take that lightly and will continue working hard to earn your trust.`) +
-        _cta('&#10003;&nbsp; Confirm Renewal', `mailto:${EMAIL}?subject=Renewal Confirmed — [Site Name]`, '#7C3AED') +
+        _quote(`It has been a genuine pleasure working with you. We don't take that lightly and will continue working hard to earn your trust.`) +
+        _cta('&#10003; Confirm Renewal', `mailto:${EMAIL}?subject=Renewal Confirmed — ${f.site||''}`, '#7C3AED') +
         _div() +
-        _sm(`To discuss any changes before renewing, please call us on ${PHONE} or reply to this email.`)
-      )
+        _sm(`To discuss changes please call us on ${PHONE} or reply to this email.`)
+      ),
     },
 
   };
@@ -452,40 +493,38 @@ const Email = (() => {
         </table></div>`;
 
     const composeHTML = `
-      <div style="max-width:620px">
-        <div style="background:linear-gradient(135deg,${T.navy},${T.navyMid});border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
-          <div style="width:36px;height:36px;background:${T.teal};border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <svg width="22" height="22" viewBox="0 0 40 40" fill="none"><path d="M10 26L15 14L20 26L25 14L30 26" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="max-width:640px">
+        <div style="background:linear-gradient(135deg,${T.navy},${T.navyMid});border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;background:${T.teal};border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="20" height="20" viewBox="0 0 40 40" fill="none"><path d="M10 26L15 14L20 26L25 14L30 26" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <div>
             <div style="font-weight:700;color:#fff;font-size:13px">${s.name}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">${s.role} &mdash; ${s.email}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">Sending from ${EMAIL}</div>
           </div>
         </div>
-        <div class="fg"><label class="fl">To <span class="req">*</span></label>
+        <div class="fg"><label class="fl">To (Email) <span class="req">*</span></label>
           <input class="fin" id="em-to" type="email" placeholder="client@company.com">
-        </div>
-        <div class="fg"><label class="fl">Recipient Name</label>
-          <input class="fin" id="em-name" placeholder="e.g. Sarah Collins" oninput="Email._livePreview()">
         </div>
         <div class="fg"><label class="fl">Subject <span class="req">*</span></label>
           <input class="fin" id="em-subj" placeholder="Subject line">
         </div>
-        <div class="fg"><label class="fl">Template</label>
+        <div class="fg"><label class="fl">Template <span class="req">*</span></label>
           <select class="fse" id="em-tmpl" onchange="Email._pickTmpl(this.value)">
             <option value="">— Select a branded template —</option>
             ${names.map(n => `<option value="${n}">${TEMPLATES[n].icon}  ${n}</option>`).join('')}
           </select>
         </div>
+        <div id="em-fields" style="display:none;background:var(--of);border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll);margin-bottom:12px">&#9998; Template Details — fill in to personalise</div>
+          <div id="em-fields-inner"></div>
+        </div>
         <div id="em-prev-wrap" style="display:none;margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll);margin-bottom:6px">Live Preview — exactly as the recipient sees it</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll);margin-bottom:6px">Live Preview</div>
           <iframe id="em-prev" style="width:100%;height:500px;border:1px solid var(--bd);border-radius:10px;background:#fff" sandbox="allow-same-origin"></iframe>
         </div>
-        <div class="fg"><label class="fl">Additional Notes</label>
-          <textarea class="fta" id="em-body" rows="3" placeholder="Any extra notes (optional)&#8230;"></textarea>
-        </div>
-        <button class="btn bp" style="width:100%;justify-content:center;font-size:14px;padding:14px" onclick="Email._send()">&#9993;&nbsp;&nbsp;Send Branded Email</button>
-        <p style="font-size:11px;color:var(--ll);margin-top:8px;text-align:center">Sending as <strong>${s.name}</strong> via Gmail Workspace</p>
+        <button class="btn bp" style="width:100%;justify-content:center;font-size:14px;padding:14px" id="em-send-btn" onclick="Email._send()">&#9993;&nbsp; Send Branded Email</button>
+        <p style="font-size:11px;color:var(--ll);margin-top:8px;text-align:center">Sending as <strong>${s.name}</strong> from ${EMAIL} via Gmail Workspace</p>
       </div>`;
 
     const galHTML = `
@@ -558,21 +597,45 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
 
   function _pickTmpl(name) {
     _activeTmpl = name;
-    const subjEl = document.getElementById('em-subj');
-    const wrap   = document.getElementById('em-prev-wrap');
-    if (!name) { if (wrap) wrap.style.display = 'none'; return; }
+    const subjEl  = document.getElementById('em-subj');
+    const wrap    = document.getElementById('em-prev-wrap');
+    const fWrap   = document.getElementById('em-fields');
+    const fInner  = document.getElementById('em-fields-inner');
+    if (!name) {
+      if (wrap)  wrap.style.display  = 'none';
+      if (fWrap) fWrap.style.display = 'none';
+      return;
+    }
     const t = TEMPLATES[name]; if (!t) return;
     if (subjEl && !subjEl.value) subjEl.value = t.subject;
-    if (wrap) wrap.style.display = 'block';
+    // Render input fields for this template
+    if (fInner && t.fields) {
+      fInner.innerHTML = t.fields.map(field => `
+        <div class="fg" style="margin-bottom:10px">
+          <label class="fl" style="font-size:12px">${field.label}</label>
+          <input class="fin" id="emf-${field.id}" placeholder="${field.ph}" oninput="Email._livePreview()" style="font-size:13px">
+        </div>`).join('');
+    }
+    if (fWrap) fWrap.style.display = t.fields && t.fields.length ? 'block' : 'none';
+    if (wrap)  wrap.style.display  = 'block';
     _livePreview();
   }
 
   function _livePreview() {
-    const name  = (document.getElementById('em-name') || {}).value || '';
-    const tmpl  = _activeTmpl || ((document.getElementById('em-tmpl') || {}).value || '');
+    const tmpl = _activeTmpl || ((document.getElementById('em-tmpl')||{}).value||'');
     if (!tmpl || !TEMPLATES[tmpl]) return;
     const frame = document.getElementById('em-prev');
-    if (frame) frame.srcdoc = TEMPLATES[tmpl].html(name);
+    if (frame) frame.srcdoc = TEMPLATES[tmpl].html(_collectFields(tmpl));
+  }
+
+  function _collectFields(tmpl) {
+    const t = TEMPLATES[tmpl]; if (!t || !t.fields) return {};
+    const f = {};
+    t.fields.forEach(field => {
+      const el = document.getElementById('emf-'+field.id);
+      if (el) f[field.id] = el.value.trim();
+    });
+    return f;
   }
 
   function _useTmpl(name) {
@@ -590,28 +653,27 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     const ttl   = document.getElementById('em-modal-ttl');
     if (bg && frame && ttl) {
       ttl.textContent = `${t.icon} ${name} — Preview`;
-      frame.srcdoc = t.html('');
+      frame.srcdoc = t.html({});
       bg.style.display = 'flex';
     }
   }
 
   async function _send() {
     if (!UI.rq('em-to') || !UI.rq('em-subj')) { UI.toast('Please fill in To and Subject', 'r'); return; }
-    const to        = UI.gv('em-to');
-    const recipName = UI.gv('em-name');
-    const subject   = UI.gv('em-subj');
-    const tmpl      = UI.gv('em-tmpl');
-    const notes     = UI.gv('em-body');
-    const htmlBody  = tmpl && TEMPLATES[tmpl] ? TEMPLATES[tmpl].html(recipName || '') : '';
-    const btn = document.querySelector('#el-body .btn.bp');
+    const to      = UI.gv('em-to');
+    const subject = UI.gv('em-subj');
+    const tmpl    = UI.gv('em-tmpl');
+    const fields  = tmpl ? _collectFields(tmpl) : {};
+    const htmlBody= tmpl && TEMPLATES[tmpl] ? TEMPLATES[tmpl].html(fields) : '';
+    const btn = document.getElementById('em-send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
     try {
-      await API.post('email.send', { to, subject, template: tmpl, notes, htmlBody, recipientName: recipName });
-      _emails.unshift({ id: 'EM-' + Date.now(), to, subject, template: tmpl || 'Custom', sentAt: UI.now() });
-      UI.toast(`Email sent to ${to}`, 'g');
-      _tab = 'log'; _activeTmpl = ''; _draw();
+      await API.post('email.send', { to, subject, template: tmpl, htmlBody });
+      _emails.unshift({ id: 'EM-'+Date.now(), to, subject, template: tmpl||'Custom', sentAt: new Date().toLocaleString('en-GB') });
+      UI.toast('Email sent to '+to, 'g');
+      _tab = 'sent'; _activeTmpl = ''; _draw();
     } catch(e) {
-      UI.toast('Send failed: ' + e.message, 'r');
+      UI.toast('Send failed: '+e.message, 'r');
       if (btn) { btn.disabled = false; btn.textContent = '✉ Send Branded Email'; }
     }
   }
