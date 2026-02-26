@@ -7,7 +7,7 @@ const Router = (() => {
     dashboard: 'Executive Dashboard', crm: 'CRM — Leads & Accounts',
     quotes: 'Quote Builder', contracts: 'Contracts',
     ops: 'Operations', quality: 'Quality & Compliance',
-    finance: 'Finance & Invoicing', admin: 'Admin & Settings'
+    finance: 'Finance & Invoicing', admin: 'Admin & Settings', email: 'Email Centre'
   };
   const PAGE_CTA = {
     crm: { label: '+ New Lead', action: () => CRM.openNewLead() },
@@ -15,6 +15,7 @@ const Router = (() => {
     quality: { label: '+ Log Inspection', action: () => Quality.openNewInspection() },
     finance: { label: '+ Create Invoice', action: () => Finance.openNewInvoice() },
     admin: { label: '+ New User', action: () => Admin.openNewUser() },
+    email: { label: '+ Compose', action: () => Email._tab('compose') },
   };
 
   function register(name, fn) { routes[name] = fn; }
