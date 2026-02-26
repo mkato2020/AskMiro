@@ -519,8 +519,8 @@ const Email = (() => {
 ${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
 <div class="el-layout">
   <div class="el-sidebar">
-    <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:12px" onclick="Email._tab('compose')">+ Compose</button>
-    ${tabs.map(([k,lbl])=>`<div class="el-tab ${_tab===k?'active':''}" onclick="Email._tab('${k}')">${lbl}${k==='log'?`<span style="margin-left:auto;font-size:11px;color:var(--ll)">${_emails.length}</span>`:''}</div>`).join('')}
+    <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:12px" onclick="Email._switchTab('compose')">+ Compose</button>
+    ${tabs.map(([k,lbl])=>`<div class="el-tab ${_tab===k?'active':''}" onclick="Email._switchTab('${k}')">${lbl}${k==='log'?`<span style="margin-left:auto;font-size:11px;color:var(--ll)">${_emails.length}</span>`:''}</div>`).join('')}
     <div style="flex:1"></div>
     <div style="padding:10px 4px;font-size:11px;color:var(--ll);line-height:1.7;border-top:1px solid var(--bd);margin-top:8px">
       Sending as<br>
@@ -535,7 +535,7 @@ ${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
   }
 
   // ── ACTIONS ───────────────────────────────────────────────
-  function _tab(t) { _tab = t; _draw(); }
+  function _switchTab(t) { _tab = t; _draw(); }
 
   function _pickTmpl(name) {
     _activeTmpl = name;
@@ -597,6 +597,6 @@ ${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
     }
   }
 
-  return { render, _tab, _pickTmpl, _livePreview, _useTmpl, _prevModal, _send };
+  return { render, _switchTab, _pickTmpl, _livePreview, _useTmpl, _prevModal, _send };
 
 })();
