@@ -665,21 +665,19 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     if (!to)      { UI.toast('Please enter recipient email', 'r'); return; }
     if (!subject) { UI.toast('Please enter a subject', 'r'); return; }
 
-    // Build HTML on frontend, then send via chunked approach
-    // to avoid URL length limits in JSONP
-    const fields   = tmpl ? _collectFields(tmpl) : {};
-    const htmlBody = tmpl && TEMPLATES[tmpl] ? TEMPLATES[tmpl].html(fields) : '';
+    // Send only template name + fields — Apps Script rebuilds HTML server-side
+    // This keeps the payload tiny and avoids JSONP URL length limits
+    const fields = tmpl ? _collectFields(tmpl) : {};
 
     const btn = document.getElementById('em-send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
     try {
-      // Encode HTML as base64 to keep it clean in URL params
-      const encoded = btoa(unescape(encodeURIComponent(htmlBody)));
       await API.post('email.send', {
-        to, subject, template: tmpl || 'Custom',
-        htmlBase64: encoded,
-        recipientName: fields.name || ''
+        to,
+        subject,
+        template: tmpl || 'Custom',
+        fields: JSON.stringify(fields),
       });
       _emails.unshift({ id: 'EM-'+Date.now(), to, subject, template: tmpl||'Custom', sentAt: new Date().toLocaleString('en-GB') });
       UI.toast('✓ Email sent to ' + to, 'g');
