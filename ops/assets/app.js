@@ -10,8 +10,8 @@
   Router.register('ops', Ops.render);
   Router.register('quality', Quality.render);
   Router.register('finance', Finance.render);
+  Router.register('email', Email.render);
   Router.register('admin', Admin.render);
-
   // Wire up sidebar nav clicks
   document.querySelectorAll('.ni[data-route]').forEach(el => {
     el.addEventListener('click', e => {
