@@ -15,7 +15,7 @@ const Router = (() => {
     quality: { label: '+ Log Inspection', action: () => Quality.openNewInspection() },
     finance: { label: '+ Create Invoice', action: () => Finance.openNewInvoice() },
     admin: { label: '+ New User', action: () => Admin.openNewUser() },
-    email: { label: '+ Compose', action: () => Email._tab('compose') },
+    email: { label: '+ Compose', action: () => Email._switchTab('compose') },
   };
 
   function register(name, fn) { routes[name] = fn; }
