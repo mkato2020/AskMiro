@@ -9,6 +9,8 @@ const Email = (() => {
   let _activeTmpl = '';
   let _inbox       = [];
   let _thread      = null;
+  let _inboxSearch = '';
+  let _inboxPage   = 0;
 
   // ── BRAND ────────────────────────────────────────────────
   const T = {
