@@ -45,3 +45,16 @@ window.supabase = supabase;
   const route = Router.getRoute();
   await Router.navigate(route, true);
 })();
+async function __testSupabase() {
+  console.log("Testing Supabase connection...");
+
+  const { data, error } = await window.supabase
+    .from("app_users")
+    .select("*")
+    .limit(1);
+
+  console.log("Supabase result:", data);
+  console.log("Supabase error:", error);
+}
+
+__testSupabase();
