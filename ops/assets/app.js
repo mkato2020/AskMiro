@@ -13,6 +13,25 @@
   Router.register('email', Email.render);
   Router.register('admin', Admin.render);
 
+  // FIX: Sidebar navigation clicks (your <a data-route="..."> has no href)
+  document.addEventListener('click', async (e) => {
+    const el = e.target.closest('[data-route]');
+    if (!el) return;
+
+    e.preventDefault();
+    const route = el.getAttribute('data-route');
+    if (!route) return;
+
+    // Keep URL in sync (so refresh/back works)
+    const nextHash = '#/' + route;
+    if (location.hash !== nextHash) location.hash = nextHash;
+
+    // Navigate
+    try {
+      await Router.navigate(route);
+    } catch (_) {}
+  });
+
   // Attempt auto-login
   const ok = await Auth.init();
   if (!ok) return; // Login screen shown by auth.js
