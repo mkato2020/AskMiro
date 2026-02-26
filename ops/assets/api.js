@@ -1,35 +1,58 @@
 // ============================================================
-// AskMiro Ops — app.js  (bootstrap)
+// AskMiro Ops — api.js
+// Uses JSONP for all calls — bypasses CORS entirely
+// Apps Script is designed for JSONP via callback param
 // ============================================================
-(async () => {
-  // Register all routes
-  Router.register('dashboard', Dashboard.render);
-  Router.register('crm',       CRM.render);
-  Router.register('quotes',    Quotes.render);
-  Router.register('contracts', Contracts.render);
-  Router.register('ops',       Ops.render);
-  Router.register('quality',   Quality.render);
-  Router.register('finance',   Finance.render);
-  Router.register('email',     Email.render);
-  Router.register('admin',     Admin.render);
+const API = (() => {
+  function token() { return localStorage.getItem(CFG.TOKEN_KEY) || ''; }
 
-  // Sidebar navigation — handles <a data-route="..."> clicks
-  document.addEventListener('click', async (e) => {
-    const el = e.target.closest('[data-route]');
-    if (!el) return;
-    e.preventDefault();
-    const route = el.getAttribute('data-route');
-    if (!route) return;
-    const nextHash = '#/' + route;
-    if (location.hash !== nextHash) location.hash = nextHash;
-    try { await Router.navigate(route); } catch (_) {}
-  });
+  function jsonp(url) {
+    return new Promise((resolve, reject) => {
+      const cb = 'cb_' + Math.random().toString(36).slice(2);
+      const script = document.createElement('script');
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Request timed out'));
+      }, 15000);
 
-  // Attempt auto-login from stored token
-  const ok = await Auth.init();
-  if (!ok) return; // Auth.init() shows login screen if no valid token
+      function cleanup() {
+        clearTimeout(timer);
+        delete window[cb];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
 
-  // Navigate to current hash route (or dashboard by default)
-  const route = Router.getRoute();
-  await Router.navigate(route, true);
+      window[cb] = (data) => {
+        cleanup();
+        if (data && data.error) reject(new Error(data.error));
+        else resolve(data);
+      };
+
+      script.onerror = () => { cleanup(); reject(new Error('Failed to fetch')); };
+      url.searchParams.set('callback', cb);
+      script.src = url.toString();
+      document.head.appendChild(script);
+    });
+  }
+
+  async function get(action, params = {}) {
+    const url = new URL(CFG.API_BASE);
+    url.searchParams.set('action', action);
+    url.searchParams.set('_token', token());
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') url.searchParams.set(k, String(v));
+    });
+    return jsonp(url);
+  }
+
+  async function post(action, body = {}) {
+    // Tunnel POST through GET with _method=POST + _body param
+    const url = new URL(CFG.API_BASE);
+    url.searchParams.set('action', action);
+    url.searchParams.set('_token', token());
+    url.searchParams.set('_method', 'POST');
+    url.searchParams.set('_body', JSON.stringify(body));
+    return jsonp(url);
+  }
+
+  return { get, post };
 })();
