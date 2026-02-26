@@ -12,19 +12,12 @@
   Router.register('finance', Finance.render);
   Router.register('email', Email.render);
   Router.register('admin', Admin.render);
-  // Wire up sidebar nav clicks
-  document.querySelectorAll('.ni[data-route]').forEach(el => {
-    el.addEventListener('click', e => {
-      e.preventDefault();
-      Router.navigate(el.dataset.route);
-    });
-  });
 
   // Attempt auto-login
   const ok = await Auth.init();
-  if (!ok) return;
+  if (!ok) return; // Login screen shown by auth.js
 
-  // Navigate to current route (or dashboard)
+  // Navigate to current route
   const route = Router.getRoute();
   await Router.navigate(route, true);
 })();
