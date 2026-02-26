@@ -7,6 +7,9 @@ const Email = (() => {
   let _emails     = [];
   let _tab        = 'log';
   let _activeTmpl = '';
+  let _inbox       = [];
+  let _thread      = null;
+  let _inboxSearch = '';
 
   // ── BRAND ────────────────────────────────────────────────
   const T = {
@@ -21,7 +24,7 @@ const Email = (() => {
     offWhite: '#F8FAFC',
   };
 
-  const PHONE   = '020 3900 0000';
+  const PHONE   = '020 8073 0621';
   const EMAIL   = 'info@askmiro.com';
   const WEBSITE = 'www.askmiro.com';
 
@@ -371,7 +374,7 @@ const Email = (() => {
           <table cellpadding="0" cellspacing="0">
             <tr>
               <td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:28px;line-height:2">Account Name<br>Sort Code<br>Account Number<br>Reference</td>
-              <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2">Miro Partners Ltd<br>[SORT CODE]<br>[ACCOUNT NUMBER]<br>[INV-XXX]</td>
+              <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2">Miro Partners Ltd<br>04-06-05<br>26672911<br>[INV-XXX]</td>
             </tr>
           </table>`) +
         _p(`Payment is due within <strong style="color:${T.charcoal}">30 days</strong>. For any queries, please reply to this email or call us on ${PHONE}.`) +
@@ -417,6 +420,8 @@ const Email = (() => {
   async function render() {
     UI.setLoading(true);
     try { _emails = await API.get('emails'); } catch(e) { _emails = []; }
+    try { _inbox = await API.get('inbox', { count: 30 }); } catch(e) { _inbox = []; }
+    _tab = 'inbox';
     _draw();
     UI.setLoading(false);
   }
@@ -508,13 +513,22 @@ const Email = (() => {
         </div>
       </div>`;
 
-    const tabs = [['log', 'Email Log'], ['compose', 'Compose'], ['templates', 'Templates']];
+    const tabs = [['inbox','Inbox'],['log', 'Sent'], ['compose', 'Compose'], ['templates', 'Templates']];
     document.getElementById('main-content').innerHTML = `
-${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
+${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread')}
 <div class="el-layout">
   <div class="el-sidebar">
     <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:12px" onclick="Email._switchTab('compose')">+ Compose</button>
-    ${tabs.map(([k, lbl]) => `<div class="el-tab ${_tab === k ? 'active' : ''}" onclick="Email._switchTab('${k}')">${lbl}${k === 'log' ? `<span style="margin-left:auto;font-size:11px;color:var(--ll)">${_emails.length}</span>` : ''}</div>`).join('')}
+    ${tabs.map(([k, lbl]) => {
+      let badge = '';
+      if (k === 'inbox') {
+        const u = _inbox.filter(t=>t.unread).length;
+        badge = u > 0 ? `<span style="margin-left:auto;background:${T.teal};color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700">${u}</span>` : '';
+      } else if (k === 'log') {
+        badge = `<span style="margin-left:auto;font-size:11px;color:var(--ll)">${_emails.length}</span>`;
+      }
+      return `<div class="el-tab ${_tab === k ? 'active' : ''}" onclick="Email._switchTab('${k}')">${lbl}${badge}</div>`;
+    }).join('')}
     <div style="flex:1"></div>
     <div style="padding:10px 4px;font-size:11px;color:var(--ll);line-height:1.7;border-top:1px solid var(--bd);margin-top:8px">
       Sending as<br>
@@ -523,13 +537,20 @@ ${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
     </div>
   </div>
   <div class="el-body" id="el-body">
-    ${_tab === 'log' ? logHTML : _tab === 'compose' ? composeHTML : galHTML}
+    ${_tab === 'inbox' ? _inboxHTML() : _tab === 'log' ? logHTML : _tab === 'compose' ? composeHTML : galHTML}
   </div>
 </div>`;
   }
 
   // ── ACTIONS ───────────────────────────────────────────────
-  function _switchTab(t) { _tab = t; _draw(); }
+  function _switchTab(t) {
+    _tab = t;
+    if (t === 'inbox' && _inbox.length === 0) {
+      _loadInbox('').then(() => _draw());
+    } else {
+      _draw();
+    }
+  }
 
   function _pickTmpl(name) {
     _activeTmpl = name;
@@ -591,6 +612,193 @@ ${UI.secHd('EMAIL', 'Email Centre', _emails.length + ' sent')}
     }
   }
 
-  return { render, _switchTab, _pickTmpl, _livePreview, _useTmpl, _prevModal, _send };
+
+  // ═══════════════════════════════════════════════════════
+  // INBOX STATE
+  // ═══════════════════════════════════════════════════════
+  let _inbox       = [];
+  let _thread      = null;   // currently open thread
+  let _inboxPage   = 0;
+  let _inboxSearch = '';
+
+  // ── LOAD INBOX ────────────────────────────────────────
+  async function _loadInbox(search = '') {
+    _inboxSearch = search;
+    try {
+      _inbox = await API.get('inbox', { count: 30, search: search || '' });
+    } catch(e) {
+      _inbox = [];
+      UI.toast('Could not load inbox: ' + e.message, 'r');
+    }
+  }
+
+  // ── INBOX HTML ────────────────────────────────────────
+  function _inboxHTML() {
+    const unread = _inbox.filter(t => t.unread).length;
+    const searchBar = `
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="fin" id="inbox-search" placeholder="Search inbox…" value="${_inboxSearch}"
+          style="flex:1;font-size:13px"
+          onkeydown="if(event.key==='Enter')Email._searchInbox()">
+        <button class="btn bo" style="font-size:12px;padding:7px 14px" onclick="Email._searchInbox()">Search</button>
+        <button class="btn bo" style="font-size:12px;padding:7px 14px" onclick="Email._refreshInbox()">&#8635; Refresh</button>
+      </div>`;
+
+    if (_thread) return _threadHTML();
+
+    if (_inbox.length === 0) return searchBar + `
+      <div style="text-align:center;padding:60px 20px">
+        <div style="font-size:3rem;margin-bottom:14px">📭</div>
+        <div style="font-weight:700;color:var(--dk);font-size:15px;margin-bottom:6px">No messages found</div>
+        <div style="font-size:13px;color:var(--ll)">Emails sent to info@askmiro.com will appear here</div>
+      </div>`;
+
+    const rows = _inbox.map(t => {
+      const date = new Date(t.date);
+      const isToday = date.toDateString() === new Date().toDateString();
+      const dateStr = isToday
+        ? date.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+        : date.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+      const fromName = t.from.replace(/<.*>/, '').trim().replace(/"/g,'') || t.from;
+      return `
+        <div onclick="Email._openThread('${t.id}')"
+          style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--bd);cursor:pointer;background:${t.unread ? '#F0FDF9' : 'transparent'};transition:background .15s"
+          onmouseover="this.style.background='var(--of)'" onmouseout="this.style.background='${t.unread ? '#F0FDF9' : 'transparent'}'">
+          <!-- Avatar -->
+          <div style="width:38px;height:38px;background:${t.unread ? T.teal : '#CBD5E1'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white;flex-shrink:0">
+            ${fromName.charAt(0).toUpperCase()}
+          </div>
+          <!-- Content -->
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:13px;font-weight:${t.unread?700:500};color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${fromName}</span>
+              <span style="font-size:11px;color:var(--ll);flex-shrink:0;margin-left:8px">${dateStr}</span>
+            </div>
+            <div style="font-size:13px;font-weight:${t.unread?600:400};color:${t.unread?T.charcoal:'var(--sl)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px">${t.subject}</div>
+            <div style="font-size:12px;color:var(--ll);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.snippet}</div>
+          </div>
+          ${t.count > 1 ? `<div style="font-size:11px;color:var(--ll);background:var(--bd);border-radius:10px;padding:2px 7px;flex-shrink:0">${t.count}</div>` : ''}
+          ${t.unread ? `<div style="width:8px;height:8px;background:${T.teal};border-radius:50%;flex-shrink:0"></div>` : ''}
+        </div>`;
+    }).join('');
+
+    return searchBar +
+      `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--ll)">${_inbox.length} conversations${unread ? ` &nbsp;&bull;&nbsp; <strong style="color:${T.teal}">${unread} unread</strong>` : ''}</div>
+      </div>
+      <div style="border:1px solid var(--bd);border-radius:10px;overflow:hidden">${rows}</div>`;
+  }
+
+  // ── THREAD VIEW ───────────────────────────────────────
+  function _threadHTML() {
+    if (!_thread) return '';
+    const msgs = _thread.messages || [];
+    const messagesHTML = msgs.map((m, i) => {
+      const date = new Date(m.date).toLocaleString('en-GB', {
+        day:'2-digit', month:'short', year:'numeric',
+        hour:'2-digit', minute:'2-digit'
+      });
+      const fromName = m.from.replace(/<.*>/, '').trim().replace(/"/g,'') || m.from;
+      const isLast = i === msgs.length - 1;
+      return `
+        <div style="margin-bottom:12px;border:1px solid var(--bd);border-radius:10px;overflow:hidden${isLast?`;box-shadow:0 2px 8px rgba(0,0,0,0.06)`:''}">
+          <!-- Message header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--of);border-bottom:1px solid var(--bd)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;background:${T.teal};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white">
+                ${fromName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--dk)">${fromName}</div>
+                <div style="font-size:11px;color:var(--ll)">${m.from}</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--ll)">${date}</div>
+          </div>
+          <!-- Message body -->
+          <div style="padding:16px;max-height:320px;overflow-y:auto">
+            <iframe srcdoc="${m.body.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+              style="width:100%;border:none;min-height:200px" sandbox="allow-same-origin"
+              onload="this.style.height=this.contentDocument.body.scrollHeight+32+'px'"></iframe>
+          </div>
+        </div>`;
+    }).join('');
+
+    const lastFrom = msgs.length ? msgs[msgs.length-1].from : '';
+    const replyTo  = lastFrom.match(/<(.+)>/) ? lastFrom.match(/<(.+)>/)[1] : lastFrom;
+
+    return `
+      <!-- Back button -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <button class="btn bo" style="font-size:12px;padding:6px 14px" onclick="Email._closeThread()">← Back to Inbox</button>
+        <div style="font-size:15px;font-weight:700;color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_thread.subject}</div>
+      </div>
+      <!-- Messages -->
+      ${messagesHTML}
+      <!-- Quick reply -->
+      <div style="border:1px solid ${T.teal};border-radius:10px;padding:16px;margin-top:8px;background:#F0FDF9">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:${T.teal};margin-bottom:10px">&#8617; Quick Reply</div>
+        <textarea id="thread-reply" class="fta" rows="3" placeholder="Type your reply…" style="font-size:13px;margin-bottom:10px"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn bp" style="font-size:12px;padding:7px 16px" onclick="Email._sendReply('${replyTo}','${_thread.subject.replace(/'/g,"\\'")}')">Send Reply</button>
+          <button class="btn bo" style="font-size:12px;padding:7px 16px" onclick="Email._replyCompose('${replyTo}','${_thread.subject.replace(/'/g,"\\'")}')">Full Compose</button>
+        </div>
+      </div>`;
+  }
+
+  // ── INBOX ACTIONS ─────────────────────────────────────
+  async function _refreshInbox() {
+    const bodyEl = document.getElementById('el-body');
+    if (bodyEl) bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ll)"><div class="spinner" style="margin:0 auto 12px"></div>Loading inbox…</div>';
+    await _loadInbox(_inboxSearch);
+    _thread = null;
+    _tab = 'inbox';
+    _draw();
+  }
+
+  function _searchInbox() {
+    const q = (document.getElementById('inbox-search')||{}).value || '';
+    _loadInbox(q).then(() => { _thread = null; _draw(); });
+  }
+
+  async function _openThread(id) {
+    const bodyEl = document.getElementById('el-body');
+    if (bodyEl) bodyEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ll)"><div class="spinner" style="margin:0 auto 12px"></div>Loading…</div>';
+    try {
+      _thread = await API.get('email.thread', { id });
+    } catch(e) {
+      UI.toast('Could not load thread: ' + e.message, 'r');
+      _thread = null;
+    }
+    _draw();
+  }
+
+  function _closeThread() { _thread = null; _draw(); }
+
+  async function _sendReply(to, subject) {
+    const body = (document.getElementById('thread-reply')||{}).value || '';
+    if (!body.trim()) { UI.toast('Please type a reply first', 'r'); return; }
+    const reSubject = subject.startsWith('Re:') ? subject : 'Re: ' + subject;
+    try {
+      await API.post('email.send', { to, subject: reSubject, notes: body, htmlBody: '', template: 'Reply' });
+      UI.toast('Reply sent', 'g');
+      _closeThread();
+    } catch(e) {
+      UI.toast('Send failed: ' + e.message, 'r');
+    }
+  }
+
+  function _replyCompose(to, subject) {
+    _tab = 'compose'; _thread = null; _draw();
+    setTimeout(() => {
+      const toEl   = document.getElementById('em-to');
+      const subjEl = document.getElementById('em-subj');
+      if (toEl)   toEl.value   = to;
+      if (subjEl) subjEl.value = subject.startsWith('Re:') ? subject : 'Re: ' + subject;
+    }, 60);
+  }
+
+
+  return { render, _switchTab, _pickTmpl, _livePreview, _useTmpl, _prevModal, _send, _searchInbox, _openThread, _closeThread, _sendReply, _replyCompose, _refreshInbox };
 
 })();
