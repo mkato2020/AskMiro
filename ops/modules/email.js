@@ -9,7 +9,6 @@ const Email = (() => {
   let _activeTmpl = '';
   let _inbox       = [];
   let _thread      = null;
-  let _inboxSearch = '';
 
   // ── BRAND ────────────────────────────────────────────────
   const T = {
@@ -616,10 +615,6 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
   // ═══════════════════════════════════════════════════════
   // INBOX STATE
   // ═══════════════════════════════════════════════════════
-  let _inbox       = [];
-  let _thread      = null;   // currently open thread
-  let _inboxPage   = 0;
-  let _inboxSearch = '';
 
   // ── LOAD INBOX ────────────────────────────────────────
   async function _loadInbox(search = '') {
