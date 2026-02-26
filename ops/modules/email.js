@@ -420,11 +420,14 @@ const Email = (() => {
   // ── RENDER ────────────────────────────────────────────────
   async function render() {
     UI.setLoading(true);
+    // Load sent log first (fast — our own sheet)
     try { _emails = await API.get('emails'); } catch(e) { _emails = []; }
-    try { _inbox = await API.get('inbox', { count: 30 }); } catch(e) { _inbox = []; }
+    // Draw immediately — don't wait for Gmail inbox
     _tab = 'inbox';
     _draw();
     UI.setLoading(false);
+    // Load inbox in background, redraw when ready
+    _loadInbox('').then(() => _draw()).catch(() => {});
   }
 
   function _draw() {
@@ -622,10 +625,19 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
   async function _loadInbox(search = '') {
     _inboxSearch = search;
     try {
-      _inbox = await API.get('inbox', { count: 30, search: search || '' });
+      const result = await API.get('inbox', { count: 30, search: search || '' });
+      // Apps Script may return {error:...} or an array
+      if (Array.isArray(result)) {
+        _inbox = result;
+      } else if (result && result.error) {
+        _inbox = [];
+        console.warn('Inbox error:', result.error);
+      } else {
+        _inbox = [];
+      }
     } catch(e) {
       _inbox = [];
-      UI.toast('Could not load inbox: ' + e.message, 'r');
+      console.warn('Inbox load failed:', e.message);
     }
   }
 
@@ -645,9 +657,10 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
 
     if (_inbox.length === 0) return searchBar + `
       <div style="text-align:center;padding:60px 20px">
-        <div style="font-size:3rem;margin-bottom:14px">📭</div>
-        <div style="font-weight:700;color:var(--dk);font-size:15px;margin-bottom:6px">No messages found</div>
-        <div style="font-size:13px;color:var(--ll)">Emails sent to info@askmiro.com will appear here</div>
+        <div style="font-size:2.5rem;margin-bottom:14px">📬</div>
+        <div style="font-weight:700;color:var(--dk);font-size:15px;margin-bottom:6px">Loading inbox…</div>
+        <div style="font-size:13px;color:var(--ll);margin-bottom:16px">Fetching emails from info@askmiro.com</div>
+        <button class="btn bo" style="font-size:12px;padding:7px 16px" onclick="Email._refreshInbox()">&#8635; Retry</button>
       </div>`;
 
     const rows = _inbox.map(t => {
