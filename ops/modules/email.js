@@ -659,22 +659,34 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
   }
 
   async function _send() {
-    if (!UI.rq('em-to') || !UI.rq('em-subj')) { UI.toast('Please fill in To and Subject', 'r'); return; }
-    const to      = UI.gv('em-to');
-    const subject = UI.gv('em-subj');
-    const tmpl    = UI.gv('em-tmpl');
-    const fields  = tmpl ? _collectFields(tmpl) : {};
-    const htmlBody= tmpl && TEMPLATES[tmpl] ? TEMPLATES[tmpl].html(fields) : '';
+    const to      = (document.getElementById('em-to')||{}).value||'';
+    const subject = (document.getElementById('em-subj')||{}).value||'';
+    const tmpl    = _activeTmpl || (document.getElementById('em-tmpl')||{}).value||'';
+    if (!to)      { UI.toast('Please enter recipient email', 'r'); return; }
+    if (!subject) { UI.toast('Please enter a subject', 'r'); return; }
+
+    // Build HTML on frontend, then send via chunked approach
+    // to avoid URL length limits in JSONP
+    const fields   = tmpl ? _collectFields(tmpl) : {};
+    const htmlBody = tmpl && TEMPLATES[tmpl] ? TEMPLATES[tmpl].html(fields) : '';
+
     const btn = document.getElementById('em-send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
     try {
-      await API.post('email.send', { to, subject, template: tmpl, htmlBody });
+      // Encode HTML as base64 to keep it clean in URL params
+      const encoded = btoa(unescape(encodeURIComponent(htmlBody)));
+      await API.post('email.send', {
+        to, subject, template: tmpl || 'Custom',
+        htmlBase64: encoded,
+        recipientName: fields.name || ''
+      });
       _emails.unshift({ id: 'EM-'+Date.now(), to, subject, template: tmpl||'Custom', sentAt: new Date().toLocaleString('en-GB') });
-      UI.toast('Email sent to '+to, 'g');
-      _tab = 'sent'; _activeTmpl = ''; _draw();
+      UI.toast('✓ Email sent to ' + to, 'g');
+      _tab = 'log'; _activeTmpl = ''; _draw();
     } catch(e) {
-      UI.toast('Send failed: '+e.message, 'r');
-      if (btn) { btn.disabled = false; btn.textContent = '✉ Send Branded Email'; }
+      UI.toast('Send failed: ' + e.message, 'r');
+      if (btn) { btn.disabled = false; btn.textContent = '✉  Send Branded Email'; }
     }
   }
 
