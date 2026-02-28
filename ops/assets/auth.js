@@ -150,11 +150,14 @@ const Auth = (() => {
 
   // ── UI HELPERS ────────────────────────────────────────────
   function showErr(msg) {
-    const el = document.getElementById('login-err');
-    el.textContent = msg;
-    el.classList.remove('hidden');
+  const el = document.getElementById('login-err');
+  if (!el) {
+    console.warn('login-err element not found');
+    return;
   }
-
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
   function showApp(user) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app-shell').classList.remove('hidden');
