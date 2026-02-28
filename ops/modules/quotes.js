@@ -3,23 +3,34 @@
 // ============================================================
 const Quotes = (() => {
   let _quotes = [];
+  let _filter = 'all'; // 'all' | 'web'
 
   async function render() {
     const app = document.getElementById('main-content');
     try { _quotes = await API.get('quotes'); } catch(e) { _quotes = []; }
     updateBadge();
 
-    const rows = _quotes.map(q => {
+    const webDrafts = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft');
+    const filtered  = _filter === 'web' ? webDrafts : _quotes;
+
+    const rows = filtered.map(q => {
       const m = parseFloat(q.grossMarginPct||0);
-      return `<tr onclick='Quotes.openView(${JSON.stringify(JSON.stringify(q))})'>
-        <td class="tmn">${q.id}</td><td>v${q.version||1}</td><td class="tfw">${q.clientName}</td>
+      const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
+      return `<tr onclick='Quotes.openView(${JSON.stringify(JSON.stringify(q))})' style="${isWebDraft?'background:rgba(13,148,136,.04);':''}">
+        <td class="tmn">${q.id}${isWebDraft ? ' <span style="font-size:10px;background:#0D9488;color:#fff;padding:1px 6px;border-radius:10px;vertical-align:middle">Intel</span>' : ''}</td>
+        <td>v${q.version||1}</td>
+        <td class="tfw">${q.clientName}</td>
         <td style="font-size:12px">${q.siteAddress||'&#8212;'}</td>
         <td>${UI.fmt(q.revenueMonthly||0)}/mo</td>
         <td>${UI.pill(UI.fmtPct(m), UI.ragCls(m, CFG.MIN_MARGIN_PCT+5, CFG.MIN_MARGIN_PCT))}</td>
         <td>${UI.statusPill(q.status)}</td>
         <td>${q.createdAt?q.createdAt.slice(0,10):'&#8212;'}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No quotes yet</td></tr>`;
+    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No quotes${_filter==='web'?' from web form':''} yet</td></tr>`;
+
+    // Filter tabs
+    const tabAll = `<button onclick="Quotes.setFilter('all')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='all'?'#0D9488':'var(--bd)'};background:${_filter==='all'?'#0D9488':'transparent'};color:${_filter==='all'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">All (${_quotes.length})</button>`;
+    const tabWeb  = `<button onclick="Quotes.setFilter('web')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='web'?'#0D9488':'var(--bd)'};background:${_filter==='web'?'#0D9488':'transparent'};color:${_filter==='web'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">&#9656; Web Leads${webDrafts.length>0?' ('+webDrafts.length+')':''}</button>`;
 
     app.innerHTML = `
 ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
@@ -43,7 +54,12 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
       <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="q-nt" placeholder="Scope, access notes, special requirements&#8230;"></textarea></div>
       <div class="modal-foot" style="margin-top:0"><button class="btn bp" onclick="Quotes.save()">Save as Draft</button></div>
     </div></div>
-    ${UI.secHd('History', 'Recent Quotes', _quotes.length + ' total')}
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      ${UI.secHd('History', 'Recent Quotes', filtered.length + ' shown')}
+      <div style="display:flex;gap:6px;flex-shrink:0">${tabAll}${tabWeb}</div>
+    </div>
+
     <div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>ID</th><th>v</th><th>Client</th><th>Site</th><th>Revenue/mo</th><th>Margin</th><th>Status</th><th>Date</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -59,6 +75,11 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   </div>
 </div>`;
     setTimeout(() => calc(), 50);
+  }
+
+  function setFilter(f) {
+    _filter = f;
+    render();
   }
 
   function toggleMode() {
@@ -131,7 +152,12 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     const m = parseFloat(q.grossMarginPct||0);
     const col = m >= CFG.MIN_MARGIN_PCT + 5 ? 'var(--gn)' : m >= CFG.MIN_MARGIN_PCT ? 'var(--am)' : 'var(--rd)';
     const blocked = m < CFG.MIN_MARGIN_PCT && !q.overrideReason;
-    UI.openModal(`<div class="modal-hd"><h2>${q.id} v${q.version||1}</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
+    const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
+
+    UI.openModal(`<div class="modal-hd">
+      <h2>${q.id} v${q.version||1}${isWebDraft ? ' <span style="font-size:11px;background:#0D9488;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle;font-family:inherit">◈ Intel</span>' : ''}</h2>
+      <button class="xbtn" onclick="UI.closeModal()">&#x2715;</button>
+    </div>
 <div class="modal-body">
   <div style="border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;margin-bottom:14px">
     <div style="background:var(--ch);padding:14px 18px">
@@ -158,14 +184,12 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   </div>
 </div>`);
 
-    // Init Intel Panel ONLY for web_form draft quotes (after modal is in DOM)
-    try {
-      if (q.source === 'web_form' && q.status === 'Draft' && window.IntelPanel && typeof IntelPanel.init === 'function') {
-        setTimeout(() => {
-          try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(_) {}
-        }, 0);
-      }
-    } catch(_) {}
+    // Init Intel Panel for web_form draft quotes
+    if (isWebDraft && window.IntelPanel && typeof IntelPanel.init === 'function') {
+      setTimeout(() => {
+        try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(_) {}
+      }, 0);
+    }
   }
 
   function openSend(id, clientName) {
@@ -205,10 +229,11 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   }
 
   function updateBadge() {
-    const n = _quotes.filter(q => q.status === 'Draft').length;
+    // Badge shows web_form drafts specifically — these need action
+    const n = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft').length;
     const el = document.getElementById('badge-quotes');
     if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
   }
 
-  return { render, calc, toggleMode, save, openNew, openView, openSend, doSend, openApprove, doApprove };
+  return { render, calc, toggleMode, save, openNew, openView, openSend, doSend, openApprove, doApprove, setFilter };
 })();
