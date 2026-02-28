@@ -4,79 +4,140 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AskMiro Ops</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:;">
+
+<meta http-equiv="Content-Security-Policy"
+content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
+script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com;
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+connect-src 'self' https://script.google.com https://script.googleusercontent.com;
+img-src 'self' data:;">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
+
 <body>
+
 <div id="toast-wrap"></div>
+
+<!-- Overlay -->
 <div class="ov hidden" id="ov" onclick="if(event.target===this)UI.closeModal()">
   <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
 </div>
+
+<!-- Drawer -->
 <div class="drawer" id="drawer">
-  <div class="drawer-hd"><h3 id="drawer-title">Details</h3><button class="xbtn" onclick="UI.closeDrawer()">&#x2715;</button></div>
+  <div class="drawer-hd">
+    <h3 id="drawer-title">Details</h3>
+    <button class="xbtn" onclick="UI.closeDrawer()">&#x2715;</button>
+  </div>
   <div class="drawer-body" id="drawer-body"></div>
 </div>
 
+<!-- LOGIN SCREEN -->
 <div id="login-screen" class="login-screen hidden">
   <div class="login-card">
     <div class="login-logo">
-      <svg width="40" height="40" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#0D9488"/><path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="6" fill="#0D9488"/>
+        <path d="M8 20L12 12L16 20L20 12L24 20"
+              stroke="white"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+      </svg>
     </div>
+
     <h1>AskMiro <em>Ops</em></h1>
     <p class="login-sub">Enter your access token to continue</p>
+
     <div class="fg">
       <label class="fl">Access Token</label>
-      <input type="password" class="fin" id="token-input" placeholder="miro_..." autocomplete="current-password" onkeydown="if(event.key==='Enter')Auth.login()">
+      <input type="password"
+             class="fin"
+             id="token-input"
+             placeholder="miro_..."
+             autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')Auth.login()">
     </div>
+
     <div id="login-err" class="login-err hidden"></div>
-    <button class="btn bp" id="login-btn" onclick="Auth.login()">Sign In &#8594;</button>
-    <p class="login-help">Need access? Contact <a href="mailto:info@askmiro.com">info@askmiro.com</a></p>
+
+    <button class="btn bp" id="login-btn" onclick="Auth.login()">
+      Sign In &#8594;
+    </button>
+
+    <p class="login-help">
+      Need access? Contact
+      <a href="mailto:info@askmiro.com">info@askmiro.com</a>
+    </p>
   </div>
 </div>
 
+<!-- APP SHELL -->
 <div id="app-shell" class="hidden">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
+
+    <!-- Your navigation menu should be here -->
+
+    <!-- USER BLOCK (required for auth.js) -->
     <div class="sb-user">
-    <div class="av" id="user-av">MK</div>
-    <div class="sb-user-info">
-    <strong id="user-name">Loading…</strong>
-    <span id="user-role">—</span>
-  </div>
-  <button class="xbtn" onclick="Auth.logout()" title="Sign out">&#x2715;</button>
-</div>
+      <div class="av" id="user-av">MK</div>
+      <div class="sb-user-info">
+        <strong id="user-name">Loading…</strong>
+        <span id="user-role">—</span>
+      </div>
+      <button class="xbtn"
+              onclick="Auth.logout()"
+              title="Sign out">
+        &#x2715;
+      </button>
+    </div>
+
   </aside>
 
+  <!-- MAIN -->
   <div class="main-wrap">
+
     <header class="topbar">
       <div class="live-dot"></div>
       <span class="page-title" id="page-title">Dashboard</span>
       <div class="tb-spacer"></div>
       <span class="tb-env" id="tb-env">&#9679; Live</span>
-      <button class="btn bp btn-sm" id="primary-cta" style="display:none">Action</button>
+      <button class="btn bp btn-sm"
+              id="primary-cta"
+              style="display:none">
+        Action
+      </button>
     </header>
 
     <main class="main-content" id="main-content">
 
-      <!-- Intel Panel Mount (required) -->
+      <!-- Intel Panel Mount -->
       <div id="intel-panel-mount"></div>
 
+      <!-- Loader -->
       <div class="page-loader" id="page-loader">
         <div class="spinner"></div>
         <span>Loading&#8230;</span>
       </div>
 
     </main>
+
   </div>
 </div>
 
+<!-- SCRIPTS -->
 <script src="assets/config.js"></script>
 <script src="assets/api.js"></script>
 <script src="assets/ui.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/router.js"></script>
 <script src="assets/intelligence_panel_configured.js"></script>
+
 <script src="modules/dashboard.js"></script>
 <script src="modules/crm.js"></script>
 <script src="modules/quotes.js"></script>
@@ -86,6 +147,8 @@
 <script src="modules/finance.js"></script>
 <script src="modules/admin.js"></script>
 <script src="modules/email.js"></script>
+
 <script src="assets/app.js"></script>
+
 </body>
 </html>
