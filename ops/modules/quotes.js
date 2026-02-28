@@ -131,7 +131,6 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     const m = parseFloat(q.grossMarginPct||0);
     const col = m >= CFG.MIN_MARGIN_PCT + 5 ? 'var(--gn)' : m >= CFG.MIN_MARGIN_PCT ? 'var(--am)' : 'var(--rd)';
     const blocked = m < CFG.MIN_MARGIN_PCT && !q.overrideReason;
-
     UI.openModal(`<div class="modal-hd"><h2>${q.id} v${q.version||1}</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
 <div class="modal-body">
   <div style="border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;margin-bottom:14px">
@@ -146,12 +145,10 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
       <div class="mp-row"><span class="mp-lbl" style="color:${col}">Gross Margin</span><span style="color:${col};font-weight:700">${UI.fmtPct(m)} (${UI.fmt(q.grossMarginGBP||0)}/mo)</span></div>
     </div>
   </div>
-
   ${blocked ? `<div class="alert alert-r" style="margin-bottom:12px">&#9888; Below ${CFG.MIN_MARGIN_PCT}% floor. Owner must approve before sending.</div>` : ''}
   ${q.notes ? `<div style="font-size:13px;color:var(--sl);background:var(--of);padding:8px 10px;border-radius:6px;margin-bottom:12px">${q.notes}</div>` : ''}
 
-  <!-- Intelligence Panel mount -->
-  <div id="intel-panel-mount" style="margin-top:16px;"></div>
+  <div id="intel-panel-mount" style="margin-top:16px"></div>
 
   <div class="modal-foot">
     ${blocked ? `<button class="btn bo" onclick="Quotes.openApprove('${q.id}')">&#9888; Request Approval</button>` : ''}
@@ -161,10 +158,14 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   </div>
 </div>`);
 
-    // Init Intelligence Panel only for web_form draft quotes (and only after modal exists)
-    if (q.source === 'web_form' && q.status === 'Draft') {
-      try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(e) {}
-    }
+    // Init Intel Panel ONLY for web_form draft quotes (after modal is in DOM)
+    try {
+      if (q.source === 'web_form' && q.status === 'Draft' && window.IntelPanel && typeof IntelPanel.init === 'function') {
+        setTimeout(() => {
+          try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(_) {}
+        }, 0);
+      }
+    } catch(_) {}
   }
 
   function openSend(id, clientName) {
@@ -208,37 +209,6 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     const el = document.getElementById('badge-quotes');
     if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
   }
-
-  // Listen for Intelligence Panel "Apply" and update quote form fields (non-breaking if panel not used)
-  try {
-    window.addEventListener('intelApplied', (e) => {
-      const d = (e && e.detail) || {};
-      const values = d.values || {};
-      const hoursPerWeek = d.hoursPerWeek;
-      const supplies = d.supplies;
-
-      if (values.revenuePerMonth != null) {
-        const modeSel = document.getElementById('q-md');
-        if (modeSel) modeSel.value = 'fixed';
-        toggleMode();
-        const fm = document.getElementById('q-fm');
-        if (fm) fm.value = values.revenuePerMonth;
-      }
-      if (values.hourlyRate != null) {
-        const cr = document.getElementById('q-cr');
-        if (cr) cr.value = values.hourlyRate;
-      }
-      if (hoursPerWeek != null) {
-        const hw = document.getElementById('q-hw');
-        if (hw) hw.value = hoursPerWeek;
-      }
-      if (supplies != null) {
-        const sp = document.getElementById('q-sp');
-        if (sp) sp.value = supplies;
-      }
-      calc();
-    });
-  } catch(e) {}
 
   return { render, calc, toggleMode, save, openNew, openView, openSend, doSend, openApprove, doApprove };
 })();
