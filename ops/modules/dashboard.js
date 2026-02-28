@@ -21,14 +21,46 @@ const Dashboard = (() => {
       <td><button class="btn bo btn-xs" onclick="event.stopPropagation();Router.navigate('quality')">Quality &#8594;</button></td>
     </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--ll);padding:24px">All sites performing well &#10003;</td></tr>`;
 
+    // ── Web leads alert banner (only shown when there are draft web quotes) ──
+    const webLeadCount = parseInt(k.draftWebQuotes || 0);
+    const webLeadBanner = webLeadCount > 0 ? `
+    <div onclick="Router.navigate('quotes')" style="
+      display:flex;align-items:center;gap:14px;
+      background:linear-gradient(135deg,#0C1929 0%,#0D2420 100%);
+      border:1px solid #0D9488;border-radius:10px;
+      padding:14px 18px;margin-bottom:20px;cursor:pointer;
+      box-shadow:0 0 0 1px rgba(13,148,136,.2),0 4px 16px rgba(13,148,136,.1);
+      transition:box-shadow .2s
+    " onmouseover="this.style.boxShadow='0 0 0 2px #0D9488,0 4px 20px rgba(13,148,136,.2)'"
+       onmouseout="this.style.boxShadow='0 0 0 1px rgba(13,148,136,.2),0 4px 16px rgba(13,148,136,.1)'">
+      <div style="width:40px;height:40px;border-radius:50%;background:#0D9488;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">◈</div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:#e8f4f3;font-size:14px;margin-bottom:2px">
+          ${webLeadCount} web ${webLeadCount === 1 ? 'lead' : 'leads'} awaiting your review
+        </div>
+        <div style="font-size:12px;color:#6b8fa8">
+          Intelligence Engine has pre-priced ${webLeadCount === 1 ? 'this quote' : 'these quotes'} — click to review scenarios and apply pricing
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:#0D9488;white-space:nowrap">Review &#8594;</div>
+    </div>` : '';
+
     app.innerHTML = `
 ${UI.secHd('Overview', 'Executive Dashboard', 'H1 2025')}
+
+${webLeadBanner}
+
 <div class="kpi-grid">
   <div class="kpi kpi-t"><div class="kpi-label">Active Sites</div><div class="kpi-value">${k.activeSites||0}</div><div class="kpi-delta delta-g">&#9650; Portfolio</div></div>
   <div class="kpi kpi-g"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${UI.fmtk(k.totalRevenue||0)}</div><div class="kpi-delta delta-g">&#9650; Growing</div></div>
   <div class="kpi kpi-${UI.ragCls(k.portfolioMargin||0,45,35)}"><div class="kpi-label">Portfolio Margin</div><div class="kpi-value">${UI.fmtPct(k.portfolioMargin||0)}</div></div>
   <div class="kpi kpi-${UI.ragCls(k.avgAudit||0,90,85)}"><div class="kpi-label">Avg Audit Score</div><div class="kpi-value">${UI.fmtPct(k.avgAudit||0)}</div></div>
   <div class="kpi kpi-${k.openIncidents>2?'r':k.openIncidents>0?'a':'g'}"><div class="kpi-label">Open Incidents</div><div class="kpi-value" style="color:${k.openIncidents>2?'var(--rd)':k.openIncidents>0?'var(--am)':'var(--gn)'}">${k.openIncidents||0}</div></div>
+  <div class="kpi kpi-${webLeadCount>0?'t':'g'}" onclick="Router.navigate('quotes')" style="${webLeadCount>0?'cursor:pointer;border-color:#0D9488':''}" title="Click to review web leads">
+    <div class="kpi-label">Web Leads to Quote</div>
+    <div class="kpi-value" style="color:${webLeadCount>0?'var(--tl)':'var(--gn)'}">${webLeadCount}</div>
+    <div class="kpi-delta" style="color:${webLeadCount>0?'#0D9488':'var(--ll)'}">&#9654; ${webLeadCount>0?'Review now':'All clear'}</div>
+  </div>
 </div>
 
 <div class="gch">
