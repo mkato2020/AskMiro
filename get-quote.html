@@ -302,22 +302,8 @@
                 });
             } catch(_) {}
 
-            // 3. Fire to AskMiro Ops API (creates CRM lead + notifies Mike)
-            try {
-                const qs = new URLSearchParams({
-                    action: 'webhook.lead',
-                    name: formData.get('name') || '',
-                    email: formData.get('email') || '',
-                    phone: formData.get('phone') || '',
-                    postcode: formData.get('postcode') || '',
-                    sector: formData.get('sector') || '',
-                    frequency: formData.get('frequency') || '',
-                    message: formData.get('message') || '',
-                });
-                const API = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
-                const img = new Image();
-                img.src = API + '?' + qs.toString() + '&callback=_noop';
-            } catch(_) {}
+            // 3. Ops backend handled entirely by get_quote_form_patch_configured.js
+            // (submitWebQuote — creates lead + intel + draft quote in one call)
 
             // 4. Show success overlay
             document.getElementById('successOverlay').classList.add('show');
@@ -328,6 +314,7 @@
         window._noop = function() {};
     })();
     </script>
-<script src="/get_quote_form_patch_configured.js"></script>
+    <script src="/get_quote_form_patch_configured.js"></script>
 </body>
 </html>
+
