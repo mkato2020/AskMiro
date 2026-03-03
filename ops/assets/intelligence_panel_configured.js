@@ -291,3 +291,5 @@ const IntelPanel = (() => {
   return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
 
 })();
+// ✅ expose globally (critical)
+try { window.IntelPanel = IntelPanel; } catch (e) {}
