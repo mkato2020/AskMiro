@@ -1,22 +1,46 @@
 // ============================================================
-// ✅ IntelPanel — READY TO PASTE (NO HARDCODED TOKEN)
-// FIXES:
-// 1) Uses CFG.API_BASE (single source of truth)
-// 2) Pulls token from localStorage(CFG.TOKEN_KEY) at runtime
-// 3) Emits intelApplied with revenue/direct/margin so your modal updates
-// 4) Handles Apps Script returning text instead of JSON
+// ASKMIRO OPS — INTELLIGENCE PANEL
+// FIX: include Ops access token in intel calls (missing token bug)
 // ============================================================
+
 const IntelPanel = (() => {
 
-  const API_URL = (window.CFG && CFG.API_BASE) || '';
-  const getToken = () => {
-    try { return localStorage.getItem(CFG.TOKEN_KEY) || ''; } catch (_) { return ''; }
-  };
+  const API_URL   = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
+  const API_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
 
   let _state = { quoteId: null, intel: null, chosenScenario: null, wageAdjust: 0 };
 
+  // ---- NEW: pull Ops access token the same way API wrapper does ----
+  function _getOpsAccessToken() {
+    try {
+      const key = (window.CFG && window.CFG.TOKEN_KEY) ? window.CFG.TOKEN_KEY : 'askmiro_ops_token';
+      return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // ---- NEW: attach both service token + ops token to requests ----
+  function _authParams(extra = {}) {
+    const opsToken = _getOpsAccessToken();
+
+    // We send the ops token using multiple common names to match whatever
+    // your Apps Script expects without needing a backend change.
+    return {
+      _token: API_TOKEN,                 // service token (intel engine)
+      accessToken: opsToken || '',       // ops login token (common)
+      token: opsToken || '',             // fallback name
+      opsToken: opsToken || '',          // fallback name
+      ...extra
+    };
+  }
+
   async function init(quoteId, containerId) {
-    _state = { quoteId, intel: null, chosenScenario: null, wageAdjust: 0 };
+    _state.quoteId = quoteId;
+    _state.intel = null;
+    _state.chosenScenario = null;
+    _state.wageAdjust = 0;
+
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -33,17 +57,22 @@ const IntelPanel = (() => {
   }
 
   async function _fetchIntel(quoteId) {
-    const token = getToken();
-    if (!token) throw new Error('Missing access token. Please sign in again.');
+    const qs = new URLSearchParams(_authParams({ action: 'quote.intel', id: quoteId }));
 
-    const qs = new URLSearchParams({ _token: token, action: 'quote.intel', id: quoteId });
-    const res = await fetch(API_URL + '?' + qs.toString(), { method: 'GET' });
+    const res = await fetch(API_URL + '?' + qs.toString(), {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store'
+    });
 
-    const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch (_) { throw new Error('Intel API returned non-JSON'); }
+    try { data = await res.json(); }
+    catch (e) { throw new Error('Intel endpoint returned non-JSON response'); }
 
-    if (!data.ok) throw new Error(data.error || 'Intel data not available for this quote');
+    if (!data || !data.ok) {
+      const msg = (data && data.error) ? data.error : 'Intel data not available for this quote';
+      throw new Error(msg);
+    }
     return data;
   }
 
@@ -66,8 +95,8 @@ const IntelPanel = (() => {
           <div class="intel-estimates">
             <div class="intel-stat"><div class="stat-label">Hours / week</div><div class="stat-value">${intel.hoursPerWeek}</div></div>
             <div class="intel-stat"><div class="stat-label">Visits / week</div><div class="stat-value">${intel.visitsPerWeek}</div></div>
-            <div class="intel-stat"><div class="stat-label">Supplies / mo</div><div class="stat-value">&#163;${Number(intel.suppliesPerMonth||0).toFixed(0)}</div></div>
-            <div class="intel-stat"><div class="stat-label">Direct cost / mo</div><div class="stat-value">&#163;${Number(intel.directCostPerMonth||0).toFixed(0)}</div></div>
+            <div class="intel-stat"><div class="stat-label">Supplies / mo</div><div class="stat-value">&#163;${Number(intel.suppliesPerMonth).toFixed(0)}</div></div>
+            <div class="intel-stat"><div class="stat-label">Direct cost / mo</div><div class="stat-value">&#163;${Number(intel.directCostPerMonth).toFixed(0)}</div></div>
           </div>
 
           <div class="intel-sensitivity">
@@ -90,23 +119,23 @@ const IntelPanel = (() => {
             <button class="btn-apply" id="btn-apply" disabled onclick="IntelPanel._applyScenario()">Apply to Quote</button>
           </div>
 
-          ${risks.length ? _renderRisks(risks) : ''}
+          ${risks.length > 0 ? _renderRisks(risks) : ''}
         </div>
       </div>`;
   }
 
   function _renderScenario(key, scenario, label, subtitle) {
-    const m = (scenario.marginPct ?? scenario.effectiveMargin ?? 0);
     return `
       <div class="scenario-card" id="scenario-${key}" onclick="IntelPanel._selectScenario('${key}', this)">
         <div class="sc-label">${label}</div>
         <div class="sc-sub">${subtitle}</div>
-        <div class="sc-price">&#163;${Number(scenario.revenuePerMonth||0).toFixed(0)}<span>/mo</span></div>
-        <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek||0).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate||0).toFixed(2)}/hr &middot; ${m}% margin</div>
+        <div class="sc-price">&#163;${Number(scenario.revenuePerMonth).toFixed(0)}<span>/mo</span></div>
+        <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate).toFixed(2)}/hr &middot; ${(scenario.marginPct ?? scenario.effectiveMargin)}% margin</div>
       </div>`;
   }
 
   function _renderRisks(risks) {
+    if (!risks.length) return '';
     return `<div class="intel-risks"><div class="risks-title">Risk Flags (${risks.length})</div>${risks.map(r => `
       <div class="risk-item risk-${r.severity}">
         <div class="risk-icon">${r.severity === 'high' ? '&#9888;' : r.severity === 'medium' ? '&#9679;' : '&#9675;'}</div>
@@ -119,7 +148,19 @@ const IntelPanel = (() => {
   }
 
   function _renderError(msg) {
-    return `<div class="intel-panel intel-error"><div class="intel-header"><span class="intel-icon">&#9672;</span><span style="margin-left:4px">AskMiro Intelligence</span><span class="badge-red" style="margin-left:8px">Error</span></div><div class="intel-err-msg">Could not load intelligence data: ${msg}</div></div>`;
+    const needsLogin = /missing access token|sign in/i.test(String(msg || ''));
+    return `
+      <div class="intel-panel intel-error">
+        <div class="intel-header">
+          <span class="intel-icon">&#9672;</span>
+          <span style="margin-left:4px">AskMiro Intelligence</span>
+          <span class="badge-red" style="margin-left:8px">Error</span>
+        </div>
+        <div class="intel-err-msg">
+          Could not load intelligence data: ${msg || 'Unknown error'}<br/>
+          ${needsLogin ? `<span style="color:#9ca3af">Fix: sign out and sign in again (token refresh), then re-open the quote.</span>` : ''}
+        </div>
+      </div>`;
   }
 
   function _selectScenario(key, el) {
@@ -128,85 +169,75 @@ const IntelPanel = (() => {
     _state.chosenScenario = key;
 
     const btn = document.getElementById('btn-apply');
+    const label = document.getElementById('apply-label');
     if (btn) btn.disabled = false;
 
-    const s = _getActiveScenario(key);
-    const label = document.getElementById('apply-label');
-    if (label && s) label.textContent = `£${Number(s.revenuePerMonth||0).toFixed(0)}/mo · £${Number(s.hourlyRate||0).toFixed(2)}/hr`;
+    if (label) {
+      const s = _getActiveScenario(key);
+      if (s) label.textContent = '£' + Number(s.revenuePerMonth).toFixed(0) + '/mo · £' + Number(s.hourlyRate).toFixed(2) + '/hr';
+    }
   }
 
-  // ✅ Apply -> POST + emit intelApplied numbers for Quotes modal header
+  // ---- FIXED: Apply also sends ops token ----
   async function _applyScenario() {
     if (!_state.chosenScenario || !_state.intel) return;
-
-    const token = getToken();
-    if (!token) { console.error('Missing token'); return; }
 
     const s = _getActiveScenario(_state.chosenScenario);
     if (!s) return;
 
     const btn = document.getElementById('btn-apply');
-    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; btn.style.background = ''; }
 
     try {
-      const body = new URLSearchParams({
-        _token: token,
+      const params = new URLSearchParams(_authParams({
         action: 'quote.intel.apply',
         id: _state.quoteId,
         scenario: _state.chosenScenario
-      });
+      }));
 
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: body.toString()
+        body: params.toString(),
+        credentials: 'omit',
+        cache: 'no-store'
       });
 
-      const text = await res.text();
       let data;
-      try { data = JSON.parse(text); } catch (_) { throw new Error('Apply returned non-JSON'); }
-      if (!data.ok) throw new Error(data.error || 'Apply failed');
+      try { data = await res.json(); }
+      catch (e) { throw new Error('Apply returned non-JSON response'); }
 
-      // Update builder fields (if present)
-      _setField('q-cr', Number(s.hourlyRate||0).toFixed(2));
+      if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Apply failed');
+
+      _setField('q-cr', Number(s.hourlyRate).toFixed(2));
       _setField('q-hw', _state.intel.hoursPerWeek);
-      _setField('q-sp', Number(_state.intel.suppliesPerMonth||0).toFixed(2));
-
-      // Compute header KPIs NOW (this is what fixes the £0 issue immediately)
-      const revenueMonthly    = Number(s.revenuePerMonth || 0);
-      const directCostMonthly = Number(_state.intel.directCostPerMonth || 0);
-      const grossMarginGBP    = revenueMonthly - directCostMonthly;
-      const grossMarginPct    = revenueMonthly > 0 ? (grossMarginGBP / revenueMonthly) * 100 : 0;
-
-      window.dispatchEvent(new CustomEvent('intelApplied', {
-        detail: {
-          quoteId: _state.quoteId,
-          scenario: _state.chosenScenario,
-          revenueMonthly,
-          directCostMonthly,
-          grossMarginGBP,
-          grossMarginPct,
-          hourlyRate: Number(s.hourlyRate||0),
-          hoursPerWeek: Number(_state.intel.hoursPerWeek||0),
-          supplies: Number(_state.intel.suppliesPerMonth||0)
-        }
-      }));
+      _setField('q-sp', Number(_state.intel.suppliesPerMonth).toFixed(2));
 
       if (btn) {
         btn.textContent = '✓ Applied';
         btn.classList.add('applied');
         btn.disabled = false;
-        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2000);
+        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2500);
       }
 
+      window.dispatchEvent(new CustomEvent('intelApplied', {
+        detail: {
+          quoteId: _state.quoteId,
+          scenario: _state.chosenScenario,
+          values: s,
+          hoursPerWeek: _state.intel.hoursPerWeek,
+          supplies: _state.intel.suppliesPerMonth
+        }
+      }));
+
     } catch (err) {
-      console.error('IntelPanel._applyScenario error:', err);
       if (btn) {
         btn.textContent = '✗ Failed — retry';
         btn.disabled = false;
         btn.style.background = '#dc2626';
-        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.style.background = ''; }, 2500);
+        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.style.background = ''; }, 3000);
       }
+      console.error('IntelPanel._applyScenario error:', err);
     }
   }
 
@@ -218,17 +249,23 @@ const IntelPanel = (() => {
     const intel = _state.intel;
     if (!intel) return;
 
-    let src = intel.scenarios?.balanced;
-    if (pct === 5 && intel.sensitivity?.wage5pct) src = intel.sensitivity.wage5pct;
-    if (pct === 10 && intel.sensitivity?.wage10pct) src = intel.sensitivity.wage10pct;
+    let sens = null;
+    if (pct === 5  && intel.sensitivity) sens = intel.sensitivity.wage5pct;
+    if (pct === 10 && intel.sensitivity) sens = intel.sensitivity.wage10pct;
 
     const balCard = document.getElementById('scenario-balanced');
-    if (!balCard || !src) return;
+    if (!balCard) return;
 
-    const priceEl = balCard.querySelector('.sc-price');
-    const detailEl = balCard.querySelector('.sc-detail');
-    if (priceEl) priceEl.innerHTML = `£${Number(src.revenuePerMonth||0).toFixed(0)}<span>/mo</span>`;
-    if (detailEl) detailEl.textContent = `£${Number(src.revenuePerWeek||0).toFixed(0)}/wk · £${Number(src.hourlyRate||0).toFixed(2)}/hr · ${(src.marginPct ?? 0)}% margin`;
+    const src = sens || (intel.scenarios && intel.scenarios.balanced);
+    if (!src) return;
+
+    balCard.querySelector('.sc-price').innerHTML =
+      '£' + Number(src.revenuePerMonth).toFixed(0) + '<span>/mo</span>';
+
+    balCard.querySelector('.sc-detail').textContent =
+      '£' + Number(src.revenuePerWeek).toFixed(0) + '/wk · £' +
+      Number(src.hourlyRate).toFixed(2) + '/hr · ' +
+      (src.marginPct ?? src.effectiveMargin ?? 25) + '% margin';
   }
 
   function _toggleCollapse() {
@@ -250,9 +287,14 @@ const IntelPanel = (() => {
   function _getActiveScenario(key) {
     const intel = _state.intel;
     if (!intel) return null;
-    if (_state.wageAdjust === 5 && key === 'balanced' && intel.sensitivity?.wage5pct) return intel.sensitivity.wage5pct;
-    if (_state.wageAdjust === 10 && key === 'balanced' && intel.sensitivity?.wage10pct) return intel.sensitivity.wage10pct;
-    return intel.scenarios?.[key] || null;
+
+    if (_state.wageAdjust === 5 && key === 'balanced' && intel.sensitivity?.wage5pct)
+      return intel.sensitivity.wage5pct;
+
+    if (_state.wageAdjust === 10 && key === 'balanced' && intel.sensitivity?.wage10pct)
+      return intel.sensitivity.wage10pct;
+
+    return (intel.scenarios && intel.scenarios[key]) || null;
   }
 
   function _parseRisks(riskString) {
@@ -261,6 +303,7 @@ const IntelPanel = (() => {
       const sevMatch  = r.match(/\[(HIGH|MEDIUM|LOW)\]/);
       const codeMatch = r.match(/\] ([A-Z_]+):/);
       const msgMatch  = r.match(/: (.+)$/);
+
       const actionMap = {
         'DEEP_CLEAN_FREQ_MISMATCH': 'Clarify scope before pricing',
         'TRAVEL_HIGH':              'Consider travel surcharge',
@@ -270,6 +313,7 @@ const IntelPanel = (() => {
         'AREA_ESTIMATED':           'Request actual m² from client',
         'ONE_OFF_CLEAN':            'Price at Protected scenario minimum'
       };
+
       const code = codeMatch ? codeMatch[1] : '';
       return {
         severity: (sevMatch ? sevMatch[1] : 'low').toLowerCase(),
@@ -291,5 +335,67 @@ const IntelPanel = (() => {
   return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
 
 })();
-// ✅ expose globally (critical)
-try { window.IntelPanel = IntelPanel; } catch (e) {}
+
+
+// ============================================================
+// CSS — injected once into <head>
+// ============================================================
+(function injectIntelStyles() {
+  if (document.getElementById('intel-panel-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'intel-panel-styles';
+  style.textContent = [
+    '.intel-panel{background:#0f1923;border:1px solid #1e3040;border-radius:10px;overflow:hidden;font-family:inherit;margin-bottom:20px}',
+    '.intel-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#141f2c;border-bottom:1px solid #1e3040}',
+    '.intel-title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:#e8f4f3;flex:1}',
+    '.intel-icon{color:#0D9488;font-size:16px}',
+    '.intel-collapse{background:none;border:none;color:#6b8fa8;cursor:pointer;font-size:16px;padding:0 4px}',
+    '.intel-badge,.badge-green,.badge-amber,.badge-red{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px}',
+    '.badge-green{background:#0D9488;color:#fff}',
+    '.badge-amber{background:#d97706;color:#fff}',
+    '.badge-red{background:#dc2626;color:#fff}',
+    '.intel-body{padding:16px}',
+    '.intel-estimates{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}',
+    '.intel-stat{background:#141f2c;border:1px solid #1e3040;border-radius:8px;padding:10px 12px;text-align:center}',
+    '.stat-label{font-size:10px;color:#6b8fa8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}',
+    '.stat-value{font-size:18px;font-weight:700;color:#e8f4f3}',
+    '.intel-sensitivity{display:flex;align-items:center;gap:12px;margin-bottom:16px}',
+    '.sense-label{font-size:12px;color:#6b8fa8;white-space:nowrap}',
+    '.sense-buttons{display:flex;gap:6px}',
+    '.sense-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid #1e3040;background:#141f2c;color:#8faec4;cursor:pointer;transition:all 0.15s}',
+    '.sense-btn:hover,.sense-btn.active{background:#0D9488;border-color:#0D9488;color:#fff}',
+    '.intel-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}',
+    '.scenario-card{background:#141f2c;border:2px solid #1e3040;border-radius:10px;padding:14px;cursor:pointer;transition:all 0.15s;user-select:none}',
+    '.scenario-card:hover{border-color:#0D9488;background:#162330}',
+    '.scenario-card.selected{border-color:#0D9488;background:#0d2420;box-shadow:0 0 0 1px #0D9488}',
+    '.sc-label{font-size:13px;font-weight:600;color:#e8f4f3;margin-bottom:2px}',
+    '.sc-sub{font-size:10px;color:#6b8fa8;margin-bottom:10px}',
+    '.sc-price{font-size:22px;font-weight:700;color:#0D9488;line-height:1;margin-bottom:6px}',
+    '.sc-price span{font-size:12px;font-weight:400;color:#6b8fa8}',
+    '.sc-detail{font-size:11px;color:#6b8fa8}',
+    '.intel-apply-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}',
+    '.apply-label{font-size:12px;color:#6b8fa8;flex:1}',
+    '.btn-apply{background:#0D9488;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}',
+    '.btn-apply:disabled{background:#1e3040;color:#4a6a80;cursor:not-allowed}',
+    '.btn-apply:hover:not(:disabled){background:#0f766e}',
+    '.btn-apply.applied{background:#059669}',
+    '.intel-risks{border-top:1px solid #1e3040;padding-top:14px}',
+    '.risks-title{font-size:11px;font-weight:600;color:#6b8fa8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}',
+    '.risk-item{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px}',
+    '.risk-high{background:rgba(220,38,38,0.12);border-left:3px solid #dc2626}',
+    '.risk-medium{background:rgba(217,119,6,0.12);border-left:3px solid #d97706}',
+    '.risk-low{background:rgba(75,85,99,0.15);border-left:3px solid #4b5563}',
+    '.risk-icon{flex-shrink:0;margin-top:1px}',
+    '.risk-high .risk-icon{color:#f87171}',
+    '.risk-medium .risk-icon{color:#fbbf24}',
+    '.risk-low .risk-icon{color:#9ca3af}',
+    '.risk-msg{color:#cbd5e1;font-weight:500}',
+    '.risk-action{color:#6b8fa8;margin-top:2px}',
+    '.intel-loading .intel-header{color:#6b8fa8}',
+    '.loading-dots{letter-spacing:3px;animation:intel-blink 1.2s infinite}',
+    '@keyframes intel-blink{0%,100%{opacity:1}50%{opacity:0.3}}',
+    '.intel-err-msg{padding:14px 16px;font-size:13px;color:#f87171}',
+    '@media(max-width:700px){.intel-estimates{grid-template-columns:repeat(2,1fr)}.intel-scenarios{grid-template-columns:1fr}}'
+  ].join('');
+  document.head.appendChild(style);
+})();
