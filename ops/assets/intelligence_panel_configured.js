@@ -1,340 +1,402 @@
 // ============================================================
 // ASKMIRO OPS — INTELLIGENCE PANEL
-// FIX: include Ops access token in intel calls (missing token bug)
+// Version: 2.3 — uses Ops session token (localStorage) + safer fetch
 // ============================================================
 
-const IntelPanel = (() => {
+(function (global) {
+  const IntelPanel = (() => {
+    // If you prefer: move API_URL to CFG.API_BASE and remove this line
+    const API_URL = (global.CFG && global.CFG.API_BASE) ||
+      'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
 
-  const API_URL   = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
-  const API_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
+    // Keep as fallback only (secondary)
+    const FALLBACK_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
 
-  let _state = { quoteId: null, intel: null, chosenScenario: null, wageAdjust: 0 };
+    const TOKEN_KEY = (global.CFG && global.CFG.TOKEN_KEY) || 'askmiro_ops_token';
 
-  // ---- NEW: pull Ops access token the same way API wrapper does ----
-  function _getOpsAccessToken() {
-    try {
-      const key = (window.CFG && window.CFG.TOKEN_KEY) ? window.CFG.TOKEN_KEY : 'askmiro_ops_token';
-      return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
-    } catch (e) {
-      return '';
+    let _state = { quoteId: null, intel: null, chosenScenario: null, wageAdjust: 0 };
+
+    // ─────────────────────────────────────────────────────────
+    // Public init
+    // ─────────────────────────────────────────────────────────
+    async function init(quoteId, containerId) {
+      _state.quoteId = quoteId;
+      _state.intel = null;
+      _state.chosenScenario = null;
+      _state.wageAdjust = 0;
+
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = _renderSkeleton();
+
+      try {
+        const intel = await _fetchIntel(quoteId);
+        _state.intel = intel;
+        container.innerHTML = _renderPanel(intel);
+        _bindEvents(container);
+      } catch (err) {
+        container.innerHTML = _renderError(err.message || String(err));
+      }
     }
-  }
 
-  // ---- NEW: attach both service token + ops token to requests ----
-  function _authParams(extra = {}) {
-    const opsToken = _getOpsAccessToken();
-
-    // We send the ops token using multiple common names to match whatever
-    // your Apps Script expects without needing a backend change.
-    return {
-      _token: API_TOKEN,                 // service token (intel engine)
-      accessToken: opsToken || '',       // ops login token (common)
-      token: opsToken || '',             // fallback name
-      opsToken: opsToken || '',          // fallback name
-      ...extra
-    };
-  }
-
-  async function init(quoteId, containerId) {
-    _state.quoteId = quoteId;
-    _state.intel = null;
-    _state.chosenScenario = null;
-    _state.wageAdjust = 0;
-
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    container.innerHTML = _renderSkeleton();
-
-    try {
-      const intel = await _fetchIntel(quoteId);
-      _state.intel = intel;
-      container.innerHTML = _renderPanel(intel);
-      _bindEvents(container);
-    } catch (err) {
-      container.innerHTML = _renderError(err.message);
+    // ─────────────────────────────────────────────────────────
+    // Token handling (THIS is the main fix)
+    // ─────────────────────────────────────────────────────────
+    function _getAccessToken() {
+      // Ops token is stored by your sign-in flow
+      const t = (global.localStorage && localStorage.getItem(TOKEN_KEY)) || '';
+      if (t && t.length > 10) return t; // basic sanity
+      // fallback (optional)
+      return FALLBACK_TOKEN || '';
     }
-  }
 
-  async function _fetchIntel(quoteId) {
-    const qs = new URLSearchParams(_authParams({ action: 'quote.intel', id: quoteId }));
-
-    const res = await fetch(API_URL + '?' + qs.toString(), {
-      method: 'GET',
-      credentials: 'omit',
-      cache: 'no-store'
-    });
-
-    let data;
-    try { data = await res.json(); }
-    catch (e) { throw new Error('Intel endpoint returned non-JSON response'); }
-
-    if (!data || !data.ok) {
-      const msg = (data && data.error) ? data.error : 'Intel data not available for this quote';
-      throw new Error(msg);
+    function _requireTokenOrThrow() {
+      const t = _getAccessToken();
+      if (!t) {
+        throw new Error('Missing access token. Please sign in again.');
+      }
+      return t;
     }
-    return data;
-  }
 
-  function _renderPanel(intel) {
-    const risks = _parseRisks(intel.riskFlags || '');
-    return `
-      <div class="intel-panel" id="intel-panel">
-        <div class="intel-header">
-          <div class="intel-title">
-            <span class="intel-icon">&#9672;</span>
-            <span>AskMiro Intelligence</span>
-            <span class="intel-badge ${intel.dataQuality === 'actual' ? 'badge-green' : 'badge-amber'}">
-              ${intel.dataQuality === 'actual' ? 'Actual data' : 'Estimated'}
-            </span>
-          </div>
-          <button class="intel-collapse" onclick="IntelPanel._toggleCollapse()">&#9662;</button>
-        </div>
+    // ─────────────────────────────────────────────────────────
+    // Fetch helpers
+    // ─────────────────────────────────────────────────────────
+    async function _fetchJson(url, opts) {
+      const res = await fetch(url, opts);
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    }
 
-        <div class="intel-body" id="intel-body">
-          <div class="intel-estimates">
-            <div class="intel-stat"><div class="stat-label">Hours / week</div><div class="stat-value">${intel.hoursPerWeek}</div></div>
-            <div class="intel-stat"><div class="stat-label">Visits / week</div><div class="stat-value">${intel.visitsPerWeek}</div></div>
-            <div class="intel-stat"><div class="stat-label">Supplies / mo</div><div class="stat-value">&#163;${Number(intel.suppliesPerMonth).toFixed(0)}</div></div>
-            <div class="intel-stat"><div class="stat-label">Direct cost / mo</div><div class="stat-value">&#163;${Number(intel.directCostPerMonth).toFixed(0)}</div></div>
-          </div>
+    async function _fetchIntel(quoteId) {
+      const token = _requireTokenOrThrow();
 
-          <div class="intel-sensitivity">
-            <label class="sense-label">Wage sensitivity</label>
-            <div class="sense-buttons">
-              <button class="sense-btn active" onclick="IntelPanel._setWageAdjust(0, this)">Current</button>
-              <button class="sense-btn" onclick="IntelPanel._setWageAdjust(5, this)">+5% wage</button>
-              <button class="sense-btn" onclick="IntelPanel._setWageAdjust(10, this)">+10% wage</button>
+      const qs = new URLSearchParams({
+        _token: token,
+        action: 'quote.intel',
+        id: quoteId
+      });
+
+      const data = await _fetchJson(API_URL + '?' + qs.toString(), { method: 'GET' });
+
+      if (!data || !data.ok) {
+        const err = (data && data.error) || 'Intel data not available for this quote';
+        throw new Error(err);
+      }
+      return data;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // UI render
+    // ─────────────────────────────────────────────────────────
+    function _renderPanel(intel) {
+      const risks = _parseRisks(intel.riskFlags || '');
+
+      const dq = intel.dataQuality === 'actual' ? 'Actual data' : 'Estimated';
+      const dqCls = intel.dataQuality === 'actual' ? 'badge-green' : 'badge-amber';
+
+      return `
+        <div class="intel-panel" id="intel-panel">
+          <div class="intel-header">
+            <div class="intel-title">
+              <span class="intel-icon">&#9672;</span>
+              <span>AskMiro Intelligence</span>
+              <span class="intel-badge ${dqCls}">${dq}</span>
             </div>
+            <button class="intel-collapse" type="button" onclick="IntelPanel._toggleCollapse()">&#9662;</button>
           </div>
 
-          <div class="intel-scenarios">
-            ${_renderScenario('aggressive', intel.scenarios.aggressive, '&#x1F535; Aggressive', 'Win rate priority')}
-            ${_renderScenario('balanced',   intel.scenarios.balanced,   '&#x1F7E2; Balanced',   'Recommended')}
-            ${_renderScenario('protected',  intel.scenarios.protected,  '&#x1F7E1; Protected',  'Margin-safe')}
-          </div>
+          <div class="intel-body" id="intel-body">
+            <div class="intel-estimates">
+              <div class="intel-stat"><div class="stat-label">Hours / week</div><div class="stat-value">${Number(intel.hoursPerWeek || 0).toFixed(1)}</div></div>
+              <div class="intel-stat"><div class="stat-label">Visits / week</div><div class="stat-value">${Number(intel.visitsPerWeek || 0).toFixed(0)}</div></div>
+              <div class="intel-stat"><div class="stat-label">Supplies / mo</div><div class="stat-value">&#163;${Number(intel.suppliesPerMonth || 0).toFixed(0)}</div></div>
+              <div class="intel-stat"><div class="stat-label">Direct cost / mo</div><div class="stat-value">&#163;${Number(intel.directCostPerMonth || 0).toFixed(0)}</div></div>
+            </div>
 
-          <div class="intel-apply-row">
-            <span class="apply-label" id="apply-label">Select a scenario to apply &#8594;</span>
-            <button class="btn-apply" id="btn-apply" disabled onclick="IntelPanel._applyScenario()">Apply to Quote</button>
-          </div>
+            <div class="intel-sensitivity">
+              <label class="sense-label">Wage sensitivity</label>
+              <div class="sense-buttons">
+                <button class="sense-btn active" type="button" onclick="IntelPanel._setWageAdjust(0, this)">Current</button>
+                <button class="sense-btn" type="button" onclick="IntelPanel._setWageAdjust(5, this)">+5% wage</button>
+                <button class="sense-btn" type="button" onclick="IntelPanel._setWageAdjust(10, this)">+10% wage</button>
+              </div>
+            </div>
 
-          ${risks.length > 0 ? _renderRisks(risks) : ''}
+            <div class="intel-scenarios">
+              ${_renderScenario('aggressive', intel.scenarios && intel.scenarios.aggressive, '&#x1F535; Aggressive', 'Win rate priority')}
+              ${_renderScenario('balanced',   intel.scenarios && intel.scenarios.balanced,   '&#x1F7E2; Balanced',   'Recommended')}
+              ${_renderScenario('protected',  intel.scenarios && intel.scenarios.protected,  '&#x1F7E1; Protected',  'Margin-safe')}
+            </div>
+
+            <div class="intel-apply-row">
+              <span class="apply-label" id="apply-label">Select a scenario to apply &#8594;</span>
+              <button class="btn-apply" id="btn-apply" type="button" disabled onclick="IntelPanel._applyScenario()">Apply to Quote</button>
+            </div>
+
+            ${risks.length ? _renderRisks(risks) : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function _renderScenario(key, scenario, label, subtitle) {
+      if (!scenario) {
+        return `
+          <div class="scenario-card" id="scenario-${key}" style="opacity:.6;cursor:not-allowed">
+            <div class="sc-label">${label}</div>
+            <div class="sc-sub">${subtitle}</div>
+            <div class="sc-detail">Scenario unavailable</div>
+          </div>`;
+      }
+
+      const margin = (scenario.marginPct != null ? scenario.marginPct : scenario.effectiveMargin);
+      return `
+        <div class="scenario-card" id="scenario-${key}" onclick="IntelPanel._selectScenario('${key}', this)">
+          <div class="sc-label">${label}</div>
+          <div class="sc-sub">${subtitle}</div>
+          <div class="sc-price">&#163;${Number(scenario.revenuePerMonth || 0).toFixed(0)}<span>/mo</span></div>
+          <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek || 0).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate || 0).toFixed(2)}/hr &middot; ${Number(margin || 0).toFixed(1)}% margin</div>
+        </div>`;
+    }
+
+    function _renderRisks(risks) {
+      return `<div class="intel-risks">
+        <div class="risks-title">Risk Flags (${risks.length})</div>
+        ${risks.map(r => `
+          <div class="risk-item risk-${r.severity}">
+            <div class="risk-icon">${r.severity === 'high' ? '&#9888;' : r.severity === 'medium' ? '&#9679;' : '&#9675;'}</div>
+            <div class="risk-text">
+              <div class="risk-msg">${_esc(r.message)}</div>
+              ${r.action ? `<div class="risk-action">${_esc(r.action)}</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+    }
+
+    function _renderSkeleton() {
+      return `<div class="intel-panel intel-loading">
+        <div class="intel-header">
+          <span class="intel-icon">&#9672;</span>
+          <span style="color:#6b8fa8;margin-left:4px">AskMiro Intelligence</span>
+          <span class="loading-dots" style="color:#6b8fa8;margin-left:6px">&#183;&#183;&#183;</span>
         </div>
       </div>`;
-  }
+    }
 
-  function _renderScenario(key, scenario, label, subtitle) {
-    return `
-      <div class="scenario-card" id="scenario-${key}" onclick="IntelPanel._selectScenario('${key}', this)">
-        <div class="sc-label">${label}</div>
-        <div class="sc-sub">${subtitle}</div>
-        <div class="sc-price">&#163;${Number(scenario.revenuePerMonth).toFixed(0)}<span>/mo</span></div>
-        <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate).toFixed(2)}/hr &middot; ${(scenario.marginPct ?? scenario.effectiveMargin)}% margin</div>
-      </div>`;
-  }
-
-  function _renderRisks(risks) {
-    if (!risks.length) return '';
-    return `<div class="intel-risks"><div class="risks-title">Risk Flags (${risks.length})</div>${risks.map(r => `
-      <div class="risk-item risk-${r.severity}">
-        <div class="risk-icon">${r.severity === 'high' ? '&#9888;' : r.severity === 'medium' ? '&#9679;' : '&#9675;'}</div>
-        <div class="risk-text"><div class="risk-msg">${r.message}</div><div class="risk-action">${r.action}</div></div>
-      </div>`).join('')}</div>`;
-  }
-
-  function _renderSkeleton() {
-    return `<div class="intel-panel intel-loading"><div class="intel-header"><span class="intel-icon">&#9672;</span><span style="color:#6b8fa8;margin-left:4px">AskMiro Intelligence</span><span class="loading-dots" style="color:#6b8fa8;margin-left:6px">&#183;&#183;&#183;</span></div></div>`;
-  }
-
-  function _renderError(msg) {
-    const needsLogin = /missing access token|sign in/i.test(String(msg || ''));
-    return `
-      <div class="intel-panel intel-error">
+    function _renderError(msg) {
+      return `<div class="intel-panel intel-error">
         <div class="intel-header">
           <span class="intel-icon">&#9672;</span>
           <span style="margin-left:4px">AskMiro Intelligence</span>
           <span class="badge-red" style="margin-left:8px">Error</span>
         </div>
-        <div class="intel-err-msg">
-          Could not load intelligence data: ${msg || 'Unknown error'}<br/>
-          ${needsLogin ? `<span style="color:#9ca3af">Fix: sign out and sign in again (token refresh), then re-open the quote.</span>` : ''}
-        </div>
+        <div class="intel-err-msg">Could not load intelligence data: ${_esc(msg)}</div>
       </div>`;
-  }
+    }
 
-  function _selectScenario(key, el) {
-    document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    _state.chosenScenario = key;
+    // ─────────────────────────────────────────────────────────
+    // Interactions
+    // ─────────────────────────────────────────────────────────
+    function _selectScenario(key, el) {
+      document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      _state.chosenScenario = key;
 
-    const btn = document.getElementById('btn-apply');
-    const label = document.getElementById('apply-label');
-    if (btn) btn.disabled = false;
+      const btn = document.getElementById('btn-apply');
+      const label = document.getElementById('apply-label');
+      if (btn) btn.disabled = false;
 
-    if (label) {
       const s = _getActiveScenario(key);
-      if (s) label.textContent = '£' + Number(s.revenuePerMonth).toFixed(0) + '/mo · £' + Number(s.hourlyRate).toFixed(2) + '/hr';
-    }
-  }
-
-  // ---- FIXED: Apply also sends ops token ----
-  async function _applyScenario() {
-    if (!_state.chosenScenario || !_state.intel) return;
-
-    const s = _getActiveScenario(_state.chosenScenario);
-    if (!s) return;
-
-    const btn = document.getElementById('btn-apply');
-    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; btn.style.background = ''; }
-
-    try {
-      const params = new URLSearchParams(_authParams({
-        action: 'quote.intel.apply',
-        id: _state.quoteId,
-        scenario: _state.chosenScenario
-      }));
-
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: params.toString(),
-        credentials: 'omit',
-        cache: 'no-store'
-      });
-
-      let data;
-      try { data = await res.json(); }
-      catch (e) { throw new Error('Apply returned non-JSON response'); }
-
-      if (!data || !data.ok) throw new Error((data && data.error) ? data.error : 'Apply failed');
-
-      _setField('q-cr', Number(s.hourlyRate).toFixed(2));
-      _setField('q-hw', _state.intel.hoursPerWeek);
-      _setField('q-sp', Number(_state.intel.suppliesPerMonth).toFixed(2));
-
-      if (btn) {
-        btn.textContent = '✓ Applied';
-        btn.classList.add('applied');
-        btn.disabled = false;
-        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2500);
+      if (label && s) {
+        label.textContent =
+          '£' + Number(s.revenuePerMonth || 0).toFixed(0) +
+          '/mo · £' + Number(s.hourlyRate || 0).toFixed(2) +
+          '/hr';
       }
+    }
 
-      window.dispatchEvent(new CustomEvent('intelApplied', {
-        detail: {
-          quoteId: _state.quoteId,
-          scenario: _state.chosenScenario,
-          values: s,
-          hoursPerWeek: _state.intel.hoursPerWeek,
-          supplies: _state.intel.suppliesPerMonth
+    async function _applyScenario() {
+      if (!_state.chosenScenario || !_state.intel) return;
+
+      const s = _getActiveScenario(_state.chosenScenario);
+      if (!s) return;
+
+      const btn = document.getElementById('btn-apply');
+      if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+
+      try {
+        const token = _requireTokenOrThrow();
+
+        const params = new URLSearchParams({
+          _token: token,
+          action: 'quote.intel.apply',
+          id: _state.quoteId,
+          scenario: _state.chosenScenario
+        });
+
+        const data = await _fetchJson(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: params.toString()
+        });
+
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Apply failed');
+
+        // Push values back into quote builder fields
+        _setField('q-cr', Number(s.hourlyRate || 0).toFixed(2));
+        _setField('q-hw', Number(_state.intel.hoursPerWeek || 0));
+        _setField('q-sp', Number(_state.intel.suppliesPerMonth || 0).toFixed(2));
+
+        if (btn) {
+          btn.textContent = '✓ Applied';
+          btn.classList.add('applied');
+          btn.disabled = false;
+          setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2200);
         }
-      }));
 
-    } catch (err) {
-      if (btn) {
-        btn.textContent = '✗ Failed — retry';
-        btn.disabled = false;
-        btn.style.background = '#dc2626';
-        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.style.background = ''; }, 3000);
+        window.dispatchEvent(new CustomEvent('intelApplied', {
+          detail: {
+            quoteId: _state.quoteId,
+            scenario: _state.chosenScenario,
+            values: s,
+            hoursPerWeek: _state.intel.hoursPerWeek,
+            supplies: _state.intel.suppliesPerMonth
+          }
+        }));
+
+      } catch (err) {
+        if (btn) {
+          btn.textContent = '✗ Failed — retry';
+          btn.disabled = false;
+          btn.style.background = '#dc2626';
+          setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.style.background = ''; }, 2500);
+        }
+        console.error('IntelPanel._applyScenario error:', err);
       }
-      console.error('IntelPanel._applyScenario error:', err);
     }
-  }
 
-  function _setWageAdjust(pct, btn) {
-    _state.wageAdjust = pct;
-    document.querySelectorAll('.sense-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    function _setWageAdjust(pct, btn) {
+      _state.wageAdjust = pct;
 
-    const intel = _state.intel;
-    if (!intel) return;
+      document.querySelectorAll('.sense-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
 
-    let sens = null;
-    if (pct === 5  && intel.sensitivity) sens = intel.sensitivity.wage5pct;
-    if (pct === 10 && intel.sensitivity) sens = intel.sensitivity.wage10pct;
+      const intel = _state.intel;
+      if (!intel) return;
 
-    const balCard = document.getElementById('scenario-balanced');
-    if (!balCard) return;
+      let src = null;
+      if (pct === 5 && intel.sensitivity && intel.sensitivity.wage5pct) src = intel.sensitivity.wage5pct;
+      if (pct === 10 && intel.sensitivity && intel.sensitivity.wage10pct) src = intel.sensitivity.wage10pct;
+      if (!src && intel.scenarios && intel.scenarios.balanced) src = intel.scenarios.balanced;
+      if (!src) return;
 
-    const src = sens || (intel.scenarios && intel.scenarios.balanced);
-    if (!src) return;
+      const balCard = document.getElementById('scenario-balanced');
+      if (!balCard) return;
 
-    balCard.querySelector('.sc-price').innerHTML =
-      '£' + Number(src.revenuePerMonth).toFixed(0) + '<span>/mo</span>';
+      const priceEl = balCard.querySelector('.sc-price');
+      const detailEl = balCard.querySelector('.sc-detail');
+      if (priceEl) priceEl.innerHTML = '£' + Number(src.revenuePerMonth || 0).toFixed(0) + '<span>/mo</span>';
+      if (detailEl) {
+        const margin = (src.marginPct != null ? src.marginPct : src.effectiveMargin);
+        detailEl.textContent =
+          '£' + Number(src.revenuePerWeek || 0).toFixed(0) + '/wk · £' +
+          Number(src.hourlyRate || 0).toFixed(2) + '/hr · ' +
+          Number(margin || 0).toFixed(1) + '% margin';
+      }
+    }
 
-    balCard.querySelector('.sc-detail').textContent =
-      '£' + Number(src.revenuePerWeek).toFixed(0) + '/wk · £' +
-      Number(src.hourlyRate).toFixed(2) + '/hr · ' +
-      (src.marginPct ?? src.effectiveMargin ?? 25) + '% margin';
-  }
+    function _toggleCollapse() {
+      const body = document.getElementById('intel-body');
+      const btn  = document.querySelector('.intel-collapse');
+      if (!body) return;
+      const collapsed = body.style.display === 'none';
+      body.style.display = collapsed ? 'block' : 'none';
+      if (btn) btn.innerHTML = collapsed ? '&#9662;' : '&#9656;';
+    }
 
-  function _toggleCollapse() {
-    const body = document.getElementById('intel-body');
-    const btn  = document.querySelector('.intel-collapse');
-    if (!body) return;
-    const collapsed = body.style.display === 'none';
-    body.style.display = collapsed ? 'block' : 'none';
-    if (btn) btn.innerHTML = collapsed ? '&#9662;' : '&#9656;';
-  }
+    function _bindEvents(container) {
+      container.querySelectorAll('.scenario-card').forEach(card => {
+        if (card.getAttribute('onclick')) {
+          card.setAttribute('tabindex', '0');
+          card.addEventListener('keydown', (e) => { if (e.key === 'Enter') card.click(); });
+        }
+      });
+    }
 
-  function _bindEvents(container) {
-    container.querySelectorAll('.scenario-card').forEach(card => {
-      card.setAttribute('tabindex', '0');
-      card.addEventListener('keydown', e => { if (e.key === 'Enter') card.click(); });
-    });
-  }
+    function _getActiveScenario(key) {
+      const intel = _state.intel;
+      if (!intel) return null;
 
-  function _getActiveScenario(key) {
-    const intel = _state.intel;
-    if (!intel) return null;
+      if (key === 'balanced') {
+        if (_state.wageAdjust === 5 && intel.sensitivity && intel.sensitivity.wage5pct) return intel.sensitivity.wage5pct;
+        if (_state.wageAdjust === 10 && intel.sensitivity && intel.sensitivity.wage10pct) return intel.sensitivity.wage10pct;
+      }
+      return (intel.scenarios && intel.scenarios[key]) || null;
+    }
 
-    if (_state.wageAdjust === 5 && key === 'balanced' && intel.sensitivity?.wage5pct)
-      return intel.sensitivity.wage5pct;
+    // ─────────────────────────────────────────────────────────
+    // Risks parsing (unchanged)
+    // ─────────────────────────────────────────────────────────
+    function _parseRisks(riskString) {
+      if (!riskString) return [];
+      return String(riskString).split(' | ').filter(Boolean).map(r => {
+        const sevMatch  = r.match(/\[(HIGH|MEDIUM|LOW)\]/);
+        const codeMatch = r.match(/\] ([A-Z_]+):/);
+        const msgMatch  = r.match(/: (.+)$/);
 
-    if (_state.wageAdjust === 10 && key === 'balanced' && intel.sensitivity?.wage10pct)
-      return intel.sensitivity.wage10pct;
+        const actionMap = {
+          'DEEP_CLEAN_FREQ_MISMATCH': 'Clarify scope before pricing',
+          'TRAVEL_HIGH':              'Consider travel surcharge',
+          'WAGE_SENSITIVITY':         'Use Balanced or Protected scenario',
+          'SUPPLIES_BELOW_MIN':       'Apply minimum supplies floor',
+          'SMALL_JOB':                'Confirm minimum contract value',
+          'AREA_ESTIMATED':           'Request actual m² from client',
+          'ONE_OFF_CLEAN':            'Price at Protected scenario minimum'
+        };
 
-    return (intel.scenarios && intel.scenarios[key]) || null;
-  }
+        const code = codeMatch ? codeMatch[1] : '';
+        return {
+          severity: (sevMatch ? sevMatch[1] : 'low').toLowerCase(),
+          code,
+          message: msgMatch ? msgMatch[1] : r,
+          action: actionMap[code] || ''
+        };
+      });
+    }
 
-  function _parseRisks(riskString) {
-    if (!riskString) return [];
-    return riskString.split(' | ').filter(Boolean).map(r => {
-      const sevMatch  = r.match(/\[(HIGH|MEDIUM|LOW)\]/);
-      const codeMatch = r.match(/\] ([A-Z_]+):/);
-      const msgMatch  = r.match(/: (.+)$/);
+    // ─────────────────────────────────────────────────────────
+    // Field setter
+    // ─────────────────────────────────────────────────────────
+    function _setField(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = value;
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
 
-      const actionMap = {
-        'DEEP_CLEAN_FREQ_MISMATCH': 'Clarify scope before pricing',
-        'TRAVEL_HIGH':              'Consider travel surcharge',
-        'WAGE_SENSITIVITY':         'Use Balanced or Protected scenario',
-        'SUPPLIES_BELOW_MIN':       'Apply minimum supplies floor',
-        'SMALL_JOB':                'Confirm minimum contract value',
-        'AREA_ESTIMATED':           'Request actual m² from client',
-        'ONE_OFF_CLEAN':            'Price at Protected scenario minimum'
-      };
+    function _esc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-      const code = codeMatch ? codeMatch[1] : '';
-      return {
-        severity: (sevMatch ? sevMatch[1] : 'low').toLowerCase(),
-        code,
-        message: msgMatch ? msgMatch[1] : r,
-        action: actionMap[code] || ''
-      };
-    });
-  }
+    return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
+  })();
 
-  function _setField(id, value) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = value;
-    el.dispatchEvent(new Event('input',  { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
+  // Expose globally (IMPORTANT)
+  global.IntelPanel = IntelPanel;
 
-  return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
-
-})();
+})(window);
 
 
 // ============================================================
