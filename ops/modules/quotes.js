@@ -1,30 +1,39 @@
 // ============================================================
-// AskMiro Ops — modules/quotes.js
+// AskMiro Ops — modules/quotes.js  (FIXED + HARDENED)
+// - Fixes double-JSON stringify/parse bugs
+// - Removes inline onclick string hacks (uses delegated click)
+// - Makes IntelPanel init reliable (waits for mount + script)
 // ============================================================
 const Quotes = (() => {
   let _quotes = [];
   let _filter = 'all'; // 'all' | 'web'
+  let _byId = {};      // id -> quote
 
   async function render() {
     const app = document.getElementById('main-content');
     try { _quotes = await API.get('quotes'); } catch(e) { _quotes = []; }
+
+    // Build fast lookup (safer than passing whole objects through HTML)
+    _byId = _quotes.reduce((acc, q) => { acc[q.id] = q; return acc; }, {});
     updateBadge();
 
     const webDrafts = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft');
     const filtered  = _filter === 'web' ? webDrafts : _quotes;
 
     const rows = filtered.map(q => {
-      const m = parseFloat(q.grossMarginPct||0);
+      const m = parseFloat(q.grossMarginPct || 0);
       const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
-      return `<tr onclick='Quotes.openView(${JSON.stringify(JSON.stringify(q))})' style="${isWebDraft?'background:rgba(13,148,136,.04);':''}">
+
+      // NOTE: no more JSON.stringify(JSON.stringify(q)) hacks
+      return `<tr class="q-row" data-qid="${q.id}" style="${isWebDraft ? 'background:rgba(13,148,136,.04);' : ''}">
         <td class="tmn">${q.id}${isWebDraft ? ' <span style="font-size:10px;background:#0D9488;color:#fff;padding:1px 6px;border-radius:10px;vertical-align:middle">Intel</span>' : ''}</td>
         <td>v${q.version||1}</td>
-        <td class="tfw">${q.clientName}</td>
+        <td class="tfw">${q.clientName||'&#8212;'}</td>
         <td style="font-size:12px">${q.siteAddress||'&#8212;'}</td>
         <td>${UI.fmt(q.revenueMonthly||0)}/mo</td>
         <td>${UI.pill(UI.fmtPct(m), UI.ragCls(m, CFG.MIN_MARGIN_PCT+5, CFG.MIN_MARGIN_PCT))}</td>
         <td>${UI.statusPill(q.status)}</td>
-        <td>${q.createdAt?q.createdAt.slice(0,10):'&#8212;'}</td>
+        <td>${q.createdAt ? q.createdAt.slice(0,10) : '&#8212;'}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No quotes${_filter==='web'?' from web form':''} yet</td></tr>`;
 
@@ -59,10 +68,12 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
       <div style="display:flex;gap:6px;flex-shrink:0">${tabAll}${tabWeb}</div>
     </div>
 
-    <div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>ID</th><th>v</th><th>Client</th><th>Site</th><th>Revenue/mo</th><th>Margin</th><th>Status</th><th>Date</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div></div></div>
+    <div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap">
+      <table class="tbl" id="quotes-table">
+        <thead><tr><th>ID</th><th>v</th><th>Client</th><th>Site</th><th>Revenue/mo</th><th>Margin</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div></div></div>
   </div>
   <div>
     ${UI.secHd('Margin', 'Live Calculator')}
@@ -73,7 +84,28 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     </div>
   </div>
 </div>`;
+
+    // Delegated click handler (no inline JS required)
+    _bindTableClicks();
+
     setTimeout(() => calc(), 50);
+  }
+
+  function _bindTableClicks() {
+    const table = document.getElementById('quotes-table');
+    if (!table) return;
+
+    // Prevent double-binding if render() runs repeatedly
+    if (table.__bound) return;
+    table.__bound = true;
+
+    table.addEventListener('click', (e) => {
+      const tr = e.target && e.target.closest ? e.target.closest('tr.q-row') : null;
+      if (!tr) return;
+      const id = tr.getAttribute('data-qid');
+      if (!id) return;
+      openViewById(id);
+    });
   }
 
   function setFilter(f) { _filter = f; render(); }
@@ -148,42 +180,41 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     if (!hoursPerWeek || hoursPerWeek <= 0) return 1;
     const visits = visitsPerWeek || 1;
     const hrsPerVisit = hoursPerWeek / visits;
-    // Each cleaner works max 8hrs per visit — round up
     return Math.max(1, Math.ceil(hrsPerVisit / 8));
   }
 
-  // ── Reliable IntelPanel init: tries immediately, then polls ─
+  // ── IntelPanel init that waits for BOTH mount + script ─────
   function _initIntelPanel(quoteId) {
-    if (!window.IntelPanel || typeof IntelPanel.init !== 'function') return;
-
-    // Attempt 1: mount may already exist (synchronous modal render)
-    if (document.getElementById('intel-panel-mount')) {
-      IntelPanel.init(quoteId, 'intel-panel-mount');
-      return;
-    }
-
-    // Attempt 2: poll every 50ms for up to 3 seconds
     let attempts = 0;
     const poll = setInterval(function() {
       attempts++;
+
       const mount = document.getElementById('intel-panel-mount');
-      if (mount) {
+      const panelReady = !!window.IntelPanel && typeof IntelPanel.init === 'function';
+
+      if (mount && panelReady) {
         clearInterval(poll);
         IntelPanel.init(quoteId, 'intel-panel-mount');
-      } else if (attempts >= 60) {
-        clearInterval(poll); // give up after 3s
+      } else if (attempts >= 120) {
+        clearInterval(poll); // ~6 seconds then give up quietly
       }
     }, 50);
   }
 
-  function openView(jsonStr) {
-    const q = JSON.parse(jsonStr);
+  // Open by ID (safe, no JSON pass-through)
+  function openViewById(id) {
+    const q = _byId[id];
+    if (!q) { UI.toast('Quote not found (stale list). Refreshing…', 'a'); return render(); }
+    openView(q);
+  }
+
+  // Accepts a real object now
+  function openView(q) {
     const m = parseFloat(q.grossMarginPct||0);
     const col = m >= CFG.MIN_MARGIN_PCT + 5 ? 'var(--gn)' : m >= CFG.MIN_MARGIN_PCT ? 'var(--am)' : 'var(--rd)';
     const blocked = m < CFG.MIN_MARGIN_PCT && !q.overrideReason;
     const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
 
-    // Staff count shown in modal header for web leads
     const staffNeeded = isWebDraft
       ? _staffCount(parseFloat(q.intel_hoursPerWeek || q.hoursPerWeek || 0),
                     parseFloat(q.intel_visitsPerWeek || 1))
@@ -197,10 +228,10 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   <div style="border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;margin-bottom:14px">
     <div style="background:var(--ch);padding:14px 18px">
       <div style="font-family:Outfit,sans-serif;font-weight:800;font-size:15px;color:#5EEAD4">AskMiro Cleaning Services</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Proposal for ${q.clientName} &middot; ${q.siteAddress||''}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Proposal for ${q.clientName||''} &middot; ${q.siteAddress||''}</div>
     </div>
     <div style="padding:14px 18px">
-      <div class="mp-row"><span class="mp-lbl">Hours/week</span><span>${q.hoursPerWeek||'&#8212;'}h</span></div>
+      <div class="mp-row"><span class="mp-lbl">Hours/week</span><span>${(q.hoursPerWeek ?? '&#8212;')}h</span></div>
       ${staffNeeded ? `<div class="mp-row"><span class="mp-lbl">Staff needed</span><span style="font-weight:600">${staffNeeded} cleaner${staffNeeded > 1 ? 's' : ''}</span></div>` : ''}
       <div class="mp-row"><span class="mp-lbl">Monthly Revenue</span><span class="mp-val">${UI.fmt(q.revenueMonthly||0)}</span></div>
       <div class="mp-row"><span class="mp-lbl">Direct Cost</span><span>${UI.fmt(q.directCost||0)}</span></div>
@@ -216,14 +247,11 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     ${blocked ? `<button class="btn bo" onclick="Quotes.openApprove('${q.id}')">&#9888; Request Approval</button>` : ''}
     <div style="flex:1"></div>
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
-    ${!blocked ? `<button class="btn bp" onclick="Quotes.openSend('${q.id}','${q.clientName}')">&#9992; Send Quote</button>` : ''}
+    ${!blocked ? `<button class="btn bp" onclick="Quotes.openSend('${q.id}','${(q.clientName||'').replace(/'/g,"&#39;")}')">&#9992; Send Quote</button>` : ''}
   </div>
 </div>`);
 
-    // Fire Intel Panel init — polls until mount is in DOM
-    if (isWebDraft) {
-      _initIntelPanel(q.id);
-    }
+    if (isWebDraft) _initIntelPanel(q.id);
   }
 
   function openSend(id, clientName) {
@@ -268,5 +296,9 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
   }
 
-  return { render, calc, toggleMode, save, openNew, openView, openSend, doSend, openApprove, doApprove, setFilter };
+  return {
+    render, calc, toggleMode, save, openNew,
+    // public openView kept for compatibility, but we now route by id
+    openView, openSend, doSend, openApprove, doApprove, setFilter
+  };
 })();
