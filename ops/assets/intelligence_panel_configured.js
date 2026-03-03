@@ -1,66 +1,36 @@
 // ============================================================
-// ASKMIRO OPS — INTELLIGENCE PANEL (Configured)
-// Version: 2.1 — fixed API wiring
+// ASKMIRO OPS — INTELLIGENCE PANEL
+// Version: 2.2 — live API wiring, applyScenario POST fix
 // ============================================================
 
 const IntelPanel = (() => {
 
-  // ── CONFIG ───────────────────────────────────────────────
   const API_URL   = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
   const API_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
 
-  // ── STATE ────────────────────────────────────────────────
-  let _state = {
-    quoteId:        null,
-    intel:          null,
-    chosenScenario: null,
-    wageAdjust:     0
-  };
+  let _state = { quoteId: null, intel: null, chosenScenario: null, wageAdjust: 0 };
 
-  // ============================================================
-  // PUBLIC: init(quoteId, containerId)
-  // Called from quotes.js after modal opens
-  // ============================================================
   async function init(quoteId, containerId) {
-    _state.quoteId        = quoteId;
-    _state.intel          = null;
-    _state.chosenScenario = null;
-    _state.wageAdjust     = 0;
-
+    _state.quoteId = quoteId; _state.intel = null; _state.chosenScenario = null; _state.wageAdjust = 0;
     const container = document.getElementById(containerId);
     if (!container) return;
-
     container.innerHTML = _renderSkeleton();
-
     try {
       const intel = await _fetchIntel(quoteId);
       _state.intel = intel;
       container.innerHTML = _renderPanel(intel);
       _bindEvents(container);
-    } catch (err) {
-      container.innerHTML = _renderError(err.message);
-    }
+    } catch (err) { container.innerHTML = _renderError(err.message); }
   }
 
-  // ============================================================
-  // FETCH — GET request matching GAS authenticateRequest()
-  // action: 'quote.intel'  ->  routeGet  ->  getQuoteIntel(id)
-  // ============================================================
   async function _fetchIntel(quoteId) {
-    const qs = new URLSearchParams({
-      _token: API_TOKEN,
-      action: 'quote.intel',
-      id:     quoteId
-    });
+    const qs = new URLSearchParams({ _token: API_TOKEN, action: 'quote.intel', id: quoteId });
     const res  = await fetch(API_URL + '?' + qs.toString());
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Intel data not available for this quote');
     return data;
   }
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   function _renderPanel(intel) {
     const risks = _parseRisks(intel.riskFlags || '');
     return `
@@ -76,26 +46,12 @@ const IntelPanel = (() => {
           <button class="intel-collapse" onclick="IntelPanel._toggleCollapse()">&#9662;</button>
         </div>
         <div class="intel-body" id="intel-body">
-
           <div class="intel-estimates">
-            <div class="intel-stat">
-              <div class="stat-label">Hours / week</div>
-              <div class="stat-value">${intel.hoursPerWeek}</div>
-            </div>
-            <div class="intel-stat">
-              <div class="stat-label">Visits / week</div>
-              <div class="stat-value">${intel.visitsPerWeek}</div>
-            </div>
-            <div class="intel-stat">
-              <div class="stat-label">Supplies / mo</div>
-              <div class="stat-value">&#163;${Number(intel.suppliesPerMonth).toFixed(0)}</div>
-            </div>
-            <div class="intel-stat">
-              <div class="stat-label">Direct cost / mo</div>
-              <div class="stat-value">&#163;${Number(intel.directCostPerMonth).toFixed(0)}</div>
-            </div>
+            <div class="intel-stat"><div class="stat-label">Hours / week</div><div class="stat-value">${intel.hoursPerWeek}</div></div>
+            <div class="intel-stat"><div class="stat-label">Visits / week</div><div class="stat-value">${intel.visitsPerWeek}</div></div>
+            <div class="intel-stat"><div class="stat-label">Supplies / mo</div><div class="stat-value">&#163;${Number(intel.suppliesPerMonth).toFixed(0)}</div></div>
+            <div class="intel-stat"><div class="stat-label">Direct cost / mo</div><div class="stat-value">&#163;${Number(intel.directCostPerMonth).toFixed(0)}</div></div>
           </div>
-
           <div class="intel-sensitivity">
             <label class="sense-label">Wage sensitivity</label>
             <div class="sense-buttons">
@@ -104,24 +60,18 @@ const IntelPanel = (() => {
               <button class="sense-btn" onclick="IntelPanel._setWageAdjust(10, this)">+10% wage</button>
             </div>
           </div>
-
           <div class="intel-scenarios">
             ${_renderScenario('aggressive', intel.scenarios.aggressive, '&#x1F535; Aggressive', 'Win rate priority')}
             ${_renderScenario('balanced',   intel.scenarios.balanced,   '&#x1F7E2; Balanced',   'Recommended')}
             ${_renderScenario('protected',  intel.scenarios.protected,  '&#x1F7E1; Protected',  'Margin-safe')}
           </div>
-
           <div class="intel-apply-row">
             <span class="apply-label" id="apply-label">Select a scenario to apply &#8594;</span>
-            <button class="btn-apply" id="btn-apply" disabled onclick="IntelPanel._applyScenario()">
-              Apply to Quote
-            </button>
+            <button class="btn-apply" id="btn-apply" disabled onclick="IntelPanel._applyScenario()">Apply to Quote</button>
           </div>
-
           ${risks.length > 0 ? _renderRisks(risks) : ''}
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
   function _renderScenario(key, scenario, label, subtitle) {
@@ -130,67 +80,32 @@ const IntelPanel = (() => {
         <div class="sc-label">${label}</div>
         <div class="sc-sub">${subtitle}</div>
         <div class="sc-price">&#163;${Number(scenario.revenuePerMonth).toFixed(0)}<span>/mo</span></div>
-        <div class="sc-detail">
-          &#163;${Number(scenario.revenuePerWeek).toFixed(0)}/wk
-          &middot; &#163;${Number(scenario.hourlyRate).toFixed(2)}/hr
-          &middot; ${scenario.marginPct || scenario.effectiveMargin}% margin
-        </div>
-      </div>
-    `;
+        <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate).toFixed(2)}/hr &middot; ${scenario.marginPct || scenario.effectiveMargin}% margin</div>
+      </div>`;
   }
 
   function _renderRisks(risks) {
     if (!risks.length) return '';
-    return `
-      <div class="intel-risks">
-        <div class="risks-title">Risk Flags (${risks.length})</div>
-        ${risks.map(r => `
-          <div class="risk-item risk-${r.severity}">
-            <div class="risk-icon">${r.severity === 'high' ? '&#9888;' : r.severity === 'medium' ? '&#9679;' : '&#9675;'}</div>
-            <div class="risk-text">
-              <div class="risk-msg">${r.message}</div>
-              <div class="risk-action">${r.action}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
+    return `<div class="intel-risks"><div class="risks-title">Risk Flags (${risks.length})</div>${risks.map(r => `
+      <div class="risk-item risk-${r.severity}">
+        <div class="risk-icon">${r.severity === 'high' ? '&#9888;' : r.severity === 'medium' ? '&#9679;' : '&#9675;'}</div>
+        <div class="risk-text"><div class="risk-msg">${r.message}</div><div class="risk-action">${r.action}</div></div>
+      </div>`).join('')}</div>`;
   }
 
   function _renderSkeleton() {
-    return `
-      <div class="intel-panel intel-loading">
-        <div class="intel-header">
-          <span class="intel-icon">&#9672;</span>
-          <span style="color:#6b8fa8;margin-left:4px">AskMiro Intelligence</span>
-          <span class="loading-dots" style="color:#6b8fa8;margin-left:6px">&#183;&#183;&#183;</span>
-        </div>
-      </div>
-    `;
+    return `<div class="intel-panel intel-loading"><div class="intel-header"><span class="intel-icon">&#9672;</span><span style="color:#6b8fa8;margin-left:4px">AskMiro Intelligence</span><span class="loading-dots" style="color:#6b8fa8;margin-left:6px">&#183;&#183;&#183;</span></div></div>`;
   }
 
   function _renderError(msg) {
-    return `
-      <div class="intel-panel intel-error">
-        <div class="intel-header">
-          <span class="intel-icon">&#9672;</span>
-          <span style="margin-left:4px">AskMiro Intelligence</span>
-          <span class="badge-red" style="margin-left:8px">Error</span>
-        </div>
-        <div class="intel-err-msg">Could not load intelligence data: ${msg}</div>
-      </div>
-    `;
+    return `<div class="intel-panel intel-error"><div class="intel-header"><span class="intel-icon">&#9672;</span><span style="margin-left:4px">AskMiro Intelligence</span><span class="badge-red" style="margin-left:8px">Error</span></div><div class="intel-err-msg">Could not load intelligence data: ${msg}</div></div>`;
   }
-
-  // ============================================================
-  // INTERACTIONS
-  // ============================================================
 
   function _selectScenario(key, el) {
     document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
     _state.chosenScenario = key;
-    const btn   = document.getElementById('btn-apply');
+    const btn = document.getElementById('btn-apply');
     const label = document.getElementById('apply-label');
     if (btn) btn.disabled = false;
     if (label) {
@@ -199,31 +114,55 @@ const IntelPanel = (() => {
     }
   }
 
-  function _applyScenario() {
+  // ── KEY FIX v2.2: now POSTs to backend before updating DOM ──
+  async function _applyScenario() {
     if (!_state.chosenScenario || !_state.intel) return;
     const s = _getActiveScenario(_state.chosenScenario);
     if (!s) return;
 
-    _setField('q-cr', s.hourlyRate.toFixed(2));
-    _setField('q-hw', _state.intel.hoursPerWeek);
-    _setField('q-sp', Number(_state.intel.suppliesPerMonth).toFixed(2));
-
     const btn = document.getElementById('btn-apply');
-    if (btn) {
-      btn.textContent = '\u2713 Applied';
-      btn.classList.add('applied');
-      setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2500);
-    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying\u2026'; }
 
-    window.dispatchEvent(new CustomEvent('intelApplied', {
-      detail: {
-        quoteId:      _state.quoteId,
-        scenario:     _state.chosenScenario,
-        values:       s,
-        hoursPerWeek: _state.intel.hoursPerWeek,
-        supplies:     _state.intel.suppliesPerMonth
+    try {
+      const params = new URLSearchParams({
+        _token:   API_TOKEN,
+        action:   'quote.intel.apply',
+        id:       _state.quoteId,
+        scenario: _state.chosenScenario
+      });
+
+      const res  = await fetch(API_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    params.toString()
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Apply failed');
+
+      _setField('q-cr', s.hourlyRate.toFixed(2));
+      _setField('q-hw', _state.intel.hoursPerWeek);
+      _setField('q-sp', Number(_state.intel.suppliesPerMonth).toFixed(2));
+
+      if (btn) {
+        btn.textContent = '\u2713 Applied';
+        btn.classList.add('applied');
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.classList.remove('applied'); }, 2500);
       }
-    }));
+
+      window.dispatchEvent(new CustomEvent('intelApplied', {
+        detail: { quoteId: _state.quoteId, scenario: _state.chosenScenario, values: s, hoursPerWeek: _state.intel.hoursPerWeek, supplies: _state.intel.suppliesPerMonth }
+      }));
+
+    } catch (err) {
+      if (btn) {
+        btn.textContent = '\u2717 Failed \u2014 retry';
+        btn.disabled = false;
+        btn.style.background = '#dc2626';
+        setTimeout(() => { btn.textContent = 'Apply to Quote'; btn.style.background = ''; }, 3000);
+      }
+      console.error('IntelPanel._applyScenario error:', err.message);
+    }
   }
 
   function _setWageAdjust(pct, btn) {
@@ -237,15 +176,10 @@ const IntelPanel = (() => {
     if (pct === 10 && intel.sensitivity) sens = intel.sensitivity.wage10pct;
     const balCard = document.getElementById('scenario-balanced');
     if (!balCard) return;
-    if (sens) {
-      balCard.querySelector('.sc-price').innerHTML = '\u00A3' + Number(sens.revenuePerMonth).toFixed(0) + '<span>/mo</span>';
-      balCard.querySelector('.sc-detail').textContent = '\u00A3' + Number(sens.revenuePerWeek).toFixed(0) + '/wk \u00B7 \u00A3' + Number(sens.hourlyRate).toFixed(2) + '/hr \u00B7 ' + (sens.marginPct || 25) + '% margin';
-    } else {
-      const base = intel.scenarios && intel.scenarios.balanced;
-      if (!base) return;
-      balCard.querySelector('.sc-price').innerHTML = '\u00A3' + Number(base.revenuePerMonth).toFixed(0) + '<span>/mo</span>';
-      balCard.querySelector('.sc-detail').textContent = '\u00A3' + Number(base.revenuePerWeek).toFixed(0) + '/wk \u00B7 \u00A3' + Number(base.hourlyRate).toFixed(2) + '/hr \u00B7 ' + (base.marginPct || 25) + '% margin';
-    }
+    const src = sens || (intel.scenarios && intel.scenarios.balanced);
+    if (!src) return;
+    balCard.querySelector('.sc-price').innerHTML = '\u00A3' + Number(src.revenuePerMonth).toFixed(0) + '<span>/mo</span>';
+    balCard.querySelector('.sc-detail').textContent = '\u00A3' + Number(src.revenuePerWeek).toFixed(0) + '/wk \u00B7 \u00A3' + Number(src.hourlyRate).toFixed(2) + '/hr \u00B7 ' + (src.marginPct || 25) + '% margin';
   }
 
   function _toggleCollapse() {
@@ -263,8 +197,6 @@ const IntelPanel = (() => {
       card.addEventListener('keydown', e => { if (e.key === 'Enter') card.click(); });
     });
   }
-
-  // ── HELPERS ──────────────────────────────────────────────
 
   function _getActiveScenario(key) {
     const intel = _state.intel;
@@ -290,12 +222,7 @@ const IntelPanel = (() => {
         'ONE_OFF_CLEAN':            'Price at Protected scenario minimum'
       };
       const code = codeMatch ? codeMatch[1] : '';
-      return {
-        severity: (sevMatch ? sevMatch[1] : 'low').toLowerCase(),
-        code,
-        message:  msgMatch ? msgMatch[1] : r,
-        action:   actionMap[code] || ''
-      };
+      return { severity: (sevMatch ? sevMatch[1] : 'low').toLowerCase(), code, message: msgMatch ? msgMatch[1] : r, action: actionMap[code] || '' };
     });
   }
 
@@ -307,7 +234,6 @@ const IntelPanel = (() => {
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  // ── PUBLIC API ───────────────────────────────────────────
   return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
 
 })();
