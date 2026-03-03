@@ -28,7 +28,6 @@ const Quotes = (() => {
       </tr>`;
     }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No quotes${_filter==='web'?' from web form':''} yet</td></tr>`;
 
-    // Filter tabs
     const tabAll = `<button onclick="Quotes.setFilter('all')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='all'?'#0D9488':'var(--bd)'};background:${_filter==='all'?'#0D9488':'transparent'};color:${_filter==='all'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">All (${_quotes.length})</button>`;
     const tabWeb  = `<button onclick="Quotes.setFilter('web')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='web'?'#0D9488':'var(--bd)'};background:${_filter==='web'?'#0D9488':'transparent'};color:${_filter==='web'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">&#9656; Web Leads${webDrafts.length>0?' ('+webDrafts.length+')':''}</button>`;
 
@@ -77,10 +76,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     setTimeout(() => calc(), 50);
   }
 
-  function setFilter(f) {
-    _filter = f;
-    render();
-  }
+  function setFilter(f) { _filter = f; render(); }
 
   function toggleMode() {
     const m = document.getElementById('q-md')?.value;
@@ -147,12 +143,51 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
 
   function openNew() { document.getElementById('q-cl')?.focus(); }
 
+  // ── Helper: calculate staff needed from hours + visits ──────
+  function _staffCount(hoursPerWeek, visitsPerWeek) {
+    if (!hoursPerWeek || hoursPerWeek <= 0) return 1;
+    const visits = visitsPerWeek || 1;
+    const hrsPerVisit = hoursPerWeek / visits;
+    // Each cleaner works max 8hrs per visit — round up
+    return Math.max(1, Math.ceil(hrsPerVisit / 8));
+  }
+
+  // ── Reliable IntelPanel init: tries immediately, then polls ─
+  function _initIntelPanel(quoteId) {
+    if (!window.IntelPanel || typeof IntelPanel.init !== 'function') return;
+
+    // Attempt 1: mount may already exist (synchronous modal render)
+    if (document.getElementById('intel-panel-mount')) {
+      IntelPanel.init(quoteId, 'intel-panel-mount');
+      return;
+    }
+
+    // Attempt 2: poll every 50ms for up to 3 seconds
+    let attempts = 0;
+    const poll = setInterval(function() {
+      attempts++;
+      const mount = document.getElementById('intel-panel-mount');
+      if (mount) {
+        clearInterval(poll);
+        IntelPanel.init(quoteId, 'intel-panel-mount');
+      } else if (attempts >= 60) {
+        clearInterval(poll); // give up after 3s
+      }
+    }, 50);
+  }
+
   function openView(jsonStr) {
     const q = JSON.parse(jsonStr);
     const m = parseFloat(q.grossMarginPct||0);
     const col = m >= CFG.MIN_MARGIN_PCT + 5 ? 'var(--gn)' : m >= CFG.MIN_MARGIN_PCT ? 'var(--am)' : 'var(--rd)';
     const blocked = m < CFG.MIN_MARGIN_PCT && !q.overrideReason;
     const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
+
+    // Staff count shown in modal header for web leads
+    const staffNeeded = isWebDraft
+      ? _staffCount(parseFloat(q.intel_hoursPerWeek || q.hoursPerWeek || 0),
+                    parseFloat(q.intel_visitsPerWeek || 1))
+      : null;
 
     UI.openModal(`<div class="modal-hd">
       <h2>${q.id} v${q.version||1}${isWebDraft ? ' <span style="font-size:11px;background:#0D9488;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle;font-family:inherit">&#9672; Intel</span>' : ''}</h2>
@@ -166,6 +201,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     </div>
     <div style="padding:14px 18px">
       <div class="mp-row"><span class="mp-lbl">Hours/week</span><span>${q.hoursPerWeek||'&#8212;'}h</span></div>
+      ${staffNeeded ? `<div class="mp-row"><span class="mp-lbl">Staff needed</span><span style="font-weight:600">${staffNeeded} cleaner${staffNeeded > 1 ? 's' : ''}</span></div>` : ''}
       <div class="mp-row"><span class="mp-lbl">Monthly Revenue</span><span class="mp-val">${UI.fmt(q.revenueMonthly||0)}</span></div>
       <div class="mp-row"><span class="mp-lbl">Direct Cost</span><span>${UI.fmt(q.directCost||0)}</span></div>
       <div class="mp-row"><span class="mp-lbl" style="color:${col}">Gross Margin</span><span style="color:${col};font-weight:700">${UI.fmtPct(m)} (${UI.fmt(q.grossMarginGBP||0)}/mo)</span></div>
@@ -184,26 +220,11 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   </div>
 </div>`);
 
-    // ── Intel Panel: observe DOM until intel-panel-mount is ready, then init ──
-    if (isWebDraft && window.IntelPanel && typeof IntelPanel.init === 'function') {
-      const quoteId = q.id;
-      // If mount already exists (sync modal render), init immediately
-      if (document.getElementById('intel-panel-mount')) {
-        IntelPanel.init(quoteId, 'intel-panel-mount');
-      } else {
-        // Otherwise watch for it to appear
-        const obs = new MutationObserver(function() {
-          const mount = document.getElementById('intel-panel-mount');
-          if (mount) {
-            obs.disconnect();
-            IntelPanel.init(quoteId, 'intel-panel-mount');
-          }
-        });
-        obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(function() { obs.disconnect(); }, 5000);
-      }
+    // Fire Intel Panel init — polls until mount is in DOM
+    if (isWebDraft) {
+      _initIntelPanel(q.id);
     }
-  } // ← end of openView
+  }
 
   function openSend(id, clientName) {
     UI.openModal(`<div class="modal-hd"><h2>Send Quote</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
