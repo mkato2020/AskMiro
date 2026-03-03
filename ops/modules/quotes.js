@@ -186,11 +186,18 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
 
     // Init Intel Panel for web_form draft quotes
     if (isWebDraft && window.IntelPanel && typeof IntelPanel.init === 'function') {
-      setTimeout(() => {
-        try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(_) {}
-      }, 900);
+  const quoteId = q.id;
+  const observer = new MutationObserver((mutations, obs) => {
+    const mount = document.getElementById('intel-panel-mount');
+    if (mount) {
+      obs.disconnect();
+      IntelPanel.init(quoteId, 'intel-panel-mount');
     }
-  }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  // Safety timeout — disconnect observer after 5s if mount never appears
+  setTimeout(() => observer.disconnect(), 5000);
+}
 
   function openSend(id, clientName) {
     UI.openModal(`<div class="modal-hd"><h2>Send Quote</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
