@@ -188,7 +188,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     if (isWebDraft && window.IntelPanel && typeof IntelPanel.init === 'function') {
       setTimeout(() => {
         try { IntelPanel.init(q.id, 'intel-panel-mount'); } catch(_) {}
-      }, 300);
+      }, 900);
     }
   }
 
