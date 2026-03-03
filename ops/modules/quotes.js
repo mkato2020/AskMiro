@@ -155,7 +155,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
 
     UI.openModal(`<div class="modal-hd">
-      <h2>${q.id} v${q.version||1}${isWebDraft ? ' <span style="font-size:11px;background:#0D9488;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle;font-family:inherit">◈ Intel</span>' : ''}</h2>
+      <h2>${q.id} v${q.version||1}${isWebDraft ? ' <span style="font-size:11px;background:#0D9488;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle;font-family:inherit">&#9672; Intel</span>' : ''}</h2>
       <button class="xbtn" onclick="UI.closeModal()">&#x2715;</button>
     </div>
 <div class="modal-body">
@@ -184,20 +184,26 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   </div>
 </div>`);
 
-    // Init Intel Panel for web_form draft quotes
+    // ── Intel Panel: observe DOM until intel-panel-mount is ready, then init ──
     if (isWebDraft && window.IntelPanel && typeof IntelPanel.init === 'function') {
-  const quoteId = q.id;
-  const observer = new MutationObserver((mutations, obs) => {
-    const mount = document.getElementById('intel-panel-mount');
-    if (mount) {
-      obs.disconnect();
-      IntelPanel.init(quoteId, 'intel-panel-mount');
+      const quoteId = q.id;
+      // If mount already exists (sync modal render), init immediately
+      if (document.getElementById('intel-panel-mount')) {
+        IntelPanel.init(quoteId, 'intel-panel-mount');
+      } else {
+        // Otherwise watch for it to appear
+        const obs = new MutationObserver(function() {
+          const mount = document.getElementById('intel-panel-mount');
+          if (mount) {
+            obs.disconnect();
+            IntelPanel.init(quoteId, 'intel-panel-mount');
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function() { obs.disconnect(); }, 5000);
+      }
     }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-  // Safety timeout — disconnect observer after 5s if mount never appears
-  setTimeout(() => observer.disconnect(), 5000);
-}
+  } // ← end of openView
 
   function openSend(id, clientName) {
     UI.openModal(`<div class="modal-hd"><h2>Send Quote</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
@@ -236,7 +242,6 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   }
 
   function updateBadge() {
-    // Badge shows web_form drafts specifically — these need action
     const n = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft').length;
     const el = document.getElementById('badge-quotes');
     if (el) { el.textContent = n; el.style.display = n > 0 ? '' : 'none'; }
