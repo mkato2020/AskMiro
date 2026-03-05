@@ -240,6 +240,8 @@ const Email = (() => {
       subject: 'Managed Commercial Cleaning — AskMiro Cleaning Services',
       fields: [
         { id:'name', label:'Contact Name', ph:'e.g. Sarah Collins' },
+        { id:'customIntro', label:'Opening Message (editable — replaces default intro paragraphs)', ph:'', type:'textarea',
+          default: `We are AskMiro Cleaning Services — a managed commercial cleaning company serving offices, warehouses, schools, healthcare facilities, and automotive dealerships across London and the UK.\n\nUnlike typical cleaning contractors, we don't just supply staff — we manage the entire service end-to-end: consistent teams, supervisor oversight, quality checklists, and a single point of contact for everything.` },
       ],
       html: (f={}) => _wrap('Client Introduction', T.teal,
         'Discover managed commercial cleaning that actually works',
@@ -610,11 +612,20 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     if (subjEl && !subjEl.value) subjEl.value = t.subject;
     // Render input fields for this template
     if (fInner && t.fields) {
-      fInner.innerHTML = t.fields.map(field => `
-        <div class="fg" style="margin-bottom:10px">
+      fInner.innerHTML = t.fields.map(field => {
+        if (field.type === 'textarea') {
+          const defaultVal = field.default || '';
+          return `<div class="fg" style="margin-bottom:10px">
+            <label class="fl" style="font-size:12px">${field.label}</label>
+            <textarea class="fta" id="emf-${field.id}" oninput="Email._livePreview()"
+              style="font-size:13px;min-height:110px;line-height:1.65">${defaultVal}</textarea>
+          </div>`;
+        }
+        return `<div class="fg" style="margin-bottom:10px">
           <label class="fl" style="font-size:12px">${field.label}</label>
-          <input class="fin" id="emf-${field.id}" placeholder="${field.ph}" oninput="Email._livePreview()" style="font-size:13px">
-        </div>`).join('');
+          <input class="fin" id="emf-${field.id}" placeholder="${field.ph || ''}" oninput="Email._livePreview()" style="font-size:13px">
+        </div>`;
+      }).join('');
     }
     if (fWrap) fWrap.style.display = t.fields && t.fields.length ? 'block' : 'none';
     if (wrap)  wrap.style.display  = 'block';
