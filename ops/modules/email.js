@@ -412,6 +412,12 @@ const Email = (() => {
       subject: 'Managed Commercial Cleaning — AskMiro Cleaning Services',
       fields: [
         { id:'name', label:'Contact Name', ph:'e.g. Sarah Collins' },
+        {
+          id: 'customIntro', label: 'Custom Opening (optional)',
+          type: 'textarea', rows: 5,
+          ph: 'Leave blank to use the standard introduction text. Or type a personalised opening paragraph here…',
+          default: '',
+        },
       ],
       html: (f={}) => _wrap('Client Introduction', T.teal,
         'Discover managed commercial cleaning that actually works',
@@ -563,11 +569,24 @@ Thanks again and nice to meet you.`;
           _sub(f.meeting_date ? resolve('Following our meeting on {{meeting_date}}') : 'Thank you for the introduction') +
           _gr(f.contact_name || 'there') +
           bodyHtml +
-          _sh('We specialise in') +
+          _sh('We can help with') +
           _bullets([
-            '<strong>Move-in cleaning</strong> — after key handover, before the buyers move in',
-            '<strong>After-builders cleaning</strong> — deep clean following renovation work',
-            '<strong>Regular home cleaning</strong> — flexible weekly or fortnightly service',
+            // Residential — move-related
+            '<strong>Move-in &amp; move-out cleaning</strong> — thorough clean after key handover, before buyers move in',
+            '<strong>End-of-tenancy cleaning</strong> — deep clean to deposit-return standard for landlords &amp; tenants',
+            '<strong>After-builders &amp; post-renovation cleaning</strong> — removing dust, debris, and builder residue',
+            // Residential — ongoing
+            '<strong>Regular home cleaning</strong> — reliable weekly or fortnightly service across South West London',
+            '<strong>Deep cleaning &amp; sparkle cleans</strong> — one-off intensive clean, any property type',
+            // Commercial sectors
+            '<strong>Office &amp; commercial cleaning</strong> — managed service with consistent teams and supervisor oversight',
+            '<strong>School &amp; education cleaning</strong> — term-time and holiday deep clean programmes',
+            '<strong>Medical, dental &amp; healthcare</strong> — clinical-grade cleaning and sanitisation protocols',
+            '<strong>Retail &amp; hospitality</strong> — after-hours cleaning for shops, restaurants, cafes, and pubs',
+            '<strong>Gym &amp; leisure facilities</strong> — high-touch sanitisation and daily maintenance',
+            '<strong>Automotive &amp; car dealerships</strong> — showroom, workshop, and forecourt cleaning',
+            '<strong>Warehouses &amp; industrial units</strong> — floor maintenance, loading areas, and welfare facilities',
+            '<strong>Residential blocks &amp; communal areas</strong> — entrance halls, stairwells, and shared spaces',
           ]) +
           _info(`We can also send over a branded one-page introduction that your team can share directly with buyers. Just reply to this email and we'll get it over to you.`) +
           _cta('&#9993; Get in Touch', 'mailto:' + EMAIL, T.teal) +
@@ -624,12 +643,13 @@ Thanks again and nice to meet you.`;
       desc: 'Professional invoice with bank transfer details.',
       subject: '[INV-XXX] Invoice — AskMiro Cleaning Services',
       fields: [
-        { id:'name',     label:'Contact Name',    ph:'e.g. Sarah Collins'         },
-        { id:'invNum',   label:'Invoice Number',  ph:'e.g. INV-001'               },
-        { id:'site',     label:'Company / Site',  ph:'e.g. Acme Ltd'              },
-        { id:'period',   label:'Service Period',  ph:'e.g. February 2026'         },
-        { id:'amount',   label:'Net Amount (£)',  ph:'e.g. 1200  (VAT auto-calc)' },
-        { id:'dueDate',  label:'Payment Due',     ph:'e.g. 31 March 2026'         },
+        { id:'name',      label:'Contact Name',    ph:'e.g. Sarah Collins'         },
+        { id:'invNum',    label:'Invoice Number',  ph:'e.g. INV-001'               },
+        { id:'site',      label:'Company / Site',  ph:'e.g. Acme Ltd'              },
+        { id:'period',    label:'Service Period',  ph:'e.g. February 2026'         },
+        { id:'amount',    label:'Net Amount (£)',  ph:'e.g. 1200  (VAT auto-calc)' },
+        { id:'issueDate', label:'Issue Date',      ph:'e.g. 1 March 2026 (leave blank for today)' },
+        { id:'dueDate',   label:'Payment Due',     ph:'e.g. 31 March 2026'         },
       ],
       html: (f={}) => {
         const net    = parseFloat(f.amount||0);
@@ -939,6 +959,10 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     // Send only template name + fields — Apps Script rebuilds HTML server-side
     // This keeps the payload tiny and avoids JSONP URL length limits
     const fields = tmpl ? _collectFields(tmpl) : {};
+    // Inject sender identity so GAS signature renders correctly (Gap 4)
+    const s = _sender();
+    fields.senderName = s.name;
+    fields.senderRole = s.role || 'Director — AskMiro Cleaning Services';
 
     const btn = document.getElementById('em-send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
