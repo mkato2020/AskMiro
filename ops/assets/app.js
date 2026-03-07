@@ -1,7 +1,13 @@
 // ============================================================
-// AskMiro Ops — app.js  v2 (bootstrap)
+// AskMiro Ops — app.js  v3 (performance edition)
 // ============================================================
 (async () => {
+
+  // ── BOOT API LAYER FIRST ──────────────────────────────────
+  // Must happen before any module render is called.
+  // Starts the GAS keep-alive ping + fires parallel preload
+  // of all critical data so modules render from cache instantly.
+  API.init();
 
   // ── REGISTER ROUTES ───────────────────────────────────────
   Router.register('dashboard', Dashboard.render);
@@ -11,8 +17,9 @@
   Router.register('ops',       Ops.render);
   Router.register('quality',   Quality.render);
   Router.register('finance',   Finance.render);
-  Router.register('email',     Email.render);
-  Router.register('admin',     Admin.render);
+  Router.register('email',      Email.render);
+  Router.register('reception',  Reception.render);  // ← AI Receptionist
+  Router.register('admin',      Admin.render);
 
   // ── SIDEBAR NAVIGATION ────────────────────────────────────
   document.addEventListener('click', async (e) => {
@@ -27,34 +34,29 @@
   });
 
   // ── PREFETCH ON NAV HOVER ─────────────────────────────────
-  const HOVER_PREFETCH = {
-    crm:      () => API.prefetch('crm'),
-    quotes:   () => API.prefetch('quotes'),
-    finance:  () => API.prefetch('finance'),
-    quality:  () => API.prefetch('quality'),
-    dashboard:() => API.prefetch('dashboard'),
-  };
+  // When user hovers a nav item, warm that module's cache.
+  // By the time they click (100-300ms later) data is ready.
   document.addEventListener('mouseover', (e) => {
     const el = e.target.closest('[data-route]');
     if (!el) return;
-    const fn = HOVER_PREFETCH[el.getAttribute('data-route')];
-    if (fn) fn();
+    const route = el.getAttribute('data-route');
+    if (route) API.prefetch(route);
   });
 
-  // ── HEALTH CHECK THEN LOGIN ────────────────────────────────
-  // Show app shell immediately (avoids blank screen flash)
+  // ── SHOW LOGIN SHELL IMMEDIATELY ──────────────────────────
+  // Avoids blank screen flash while auth + health checks run.
   document.getElementById('login-screen').classList.remove('hidden');
 
-  // Run health check in parallel with auth init — don't block on it
+  // ── HEALTH CHECK + AUTH IN PARALLEL ───────────────────────
+  // Don't let the health check block login — run both at once.
   const healthPromise = API.health();
-
   const ok = await Auth.init();
   if (!ok) return;
 
-  // Check if API is healthy, warn if not
+  // Warn if GAS was slow — tells user why first load might lag
   healthPromise.then(healthy => {
     if (!healthy) {
-      UI.toast('API is slow to respond — Apps Script may be warming up', 'w', 5000);
+      UI.toast('API warming up — first load may be slow', 'w', 5000);
     }
   }).catch(() => {});
 
