@@ -13,16 +13,32 @@ const Email = (() => {
   let _inboxPage   = 0;
 
   // ── BRAND ────────────────────────────────────────────────
+  // ── ENTERPRISE DESIGN TOKENS ────────────────────────────────
+  // Salesforce / Stripe / HubSpot tier typography and spacing
   const T = {
-    teal:     '#0D9488',
-    tealDark: '#0F766E',
-    navy:     '#0C1929',
-    navyMid:  '#122440',
-    charcoal: '#1F2937',
-    slate:    '#475569',
-    muted:    '#94A3B8',
-    border:   '#E2E8F0',
-    offWhite: '#F8FAFC',
+    teal:        '#0D9488',
+    tealDark:    '#0F766E',
+    tealLight:   '#CCFBF1',
+    tealGhost:   '#F0FDFA',
+    navy:        '#0C1929',
+    navyMid:     '#122440',
+    charcoal:    '#111827',
+    body:        '#374151',
+    slate:       '#6B7280',
+    muted:       '#9CA3AF',
+    border:      '#E5E7EB',
+    borderLight: '#F3F4F6',
+    offWhite:    '#F9FAFB',
+    white:       '#FFFFFF',
+    // Status accent colours
+    amber:       '#D97706',
+    amberBg:     '#FFFBEB',
+    amberBorder: '#FDE68A',
+    green:       '#059669',
+    greenBg:     '#ECFDF5',
+    purple:      '#7C3AED',
+    purpleBg:    '#F5F3FF',
+    red:         '#DC2626',
   };
 
   const PHONE   = '020 8073 0621';
@@ -40,198 +56,354 @@ const Email = (() => {
   }
 
   // ── LOGO SVG ─────────────────────────────────────────────
-  const LOGO = `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="9" fill="#0D9488"/><path d="M10 26L15 14L20 26L25 14L30 26" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // ── LOGO MARK — enterprise quality SVG ─────────────────────
+  const LOGO = `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="44" height="44" rx="10" fill="#0D9488"/>
+    <rect width="44" height="44" rx="10" fill="url(#lg)" opacity="0.3"/>
+    <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient></defs>
+  </svg>`;
 
-  // ── SIGNATURE ────────────────────────────────────────────
+  const LOGO_SM = `<svg width="32" height="32" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="44" height="44" rx="10" fill="#0D9488"/>
+    <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+
+  // ── ENTERPRISE SIGNATURE ─────────────────────────────────────
   function _sig() {
     const s = _sender();
     return `
-<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:36px">
-  <tr><td style="border-top:2px solid ${T.teal};padding-top:24px">
-    <table cellpadding="0" cellspacing="0">
+<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:40px">
+  <tr><td style="padding-top:28px;border-top:1px solid ${T.border}">
+    <table cellpadding="0" cellspacing="0" width="100%">
       <tr>
-        <td style="padding-right:14px;vertical-align:top">${LOGO}</td>
         <td style="vertical-align:top">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:700;color:${T.charcoal};line-height:1.2">${s.name}</div>
-          <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;color:${T.teal};letter-spacing:1.2px;text-transform:uppercase;margin:3px 0 8px">${s.role} &mdash; AskMiro Cleaning Services</div>
-          <table cellpadding="0" cellspacing="0"><tr>
-            <td style="padding-right:18px">
-              <a href="tel:02039000000" style="font-family:Arial,sans-serif;font-size:12px;color:${T.slate};text-decoration:none">&#9742;&nbsp;${PHONE}</a>
-            </td>
-            <td style="padding-right:18px">
-              <a href="mailto:${EMAIL}" style="font-family:Arial,sans-serif;font-size:12px;color:${T.slate};text-decoration:none">&#9993;&nbsp;${EMAIL}</a>
-            </td>
-            <td>
-              <a href="https://${WEBSITE}" style="font-family:Arial,sans-serif;font-size:12px;color:${T.teal};text-decoration:none;font-weight:600">${WEBSITE}</a>
-            </td>
-          </tr></table>
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding-right:14px;vertical-align:middle">${LOGO_SM}</td>
+              <td style="vertical-align:middle">
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:${T.charcoal};line-height:1.2">${s.name}</div>
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:${T.teal};font-weight:600;margin-top:2px">${s.role}</div>
+              </td>
+            </tr>
+          </table>
+          <table cellpadding="0" cellspacing="0" style="margin-top:12px">
+            <tr>
+              <td style="padding-right:20px">
+                <a href="tel:02080730621" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.slate};text-decoration:none">
+                  <span style="color:${T.teal};margin-right:5px">&#9742;</span>${PHONE}
+                </a>
+              </td>
+              <td style="padding-right:20px">
+                <a href="mailto:${EMAIL}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.slate};text-decoration:none">
+                  <span style="color:${T.teal};margin-right:5px">&#9993;</span>${EMAIL}
+                </a>
+              </td>
+              <td>
+                <a href="https://${WEBSITE}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.teal};font-weight:600;text-decoration:none">${WEBSITE}</a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
-    <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:14px;background:${T.offWhite};border:1px solid ${T.border};border-radius:8px">
-      <tr><td style="padding:9px 14px;font-family:Arial,sans-serif;font-size:10.5px;color:${T.muted};letter-spacing:0.4px">
-        &#10003;&nbsp;COSHH Compliant &nbsp;&nbsp;
-        &#10003;&nbsp;Fully Insured &nbsp;&nbsp;
-        &#10003;&nbsp;ISO Quality Standards &nbsp;&nbsp;
-        &#10003;&nbsp;London &amp; UK Coverage
-      </td></tr>
+    <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:20px">
+      <tr>
+        <td style="padding:12px 18px;background:${T.tealGhost};border-radius:8px;border:1px solid ${T.tealLight}">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding-right:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">
+                <span style="margin-right:5px">&#10003;</span>Fully Insured
+              </td>
+              <td style="padding-right:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">
+                <span style="margin-right:5px">&#10003;</span>COSHH Compliant
+              </td>
+              <td style="padding-right:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">
+                <span style="margin-right:5px">&#10003;</span>ISO Quality Standards
+              </td>
+              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">
+                <span style="margin-right:5px">&#10003;</span>London &amp; UK Coverage
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
     </table>
   </td></tr>
 </table>`;
   }
 
-  // ── MASTER WRAPPER ────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════
+  // ENTERPRISE MASTER WRAPPER
+  // Stripe / Salesforce tier — 600px, system fonts, clean grid
+  // ══════════════════════════════════════════════════════════
   function _wrap(label, accent, preheader, body) {
-    const s = _sender();
+    const s  = _sender();
     const ac = accent || T.teal;
+    // Derive a subtle header gradient from the accent colour
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
 <title>AskMiro Cleaning Services</title>
 <style>
-  @media only screen and (max-width:600px){
-    .ew{width:100%!important} .eb{padding:24px 18px!important} .eh{padding:22px 18px!important}
-    .sb td{display:block!important;width:100%!important;border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.08)!important}
-    .db td{display:block!important;width:100%!important;padding-bottom:8px!important}
+  body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}
+  table,td{mso-table-lspace:0pt;mso-table-rspace:0pt}
+  img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
+  @media only screen and (max-width:620px){
+    .ew{width:100%!important;max-width:100%!important}
+    .eb{padding:28px 20px!important}
+    .eh{padding:22px 20px!important}
+    .stat-cell{display:block!important;width:100%!important;text-align:center!important;border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.1)!important;padding:16px 20px!important}
+    .cta-wrap{display:block!important;width:100%!important;padding-bottom:10px!important}
+    .hide-mobile{display:none!important;max-height:0!important;overflow:hidden!important}
   }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#E8EDF4;font-family:Arial,Helvetica,sans-serif">
-<div style="display:none;max-height:0;overflow:hidden;color:#E8EDF4;font-size:1px">${preheader}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#E8EDF4;padding:32px 16px">
-<tr><td align="center">
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#F3F4F6">${preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6">
+<tr><td align="center" style="padding:32px 16px">
 <table class="ew" role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 
-  <!-- HEADER -->
-  <tr><td>
+  <!-- ── TOP BAR ─────────────────────────────────────────── -->
+  <tr><td style="background:${ac};border-radius:12px 12px 0 0;height:4px;font-size:4px;line-height:4px">&nbsp;</td></tr>
+
+  <!-- ── HEADER ────────────────────────────────────────────── -->
+  <tr><td class="eh" style="background:#0C1929;padding:28px 36px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td class="eh" style="background:${T.navy};border-radius:12px 0 0 0;padding:26px 28px 22px;vertical-align:middle;width:52%">
-          <table cellpadding="0" cellspacing="0"><tr>
-            <td style="vertical-align:middle;padding-right:14px">${LOGO}</td>
-            <td style="vertical-align:middle">
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>
-              <div style="font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:2.5px;text-transform:uppercase;margin-top:3px">Cleaning Services</div>
-            </td>
-          </tr></table>
+        <td style="vertical-align:middle">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding-right:14px;vertical-align:middle">${LOGO}</td>
+              <td style="vertical-align:middle">
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>
+              </td>
+            </tr>
+          </table>
         </td>
-        <td class="eh" style="background:${ac};border-radius:0 12px 0 0;padding:26px 28px 22px;vertical-align:bottom;text-align:right">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-style:italic;color:rgba(255,255,255,0.85)">${label}</div>
-          <div style="width:36px;height:2px;background:rgba(255,255,255,0.3);margin:8px 0 0 auto;border-radius:2px"></div>
+        <td align="right" style="vertical-align:middle">
+          <div style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 14px">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:0.5px">${label}</span>
+          </div>
         </td>
       </tr>
-      <tr><td colspan="2" style="background:${ac};height:3px;line-height:3px;font-size:3px">&nbsp;</td></tr>
     </table>
   </td></tr>
 
-  <!-- BODY -->
-  <tr><td class="eb" style="background:#ffffff;padding:40px;border-left:1px solid ${T.border};border-right:1px solid ${T.border}">
+  <!-- ── BODY ──────────────────────────────────────────────── -->
+  <tr><td class="eb" style="background:#FFFFFF;padding:44px 36px 36px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB">
     ${body}
     ${_sig()}
   </td></tr>
 
-  <!-- FOOTER -->
-  <tr><td style="background:${T.navy};border-radius:0 0 12px 12px;padding:20px 28px">
+  <!-- ── FOOTER ────────────────────────────────────────────── -->
+  <tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:24px 36px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td>
-          <div style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.65)">AskMiro Cleaning Services</div>
-          <div style="font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px">A trading name of Miro Partners Ltd &nbsp;&bull;&nbsp; London &amp; UK</div>
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,0.7)">AskMiro Cleaning Services</div>
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px">A trading name of Miro Partners Ltd &nbsp;&bull;&nbsp; London &amp; UK</div>
         </td>
         <td align="right">
-          <a href="https://${WEBSITE}" style="font-family:Arial,sans-serif;font-size:12px;color:${T.teal};text-decoration:none;font-weight:700">${WEBSITE}</a>
+          <a href="https://${WEBSITE}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:${T.teal};text-decoration:none;font-weight:700">${WEBSITE}</a>
         </td>
       </tr>
-      <tr><td colspan="2" style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
-        <p style="font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.2);margin:12px 0 0;line-height:1.7">
-          This email was sent by AskMiro Cleaning Services on behalf of ${s.name}.
-          If received in error please notify us at ${EMAIL}. We will never share your details with third parties.
+      <tr><td colspan="2" style="padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-right:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.3)">&#10003; Fully Insured</td>
+            <td style="padding-right:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.3)">&#10003; COSHH Compliant</td>
+            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.3)">&#10003; Residential &amp; Commercial</td>
+          </tr>
+        </table>
+        <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.18);margin:14px 0 0;line-height:1.7">
+          Sent by ${s.name} on behalf of AskMiro Cleaning Services. If received in error please notify ${EMAIL}. We will never share your details with third parties.
         </p>
       </td></tr>
     </table>
   </td></tr>
 
 </table>
-</td></tr>
-</table>
+</td></tr></table>
 </body></html>`;
   }
 
-  // ── COMPONENTS ────────────────────────────────────────────
-  const _h   = t => `<h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:700;color:${T.charcoal};margin:0 0 4px;letter-spacing:-0.5px;line-height:1.2">${t}</h1>`;
-  const _sub = t => `<p style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:${T.teal};letter-spacing:1.3px;text-transform:uppercase;margin:0 0 24px">${t}</p>`;
-  const _p   = t => `<p style="font-family:Arial,sans-serif;font-size:14px;color:${T.slate};line-height:1.85;margin:0 0 16px">${t}</p>`;
-  const _gr  = n => `<p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;color:${T.charcoal};margin:0 0 20px">Dear ${n || '[Name]'},</p>`;
-  const _div = () => `<table cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0"><tr><td style="height:1px;background:${T.border}">&nbsp;</td></tr></table>`;
-  const _sm  = t => `<p style="font-family:Arial,sans-serif;font-size:11.5px;color:${T.muted};line-height:1.7;margin:0">${t}</p>`;
+  // ══════════════════════════════════════════════════════════
+  // ENTERPRISE COMPONENT LIBRARY
+  // Every component uses system font stack + tight spacing
+  // ══════════════════════════════════════════════════════════
 
+  // Display headline — large, tight, confident
+  const _h = t => `<h1 style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:800;color:${T.charcoal};margin:0 0 6px;letter-spacing:-0.8px;line-height:1.15">${t}</h1>`;
+
+  // Eyebrow label — uppercase tracking, teal
+  const _sub = t => `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:${T.teal};letter-spacing:1.4px;text-transform:uppercase;margin:0 0 28px">${t}</p>`;
+
+  // Body paragraph — comfortable reading size
+  const _p = t => `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:${T.body};line-height:1.8;margin:0 0 18px">${t}</p>`;
+
+  // Salutation — clean, personal
+  const _gr = n => `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:${T.charcoal};margin:0 0 22px">Hi ${n || '[Name]'},</p>`;
+
+  // Hairline divider
+  const _div = () => `<table cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0"><tr><td style="height:1px;background:${T.border}">&nbsp;</td></tr></table>`;
+
+  // Small print
+  const _sm = t => `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:${T.muted};line-height:1.7;margin:0">${t}</p>`;
+
+  // Section heading — used inside body for subsections
+  const _sh = t => `<p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:${T.charcoal};letter-spacing:0.3px;text-transform:uppercase;margin:0 0 12px">${t}</p>`;
+
+  // Checklist — clean enterprise rows, no background clutter
   function _checklist(items) {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="background:${T.offWhite};border:1px solid ${T.border};border-radius:10px;padding:18px 20px;margin-bottom:22px">
-      <tbody>${items.map(item => `<tr>
-        <td style="vertical-align:top;padding:0 10px 10px 0;width:22px">
-          <div style="width:20px;height:20px;background:${T.teal};border-radius:50%;text-align:center;line-height:21px;font-size:11px;color:white;font-weight:700">&#10003;</div>
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;border:1px solid ${T.border};border-radius:10px;overflow:hidden">
+      ${items.map((item, i) => `<tr style="${i < items.length - 1 ? 'border-bottom:1px solid ' + T.borderLight : ''}">
+        <td style="width:44px;padding:13px 0 13px 16px;vertical-align:top">
+          <div style="width:22px;height:22px;background:${T.tealGhost};border:1.5px solid ${T.tealLight};border-radius:50%;text-align:center;line-height:20px;font-size:12px;color:${T.teal};font-weight:700">&#10003;</div>
         </td>
-        <td style="vertical-align:top;padding-bottom:10px;font-family:Arial,sans-serif;font-size:13.5px;color:${T.slate};line-height:1.6">${item}</td>
-      </tr>`).join('')}</tbody>
+        <td style="padding:13px 16px 13px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:${T.body};line-height:1.55;border-bottom:${i < items.length - 1 ? '1px solid ' + T.borderLight : 'none'}">${item}</td>
+      </tr>`).join('')}
     </table>`;
   }
 
+  // Stat band — key metrics in a premium dark pill
   function _statBand(stats) {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="border-radius:10px;overflow:hidden;margin-bottom:24px">
-      <tr class="sb">${stats.map((s, i) => `
-        <td align="center" style="background:linear-gradient(135deg,${T.navy},${T.navyMid});padding:18px 16px;${i < stats.length - 1 ? 'border-right:1px solid rgba(255,255,255,0.08)' : ''}">
-          <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,0.45);margin-bottom:5px">${s.label}</div>
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:700;color:#FFFFFF;letter-spacing:-0.5px">${s.value}</div>
-          ${s.sub ? `<div style="font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px">${s.sub}</div>` : ''}
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;border-radius:12px;overflow:hidden;background:#0C1929">
+      <tr>
+        ${stats.map((s, i) => `<td class="stat-cell" align="center" style="padding:20px 18px;${i < stats.length - 1 ? 'border-right:1px solid rgba(255,255,255,0.08)' : ''}">
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,0.4);margin-bottom:6px">${s.label}</div>
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:28px;font-weight:800;color:#FFFFFF;letter-spacing:-1px;line-height:1">${s.value}</div>
+          ${s.sub ? `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.35);margin-top:5px">${s.sub}</div>` : ''}
         </td>`).join('')}
       </tr>
     </table>`;
   }
 
+  // Data table — clean, zebra-stripe, enterprise CRM style
   function _table(rows, total) {
     return `<table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid ${T.border};border-radius:10px;overflow:hidden;margin-bottom:24px">
-      ${rows.map(([l, v, bold, ac]) => `<tr style="border-bottom:1px solid ${T.border}">
-        <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.slate};padding:11px 16px">${l}</td>
-        <td style="font-family:Arial,sans-serif;font-size:13px;color:${ac ? T.teal : T.charcoal};font-weight:${bold ? '700' : '400'};padding:11px 16px;text-align:right">${v}</td>
+      ${rows.map(([l, v, bold, ac], i) => `<tr style="background:${i % 2 === 0 ? T.white : T.offWhite}">
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.slate};padding:12px 18px;width:42%;border-bottom:1px solid ${T.borderLight}">${l}</td>
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${ac ? T.teal : (bold ? T.charcoal : T.body)};font-weight:${bold ? '700' : '500'};padding:12px 18px;text-align:right;border-bottom:1px solid ${T.borderLight}">${v}</td>
       </tr>`).join('')}
-      ${total ? `<tr style="background:${T.navy}">
-        <td style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#fff;padding:14px 16px">${total[0]}</td>
-        <td style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700;color:#fff;padding:14px 16px;text-align:right">${total[1]}</td>
+      ${total ? `<tr style="background:${T.charcoal}">
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#FFFFFF;padding:16px 18px">${total[0]}</td>
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:22px;font-weight:800;color:#FFFFFF;padding:16px 18px;text-align:right;letter-spacing:-0.5px">${total[1]}</td>
       </tr>` : ''}
     </table>`;
   }
 
+  // Quote / testimonial block — editorial left rule
   function _quote(text) {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px">
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0">
       <tr>
-        <td style="width:4px;background:${T.teal};border-radius:4px">&nbsp;</td>
-        <td style="padding:14px 18px;background:${T.offWhite};border:1px solid ${T.border};border-left:none;border-radius:0 8px 8px 0;font-family:Georgia,'Times New Roman',serif;font-size:14px;color:${T.charcoal};font-style:italic;line-height:1.7">&ldquo;${text}&rdquo;</td>
+        <td style="width:3px;background:${T.teal};border-radius:3px">&nbsp;</td>
+        <td style="padding:16px 20px;background:${T.offWhite};border:1px solid ${T.border};border-left:none;border-radius:0 8px 8px 0">
+          <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:${T.body};line-height:1.75;margin:0;font-style:italic">&ldquo;${text}&rdquo;</p>
+        </td>
       </tr>
     </table>`;
   }
 
+  // Alert box — amber callout for urgency
   function _amber(html) {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:22px">
-      <tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13px;color:#92400E;line-height:1.7">${html}</td></tr>
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px">
+      <tr><td style="background:${T.amberBg};border:1px solid ${T.amberBorder};border-radius:8px;padding:16px 20px">
+        <table cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="width:28px;vertical-align:top;padding-right:12px">
+              <div style="font-size:18px;line-height:1">&#9888;</div>
+            </td>
+            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;color:#92400E;line-height:1.7">${html}</td>
+          </tr>
+        </table>
+      </td></tr>
     </table>`;
   }
 
+  // Info box — teal callout for highlights
+  function _info(html) {
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px">
+      <tr><td style="background:${T.tealGhost};border:1px solid ${T.tealLight};border-radius:8px;padding:16px 20px">
+        <table cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="width:28px;vertical-align:top;padding-right:12px">
+              <div style="font-size:18px;line-height:1">&#9432;</div>
+            </td>
+            <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;color:${T.tealDark};line-height:1.7">${html}</td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>`;
+  }
+
+  // Primary CTA — single focused button, enterprise style
   function _cta(label, href, color) {
-    return `<table cellpadding="0" cellspacing="0" class="db" style="margin:24px 0">
+    const bg = color || T.teal;
+    return `<table cellpadding="0" cellspacing="0" style="margin:28px 0">
       <tr>
-        <td style="background:${color || T.teal};border-radius:8px;box-shadow:0 6px 20px rgba(13,148,136,0.25)">
-          <a href="${href}" style="display:block;padding:15px 32px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:0.3px">${label}</a>
+        <td class="cta-wrap" style="border-radius:8px;background:${bg}">
+          <a href="${href}" style="display:inline-block;padding:15px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;letter-spacing:-0.2px;white-space:nowrap">${label}</a>
         </td>
         <td width="12">&nbsp;</td>
-        <td style="border:2px solid ${T.border};border-radius:8px">
-          <a href="tel:02039000000" style="display:block;padding:13px 22px;font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:${T.slate};text-decoration:none">&#9742;&nbsp;${PHONE}</a>
+        <td class="cta-wrap" style="border-radius:8px;border:1.5px solid ${T.border}">
+          <a href="tel:02080730621" style="display:inline-block;padding:13px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:${T.body};text-decoration:none;white-space:nowrap">&#9742;&nbsp;${PHONE}</a>
         </td>
       </tr>
     </table>`;
   }
 
-  // ── TEMPLATES ─────────────────────────────────────────────
+  // Secondary text link
+  const _link = (label, href) => `<a href="${href}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:${T.teal};font-weight:600;text-decoration:none">${label} &rarr;</a>`;
+
+  // Hero price block — Stripe payment page style
+  function _heroPrice(amount, label, sub) {
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px">
+      <tr><td style="background:linear-gradient(135deg,${T.teal},${T.tealDark});border-radius:12px;padding:28px 32px">
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.6);margin-bottom:8px">${label}</div>
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:48px;font-weight:800;color:#FFFFFF;letter-spacing:-2px;line-height:1">${amount}</div>
+        ${sub ? `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.6);margin-top:8px">${sub}</div>` : ''}
+      </td></tr>
+    </table>`;
+  }
+
+  // Bullet list — plain inline bullets for short lists
+  function _bullets(items) {
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px">
+      ${items.map(item => `<tr>
+        <td style="width:20px;vertical-align:top;padding:4px 10px 4px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:${T.teal};font-weight:700">&#8226;</td>
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:${T.body};line-height:1.7;padding:4px 0">${item}</td>
+      </tr>`).join('')}
+    </table>`;
+  }
+
+  // Contact strip — phone + website row
+  function _contactStrip() {
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:20px;padding:16px 20px;background:${T.offWhite};border-radius:8px;border:1px solid ${T.border}">
+      <tr>
+        <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.slate}">
+          <a href="tel:02080730621" style="color:${T.body};text-decoration:none;font-weight:600">&#9742;&nbsp;${PHONE}</a>
+          &nbsp;&nbsp;&nbsp;
+          <a href="https://${WEBSITE}" style="color:${T.teal};text-decoration:none;font-weight:600">${WEBSITE}</a>
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ENTERPRISE TEMPLATE LIBRARY
+  // Each template: Stripe/HubSpot-tier layout, focused message,
+  // single CTA, clean hierarchy
+  // ══════════════════════════════════════════════════════════
   const TEMPLATES = {
 
     'Introduction': {
@@ -244,20 +416,21 @@ const Email = (() => {
       html: (f={}) => _wrap('Client Introduction', T.teal,
         'Discover managed commercial cleaning that actually works',
         _h('Professional Cleaning. Properly Managed.') +
-        _sub('AskMiro Cleaning Services — London &amp; UK') +
+        _sub('AskMiro Cleaning Services — London & UK') +
         _gr(f.name) +
         _p(`We are <strong style="color:${T.charcoal}">AskMiro Cleaning Services</strong> — a managed commercial cleaning company serving offices, warehouses, schools, healthcare facilities, and automotive dealerships across London and the UK.`) +
         _p(`Unlike typical cleaning contractors, we don't just supply staff — we <strong style="color:${T.charcoal}">manage the entire service end-to-end</strong>: consistent teams, supervisor oversight, quality checklists, and a single point of contact for everything.`) +
+        _sh('What makes us different') +
         _checklist([
-          '<strong>Consistent, site-trained teams</strong> — the same people at your site every visit',
+          '<strong>Consistent, site-trained teams</strong> — the same people at your site every visit, not rotating agency staff',
           '<strong>Supervisor oversight &amp; written quality inspections</strong> — we check the work so you never have to',
           '<strong>COSHH-compliant processes</strong> — full risk assessments and RAMS documentation as standard',
-          '<strong>Eco-conscious products</strong> — dilution control systems and biodegradable chemicals',
+          '<strong>Eco-conscious products</strong> — biodegradable chemicals and dilution control systems',
           '<strong>Absence cover guaranteed</strong> — replacements arranged, your schedule is never disrupted',
           '<strong>Single point of contact</strong> — reach our team directly, not a call centre',
         ]) +
         _quote(`We don't just supply cleaners — we manage the service. Our clients don't worry about cleaning because we handle everything, every time.`) +
-        _p(`We'd love to arrange a <strong style="color:${T.charcoal}">free, no-obligation site visit</strong>. Most proposals are returned within 48 hours with a fixed monthly rate and no hidden costs.`) +
+        _p(`We'd love to arrange a <strong>free, no-obligation site visit</strong>. Most proposals are returned within 48 hours with a fixed monthly rate.`) +
         _cta('&#128197; Book a Free Site Visit', `mailto:${EMAIL}?subject=Site Visit Request`) +
         _div() +
         _sm('AskMiro Cleaning Services is fully insured, COSHH compliant, and covered by public liability insurance.')
@@ -282,13 +455,14 @@ const Email = (() => {
         _h('Your Cleaning Proposal.') +
         _sub('Prepared following our site visit — valid for 30 days') +
         _gr(f.name) +
-        _p(`Thank you for your time during our site visit to <strong style="color:${T.charcoal}">${f.site||'your site'}</strong>. We're pleased to present our proposal for managed commercial cleaning services.`) +
-        _statBand([
-          { label:'Monthly Investment', value: f.amount ? '£'+f.amount : '£TBC', sub:'Fixed — no hidden costs' },
-          { label:'Visits per Week',    value: f.visits||'TBC',                  sub: f.days||'To confirm'     },
-          { label:'Hours per Visit',    value: f.hours ? f.hours+'hrs':'TBC',    sub:'Dedicated team'          },
-        ]) +
-        _p(`<strong style="color:${T.charcoal}">What's included in your service:</strong>`) +
+        _p(`Thank you for your time during our site visit to <strong>${f.site||'your site'}</strong>. We're pleased to present our proposal for managed commercial cleaning services.`) +
+        (f.amount ? _heroPrice('£' + f.amount + '<span style="font-size:20px;font-weight:500;opacity:0.7">/mo</span>', 'Monthly Service Investment', `${f.visits||'—'} visits per week &nbsp;&bull;&nbsp; ${f.hours||'—'} hrs per visit &nbsp;&bull;&nbsp; Fixed rate, no hidden costs`) : '') +
+        (!f.amount ? _statBand([
+          { label:'Monthly Investment', value: '£TBC',         sub:'Fixed — no hidden costs' },
+          { label:'Visits per Week',    value: f.visits||'TBC', sub: f.days||'To confirm'    },
+          { label:'Hours per Visit',    value: f.hours ? f.hours+'hrs':'TBC', sub:'Dedicated team' },
+        ]) : '') +
+        _sh("What's included in your service") +
         _checklist([
           `<strong>${f.areas||'All agreed areas'}</strong>`,
           'Dedicated cleaning team — inducted and briefed to your site specification',
@@ -297,8 +471,7 @@ const Email = (() => {
           'Monthly supervisor quality inspection with written report',
           'Absence cover — your schedule is never disrupted',
         ]) +
-        _amber(`<strong>&#9200; This proposal is valid for 30 days from the date of this email.</strong><br>
-          Reply to confirm and we can have your service live within <strong>5–7 working days</strong>. A signed service agreement follows on acceptance.`) +
+        _amber(`<strong>This proposal is valid for 30 days.</strong> Reply to confirm and we can have your service live within <strong>5–7 working days</strong>. A signed service agreement follows on acceptance.`) +
         _cta('&#10003; Accept This Proposal', `mailto:${EMAIL}?subject=Accepting Proposal — ${f.site||''}`) +
         _div() +
         _sm(`All prices quoted exclusive of VAT. Payment terms: 30 days from invoice. Contact us to adjust scope or frequency.`)
@@ -313,14 +486,15 @@ const Email = (() => {
         { id:'name', label:'Contact Name',   ph:'e.g. Sarah Collins' },
         { id:'site', label:'Company / Site', ph:'e.g. Acme Ltd'      },
       ],
-      html: (f={}) => _wrap('Proposal Follow-up', '#D97706',
+      html: (f={}) => _wrap('Proposal Follow-up', T.amber,
         'A quick follow-up regarding your AskMiro cleaning proposal',
-        _h('Just Checking In.') +
+        _h('Just checking in.') +
         _sub('Regarding our recent proposal') +
         _gr(f.name) +
-        _p(`We hope you're well. We're following up on the proposal we sent for cleaning services at <strong style="color:${T.charcoal}">${f.site||'your site'}</strong>.`) +
-        _p(`If the proposal works for you, simply reply and we can get things moving straight away. If you'd like anything adjusted, we're happy to revisit the scope, frequency, or pricing.`) +
+        _p(`We hope you're well. We're following up on the proposal we sent for cleaning services at <strong>${f.site||'your site'}</strong>.`) +
+        _p(`If the proposal works for you, simply reply and we can get things moving. If you'd like anything adjusted — scope, frequency, or pricing — we're happy to revisit.`) +
         _quote(`Every client has our commitment: if something isn't right, we fix it within 24 hours. That's not a policy — it's simply how we operate.`) +
+        _sh('A quick reminder') +
         _checklist([
           'No long-term lock-in for initial contracts',
           'Service live within 5–7 working days of confirmation',
@@ -328,21 +502,20 @@ const Email = (() => {
           'Consistent teams, not rotating agency staff',
         ]) +
         _p(`If the timing isn't right just now — no problem at all. Simply let us know and we'll follow up when it suits.`) +
-        _cta('&#9993; Reply to This Email', `mailto:${EMAIL}`, '#D97706') +
+        _cta('&#9993; Reply to This Email', `mailto:${EMAIL}`, T.amber) +
         _div() +
         _sm(`To stop further follow-up emails please reply with "Unsubscribe".`)
       ),
     },
 
-
     'Referral / Introduction Follow-Up': {
-      icon: '\u{1F91D}', badge: 'Referral',
+      icon: '🤝', badge: 'Referral',
       desc: 'Follow-up after meeting a referral partner such as a property developer, estate agent, or site manager.',
       subject: 'Great meeting you on {{meeting_date}}',
       fields: [
-        { id:'contact_name',  label:'Contact Name',  ph:'e.g. James Whitfield',                           default:'' },
-        { id:'meeting_date',  label:'Meeting Date',  ph:'e.g. 12 March',                                  default:'' },
-        { id:'location',      label:'Location',      ph:'e.g. Whitfield Park, Clapham',                   default:'' },
+        { id:'contact_name',  label:'Contact Name',  ph:'e.g. James Whitfield',                 default:'' },
+        { id:'meeting_date',  label:'Meeting Date',  ph:'e.g. 12 March',                        default:'' },
+        { id:'location',      label:'Location',      ph:'e.g. Whitfield Park, Clapham',         default:'' },
         {
           id:      'body',
           label:   'Opening Message',
@@ -363,25 +536,40 @@ Thanks again and nice to meet you.`
         },
       ],
       html: (f={}) => {
-        // Resolve dynamic variables in body and subject
         const resolve = str => (str||'')
           .replace(/\{\{contact_name\}\}/g, f.contact_name || '{{contact_name}}')
           .replace(/\{\{meeting_date\}\}/g,  f.meeting_date  || '{{meeting_date}}')
           .replace(/\{\{location\}\}/g,       f.location      || '{{location}}');
 
-        const bodyRaw  = f.body || TEMPLATES['Referral / Introduction Follow-Up'].fields.find(x=>x.id==='body').default;
+        const defaultBody = `Great meeting you on {{meeting_date}} at {{location}}.
+
+Thank you again for offering to share my details with the homeowners — I really appreciate it.
+
+If any of the buyers need help with move-in cleaning, after-builders cleaning, or regular home cleaning once they settle in, we would be very happy to assist.
+
+We're a local cleaning company based nearby and currently helping homeowners across South West London with reliable and flexible cleaning services.
+
+If helpful, I can also send over a short one-page introduction or flyer that your team can easily share with the buyers.
+
+Thanks again and nice to meet you.`;
+
+        const bodyRaw  = (f.body && f.body.trim().length > 0) ? f.body : defaultBody;
         const bodyText = resolve(bodyRaw);
-        // Convert plain newlines to <p> tags for email
-        const bodyHtml = bodyText.split(/\n\n+/).map(chunk =>
-          _p(chunk.split('\n').join('<br>'))
-        ).join('');
+        const bodyHtml = bodyText.split(/\n\n+/).map(chunk => _p(chunk.split('\n').join('<br>'))).join('');
 
         return _wrap('Referral / Introduction Follow-Up', T.teal,
           resolve('Great meeting you — thanks for offering to share our details'),
           _h('Great meeting you.') +
-          _sub(resolve(f.meeting_date ? 'Following our meeting on ' + f.meeting_date : 'Thank you for the introduction')) +
-          _gr(f.contact_name) +
+          _sub(f.meeting_date ? resolve('Following our meeting on {{meeting_date}}') : 'Thank you for the introduction') +
+          _gr(f.contact_name || 'there') +
           bodyHtml +
+          _sh('We specialise in') +
+          _bullets([
+            '<strong>Move-in cleaning</strong> — after key handover, before the buyers move in',
+            '<strong>After-builders cleaning</strong> — deep clean following renovation work',
+            '<strong>Regular home cleaning</strong> — flexible weekly or fortnightly service',
+          ]) +
+          _info(`We can also send over a branded one-page introduction that your team can share directly with buyers. Just reply to this email and we'll get it over to you.`) +
           _cta('&#9993; Get in Touch', 'mailto:' + EMAIL, T.teal) +
           _div() +
           _sm('AskMiro Cleaning Services — London &amp; UK. Residential &amp; commercial cleaning. Fully insured.')
@@ -401,21 +589,23 @@ Thanks again and nice to meet you.`
         { id:'team',      label:'Team Size',       ph:'e.g. 2'                  },
         { id:'amount',    label:'Monthly Fee (£)', ph:'e.g. 1200'               },
       ],
-      html: (f={}) => _wrap('Welcome Onboard', '#059669',
+      html: (f={}) => _wrap('Welcome Onboard', T.green,
         'Welcome to AskMiro — your service details and what to expect',
         _h('Welcome to AskMiro.') +
         _sub("We're delighted to be working with you") +
         _gr(f.name) +
-        _p(`On behalf of everyone at AskMiro Cleaning Services — <strong style="color:${T.charcoal}">welcome aboard</strong>. Your service is confirmed and our team is ready to get started.`) +
+        _p(`On behalf of everyone at AskMiro Cleaning Services — <strong>welcome aboard</strong>. Your service is confirmed and our team is ready to get started.`) +
+        _sh('Your service details') +
         _table([
           ['Site Address',  f.site      || '—'],
           ['Service Start', f.startDate || '—'],
           ['Schedule',      f.schedule  || '—'],
-          ['Team Size',     f.team ? f.team+' dedicated cleaners' : '—'],
-          ['Monthly Fee',   f.amount ? '£'+f.amount+' + VAT' : '—', true, true],
+          ['Team Size',     f.team ? f.team + ' dedicated cleaners' : '—'],
+          ['Monthly Fee',   f.amount ? '£' + f.amount + ' + VAT' : '—', true, true],
           ['Invoice Day',   'Last working day of each month'],
-          ['Contact',       PHONE+' — '+EMAIL],
+          ['Contact',       PHONE + ' — ' + EMAIL],
         ]) +
+        _sh("What happens next") +
         _checklist([
           '<strong>Site briefing</strong> — our team visits before the first clean to walk the site',
           '<strong>Schedule confirmation</strong> — your full cleaning schedule sent to you in writing',
@@ -423,7 +613,7 @@ Thanks again and nice to meet you.`
           '<strong>First invoice</strong> — issued at the end of your first month of service',
         ]) +
         _quote(`We work hard to be the kind of cleaning company you never have to think about. If anything isn't right, contact us and we'll resolve it personally.`) +
-        _cta(`&#9742; Call Us — ${PHONE}`, 'tel:02080730621', '#059669') +
+        _cta(`&#9742; Call Us — ${PHONE}`, 'tel:02080730621', T.green) +
         _div() +
         _sm(`Welcome confirmation sent by AskMiro Cleaning Services. Please retain this email for your records.`)
       ),
@@ -442,31 +632,35 @@ Thanks again and nice to meet you.`
         { id:'dueDate',  label:'Payment Due',     ph:'e.g. 31 March 2026'         },
       ],
       html: (f={}) => {
-        const net   = parseFloat(f.amount||0);
-        const vat   = net ? (net*0.2).toFixed(2)   : '—';
-        const total = net ? (net*1.2).toFixed(2)   : '—';
-        const netFmt= net ? net.toFixed(2)         : '—';
+        const net    = parseFloat(f.amount||0);
+        const vat    = net ? (net * 0.2).toFixed(2)  : '—';
+        const total  = net ? (net * 1.2).toFixed(2)  : '—';
+        const netFmt = net ? net.toFixed(2)          : '—';
         return _wrap('Invoice', T.navy,
           'Invoice from AskMiro Cleaning Services — payment details enclosed',
           _h(`Invoice ${f.invNum||'[INV-XXX]'}.`) +
           _sub(`${f.period||'[Month Year]'} — ${f.site||'[Site]'}`) +
           _gr(f.name) +
-          _p(`Please find below your invoice for commercial cleaning services at <strong style="color:${T.charcoal}">${f.site||'your site'}</strong> for <strong style="color:${T.charcoal}">${f.period||'the service period'}</strong>.`) +
+          (net ? _heroPrice('£' + total, 'Total Amount Due', `Due by ${f.dueDate||'—'} &nbsp;&bull;&nbsp; Includes VAT`) : '') +
+          _p(`Please find below your invoice for commercial cleaning services at <strong>${f.site||'your site'}</strong> for <strong>${f.period||'the service period'}</strong>.`) +
+          _sh('Invoice breakdown') +
           _table([
             ['Invoice Number', f.invNum  || '—'],
             ['Service Period', f.period  || '—'],
             ['Site',           f.site    || '—'],
             ['Issue Date',     new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})],
             ['Payment Due',    f.dueDate || '—'],
-            ['Subtotal',       net ? '£'+netFmt : '—'],
-            ['VAT (20%)',      net ? '£'+vat    : '—'],
-          ], ['Total Due', net ? '£'+total : '—']) +
-          _amber(`<strong>&#127974; Bank Transfer Details</strong><br><br>
-            <table cellpadding="0" cellspacing="0"><tr>
-              <td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:28px;line-height:2.2">Account Name<br>Sort Code<br>Account Number<br>Reference</td>
-              <td style="font-family:Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2.2">Miro Partners Ltd<br>04-06-05<br>26672911<br>${f.invNum||'[INV-XXX]'}</td>
-            </tr></table>`) +
-          _p(`Payment is due within <strong style="color:${T.charcoal}">30 days</strong>. For any queries please reply or call us on ${PHONE}.`) +
+            ['Subtotal',       net ? '£' + netFmt : '—'],
+            ['VAT (20%)',      net ? '£' + vat    : '—'],
+          ], net ? ['Total Due', '£' + total] : null) +
+          _amber(`<strong>Bank Transfer Details</strong><br><br>
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#92400E;padding-right:28px;line-height:2.4">Account Name<br>Sort Code<br>Account Number<br>Reference</td>
+                <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:${T.charcoal};font-weight:700;line-height:2.4">Miro Partners Ltd<br>04-06-05<br>26672911<br>${f.invNum||'[INV-XXX]'}</td>
+              </tr>
+            </table>`) +
+          _p(`Payment is due within <strong>30 days</strong>. For any queries please reply or call us on ${PHONE}.`) +
           _div() +
           _sm('Late payments may be subject to statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998.')
         );
@@ -484,20 +678,22 @@ Thanks again and nice to meet you.`
         { id:'schedule',  label:'Schedule',        ph:'e.g. Mon–Fri, 6–9am' },
         { id:'amount',    label:'Monthly Fee (£)', ph:'e.g. 1200'           },
       ],
-      html: (f={}) => _wrap('Service Renewal', '#7C3AED',
+      html: (f={}) => _wrap('Service Renewal', T.purple,
         'Your AskMiro service agreement is due for renewal',
-        _h('Your Service Agreement Is Up for Renewal.') +
+        _h('Your service agreement is up for renewal.') +
         _sub("We'd love to continue working with you") +
         _gr(f.name) +
-        _p(`Your current service agreement for <strong style="color:${T.charcoal}">${f.site||'your site'}</strong> is due for renewal on <strong style="color:${T.charcoal}">${f.renewDate||'[DATE]'}</strong>. We would love to continue working with you.`) +
+        _p(`Your current service agreement for <strong>${f.site||'your site'}</strong> is due for renewal on <strong>${f.renewDate||'[DATE]'}</strong>. We would love to continue working with you.`) +
+        _sh('Current service summary') +
         _table([
           ['Site',          f.site      || '—'],
           ['Renewal Date',  f.renewDate || '—'],
           ['Schedule',      f.schedule  || '—'],
-          ['Monthly Fee',   f.amount ? '£'+f.amount+' + VAT' : '—', true, true],
+          ['Monthly Fee',   f.amount ? '£' + f.amount + ' + VAT' : '—', true, true],
           ['Contract Term', '12 months from renewal date'],
         ]) +
-        _p(`If you're happy to continue on the same terms, simply reply with <em style="color:${T.charcoal}">&ldquo;Confirmed&rdquo;</em> and we will keep everything running without interruption.`) +
+        _p(`If you're happy to continue on the same terms, simply reply with <em>&ldquo;Confirmed&rdquo;</em> and we will keep everything running without interruption.`) +
+        _sh('What stays the same') +
         _checklist([
           'No paperwork required — a reply to this email is your confirmation',
           'Same dedicated team, same schedule, same quality standard',
@@ -505,7 +701,7 @@ Thanks again and nice to meet you.`
           'Renewed agreement valid for 12 months from renewal date',
         ]) +
         _quote(`It has been a genuine pleasure working with you. We don't take that lightly and will continue working hard to earn your trust.`) +
-        _cta('&#10003; Confirm Renewal', `mailto:${EMAIL}?subject=Renewal Confirmed — ${f.site||''}`, '#7C3AED') +
+        _cta('&#10003; Confirm Renewal', `mailto:${EMAIL}?subject=Renewal Confirmed — ${f.site||''}`, T.purple) +
         _div() +
         _sm(`To discuss changes please call us on ${PHONE} or reply to this email.`)
       ),
@@ -663,19 +859,25 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     }
     const t = TEMPLATES[name]; if (!t) return;
     if (subjEl && !subjEl.value) subjEl.value = t.subject;
-    // Render input fields for this template
+    // Render input fields — supports type:'textarea' and default value pre-fill
     if (fInner && t.fields) {
       fInner.innerHTML = t.fields.map(field => {
-        const defaultVal = field.default || '';
         if (field.type === 'textarea') {
-          return `<div class="fg" style="margin-bottom:10px">
-            <label class="fl" style="font-size:12px">${field.label}</label>
-            <textarea class="fta" id="emf-${field.id}" rows="${field.rows||5}" placeholder="${field.ph}" oninput="Email._livePreview()" style="font-size:13px;width:100%;box-sizing:border-box;resize:vertical">${defaultVal}</textarea>
-          </div>`;
-        }
-        return `<div class="fg" style="margin-bottom:10px">
+          const def = (field.default || '').replace(/`/g, '\\`');
+          return `
+        <div class="fg" style="margin-bottom:10px">
           <label class="fl" style="font-size:12px">${field.label}</label>
-          <input class="fin" id="emf-${field.id}" placeholder="${field.ph}" value="${defaultVal}" oninput="Email._livePreview()" style="font-size:13px">
+          <textarea class="fin fta" id="emf-${field.id}" placeholder="${field.ph}"
+            rows="${field.rows || 6}" oninput="Email._livePreview()"
+            style="font-size:13px;resize:vertical;line-height:1.6">${field.default || ''}</textarea>
+        </div>`;
+        }
+        const defVal = (field.default || '').replace(/"/g, '&quot;');
+        return `
+        <div class="fg" style="margin-bottom:10px">
+          <label class="fl" style="font-size:12px">${field.label}</label>
+          <input class="fin" id="emf-${field.id}" placeholder="${field.ph}"
+            value="${defVal}" oninput="Email._livePreview()" style="font-size:13px">
         </div>`;
       }).join('');
     }
@@ -697,10 +899,10 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     t.fields.forEach(field => {
       const el = document.getElementById('emf-'+field.id);
       if (el) {
-        const val = (field.type === 'textarea' ? el.value : el.value.trim());
-        f[field.id] = val || field.default || '';
+        // textarea preserves newlines; inputs are trimmed
+        f[field.id] = field.type === 'textarea' ? el.value : el.value.trim();
       } else {
-        // Field not yet rendered — use default
+        // fallback to default value if field not yet rendered
         f[field.id] = field.default || '';
       }
     });
