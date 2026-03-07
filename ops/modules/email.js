@@ -240,8 +240,6 @@ const Email = (() => {
       subject: 'Managed Commercial Cleaning — AskMiro Cleaning Services',
       fields: [
         { id:'name', label:'Contact Name', ph:'e.g. Sarah Collins' },
-        { id:'customIntro', label:'Opening Message (editable — replaces default intro paragraphs)', ph:'', type:'textarea',
-          default: `We are AskMiro Cleaning Services — a managed commercial cleaning company serving offices, warehouses, schools, healthcare facilities, and automotive dealerships across London and the UK.\n\nUnlike typical cleaning contractors, we don't just supply staff — we manage the entire service end-to-end: consistent teams, supervisor oversight, quality checklists, and a single point of contact for everything.` },
       ],
       html: (f={}) => _wrap('Client Introduction', T.teal,
         'Discover managed commercial cleaning that actually works',
@@ -334,6 +332,61 @@ const Email = (() => {
         _div() +
         _sm(`To stop further follow-up emails please reply with "Unsubscribe".`)
       ),
+    },
+
+
+    'Referral / Introduction Follow-Up': {
+      icon: '\u{1F91D}', badge: 'Referral',
+      desc: 'Follow-up after meeting a referral partner such as a property developer, estate agent, or site manager.',
+      subject: 'Great meeting you on {{meeting_date}}',
+      fields: [
+        { id:'contact_name',  label:'Contact Name',  ph:'e.g. James Whitfield',                           default:'' },
+        { id:'meeting_date',  label:'Meeting Date',  ph:'e.g. 12 March',                                  default:'' },
+        { id:'location',      label:'Location',      ph:'e.g. Whitfield Park, Clapham',                   default:'' },
+        {
+          id:      'body',
+          label:   'Opening Message',
+          type:    'textarea',
+          rows:    9,
+          ph:      'Edit the message body here…',
+          default: `Great meeting you on {{meeting_date}} at {{location}}.
+
+Thank you again for offering to share my details with the homeowners — I really appreciate it.
+
+If any of the buyers need help with move-in cleaning, after-builders cleaning, or regular home cleaning once they settle in, we would be very happy to assist.
+
+We're a local cleaning company based nearby and currently helping homeowners across South West London with reliable and flexible cleaning services.
+
+If helpful, I can also send over a short one-page introduction or flyer that your team can easily share with the buyers.
+
+Thanks again and nice to meet you.`
+        },
+      ],
+      html: (f={}) => {
+        // Resolve dynamic variables in body and subject
+        const resolve = str => (str||'')
+          .replace(/\{\{contact_name\}\}/g, f.contact_name || '{{contact_name}}')
+          .replace(/\{\{meeting_date\}\}/g,  f.meeting_date  || '{{meeting_date}}')
+          .replace(/\{\{location\}\}/g,       f.location      || '{{location}}');
+
+        const bodyRaw  = f.body || TEMPLATES['Referral / Introduction Follow-Up'].fields.find(x=>x.id==='body').default;
+        const bodyText = resolve(bodyRaw);
+        // Convert plain newlines to <p> tags for email
+        const bodyHtml = bodyText.split(/\n\n+/).map(chunk =>
+          _p(chunk.split('\n').join('<br>'))
+        ).join('');
+
+        return _wrap('Referral / Introduction Follow-Up', T.teal,
+          resolve('Great meeting you — thanks for offering to share our details'),
+          _h('Great meeting you.') +
+          _sub(resolve(f.meeting_date ? 'Following our meeting on ' + f.meeting_date : 'Thank you for the introduction')) +
+          _gr(f.contact_name) +
+          bodyHtml +
+          _cta('&#9993; Get in Touch', 'mailto:' + EMAIL, T.teal) +
+          _div() +
+          _sm('AskMiro Cleaning Services — London &amp; UK. Residential &amp; commercial cleaning. Fully insured.')
+        );
+      },
     },
 
     'Welcome Onboard': {
@@ -613,17 +666,16 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     // Render input fields for this template
     if (fInner && t.fields) {
       fInner.innerHTML = t.fields.map(field => {
+        const defaultVal = field.default || '';
         if (field.type === 'textarea') {
-          const defaultVal = field.default || '';
           return `<div class="fg" style="margin-bottom:10px">
             <label class="fl" style="font-size:12px">${field.label}</label>
-            <textarea class="fta" id="emf-${field.id}" oninput="Email._livePreview()"
-              style="font-size:13px;min-height:110px;line-height:1.65">${defaultVal}</textarea>
+            <textarea class="fta" id="emf-${field.id}" rows="${field.rows||5}" placeholder="${field.ph}" oninput="Email._livePreview()" style="font-size:13px;width:100%;box-sizing:border-box;resize:vertical">${defaultVal}</textarea>
           </div>`;
         }
         return `<div class="fg" style="margin-bottom:10px">
           <label class="fl" style="font-size:12px">${field.label}</label>
-          <input class="fin" id="emf-${field.id}" placeholder="${field.ph || ''}" oninput="Email._livePreview()" style="font-size:13px">
+          <input class="fin" id="emf-${field.id}" placeholder="${field.ph}" value="${defaultVal}" oninput="Email._livePreview()" style="font-size:13px">
         </div>`;
       }).join('');
     }
@@ -644,7 +696,13 @@ ${UI.secHd('EMAIL', 'Email Centre', _inbox.filter(t=>t.unread).length + ' unread
     const f = {};
     t.fields.forEach(field => {
       const el = document.getElementById('emf-'+field.id);
-      if (el) f[field.id] = el.value.trim();
+      if (el) {
+        const val = (field.type === 'textarea' ? el.value : el.value.trim());
+        f[field.id] = val || field.default || '';
+      } else {
+        // Field not yet rendered — use default
+        f[field.id] = field.default || '';
+      }
     });
     return f;
   }
