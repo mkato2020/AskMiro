@@ -293,7 +293,7 @@ Thanks again and nice to meet you.`
   }
 
   function _wrap(label, bodyHtml, sender) {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -311,14 +311,36 @@ Thanks again and nice to meet you.`
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle">
-                    <div style="font-family:Georgia,Times New Roman,serif;font-size:26px;font-weight:700;color:#FFFFFF;letter-spacing:-0.7px;line-height:1">AskMiro</div>
+                    <div style="font-family:Georgia,Times New Roman,serif;font-size:26px;font-weight:700;letter-spacing:-0.7px;line-height:1">
+                      <span style="color:#FFFFFF">Ask</span><span style="color:${T.teal}">Miro</span>
+                    </div>
                     <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,0.42)">
                       Cleaning Services
                     </div>
                   </td>
+
                   <td align="right" style="vertical-align:middle">
-                    <div style="display:inline-block;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:7px 16px">
-                      <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:700;color:rgba(255,255,255,0.76);letter-spacing:1px;text-transform:uppercase">${_esc(label)}</span>
+                    <div style="
+                      display:inline-block;
+                      max-width:230px;
+                      background:rgba(255,255,255,0.06);
+                      border:1px solid rgba(255,255,255,0.10);
+                      border-radius:999px;
+                      padding:10px 18px;
+                      text-align:right;
+                    ">
+                      <span style="
+                        display:block;
+                        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+                        font-size:10.5px;
+                        font-weight:700;
+                        color:rgba(255,255,255,0.78);
+                        letter-spacing:1.4px;
+                        text-transform:uppercase;
+                        line-height:1.45;
+                        white-space:normal;
+                        word-break:keep-all;
+                      ">${_esc(label)}</span>
                     </div>
                   </td>
                 </tr>
@@ -358,7 +380,7 @@ Thanks again and nice to meet you.`
   </table>
 </body>
 </html>`;
-  }
+}
 
   function _buildEmailTemplate(tmpl, f, rawSubject) {
     const sender = _sender();
