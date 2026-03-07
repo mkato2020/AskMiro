@@ -814,15 +814,23 @@ Thanks again and nice to meet you.`;
     subjEl.value  = _resolveTokens(TEMPLATES[tmpl].subject, fields);
   }
 
+  // Blob URL loader — bypasses Cloudflare's sandbox/srcdoc blocking
+  function _setFrameHTML(frameId, html) {
+    const frame = document.getElementById(frameId);
+    if (!frame) return;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    if (frame._blobUrl) URL.revokeObjectURL(frame._blobUrl);
+    frame._blobUrl = url;
+    frame.src = url;
+  }
+
   function _livePreview() {
     const tmpl = _activeTmpl || ((document.getElementById('em-tmpl') || {}).value || '');
     if (!tmpl || !TEMPLATES[tmpl]) return;
-    const frame = document.getElementById('em-prev');
-    if (frame) {
-      const fields = _collectFields(tmpl);
-      const subjEl = document.getElementById('em-subj');
-      frame.srcdoc = _buildEmailTemplate(tmpl, fields, subjEl ? subjEl.value : '');
-    }
+    const fields = _collectFields(tmpl);
+    const subjEl = document.getElementById('em-subj');
+    _setFrameHTML('em-prev', _buildEmailTemplate(tmpl, fields, subjEl ? subjEl.value : ''));
   }
 
   function _pickTmpl(name) {
@@ -878,7 +886,7 @@ Thanks again and nice to meet you.`;
     const ttl   = document.getElementById('em-modal-ttl');
     if (bg && frame && ttl) {
       ttl.textContent = `${t.icon}  ${name}`;
-      frame.srcdoc = _buildEmailTemplate(name, {}, t.subject);
+      _setFrameHTML('em-modal-frame', _buildEmailTemplate(name, {}, t.subject));
       bg.style.display = 'flex';
     }
   }
@@ -1009,7 +1017,7 @@ Thanks again and nice to meet you.`;
         <!-- Live preview iframe -->
         <div id="em-prev-wrap" style="display:none;margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll);margin-bottom:6px">Live Preview</div>
-          <iframe id="em-prev" style="width:100%;height:520px;border:1px solid var(--bd);border-radius:12px;background:#fff" sandbox="allow-same-origin"></iframe>
+          <iframe id="em-prev" style="width:100%;height:520px;border:1px solid var(--bd);border-radius:12px;background:#fff"></iframe>
         </div>
 
         <!-- Send button -->
@@ -1054,7 +1062,7 @@ Thanks again and nice to meet you.`;
             <span id="em-modal-ttl" style="font-weight:700;font-size:14px;color:var(--dk)">Preview</span>
             <button class="xbtn" onclick="document.getElementById('em-modal-bg').style.display='none'">&#x2715;</button>
           </div>
-          <iframe id="em-modal-frame" style="flex:1;border:none;border-radius:0 0 16px 16px;min-height:560px" sandbox="allow-same-origin"></iframe>
+          <iframe id="em-modal-frame" style="flex:1;border:none;border-radius:0 0 16px 16px;min-height:560px"></iframe>
         </div>
       </div>`;
   }
@@ -1140,9 +1148,16 @@ Thanks again and nice to meet you.`;
             <div style="font-size:11px;color:var(--ll)">${date}</div>
           </div>
           <div style="padding:16px;max-height:320px;overflow-y:auto">
-            <iframe srcdoc="${(m.body || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
-              style="width:100%;border:none;min-height:200px" sandbox="allow-same-origin"
-              onload="this.style.height=this.contentDocument.body.scrollHeight+32+'px'"></iframe>
+            <iframe id="tframe-${i}"
+              style="width:100%;border:none;min-height:200px"
+              onload="this.style.height=(this.contentDocument.body.scrollHeight+32)+'px'"></iframe>
+            <script>
+              (function() {
+                var b = new Blob([${JSON.stringify(m.body || '')}], {type:'text/html'});
+                var u = URL.createObjectURL(b);
+                document.getElementById('tframe-${i}').src = u;
+              })();
+            </script>
           </div>
         </div>`;
     }).join('');
