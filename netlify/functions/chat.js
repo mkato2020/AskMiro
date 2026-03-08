@@ -75,7 +75,7 @@ Only include LEAD_CAPTURED when you genuinely have all four values confirmed by 
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 500,
         system: SYSTEM,
         messages: messages.map(m => ({ role: m.role, content: m.content })),
