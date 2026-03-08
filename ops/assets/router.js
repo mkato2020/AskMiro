@@ -2,7 +2,7 @@
 // AskMiro Ops — router.js  v2
 // Instant navigation + prefetch + error boundaries
 // ============================================================
-const Router = (() => {
+window. Router = (() => {
   const routes   = {};
   let _current   = null;
   let _navigating = false;
