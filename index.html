@@ -29,8 +29,8 @@
   /* Text */
   --text-1:      #0D1C2E;
   --text-2:      #3D5A74;
-  --text-3:      #7A9BB5;
-  --text-muted:  #A8C0D0;
+  --text-3:      #4E6F8A;
+  --text-muted:  #6B8FA8;
 
   /* Borders */
   --border:      rgba(13,28,46,0.08);
@@ -199,8 +199,9 @@ nav.scrolled .nav-mobile-btn { color:var(--text-1); }
   width:6px; height:6px; background:var(--teal-mid); border-radius:50%;
   box-shadow:0 0 0 3px rgba(13,189,173,0.2);
   animation:dot-pulse 2.5s ease-in-out infinite;
+  will-change: transform;
 }
-@keyframes dot-pulse { 0%,100%{box-shadow:0 0 0 3px rgba(13,189,173,.2)} 50%{box-shadow:0 0 0 6px rgba(13,189,173,.07)} }
+@keyframes dot-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.6);opacity:.5} }
 .hero-badge span { font-family:'JetBrains Mono',monospace; font-size:0.6875rem; letter-spacing:.1em; text-transform:uppercase; color:var(--teal-mid); }
 .hero h1 {
   font-size:clamp(3rem,7vw,6.5rem); font-weight:800; line-height:0.92;
@@ -221,7 +222,7 @@ nav.scrolled .nav-mobile-btn { color:var(--text-1); }
   border-top:1px solid var(--border); border-bottom:1px solid var(--border);
   padding:16px 0; overflow:hidden; background:var(--bg-surface);
 }
-.marquee-track { display:flex; gap:60px; animation:marquee 30s linear infinite; width:max-content; }
+.marquee-track { display:flex; gap:60px; animation:marquee 30s linear infinite; width:max-content; will-change:transform; }
 .marquee-track:hover { animation-play-state:paused; }
 .marquee-item {
   display:flex; align-items:center; gap:10px; white-space:nowrap;
@@ -457,7 +458,7 @@ footer {
 .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; margin-bottom:48px; }
 .footer-brand p { font-size:.875rem; color:rgba(255,255,255,0.38); line-height:1.72; margin-top:16px; max-width:280px; }
 .footer-logo { font-size:1.25rem; font-weight:800; letter-spacing:-.02em; display:flex; align-items:center; gap:10px; color:#fff; }
-.footer-col h5 {
+.footer-col-title {
   font-family:'JetBrains Mono',monospace; font-size:.625rem; letter-spacing:.12em;
   text-transform:uppercase; color:rgba(255,255,255,0.25); margin-bottom:20px;
 }
@@ -525,11 +526,17 @@ footer {
 }
 </style>
 
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<!-- Google Tag Manager — deferred so it never blocks LCP -->
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-5TC9N4P5');
+    }, 2000);
+  });
+</script>
 <title>Managed Commercial Cleaning London | AskMiro</title>
 <meta name="description" content="Properly managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent teams, quality checks, eco-conscious methods. COSHH-compliant.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -546,16 +553,23 @@ footer {
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#0A9688">
+<!-- Fonts: preconnect + non-blocking load -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<!-- Preload the most critical font file to unblock LCP -->
+<link rel="preload" as="font" type="font/woff2" href="https://fonts.gstatic.com/s/figtree/v6/_Xmz-HUzqDCFdgfMsYiV_F7wfS-Bs_d_QF5ewkEU4HTy.woff2" crossorigin>
+<!-- Load fonts non-blocking via media trick — swaps to all on load -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap"></noscript>
+<!-- Preload hero image — biggest LCP win -->
+<link rel="preload" as="image" href="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fm=webp&q=75" imagesrcset="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fm=webp&q=75 800w, https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75 1200w" imagesizes="100vw">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"AskMiro Cleaning Services","url":"https://www.askmiro.com","telephone":"+442080730621","email":"info@askmiro.com","address":{"@type":"PostalAddress","addressLocality":"London","addressCountry":"GB"},"priceRange":"££"}</script>
 </head>
 <body>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- NAV -->
-<nav id="nav">
+<nav id="nav" aria-label="Main navigation">
   <a href="/" class="nav-logo">
     <img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">
     Ask<span style="color:var(--teal-light)">Miro</span>
@@ -585,7 +599,16 @@ footer {
 <!-- HERO -->
 <section class="hero" id="home">
   <div class="hero-bg" id="heroBg">
-    <img id="heroImg" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&h=1080&fit=crop&q=85" alt="AskMiro commercial cleaning">
+    <img id="heroImg"
+      src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75&fit=crop"
+      srcset="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fm=webp&q=70&fit=crop 800w,
+              https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75&fit=crop 1200w,
+              https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&auto=format&fm=webp&q=75&fit=crop 1920w"
+      sizes="100vw"
+      width="1200" height="675"
+      alt="AskMiro commercial cleaning London"
+      fetchpriority="high"
+      decoding="sync">
   </div>
   <div class="hero-overlay"></div>
   <div class="hero-slide-nav" id="slideNav">
@@ -718,10 +741,10 @@ footer {
       <div class="section-divider center"></div>
     </div>
     <div class="process-grid reveal">
-      <div class="step-item"><div class="step-circle">01</div><h4>Request a Quote</h4><p>Fill in your details online. Takes 90 seconds. We respond within 24 hours.</p></div>
-      <div class="step-item"><div class="step-circle">02</div><h4>Free Site Visit</h4><p>We visit your site, assess requirements, and produce a bespoke cleaning plan.</p></div>
-      <div class="step-item"><div class="step-circle">03</div><h4>Fixed Monthly Quote</h4><p>One clear monthly rate. No hidden costs. No surprise invoices.</p></div>
-      <div class="step-item"><div class="step-circle">04</div><h4>Managed Ongoing Service</h4><p>Your dedicated team starts. Regular quality checks. One contact for everything.</p></div>
+      <div class="step-item"><div class="step-circle">01</div><h3>Request a Quote</h3><p>Fill in your details online. Takes 90 seconds. We respond within 24 hours.</p></div>
+      <div class="step-item"><div class="step-circle">02</div><h3>Free Site Visit</h3><p>We visit your site, assess requirements, and produce a bespoke cleaning plan.</p></div>
+      <div class="step-item"><div class="step-circle">03</div><h3>Fixed Monthly Quote</h3><p>One clear monthly rate. No hidden costs. No surprise invoices.</p></div>
+      <div class="step-item"><div class="step-circle">04</div><h3>Managed Ongoing Service</h3><p>Your dedicated team starts. Regular quality checks. One contact for everything.</p></div>
     </div>
   </div>
 </section>
@@ -736,10 +759,10 @@ footer {
       <div class="section-divider center"></div>
     </div>
     <div class="trust-grid reveal">
-      <div class="trust-card"><div class="trust-icon">🛡️</div><h4>£10M Public Liability</h4><p>Fully insured. Certificates available on request for every contract.</p></div>
-      <div class="trust-card"><div class="trust-icon">📋</div><h4>COSHH Compliant</h4><p>Risk assessments, method statements, and RAMS provided as standard.</p></div>
-      <div class="trust-card"><div class="trust-icon">✅</div><h4>DBS-Checked Teams</h4><p>All staff vetted, reference-checked, and trained before deployment.</p></div>
-      <div class="trust-card"><div class="trust-icon">🌱</div><h4>Eco-Conscious</h4><p>Controlled chemical use, dilution systems, and microfibre methods.</p></div>
+      <div class="trust-card"><div class="trust-icon">🛡️</div><h3>£10M Public Liability</h3><p>Fully insured. Certificates available on request for every contract.</p></div>
+      <div class="trust-card"><div class="trust-icon">📋</div><h3>COSHH Compliant</h3><p>Risk assessments, method statements, and RAMS provided as standard.</p></div>
+      <div class="trust-card"><div class="trust-icon">✅</div><h3>DBS-Checked Teams</h3><p>All staff vetted, reference-checked, and trained before deployment.</p></div>
+      <div class="trust-card"><div class="trust-icon">🌱</div><h3>Eco-Conscious</h3><p>Controlled chemical use, dilution systems, and microfibre methods.</p></div>
     </div>
   </div>
 </section>
@@ -946,9 +969,9 @@ footer {
         <div class="footer-logo"><img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">Ask<span style="color:var(--teal-light)">Miro</span></div>
         <p>Managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent, compliant, and eco-conscious.</p>
       </div>
-      <div class="footer-col"><h5>Services</h5><ul><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
-      <div class="footer-col"><h5>Company</h5><ul><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
-      <div class="footer-col"><h5>Contact</h5><ul><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Services</p><ul><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Company</p><ul><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Contact</p><ul><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
