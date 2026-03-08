@@ -44,13 +44,9 @@ Tone rules:
 - Never make up information. If you don't know something, say 
   "I'll need to check that with the team — can I take your email?"
 
-
-
 Lead capture: When someone is clearly interested in a quote or service, 
-politely collect: name, email, phone number, postcode. 
-Keep it conversational — one question at a time, not a form dump.
-Once you have all four confirmed, add this token on its own line at the very end of your message:
-LEAD_CAPTURED:{"name":"VALUE","email":"VALUE","phone":"VALUE","postcode":"VALUE"}`;
+politely collect: name, email, property type, postcode. 
+Keep it conversational — one question at a time, not a form dump.`;
 
 export default async (req) => {
   // ── CORS headers ─────────────────────────────────────────
@@ -125,40 +121,7 @@ export default async (req) => {
     const data = await response.json();
     const reply = data?.content?.[0]?.text || 'Sorry, I couldn\'t generate a response. Please call us on 020 8073 0621.';
 
-    // Extract lead token if present
-    let assistantMessage = reply;
-    let leadData = null;
-    const leadMatch = reply.match(/LEAD_CAPTURED:(\{[^\n}]+\})/);
-    if (leadMatch) {
-      try { leadData = JSON.parse(leadMatch[1]); } catch { leadData = null; }
-      assistantMessage = reply.replace(/\n?LEAD_CAPTURED:\{[^\n}]+\}/, '').trim();
-    }
-
-    // Fire lead to GAS if captured
-    let leadFired = false;
-    const { sessionId = null, leadAlreadyFired = false } = body;
-    if (leadData && !leadAlreadyFired && process.env.GAS_URL && process.env.GAS_TOKEN) {
-      try {
-        const transcript = [
-          ...safeMessages.map(m => `${m.role === 'user' ? 'Visitor' : 'Miro'}: ${m.content}`),
-          `Miro: ${assistantMessage}`,
-        ].join('\n');
-        const gasRes = await fetch(process.env.GAS_URL + '?action=webhook.chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token: process.env.GAS_TOKEN, action: 'createChatLead',
-            name: leadData.name || '', email: leadData.email || '',
-            phone: leadData.phone || '', postcode: leadData.postcode || '',
-            source: 'chat', sessionId: sessionId || 'unknown',
-            transcript, createdAt: new Date().toISOString(),
-          }),
-        });
-        if (gasRes.ok) { leadFired = true; console.log('Chat lead saved:', leadData.email); }
-      } catch (e) { console.error('GAS error:', e.message); }
-    }
-
-    return new Response(JSON.stringify({ message: assistantMessage, leadFired, leadData: leadFired ? leadData : null }), { status: 200, headers });
+    return new Response(JSON.stringify({ reply, message: reply }), { status: 200, headers });
 
   } catch (err) {
     console.error('Chat function error:', err);
