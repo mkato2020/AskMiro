@@ -438,6 +438,10 @@
   btn.onclick = () => _isOpen ? _close() : _open();
   document.getElementById('am-close').onclick = _close;
 
+  // Session ID — unique per page load, prevents duplicate lead submissions
+  const _sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  let _leadFired = false;
+
   async function _send(text) {
     text = (text || inp.value).trim();
     if (!text || _busy) return;
@@ -448,13 +452,22 @@
     try {
       const res = await fetch(CFG.endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: _msgs })
+        body: JSON.stringify({
+          messages: _msgs,
+          sessionId: _sessionId,
+          leadAlreadyFired: _leadFired,
+        })
       });
       _rmTyping();
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const d = await res.json();
-      const reply = d.reply || d.error || 'Sorry, something went wrong. Please call 020 8073 0621.';
+      const reply = d.message || d.reply || d.error || 'Sorry, something went wrong. Please call 020 8073 0621.';
       _addMsg('assistant', reply); _msgs.push({ role: 'assistant', content: reply });
+      // Mark lead as fired so it doesn't double-submit
+      if (d.leadFired) {
+        _leadFired = true;
+        console.log('[AskMiro] Chat lead captured ✅');
+      }
       if (!_isOpen) { notif.style.display = 'flex'; }
     } catch (err) {
       _rmTyping();
