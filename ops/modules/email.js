@@ -4,7 +4,7 @@
 // Design: Tesla × Microsoft Fluent — obsidian precision
 // ============================================================
 
-window. Email = (() => {
+window.Email = (() => {
 
   // ── STATE ─────────────────────────────────────────────────
   let _tab        = 'inbox';
