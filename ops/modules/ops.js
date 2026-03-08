@@ -1,4 +1,4 @@
-const Ops = (() => {
+window. Ops = (() => {
   let _jobs = [];
   async function render() {
     try { _jobs = await API.get('jobs', { from: UI.today() }); } catch(e) { _jobs = []; }
