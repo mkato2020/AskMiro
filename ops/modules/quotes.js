@@ -6,7 +6,7 @@
 // - Avoids ?? / optional chaining to prevent "Unexpected token" in older parsers
 // - Exposes Quotes to window for module environments
 // ============================================================
-const Quotes = (() => {
+window.Quotes = (() => {
   let _quotes = [];
   let _filter = 'all'; // 'all' | 'web'
   let _byId = {};      // id -> quote
