@@ -197,5 +197,17 @@ window.API = (() => {
     } catch(_) { return false; }
   }
 
-  return { get, post, prefetch, invalidate, health, token };
-})();
+  // ── INIT — called once on app boot ────────────────────────
+  function init() {
+    // Warm the GAS endpoint to prevent cold-start lag
+    health().catch(() => {});
+
+    // Preload critical data in parallel so first render is instant
+    const preloads = ['dashboard', 'crm', 'quotes', 'me'];
+    preloads.forEach(action => prefetch(action));
+
+    // Keep-alive ping every 4 minutes (GAS goes cold after ~5min)
+    setInterval(() => health().catch(() => {}), 4 * 60 * 1000);
+  }
+
+  return { init, get, post, prefetch, invalidate, health, token };
