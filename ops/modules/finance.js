@@ -1,4 +1,4 @@
-const Finance = (() => {
+window.Finance = (() => {
   async function render() {
     const app = document.getElementById('main-content');
     app.innerHTML = `<div style="padding:40px;text-align:center;color:var(--ll)"><div class="spinner" style="margin:0 auto 12px"></div>Loading finance data…</div>`;
