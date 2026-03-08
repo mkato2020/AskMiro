@@ -1,7 +1,7 @@
 // ============================================================
 // AskMiro Ops — modules/dashboard.js
 // ============================================================
-window. Dashboard = (() => {
+window.Dashboard = (() => {
   async function render() {
     const app = document.getElementById('main-content');
     let d;
