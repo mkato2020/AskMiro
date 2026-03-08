@@ -2,7 +2,7 @@
 // AskMiro Ops — auth.js  v2
 // Secure token handling + session management + rate limiting
 // ============================================================
-const Auth = (() => {
+window.Auth = (() => {
   let _user       = null;
   let _loginTries = 0;
   let _lockUntil  = 0;
