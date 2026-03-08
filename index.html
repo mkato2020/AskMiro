@@ -1,1057 +1,563 @@
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
-<style id="askmiro-theme">
+<style>
 /* ================================================================
-   ASKMIRO — LIGHT PREMIUM THEME
-   Single authoritative stylesheet. Replaces all previous blocks.
-   Structure/IDs/scripts: UNTOUCHED
+   ASKMIRO — LIGHT PREMIUM v5.0
+   White base · teal lighting · Figtree + JetBrains Mono
+   Same modern design DNA as chat widget, inverted to light
    ================================================================ */
-
-/* ── DESIGN TOKENS ── */
 :root {
-  /* Teal palette — richer, more saturated */
-  --teal:           #0A9688;
-  --teal-mid:       #0DBDAD;
-  --teal-light:     #14D4C2;
-  --teal-dim:       rgba(10,150,136,0.12);
-  --teal-border:    rgba(10,150,136,0.22);
-  --teal-glow:      rgba(10,150,136,0.08);
+  /* Teal palette */
+  --teal:        #0A9688;
+  --teal-mid:    #0DBDAD;
+  --teal-light:  #14D4C2;
+  --teal-wash:   rgba(13,189,173,0.07);
+  --teal-wash-2: rgba(13,189,173,0.12);
+  --border-teal: rgba(13,189,173,0.28);
 
-  /* Surface palette — light premium, NOT black */
-  --bg-base:        #F7F9FB;   /* off-white base */
-  --bg-surface:     #FFFFFF;   /* card surfaces */
-  --bg-raised:      #EEF2F6;   /* slightly raised panels */
-  --bg-dark:        #0D1C2E;   /* footer + nav-scrolled */
-  --bg-hero:        #0D1C2E;   /* hero stays dark for contrast */
-  --bg-section-alt: #F0F5FA;   /* alternating sections */
-  --bg-teal-wash:   rgba(10,150,136,0.04); /* very subtle teal tint */
+  /* Light surfaces */
+  --bg-base:     #F4F8FB;
+  --bg-surface:  #FFFFFF;
+  --bg-raised:   #EBF2F8;
+  --bg-alt:      #F0F7FA;
+
+  /* Dark for nav/footer/hero */
+  --navy:        #0D1C2E;
+  --navy-mid:    #0e2438;
 
   /* Text */
-  --text-primary:   #0D1C2E;
-  --text-secondary: #4A6480;
-  --text-muted:     #8BA5BE;
-  --text-on-dark:   rgba(255,255,255,0.88);
-  --text-on-dark-2: rgba(255,255,255,0.55);
+  --text-1:      #0D1C2E;
+  --text-2:      #3D5A74;
+  --text-3:      #7A9BB5;
+  --text-muted:  #A8C0D0;
 
   /* Borders */
-  --border-light:   rgba(13,28,46,0.08);
-  --border-medium:  rgba(13,28,46,0.14);
-  --border-dark:    rgba(255,255,255,0.1);
+  --border:      rgba(13,28,46,0.08);
+  --border-md:   rgba(13,28,46,0.13);
 
-  /* Elevation shadows — replace glows */
-  --shadow-sm:  0 1px 3px rgba(13,28,46,0.08), 0 1px 2px rgba(13,28,46,0.04);
-  --shadow-md:  0 4px 16px rgba(13,28,46,0.08), 0 2px 6px rgba(13,28,46,0.06);
-  --shadow-lg:  0 12px 40px rgba(13,28,46,0.12), 0 4px 12px rgba(13,28,46,0.06);
-  --shadow-teal:0 4px 20px rgba(10,150,136,0.18);
+  /* Shadows */
+  --shadow-sm:   0 1px 3px rgba(13,28,46,0.06),0 1px 2px rgba(13,28,46,0.04);
+  --shadow-md:   0 4px 20px rgba(13,28,46,0.08),0 2px 6px rgba(13,28,46,0.05);
+  --shadow-lg:   0 12px 48px rgba(13,28,46,0.1),0 4px 12px rgba(13,28,46,0.06);
+  --shadow-teal: 0 4px 20px rgba(10,150,136,0.22);
+  --shadow-teal-lg: 0 8px 32px rgba(10,150,136,0.28);
 
-  /* Typography */
-  --font-display: 'Syne', sans-serif;
-  --font-body:    'Inter', sans-serif;
+  /* Motion */
+  --ease:   cubic-bezier(0.25,0.46,0.45,0.94);
+  --spring: cubic-bezier(0.34,1.3,0.64,1);
 
-  /* Easing */
-  --ease:        cubic-bezier(0.25,0.46,0.45,0.94);
-  --ease-spring: cubic-bezier(0.34,1.3,0.64,1);
-
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Radii */
+  --r-sm: 8px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px;
 }
 
-/* ── RESET ── */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
-body {
-  font-family: var(--font-body);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  line-height: 1.65;
-}
+body { font-family:'Figtree',system-ui,sans-serif; background:var(--bg-base); color:var(--text-1); overflow-x:hidden; line-height:1.65; }
 img { max-width:100%; display:block; }
 a   { text-decoration:none; color:inherit; }
 
-/* ── TYPOGRAPHY ── */
-.display-xl {
-  font-family: var(--font-display);
-  font-size: clamp(3.5rem,8vw,7.5rem);
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
+/* ── TEAL MESH WASH (light sections) ── */
+.teal-mesh {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 65% 45% at 0% 0%,   rgba(13,189,173,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 55% at 100% 100%, rgba(10,150,136,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 30% at 60% 15%,  rgba(13,189,173,0.04) 0%, transparent 50%);
 }
-.display-lg {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem,5vw,4.5rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.display-md {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem,3vw,2.75rem);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
+
+/* ── EYEBROW ── */
 .eyebrow {
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--teal);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.6875rem; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--teal);
 }
-.body-lg { font-size:1.125rem; line-height:1.75; color:var(--text-secondary); }
-.body-md { font-size:0.9375rem; line-height:1.75; color:var(--text-secondary); }
 
 /* ── BUTTONS ── */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 26px;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  border: none;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s;
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
+  display:inline-flex; align-items:center; gap:8px;
+  padding:13px 26px; border-radius:var(--r-sm);
+  font-family:'Figtree',sans-serif; font-size:0.875rem; font-weight:700;
+  letter-spacing:0.01em; cursor:pointer; border:none;
+  transition:transform .22s var(--spring), box-shadow .2s, background .2s;
+  white-space:nowrap; position:relative; overflow:hidden;
 }
-/* Shimmer — travels left to right on hover, subtle */
-.btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
-  transform: translateX(-110%);
-  transition: transform 0.45s var(--ease);
+.btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.18) 50%,transparent 62%);
+  transform:translateX(-110%); transition:transform .45s var(--ease);
+  pointer-events:none;
 }
-.btn:hover::after { transform: translateX(110%); }
+.btn:hover::before { transform:translateX(110%); }
+.btn svg { flex-shrink:0; transition:transform .2s var(--spring); }
+.btn:hover svg { transform:translateX(3px); }
 
 .btn-primary {
-  background: var(--text-primary);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  color:#fff; box-shadow:var(--shadow-teal);
 }
 .btn-primary:hover {
-  background: #1a3050;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform:translateY(-2px) scale(1.02);
+  box-shadow:var(--shadow-teal-lg);
 }
 .btn-ghost {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.3);
+  background:transparent; color:var(--text-1);
+  border:1.5px solid var(--border-md);
 }
 .btn-ghost:hover {
-  border-color: rgba(255,255,255,0.7);
-  background: rgba(255,255,255,0.06);
+  border-color:var(--teal); color:var(--teal);
+  background:var(--teal-wash); transform:translateY(-1px);
 }
-.btn-teal {
-  background: var(--teal);
-  color: #fff;
-  box-shadow: var(--shadow-teal);
+.btn-dark {
+  background:var(--navy); color:#fff;
+  box-shadow:var(--shadow-md);
 }
-.btn-teal:hover {
-  background: var(--teal-mid);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(10,150,136,0.28);
+.btn-dark:hover {
+  background:#1a3050; transform:translateY(-2px);
+  box-shadow:var(--shadow-lg);
 }
-.btn-arrow::after { content:'→'; transition:transform 0.2s; background:none; transform:none; }
-.btn-arrow:hover::after { transform:translateX(4px); }
+.btn-ghost-light {
+  background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.85);
+  border:1px solid rgba(255,255,255,0.18);
+}
+.btn-ghost-light:hover {
+  background:rgba(255,255,255,0.15); color:#fff;
+  border-color:rgba(255,255,255,0.35);
+}
 
-/* ── NAVIGATION ── */
+/* ── NAV ── */
 nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 1000;
-  padding: 0 40px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  padding:0 40px; height:66px;
+  display:flex; align-items:center; justify-content:space-between;
+  transition:background .3s, box-shadow .3s, border-color .3s;
 }
 nav.scrolled {
-  background: rgba(13,28,46,0.97);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
 }
 .nav-logo {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
+  font-size:1.25rem; font-weight:800; letter-spacing:-.02em;
+  display:flex; align-items:center; gap:10px; color:#fff;
+  transition:color .3s;
 }
-.nav-logo-dot {
-  width: 8px; height: 8px;
-  background: var(--teal-light);
-  border-radius: 50%;
-  animation: dotPulse 2.5s ease-in-out infinite;
-}
-@keyframes dotPulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50%      { opacity:0.55; transform:scale(0.8); }
-}
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  list-style: none;
-}
+nav.scrolled .nav-logo { color:var(--text-1); }
+.nav-links { display:flex; align-items:center; gap:32px; list-style:none; }
 .nav-links a {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255,255,255,0.65);
-  transition: color 0.2s;
-  position: relative;
-  padding-bottom: 2px;
+  font-size:0.875rem; font-weight:500; color:rgba(255,255,255,0.65);
+  transition:color .2s; position:relative; padding-bottom:2px;
 }
 .nav-links a::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0;
-  width: 0; height: 1px;
-  background: var(--teal-light);
-  transition: width 0.25s var(--ease);
+  content:''; position:absolute; bottom:0; left:0;
+  width:0; height:1px; background:var(--teal-light);
+  transition:width .25s var(--ease);
 }
-.nav-links a:hover { color: #fff; }
-.nav-links a:hover::after { width: 100%; }
+.nav-links a:hover { color:#fff; }
+.nav-links a:hover::after { width:100%; }
+nav.scrolled .nav-links a { color:var(--text-3); }
+nav.scrolled .nav-links a:hover { color:var(--text-1); }
+nav.scrolled .nav-links a::after { background:var(--teal); }
 .nav-cta {
-  background: var(--teal) !important;
-  color: #fff !important;
-  padding: 9px 20px;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: background 0.2s, transform 0.2s !important;
-  box-shadow: var(--shadow-teal);
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal))!important;
+  color:#fff!important; padding:9px 20px; border-radius:var(--r-sm);
+  font-size:0.8125rem; font-weight:700; letter-spacing:.01em;
+  box-shadow:var(--shadow-teal);
+  transition:transform .2s var(--spring), box-shadow .2s!important;
 }
-.nav-cta:hover {
-  background: var(--teal-mid) !important;
-  transform: translateY(-1px);
-}
-.nav-cta::after { display:none; } /* no shimmer on nav pill */
-.nav-mobile-btn {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  color: #fff;
-}
+.nav-cta:hover { transform:translateY(-1px) scale(1.02)!important; box-shadow:var(--shadow-teal-lg)!important; }
+.nav-cta::after { display:none!important; }
+.nav-mobile-btn { display:none; background:none; border:none; cursor:pointer; padding:8px; color:#fff; }
+nav.scrolled .nav-mobile-btn { color:var(--text-1); }
 
-/* ── HERO (stays dark — photo backdrop) ── */
+/* ── HERO (stays dark with photo) ── */
 .hero {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow: hidden;
-  background: var(--bg-hero);
-}
-.hero-video-wrap { position:absolute; inset:0; z-index:0; }
-.hero-video-wrap video { width:100%; height:100%; object-fit:cover; }
-.hero-video-wrap::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top,
-    rgba(13,28,46,0.96) 0%,
-    rgba(13,28,46,0.5)  40%,
-    rgba(13,28,46,0.15) 100%);
+  position:relative; min-height:100vh;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  overflow:hidden; background:var(--navy-mid);
 }
 .hero-bg { position:absolute; inset:0; z-index:0; transition:opacity 1.5s ease; }
-.hero-bg img { width:100%; height:100%; object-fit:cover; }
-.hero-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top,
-    rgba(13,28,46,0.94) 0%,
-    rgba(13,28,46,0.48) 42%,
-    rgba(13,28,46,0.12) 100%);
-}
-/* Teal depth layer — gradient, not glow */
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+.hero-bg img { width:100%; height:100%; object-fit:cover; filter:saturate(0.75) brightness(0.5); }
+.hero-overlay {
+  position:absolute; inset:0; z-index:1;
   background:
-    radial-gradient(ellipse 65% 45% at 10% 90%, rgba(10,150,136,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 35% 30% at 90% 10%, rgba(10,150,136,0.06) 0%, transparent 55%);
-  pointer-events: none;
+    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(10,150,136,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 100% 0%, rgba(13,189,173,0.1) 0%, transparent 50%),
+    linear-gradient(to top, rgba(13,28,46,0.97) 0%, rgba(13,28,46,0.55) 40%, rgba(13,28,46,0.1) 100%);
 }
 .hero-content {
-  position: relative;
-  z-index: 2;
-  padding: 0 40px 80px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  position:relative; z-index:2;
+  padding:0 40px 80px; max-width:1200px; margin:0 auto; width:100%;
 }
 .hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(10,150,136,0.14);
-  border: 1px solid rgba(10,150,136,0.32);
-  border-radius: 100px;
-  padding: 6px 14px;
-  margin-bottom: 32px;
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(13,189,173,0.12); border:1px solid rgba(13,189,173,0.3);
+  border-radius:100px; padding:6px 14px; margin-bottom:32px;
 }
-.hero-badge span {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--teal-light);
+.hero-badge .dot {
+  width:6px; height:6px; background:var(--teal-mid); border-radius:50%;
+  box-shadow:0 0 0 3px rgba(13,189,173,0.2);
+  animation:dot-pulse 2.5s ease-in-out infinite;
 }
+@keyframes dot-pulse { 0%,100%{box-shadow:0 0 0 3px rgba(13,189,173,.2)} 50%{box-shadow:0 0 0 6px rgba(13,189,173,.07)} }
+.hero-badge span { font-family:'JetBrains Mono',monospace; font-size:0.6875rem; letter-spacing:.1em; text-transform:uppercase; color:var(--teal-mid); }
 .hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(3rem,7vw,6.5rem);
-  font-weight: 800;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  margin-bottom: 28px;
-  max-width: 900px;
-  color: #fff;
+  font-size:clamp(3rem,7vw,6.5rem); font-weight:800; line-height:0.92;
+  letter-spacing:-0.035em; margin-bottom:28px; max-width:900px; color:#fff;
 }
 .hero h1 em { font-style:normal; color:var(--teal-light); }
-.hero-sub {
-  font-size: 1.125rem;
-  color: rgba(255,255,255,0.6);
-  max-width: 540px;
-  line-height: 1.75;
-  margin-bottom: 40px;
-}
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 60px;
-}
-.hero-stats {
-  display: flex;
-  gap: 48px;
-  padding-top: 40px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-.stat-item  { display:flex; flex-direction:column; gap:4px; }
-.stat-num   { font-family:var(--font-display); font-size:2rem; font-weight:800; color:#fff; }
-.stat-label { font-size:0.8125rem; color:rgba(255,255,255,0.5); }
-
-/* Hero entrance — staggered fade up */
-.hero-badge   { animation: fadeUp 0.6s var(--ease) 0.1s both; }
-.hero h1      { animation: fadeUp 0.7s var(--ease) 0.2s  both; }
-.hero-sub     { animation: fadeUp 0.6s var(--ease) 0.33s both; }
-.hero-actions { animation: fadeUp 0.6s var(--ease) 0.46s both; }
-.hero-stats   { animation: fadeUp 0.6s var(--ease) 0.58s both; }
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(18px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-
-/* Slide nav dots */
-.hero-slide-nav {
-  position: absolute;
-  bottom: 80px; right: 40px;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.slide-dot {
-  width: 2px; height: 24px;
-  background: rgba(255,255,255,0.2);
-  border: none;
-  cursor: pointer;
-  border-radius: 1px;
-  transition: background 0.3s, height 0.3s;
-}
-.slide-dot.active {
-  background: var(--teal-light);
-  height: 40px;
-}
+.hero-sub { font-size:1.125rem; color:rgba(255,255,255,0.65); max-width:520px; line-height:1.75; margin-bottom:40px; }
+.hero-actions { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:64px; }
+.hero-stats { display:flex; gap:48px; padding-top:40px; border-top:1px solid rgba(255,255,255,0.1); }
+.stat-num { font-size:2rem; font-weight:800; color:#fff; }
+.stat-label { font-size:0.8125rem; color:rgba(255,255,255,0.45); margin-top:2px; }
+.hero-slide-nav { position:absolute; bottom:80px; right:40px; z-index:3; display:flex; flex-direction:column; gap:6px; }
+.slide-dot { width:2px; height:24px; background:rgba(255,255,255,0.2); border:none; cursor:pointer; border-radius:1px; transition:background .3s,height .3s; }
+.slide-dot.active { background:var(--teal-mid); height:40px; }
 
 /* ── MARQUEE ── */
-.marquee-section {
-  border-top: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
-  padding: 18px 0;
-  overflow: hidden;
-  background: var(--bg-surface);
+.marquee-wrap {
+  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  padding:16px 0; overflow:hidden; background:var(--bg-surface);
 }
-.marquee-track {
-  display: flex;
-  gap: 60px;
-  animation: marquee 28s linear infinite;
-  width: max-content;
-}
+.marquee-track { display:flex; gap:60px; animation:marquee 30s linear infinite; width:max-content; }
 .marquee-track:hover { animation-play-state:paused; }
 .marquee-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  display:flex; align-items:center; gap:10px; white-space:nowrap;
+  font-family:'JetBrains Mono',monospace; font-size:0.6875rem;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted);
 }
-.marquee-dot {
-  width: 4px; height: 4px;
-  background: var(--teal);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-@keyframes marquee {
-  0%   { transform:translateX(0); }
-  100% { transform:translateX(-50%); }
-}
+.marquee-dot { width:3px; height:3px; background:var(--teal); border-radius:50%; flex-shrink:0; }
+@keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
 /* ── SECTIONS ── */
-section { padding: 112px 40px; }
+section { padding:120px 40px; position:relative; }
 .container { max-width:1200px; margin:0 auto; }
-.section-header { margin-bottom: 64px; }
-.section-header.center { text-align:center; }
+.section-head { margin-bottom:72px; }
+.section-head.center { text-align:center; }
+.section-divider { width:48px; height:2px; background:linear-gradient(90deg,var(--teal),var(--teal-light)); border-radius:1px; margin-top:20px; }
+.section-divider.center { margin:20px auto 0; }
 
-/* ── WHY ASKMIRO — bento ── */
-.why-section { background: var(--bg-base); }
+/* ── WHY — BENTO ── */
 .bento {
-  display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 1px;
-  background: var(--border-light);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:1px; background:var(--border);
+  border-radius:var(--r-xl); overflow:hidden;
+  box-shadow:var(--shadow-lg);
 }
 .bento-card {
-  background: var(--bg-surface);
-  padding: 40px;
-  transition: background 0.25s, transform 0.25s var(--ease), box-shadow 0.25s;
+  background:var(--bg-surface); padding:42px 36px;
+  transition:background .25s, transform .25s var(--ease), box-shadow .25s;
+  position:relative; overflow:hidden;
 }
-.bento-card:hover {
-  background: var(--bg-teal-wash);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+.bento-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-light));
+  transform:scaleX(0); transform-origin:left; transition:transform .35s var(--ease);
 }
+.bento-card:hover { background:var(--teal-wash); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+.bento-card:hover::after { transform:scaleX(1); }
 .bento-card.featured {
-  grid-column: span 2;
-  background: linear-gradient(135deg,
-    rgba(10,150,136,0.07) 0%,
-    rgba(10,150,136,0.02) 100%);
-  border: 1px solid var(--teal-border);
+  grid-column:span 2;
+  background:linear-gradient(135deg, rgba(13,189,173,0.05) 0%, rgba(10,150,136,0.02) 100%);
+  border-bottom:1px solid var(--border-teal);
 }
-.bento-card.tall { grid-row: span 2; }
+.bento-card.tall { grid-row:span 2; }
 .bento-icon {
-  font-size: 1.875rem;
-  margin-bottom: 20px;
-  display: inline-block;
-  transition: transform 0.3s var(--ease-spring);
+  width:44px; height:44px;
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  border-radius:12px; display:flex; align-items:center; justify-content:center;
+  margin-bottom:22px; font-size:1.25rem;
+  box-shadow:var(--shadow-teal);
+  transition:transform .3s var(--spring), box-shadow .3s;
 }
-.bento-card:hover .bento-icon { transform: scale(1.1) translateY(-2px); }
-.bento-card h3 {
-  font-family: var(--font-display);
-  font-size: 1.1875rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: var(--text-primary);
-}
-.bento-card p { font-size:0.9rem; color:var(--text-secondary); line-height:1.72; }
+.bento-card:hover .bento-icon { transform:scale(1.08) translateY(-2px); box-shadow:var(--shadow-teal-lg); }
+.bento-card h3 { font-size:1.1rem; font-weight:700; margin-bottom:10px; color:var(--text-1); }
+.bento-card p  { font-size:0.9rem; color:var(--text-2); line-height:1.72; }
 
 /* ── SERVICES ── */
-.services-section { background: var(--bg-section-alt); }
 .services-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-  gap: 1px;
-  background: var(--border-light);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1px; background:var(--border);
+  border-radius:var(--r-xl); overflow:hidden; box-shadow:var(--shadow-lg);
 }
 .service-card {
-  background: var(--bg-surface);
-  padding: 40px 32px;
-  position: relative;
-  overflow: hidden;
-  cursor: default;
-  transition: background 0.25s, transform 0.25s var(--ease);
+  background:var(--bg-surface); padding:40px 32px;
+  position:relative; overflow:hidden;
+  transition:background .25s, transform .25s var(--ease);
 }
-/* Teal reveal bar — bottom edge */
-.service-card::before {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--teal), var(--teal-light));
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.35s var(--ease);
+.service-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,var(--teal),var(--teal-light));
+  transform:scaleX(0); transform-origin:left; transition:transform .35s var(--ease);
 }
-.service-card:hover {
-  background: var(--bg-teal-wash);
-  transform: translateY(-2px);
-}
-.service-card:hover::before { transform: scaleX(1); }
+.service-card:hover { background:var(--teal-wash); transform:translateY(-2px); }
+.service-card:hover::after { transform:scaleX(1); }
 .service-num {
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--teal);
-  margin-bottom: 20px;
+  font-family:'JetBrains Mono',monospace; font-size:0.6875rem;
+  letter-spacing:.12em; color:var(--teal); margin-bottom:20px;
 }
-.service-card h3 {
-  font-family: var(--font-display);
-  font-size: 1.3125rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: var(--text-primary);
-}
-.service-card p { font-size:0.9rem; color:var(--text-secondary); line-height:1.72; margin-bottom:20px; }
+.service-card h3 { font-size:1.25rem; font-weight:700; margin-bottom:10px; color:var(--text-1); }
+.service-card p  { font-size:0.9rem; color:var(--text-2); line-height:1.72; margin-bottom:20px; }
 .service-tag {
-  display: inline-block;
-  padding: 4px 10px;
-  background: rgba(10,150,136,0.08);
-  border: 1px solid var(--teal-border);
-  border-radius: 3px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--teal);
-  letter-spacing: 0.06em;
+  display:inline-block; padding:4px 10px;
+  background:var(--teal-wash); border:1px solid var(--border-teal);
+  border-radius:3px; font-family:'JetBrains Mono',monospace;
+  font-size:0.625rem; color:var(--teal); letter-spacing:.08em;
 }
 
-/* ── VIDEO SECTION ── */
-.video-section { background: var(--bg-base); padding: 112px 40px; }
+/* ── VIDEO ── */
 .video-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  background: var(--border-light);
+  display:grid; grid-template-columns:1fr 1fr; gap:2px;
+  border-radius:var(--r-xl); overflow:hidden;
+  background:var(--border); box-shadow:var(--shadow-lg);
 }
-.video-cell {
-  position: relative;
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.35s var(--ease);
-}
-.video-cell.large { grid-column: span 2; aspect-ratio: 21/9; }
-.video-cell img {
-  width:100%; height:100%;
-  object-fit: cover;
-  transition: transform 0.55s var(--ease);
-}
-.video-cell:hover img     { transform: scale(1.03); }
-.video-cell:hover         { transform: scale(1.01); }
-.video-cell::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(13,28,46,0.28);
-  transition: background 0.3s;
-}
-.video-cell:hover::after  { background: rgba(13,28,46,0.1); }
+.video-cell { position:relative; aspect-ratio:16/9; overflow:hidden; cursor:pointer; transition:transform .35s var(--ease); }
+.video-cell.large { grid-column:span 2; aspect-ratio:21/9; }
+.video-cell img { width:100%; height:100%; object-fit:cover; filter:saturate(0.8) brightness(0.7); transition:transform .55s var(--ease),filter .4s; }
+.video-cell:hover img { transform:scale(1.04); filter:saturate(1) brightness(0.9); }
 .video-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 28px;
+  position:absolute; inset:0; z-index:1;
+  display:flex; flex-direction:column; justify-content:flex-end; padding:28px;
+  background:linear-gradient(to top, rgba(13,28,46,0.82) 0%, transparent 55%);
 }
 .play-btn {
-  width: 52px; height: 52px;
-  background: rgba(255,255,255,0.18);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-  transition: background 0.25s, border-color 0.25s, transform 0.3s var(--ease-spring);
+  width:52px; height:52px;
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.3); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; margin-bottom:14px;
+  transition:background .25s,border-color .25s,transform .3s var(--spring);
 }
-.video-cell:hover .play-btn {
-  background: var(--teal);
-  border-color: var(--teal);
-  transform: scale(1.07);
-}
-.video-label { font-family:var(--font-display); font-size:1.1875rem; font-weight:700; color:#fff; }
-.video-sub   { font-size:0.8125rem; color:rgba(255,255,255,0.6); margin-top:4px; }
+.video-cell:hover .play-btn { background:var(--teal); border-color:var(--teal); transform:scale(1.1); }
+.video-label { font-size:1.125rem; font-weight:700; color:#fff; }
+.video-sub   { font-size:0.8125rem; color:rgba(255,255,255,0.65); margin-top:4px; }
 
 /* ── PROCESS ── */
-.process-section { background: var(--bg-section-alt); }
-.process-steps {
-  display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 0;
-  position: relative;
+.process-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:0; position:relative;
 }
-.process-steps::before {
-  content: '';
-  position: absolute;
-  top: 27px;
-  left: 12.5%; right: 12.5%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--teal-border), var(--teal-border), transparent);
-  z-index: 0;
+.process-grid::before {
+  content:''; position:absolute; top:27px; left:12.5%; right:12.5%; height:1px;
+  background:linear-gradient(90deg,transparent,var(--border-teal),var(--border-teal),transparent);
 }
-.step-item {
-  text-align: center;
-  padding: 0 20px;
-  position: relative;
-  z-index: 1;
-}
+.step-item { text-align:center; padding:0 20px; position:relative; z-index:1; }
 .step-circle {
-  width: 54px; height: 54px;
-  border-radius: 50%;
-  background: var(--bg-surface);
-  border: 1.5px solid var(--border-medium);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 22px;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--teal);
-  box-shadow: var(--shadow-sm);
-  transition: background 0.25s, border-color 0.25s, transform 0.3s var(--ease-spring), box-shadow 0.25s;
+  width:54px; height:54px; border-radius:50%;
+  background:var(--bg-surface); border:1.5px solid var(--border-md);
+  display:flex; align-items:center; justify-content:center; margin:0 auto 22px;
+  font-family:'JetBrains Mono',monospace; font-size:.875rem; color:var(--teal);
+  box-shadow:var(--shadow-sm);
+  transition:background .25s, border-color .25s, transform .3s var(--spring), box-shadow .25s;
 }
 .step-item:hover .step-circle {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
-  transform: scale(1.06);
-  box-shadow: var(--shadow-teal);
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  border-color:transparent; color:#fff;
+  transform:scale(1.08); box-shadow:var(--shadow-teal);
 }
-.step-item h4 {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-.step-item p { font-size:0.875rem; color:var(--text-secondary); line-height:1.65; }
+.step-item h4 { font-size:1rem; font-weight:700; margin-bottom:8px; color:var(--text-1); }
+.step-item p  { font-size:0.875rem; color:var(--text-2); line-height:1.65; }
 
-/* ── TRUST / CREDENTIALS ── */
-.trust-section { background: var(--bg-base); }
+/* ── TRUST ── */
 .trust-grid {
-  display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 1px;
-  background: var(--border-light);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:1px; background:var(--border);
+  border-radius:var(--r-xl); overflow:hidden; box-shadow:var(--shadow-lg);
 }
 .trust-card {
-  background: var(--bg-surface);
-  padding: 32px;
-  text-align: center;
-  transition: background 0.25s, transform 0.25s var(--ease);
+  background:var(--bg-surface); padding:36px; text-align:center;
+  transition:background .25s, transform .25s var(--ease);
 }
-.trust-card:hover {
-  background: var(--bg-teal-wash);
-  transform: translateY(-2px);
-}
+.trust-card:hover { background:var(--teal-wash); transform:translateY(-2px); }
 .trust-icon {
-  font-size: 1.625rem;
-  margin-bottom: 12px;
-  display: inline-block;
-  transition: transform 0.3s var(--ease-spring);
+  width:48px; height:48px;
+  background:linear-gradient(135deg,rgba(13,189,173,.1),rgba(10,150,136,.07));
+  border:1px solid var(--border-teal); border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 16px; font-size:1.375rem;
+  transition:transform .3s var(--spring), box-shadow .3s;
 }
-.trust-card:hover .trust-icon { transform: scale(1.1) translateY(-2px); }
-.trust-card h4 {
-  font-family: var(--font-display);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--text-primary);
-}
-.trust-card p { font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; }
+.trust-card:hover .trust-icon { transform:scale(1.08) translateY(-2px); box-shadow:var(--shadow-teal); }
+.trust-card h4 { font-size:.9375rem; font-weight:700; margin-bottom:6px; color:var(--text-1); }
+.trust-card p  { font-size:.8125rem; color:var(--text-2); line-height:1.6; }
 
 /* ── TESTIMONIALS ── */
-.testimonials-section { background: var(--bg-section-alt); }
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 1px;
-  background: var(--border-light);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+.testi-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:1px; background:var(--border);
+  border-radius:var(--r-xl); overflow:hidden; box-shadow:var(--shadow-lg);
 }
-.testimonial-card {
-  background: var(--bg-surface);
-  padding: 40px;
-  transition: background 0.25s, transform 0.25s var(--ease);
+.testi-card {
+  background:var(--bg-surface); padding:40px;
+  transition:background .25s, transform .25s var(--ease);
 }
-.testimonial-card:hover {
-  background: var(--bg-teal-wash);
-  transform: translateY(-2px);
-}
-.quote-mark {
-  font-family: var(--font-display);
-  font-size: 3.5rem;
-  color: var(--teal);
-  line-height: 0.75;
-  margin-bottom: 16px;
-  display: block;
-  opacity: 0.7;
-}
-.testimonial-text {
-  font-size: 0.9375rem;
-  color: var(--text-secondary);
-  line-height: 1.78;
-  margin-bottom: 24px;
-}
-.testimonial-author { display:flex; flex-direction:column; gap:2px; }
-.author-name {
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.author-role { font-size:0.8125rem; color:var(--text-muted); }
+.testi-card:hover { background:var(--teal-wash); transform:translateY(-2px); }
+.quote-mark { font-size:3rem; color:var(--teal-mid); line-height:.75; margin-bottom:18px; display:block; opacity:.6; }
+.testi-text { font-size:.9375rem; color:var(--text-2); line-height:1.78; margin-bottom:24px; }
+.author-name { font-size:.9rem; font-weight:700; color:var(--text-1); }
+.author-role { font-size:.8125rem; color:var(--text-3); margin-top:2px; }
 
 /* ── FAQ ── */
-.faq-section { background: var(--bg-base); }
-.faq-list { border-top: 1px solid var(--border-light); }
-.faq-item { border-bottom: 1px solid var(--border-light); }
-.faq-question {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 26px 0;
-  cursor: pointer;
-  gap: 20px;
+.faq-list { border-top:1px solid var(--border); }
+.faq-item { border-bottom:1px solid var(--border); }
+.faq-q {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:26px 0; cursor:pointer; gap:20px;
 }
-.faq-question h3 {
-  font-family: var(--font-display);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  transition: color 0.2s;
-}
-.faq-question:hover h3 { color: var(--teal); }
+.faq-q h3 { font-size:1.0625rem; font-weight:600; color:var(--text-1); transition:color .2s; }
+.faq-q:hover h3 { color:var(--teal); }
 .faq-toggle {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: var(--bg-raised);
-  border: 1px solid var(--border-medium);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.25s, border-color 0.25s, transform 0.3s var(--ease), color 0.25s;
-  font-size: 1.25rem;
-  color: var(--text-secondary);
+  width:32px; height:32px; border-radius:50%;
+  background:var(--bg-raised); border:1px solid var(--border-md);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:var(--text-2); font-size:1.25rem;
+  transition:background .25s, border-color .25s, transform .3s var(--ease), color .25s;
 }
 .faq-item.expanded .faq-toggle {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
-  transform: rotate(45deg);
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  border-color:transparent; color:#fff; transform:rotate(45deg);
 }
-.faq-answer {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s var(--ease), padding 0.3s;
-}
-.faq-item.expanded .faq-answer { max-height:300px; padding-bottom:24px; }
-.faq-answer p { font-size:0.9375rem; color:var(--text-secondary); line-height:1.78; }
+.faq-ans { max-height:0; overflow:hidden; transition:max-height .4s var(--ease),padding .3s; }
+.faq-item.expanded .faq-ans { max-height:300px; padding-bottom:24px; }
+.faq-ans p { font-size:.9375rem; color:var(--text-2); line-height:1.78; }
 
-/* ── CTA SECTION ── */
+/* ── CTA (dark panel) ── */
 .cta-section {
-  background: var(--bg-dark);
-  padding: 112px 40px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  background:var(--navy); padding:120px 40px; text-align:center;
+  position:relative; overflow:hidden;
 }
-/* Teal depth gradient — not a glow, a depth field */
-.cta-section::before {
-  content: '';
-  position: absolute;
-  top: -40%; left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 500px;
-  background: radial-gradient(ellipse at center,
-    rgba(10,150,136,0.14) 0%,
-    rgba(10,150,136,0.04) 45%,
-    transparent 70%);
-  pointer-events: none;
+.cta-mesh {
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 65% 70% at 50% 0%,   rgba(13,189,173,0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 0% 100%,   rgba(10,150,136,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 40% at 100% 100%, rgba(10,150,136,0.1) 0%, transparent 50%);
 }
-/* Moving teal line at top */
 .cta-section::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(10,150,136,0.4) 25%,
-    rgba(20,212,194,0.7) 50%,
-    rgba(10,150,136,0.4) 75%,
-    transparent 100%);
-  background-size: 200% 100%;
-  animation: lineSlide 5s linear infinite;
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,var(--teal-mid),rgba(20,212,194,.7),var(--teal-mid),transparent);
+  background-size:200% 100%; animation:scan 5s linear infinite;
 }
-@keyframes lineSlide {
-  0%   { background-position: 120% 0; }
-  100% { background-position: -120% 0; }
-}
-.cta-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 680px;
-  margin: 0 auto;
-}
-.cta-inner h2 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem,5vw,4rem);
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  margin-bottom: 22px;
-  color: #fff;
-}
+@keyframes scan { 0%{background-position:120% 0} 100%{background-position:-120% 0} }
+.cta-inner { position:relative; z-index:1; max-width:700px; margin:0 auto; }
+.cta-inner h2 { font-size:clamp(2.5rem,5vw,4.5rem); font-weight:800; line-height:.95; letter-spacing:-.035em; margin-bottom:22px; color:#fff; }
+.cta-inner h2 em { font-style:normal; color:var(--teal-light); }
 .cta-inner p { font-size:1.0625rem; color:rgba(255,255,255,0.55); margin-bottom:40px; }
 .cta-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-.cta-contact { margin-top:32px; display:flex; gap:32px; justify-content:center; flex-wrap:wrap; }
-.cta-contact-item { display:flex; align-items:center; gap:8px; font-size:0.875rem; color:rgba(255,255,255,0.45); }
-.cta-contact-item a { color:rgba(255,255,255,0.85); font-weight:600; transition:color 0.2s; }
+.cta-contact { margin-top:36px; display:flex; gap:32px; justify-content:center; flex-wrap:wrap; }
+.cta-contact-item { display:flex; align-items:center; gap:8px; font-size:.875rem; color:rgba(255,255,255,0.4); }
+.cta-contact-item a { color:rgba(255,255,255,0.75); font-weight:600; transition:color .2s; }
 .cta-contact-item a:hover { color:var(--teal-light); }
 
 /* ── FOOTER ── */
 footer {
-  background: var(--bg-dark);
-  border-top: 1px solid rgba(255,255,255,0.07);
-  padding: 64px 40px 40px;
+  background:var(--navy-mid); border-top:1px solid rgba(255,255,255,0.06);
+  padding:64px 40px 40px;
 }
-.footer-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 48px;
-  margin-bottom: 48px;
-}
-.footer-brand p {
-  font-size: 0.875rem;
-  color: rgba(255,255,255,0.42);
-  line-height: 1.72;
-  margin-top: 16px;
-  max-width: 280px;
-}
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; margin-bottom:48px; }
+.footer-brand p { font-size:.875rem; color:rgba(255,255,255,0.38); line-height:1.72; margin-top:16px; max-width:280px; }
+.footer-logo { font-size:1.25rem; font-weight:800; letter-spacing:-.02em; display:flex; align-items:center; gap:10px; color:#fff; }
 .footer-col h5 {
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.32);
-  margin-bottom: 20px;
+  font-family:'JetBrains Mono',monospace; font-size:.625rem; letter-spacing:.12em;
+  text-transform:uppercase; color:rgba(255,255,255,0.25); margin-bottom:20px;
 }
 .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
-.footer-col ul a {
-  font-size: 0.875rem;
-  color: rgba(255,255,255,0.5);
-  transition: color 0.2s, padding-left 0.2s;
-}
-.footer-col ul a:hover {
-  color: #fff;
-  padding-left: 3px;
-}
+.footer-col ul a { font-size:.875rem; color:rgba(255,255,255,0.42); transition:color .2s, padding-left .2s; }
+.footer-col ul a:hover { color:#fff; padding-left:3px; }
 .footer-bottom {
-  padding-top: 32px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  padding-top:32px; border-top:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
 }
-.footer-bottom p { font-size:0.8125rem; color:rgba(255,255,255,0.28); }
+.footer-bottom p,.footer-legal a { font-size:.8125rem; color:rgba(255,255,255,0.22); }
 .footer-legal { display:flex; gap:20px; }
-.footer-legal a { font-size:0.8125rem; color:rgba(255,255,255,0.28); transition:color 0.2s; }
-.footer-legal a:hover { color:rgba(255,255,255,0.7); }
+.footer-legal a:hover { color:rgba(255,255,255,.6); }
 
-/* ── COOKIE BANNER ── */
+/* ── COOKIE ── */
 #cookieConsent {
-  position: fixed;
-  bottom: 24px; left: 24px; right: 24px;
-  max-width: 480px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-md);
-  padding: 20px 24px;
-  z-index: 9999;
-  display: none;
-  gap: 16px;
-  align-items: flex-start;
-  box-shadow: var(--shadow-lg);
+  position:fixed; bottom:24px; left:24px; right:24px; max-width:480px;
+  background:var(--bg-surface); border:1px solid var(--border-md);
+  border-radius:var(--r-md); padding:20px 24px; z-index:9999;
+  display:none; gap:16px; align-items:flex-start; box-shadow:var(--shadow-lg);
 }
 #cookieConsent.show { display:flex; }
-#cookieConsent p { font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; flex:1; }
+#cookieConsent p { font-size:.8125rem; color:var(--text-2); line-height:1.6; flex:1; }
 #cookieConsent p a { color:var(--teal); }
 .cookie-btns { display:flex; gap:8px; flex-shrink:0; }
 .cookie-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-family: var(--font-display);
+  padding:8px 16px; border-radius:var(--r-sm); font-size:.8125rem;
+  font-weight:700; cursor:pointer; border:none; font-family:'Figtree',sans-serif;
 }
 .cookie-accept  { background:var(--teal); color:#fff; }
-.cookie-decline { background:var(--bg-raised); color:var(--text-secondary); }
+.cookie-decline { background:var(--bg-raised); color:var(--text-2); border:1px solid var(--border); }
 
 /* ── MOBILE MENU ── */
 .mobile-menu {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: var(--bg-dark);
-  z-index: 999;
-  padding: 80px 40px 40px;
-  flex-direction: column;
-  gap: 28px;
+  display:none; position:fixed; inset:0;
+  background:rgba(13,28,46,0.98); backdrop-filter:blur(20px);
+  z-index:999; padding:80px 40px 40px; flex-direction:column; gap:28px;
 }
 .mobile-menu.open { display:flex; }
-.mobile-menu a {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  padding-bottom: 24px;
-}
+.mobile-menu a { font-size:2rem; font-weight:700; color:#fff; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:24px; }
 .mobile-menu .btn { align-self:flex-start; margin-top:16px; }
 
 /* ── SCROLL REVEAL ── */
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.65s var(--ease), transform 0.65s var(--ease);
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+.reveal { opacity:0; transform:translateY(28px); transition:opacity .65s var(--ease),transform .65s var(--ease); }
+.reveal.visible { opacity:1; transform:translateY(0); }
 
 /* ── REDUCED MOTION ── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* ── RESPONSIVE ── */
-@media (max-width:1024px) {
-  .bento { grid-template-columns:1fr 1fr; }
-  .bento-card.featured { grid-column:span 2; }
-  .process-steps { grid-template-columns:repeat(2,1fr); gap:40px; }
-  .process-steps::before { display:none; }
-  .trust-grid { grid-template-columns:repeat(2,1fr); }
-  .testimonials-grid { grid-template-columns:1fr 1fr; }
-  .footer-grid { grid-template-columns:1fr 1fr; }
+@media(max-width:1024px){
+  .bento{grid-template-columns:1fr 1fr}.bento-card.featured{grid-column:span 2}
+  .process-grid{grid-template-columns:repeat(2,1fr);gap:40px}.process-grid::before{display:none}
+  .trust-grid{grid-template-columns:repeat(2,1fr)}.testi-grid{grid-template-columns:1fr 1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}
 }
-@media (max-width:768px) {
-  section { padding:80px 24px; }
-  nav { padding:0 24px; }
-  .hero-content { padding:0 24px 60px; }
-  .hero-stats { gap:28px; flex-wrap:wrap; }
-  .nav-links { display:none; }
-  .nav-mobile-btn { display:block; }
-  .bento { grid-template-columns:1fr; }
-  .bento-card.featured { grid-column:span 1; }
-  .bento-card.tall { grid-row:span 1; }
-  .video-grid { grid-template-columns:1fr; }
-  .video-cell.large { grid-column:span 1; aspect-ratio:16/9; }
-  .testimonials-grid { grid-template-columns:1fr; }
-  .trust-grid { grid-template-columns:1fr 1fr; }
-  .footer-grid { grid-template-columns:1fr; }
-  .hero-slide-nav { display:none; }
-  .services-grid { grid-template-columns:1fr; }
-  .cta-actions { flex-direction:column; align-items:center; }
-  .footer-bottom { flex-direction:column; text-align:center; }
+@media(max-width:768px){
+  section{padding:80px 24px} nav{padding:0 24px} .hero-content{padding:0 24px 60px}
+  .hero-stats{gap:28px;flex-wrap:wrap} .nav-links{display:none} .nav-mobile-btn{display:block}
+  .bento{grid-template-columns:1fr} .bento-card.featured{grid-column:span 1} .bento-card.tall{grid-row:span 1}
+  .video-grid{grid-template-columns:1fr} .video-cell.large{grid-column:span 1;aspect-ratio:16/9}
+  .testi-grid{grid-template-columns:1fr} .trust-grid{grid-template-columns:1fr 1fr}
+  .footer-grid{grid-template-columns:1fr} .hero-slide-nav{display:none} .services-grid{grid-template-columns:1fr}
+  .cta-actions{flex-direction:column;align-items:center} .footer-bottom{flex-direction:column;text-align:center}
 }
-
 </style>
+
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-5TC9N4P5');</script>
-<!-- End Google Tag Manager -->
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="google-site-verification" content="ADD-CODE-HERE">
-<title>Managed Commercial Cleaning London | Consistent, Compliant & Eco-Conscious | AskMiro</title>
+<title>Managed Commercial Cleaning London | AskMiro</title>
 <meta name="description" content="Properly managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent teams, quality checks, eco-conscious methods. COSHH-compliant.">
-<meta name="keywords" content="managed commercial cleaning London, office cleaning London, residential block cleaning, facility management London, COSHH cleaning, eco-conscious cleaning, contract cleaning London">
-<meta name="author" content="AskMiro Cleaning Services">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-<meta name="geo.region" content="GB-LND">
-<meta name="geo.placename" content="London">
 <link rel="canonical" href="https://www.askmiro.com/">
-<link rel="alternate" hreflang="en-GB" href="https://www.askmiro.com/">
-<link rel="alternate" hreflang="x-default" href="https://www.askmiro.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.askmiro.com/">
 <meta property="og:title" content="Managed Commercial Cleaning London & UK | AskMiro">
-<meta property="og:description" content="Properly managed commercial cleaning for offices, residential blocks, and facilities. Consistent, compliant, eco-conscious.">
+<meta property="og:description" content="Properly managed commercial cleaning. Consistent, compliant, eco-conscious.">
 <meta property="og:image" content="https://www.askmiro.com/og-image.jpg">
-<meta property="og:locale" content="en_GB">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Managed Commercial Cleaning London & UK | AskMiro">
-<meta name="twitter:description" content="Properly managed commercial cleaning. Consistent teams, quality checks, eco-conscious methods.">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="theme-color" content="#0A9688">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"AskMiro Cleaning Services","url":"https://www.askmiro.com","telephone":"+442080730621","email":"info@askmiro.com","address":{"@type":"PostalAddress","addressLocality":"London","addressCountry":"GB"},"priceRange":"££"}</script>
 </head>
 <body>
-
-<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
-<!-- ── NAV ── -->
+<!-- NAV -->
 <nav id="nav">
   <a href="/" class="nav-logo">
-    <img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:6px;flex-shrink:0">
+    <img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">
     Ask<span style="color:var(--teal-light)">Miro</span>
   </a>
   <ul class="nav-links">
@@ -1062,67 +568,51 @@ footer {
     <li><a href="/get-quote.html" class="nav-cta">Request a Quote</a></li>
   </ul>
   <button class="nav-mobile-btn" onclick="toggleMobileMenu()" aria-label="Open menu">
-    <svg width="22" height="16" viewBox="0 0 22 16" fill="none"><rect y="0" width="22" height="2" rx="1" fill="white"/><rect y="7" width="16" height="2" rx="1" fill="white"/><rect y="14" width="22" height="2" rx="1" fill="white"/></svg>
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none"><rect y="0" width="22" height="2" rx="1" fill="currentColor"/><rect y="7" width="16" height="2" rx="1" fill="currentColor"/><rect y="14" width="22" height="2" rx="1" fill="currentColor"/></svg>
   </button>
 </nav>
 
-<!-- ── MOBILE MENU ── -->
+<!-- MOBILE MENU -->
 <div class="mobile-menu" id="mobileMenu">
   <button onclick="toggleMobileMenu()" style="position:absolute;top:20px;right:24px;background:none;border:none;color:white;font-size:1.5rem;cursor:pointer">✕</button>
   <a href="#why-askmiro" onclick="toggleMobileMenu()">Why AskMiro</a>
   <a href="#services" onclick="toggleMobileMenu()">Services</a>
   <a href="#how-it-works" onclick="toggleMobileMenu()">How It Works</a>
   <a href="#faqs" onclick="toggleMobileMenu()">FAQs</a>
-  <a href="/get-quote.html" class="btn btn-teal">Request a Quote →</a>
+  <a href="/get-quote.html" class="btn btn-primary">Request a Quote <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
 </div>
 
-<!-- ── HERO ── -->
+<!-- HERO -->
 <section class="hero" id="home">
-  <!-- Cinematic image carousel — replace src with real cleaning video -->
   <div class="hero-bg" id="heroBg">
     <img id="heroImg" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&h=1080&fit=crop&q=85" alt="AskMiro commercial cleaning">
   </div>
-
+  <div class="hero-overlay"></div>
   <div class="hero-slide-nav" id="slideNav">
     <button class="slide-dot active" onclick="goHeroSlide(0)"></button>
     <button class="slide-dot" onclick="goHeroSlide(1)"></button>
     <button class="slide-dot" onclick="goHeroSlide(2)"></button>
   </div>
-
   <div class="hero-content">
-    <div class="hero-badge">
-      <span>Managed Commercial Cleaning · London & UK</span>
-    </div>
+    <div class="hero-badge"><span class="dot"></span><span>Managed Commercial Cleaning · London & UK</span></div>
     <h1 id="heroHeadline">Commercial cleaning<br>you don't have to <em>chase</em></h1>
     <p class="hero-sub" id="heroSub">A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods for offices, blocks, and facilities.</p>
     <div class="hero-actions">
-      <a href="/get-quote.html" class="btn btn-primary btn-arrow">Request a Quote</a>
-      <a href="#why-askmiro" class="btn btn-ghost">See How It Works</a>
+      <a href="/get-quote.html" class="btn btn-primary">Request a Quote <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="#why-askmiro" class="btn btn-ghost-light">See How It Works</a>
     </div>
     <div class="hero-stats">
-      <div class="stat-item">
-        <span class="stat-num">20+</span>
-        <span class="stat-label">Sites cleaned monthly</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">98%</span>
-        <span class="stat-label">Client retention rate</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">24h</span>
-        <span class="stat-label">Quote turnaround</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">COSHH</span>
-        <span class="stat-label">Fully compliant</span>
-      </div>
+      <div><div class="stat-num">20+</div><div class="stat-label">Sites cleaned monthly</div></div>
+      <div><div class="stat-num">98%</div><div class="stat-label">Client retention rate</div></div>
+      <div><div class="stat-num">24h</div><div class="stat-label">Quote turnaround</div></div>
+      <div><div class="stat-num">COSHH</div><div class="stat-label">Fully compliant</div></div>
     </div>
   </div>
 </section>
 
-<!-- ── MARQUEE ── -->
-<div class="marquee-section">
-  <div class="marquee-track" id="marqueeTrack">
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
     <div class="marquee-item"><span class="marquee-dot"></span>Office Cleaning</div>
     <div class="marquee-item"><span class="marquee-dot"></span>Residential Blocks</div>
     <div class="marquee-item"><span class="marquee-dot"></span>Automotive Dealerships</div>
@@ -1144,12 +634,14 @@ footer {
   </div>
 </div>
 
-<!-- ── WHY ASKMIRO ── -->
-<section class="why-section" id="why-askmiro">
-  <div class="container">
-    <div class="section-header reveal">
+<!-- WHY ASKMIRO -->
+<section id="why-askmiro" style="background:var(--bg-base);overflow:hidden">
+  <div class="teal-mesh"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head reveal">
       <span class="eyebrow">Why AskMiro</span>
-      <h2 class="display-lg" style="margin-top:12px;max-width:600px">Managed cleaning.<br>Not just cleaners.</h2>
+      <h2 class="display-lg" style="margin-top:14px;max-width:600px;color:var(--text-1)">Managed cleaning.<br>Not just cleaners.</h2>
+      <div class="section-divider"></div>
     </div>
     <div class="bento reveal">
       <div class="bento-card featured">
@@ -1162,290 +654,143 @@ footer {
         <h3>Managed Quality Checks</h3>
         <p>Supervisors conduct regular inspections. We work to documented cleaning plans. If something isn't right, we fix it before you need to ask.</p>
       </div>
-      <div class="bento-card">
-        <div class="bento-icon">🌱</div>
-        <h3>Eco-Conscious Methods</h3>
-        <p>Dilution systems, microfibre cloths, and low-odour options. Professional cleaning with reduced environmental impact.</p>
-      </div>
-      <div class="bento-card">
-        <div class="bento-icon">📋</div>
-        <h3>Audit-Ready Documentation</h3>
-        <p>COSHH RAMS, safety data sheets, and compliance records provided as standard for every site.</p>
-      </div>
-      <div class="bento-card">
-        <div class="bento-icon">🔄</div>
-        <h3>Reliable Cover & Rapid Response</h3>
-        <p>If a cleaner is absent, trained cover arrives briefed on your site. No gaps, no last-minute scrambles.</p>
-      </div>
-      <div class="bento-card">
-        <div class="bento-icon">📞</div>
-        <h3>Single Point of Contact</h3>
-        <p>One account manager. Direct line. No call centres. You speak to someone who knows your contract.</p>
-      </div>
+      <div class="bento-card"><div class="bento-icon">🌱</div><h3>Eco-Conscious Methods</h3><p>Dilution systems, microfibre cloths, and low-odour options. Professional cleaning with reduced environmental impact.</p></div>
+      <div class="bento-card"><div class="bento-icon">📋</div><h3>Audit-Ready Documentation</h3><p>COSHH RAMS, safety data sheets, and compliance records provided as standard for every site.</p></div>
+      <div class="bento-card"><div class="bento-icon">🔄</div><h3>Reliable Cover & Rapid Response</h3><p>If a cleaner is absent, trained cover arrives briefed on your site. No gaps, no last-minute scrambles.</p></div>
+      <div class="bento-card"><div class="bento-icon">📞</div><h3>Single Point of Contact</h3><p>One account manager. Direct line. No call centres. You speak to someone who knows your contract.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── SERVICES ── -->
-<section class="services-section" id="services">
-  <div class="container">
-    <div class="section-header reveal">
+<!-- SERVICES -->
+<section id="services" style="background:var(--bg-surface);overflow:hidden">
+  <div class="teal-mesh" style="opacity:0.6"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head reveal">
       <span class="eyebrow">Our Services</span>
-      <h2 class="display-lg" style="margin-top:12px">Every sector.<br>One standard.</h2>
+      <h2 class="display-lg" style="margin-top:14px;color:var(--text-1)">Every sector.<br>One standard.</h2>
+      <div class="section-divider"></div>
     </div>
     <div class="services-grid reveal">
-      <div class="service-card">
-        <div class="service-num">01</div>
-        <h3>Office & Commercial</h3>
-        <p>Daily and periodic cleaning for offices, managed buildings, and commercial premises. Flexible hours, consistent teams.</p>
-        <span class="service-tag">Most Popular</span>
-      </div>
-      <div class="service-card">
-        <div class="service-num">02</div>
-        <h3>Residential Blocks</h3>
-        <p>Communal area cleaning, lobby maintenance, and refuse management for apartment blocks and housing developments.</p>
-        <span class="service-tag">Residential</span>
-      </div>
-      <div class="service-card">
-        <div class="service-num">03</div>
-        <h3>Automotive Dealerships</h3>
-        <p>Showroom presentation, handover bay standards, and workshop hygiene — managed cleaning built for dealership operations.</p>
-        <span class="service-tag">Specialist</span>
-      </div>
-      <div class="service-card">
-        <div class="service-num">04</div>
-        <h3>Medical & Healthcare</h3>
-        <p>COSHH-compliant deep cleaning for clinics, dental practices, and healthcare facilities. Enhanced hygiene protocols.</p>
-        <span class="service-tag">Compliance</span>
-      </div>
-      <div class="service-card">
-        <div class="service-num">05</div>
-        <h3>Retail & Hospitality</h3>
-        <p>Customer-facing cleaning that matches your brand standards. Flexible scheduling around trading hours.</p>
-        <span class="service-tag">Flexible</span>
-      </div>
-      <div class="service-card">
-        <div class="service-num">06</div>
-        <h3>Educational</h3>
-        <p>Schools, colleges, and universities. Safe products, safeguarding-aware teams, and term-time scheduling.</p>
-        <span class="service-tag">Education</span>
-      </div>
+      <div class="service-card"><div class="service-num">01</div><h3>Office & Commercial</h3><p>Daily and periodic cleaning for offices, managed buildings, and commercial premises. Flexible hours, consistent teams.</p><span class="service-tag">Most Popular</span></div>
+      <div class="service-card"><div class="service-num">02</div><h3>Residential Blocks</h3><p>Communal area cleaning, lobby maintenance, and refuse management for apartment blocks and housing developments.</p><span class="service-tag">Residential</span></div>
+      <div class="service-card"><div class="service-num">03</div><h3>Automotive Dealerships</h3><p>Showroom presentation, handover bay standards, and workshop hygiene — managed cleaning built for dealership operations.</p><span class="service-tag">Specialist</span></div>
+      <div class="service-card"><div class="service-num">04</div><h3>Medical & Healthcare</h3><p>COSHH-compliant deep cleaning for clinics, dental practices, and healthcare facilities. Enhanced hygiene protocols.</p><span class="service-tag">Compliance</span></div>
+      <div class="service-card"><div class="service-num">05</div><h3>Retail & Hospitality</h3><p>Customer-facing cleaning that matches your brand standards. Flexible scheduling around trading hours.</p><span class="service-tag">Flexible</span></div>
+      <div class="service-card"><div class="service-num">06</div><h3>Educational</h3><p>Schools, colleges, and universities. Safe products, safeguarding-aware teams, and term-time scheduling.</p><span class="service-tag">Education</span></div>
     </div>
   </div>
 </section>
 
-<!-- ── VIDEO / WORK ── -->
-<section class="video-section" id="our-work">
-  <div class="container">
-    <div class="section-header reveal">
+<!-- VIDEO -->
+<section id="our-work" style="background:var(--bg-alt);overflow:hidden">
+  <div class="teal-mesh"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head reveal">
       <span class="eyebrow">Our Work</span>
-      <h2 class="display-lg" style="margin-top:12px">See the<br>AskMiro standard.</h2>
+      <h2 class="display-lg" style="margin-top:14px;color:var(--text-1)">See the<br>AskMiro standard.</h2>
+      <div class="section-divider"></div>
     </div>
     <div class="video-grid reveal">
-
-      <!-- LARGE: Office cleaning — Pexels embed with poster image fallback -->
-      <div class="video-cell large video-cell--embed" onclick="openVideoModal('office')">
-        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1600&h=700&fit=crop&q=80" alt="Office & commercial cleaning London">
-        <div class="video-overlay">
-          <div class="play-btn">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg>
-          </div>
-          <div class="video-label">Office & Commercial Cleaning</div>
-          <div class="video-sub">Canary Wharf · City of London · Southwark</div>
-        </div>
+      <div class="video-cell large" onclick="openVideoModal('office')">
+        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1600&h=700&fit=crop&q=80" alt="Office cleaning">
+        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Office & Commercial Cleaning</div><div class="video-sub">Canary Wharf · City of London · Southwark</div></div>
       </div>
-
-      <!-- Residential blocks -->
-      <div class="video-cell video-cell--embed" onclick="openVideoModal('residential')">
-        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=500&fit=crop&q=80" alt="Residential block cleaning">
-        <div class="video-overlay">
-          <div class="play-btn">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg>
-          </div>
-          <div class="video-label">Residential Blocks</div>
-          <div class="video-sub">Communal areas & lobbies</div>
-        </div>
+      <div class="video-cell" onclick="openVideoModal('residential')">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=500&fit=crop&q=80" alt="Residential blocks">
+        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Residential Blocks</div><div class="video-sub">Communal areas & lobbies</div></div>
       </div>
-
-      <!-- Automotive / deep clean -->
-      <div class="video-cell video-cell--embed" onclick="openVideoModal('automotive')">
-        <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&h=500&fit=crop&q=80" alt="Deep cleaning & specialist services">
-        <div class="video-overlay">
-          <div class="play-btn">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg>
-          </div>
-          <div class="video-label">Deep Clean & Specialist</div>
-          <div class="video-sub">Dealerships, facilities & specialist sectors</div>
-        </div>
+      <div class="video-cell" onclick="openVideoModal('automotive')">
+        <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&h=500&fit=crop&q=80" alt="Deep clean">
+        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Deep Clean & Specialist</div><div class="video-sub">Dealerships, facilities & specialist sectors</div></div>
       </div>
-
     </div>
   </div>
 </section>
 
-<!-- ── HOW IT WORKS ── -->
-<section class="process-section" id="how-it-works">
-  <div class="container">
-    <div class="section-header center reveal">
+<!-- HOW IT WORKS -->
+<section id="how-it-works" style="background:var(--bg-surface);overflow:hidden">
+  <div class="teal-mesh" style="opacity:0.5"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head center reveal">
       <span class="eyebrow">How It Works</span>
-      <h2 class="display-lg" style="margin-top:12px">From enquiry<br>to clean site in days.</h2>
+      <h2 class="display-lg" style="margin-top:14px;color:var(--text-1)">From enquiry<br>to clean site in days.</h2>
+      <div class="section-divider center"></div>
     </div>
-    <div class="process-steps reveal">
-      <div class="step-item">
-        <div class="step-circle">01</div>
-        <h4>Request a Quote</h4>
-        <p>Fill in your details online. Takes 90 seconds. We respond within 24 hours.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-circle">02</div>
-        <h4>Free Site Visit</h4>
-        <p>We visit your site, assess requirements, and produce a bespoke cleaning plan.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-circle">03</div>
-        <h4>Fixed Monthly Quote</h4>
-        <p>One clear monthly rate. No hidden costs. No surprise invoices.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-circle">04</div>
-        <h4>Managed Ongoing Service</h4>
-        <p>Your dedicated team starts. Regular quality checks. One contact for everything.</p>
-      </div>
+    <div class="process-grid reveal">
+      <div class="step-item"><div class="step-circle">01</div><h4>Request a Quote</h4><p>Fill in your details online. Takes 90 seconds. We respond within 24 hours.</p></div>
+      <div class="step-item"><div class="step-circle">02</div><h4>Free Site Visit</h4><p>We visit your site, assess requirements, and produce a bespoke cleaning plan.</p></div>
+      <div class="step-item"><div class="step-circle">03</div><h4>Fixed Monthly Quote</h4><p>One clear monthly rate. No hidden costs. No surprise invoices.</p></div>
+      <div class="step-item"><div class="step-circle">04</div><h4>Managed Ongoing Service</h4><p>Your dedicated team starts. Regular quality checks. One contact for everything.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── TRUST ── -->
-<section class="trust-section" id="credentials">
-  <div class="container">
-    <div class="section-header center reveal">
+<!-- TRUST -->
+<section id="credentials" style="background:var(--bg-alt);overflow:hidden">
+  <div class="teal-mesh"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head center reveal">
       <span class="eyebrow">Credentials</span>
-      <h2 class="display-md" style="margin-top:12px">Insured, compliant,<br>and properly managed.</h2>
+      <h2 class="display-md" style="margin-top:14px;color:var(--text-1)">Insured, compliant,<br>and properly managed.</h2>
+      <div class="section-divider center"></div>
     </div>
     <div class="trust-grid reveal">
-      <div class="trust-card">
-        <div class="trust-icon">🛡️</div>
-        <h4>£10M Public Liability</h4>
-        <p>Fully insured. Certificates available on request for every contract.</p>
-      </div>
-      <div class="trust-card">
-        <div class="trust-icon">📋</div>
-        <h4>COSHH Compliant</h4>
-        <p>Risk assessments, method statements, and RAMS provided as standard.</p>
-      </div>
-      <div class="trust-card">
-        <div class="trust-icon">✅</div>
-        <h4>DBS-Checked Teams</h4>
-        <p>All staff vetted, reference-checked, and trained to our standards before deployment.</p>
-      </div>
-      <div class="trust-card">
-        <div class="trust-icon">🌱</div>
-        <h4>Eco-Conscious</h4>
-        <p>Controlled chemical use, dilution systems, and microfibre methods where suitable.</p>
-      </div>
+      <div class="trust-card"><div class="trust-icon">🛡️</div><h4>£10M Public Liability</h4><p>Fully insured. Certificates available on request for every contract.</p></div>
+      <div class="trust-card"><div class="trust-icon">📋</div><h4>COSHH Compliant</h4><p>Risk assessments, method statements, and RAMS provided as standard.</p></div>
+      <div class="trust-card"><div class="trust-icon">✅</div><h4>DBS-Checked Teams</h4><p>All staff vetted, reference-checked, and trained before deployment.</p></div>
+      <div class="trust-card"><div class="trust-icon">🌱</div><h4>Eco-Conscious</h4><p>Controlled chemical use, dilution systems, and microfibre methods.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── TESTIMONIALS ── -->
-<section class="testimonials-section" id="testimonials">
-  <div class="container">
-    <div class="section-header reveal">
+<!-- TESTIMONIALS -->
+<section id="testimonials" style="background:var(--bg-surface);overflow:hidden">
+  <div class="teal-mesh" style="opacity:0.6"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="section-head reveal">
       <span class="eyebrow">Client Feedback</span>
-      <h2 class="display-lg" style="margin-top:12px">What our<br>clients say.</h2>
+      <h2 class="display-lg" style="margin-top:14px;color:var(--text-1)">What our<br>clients say.</h2>
+      <div class="section-divider"></div>
     </div>
-    <div class="testimonials-grid reveal">
-      <div class="testimonial-card">
-        <span class="quote-mark">"</span>
-        <p class="testimonial-text">Switched to AskMiro after years of unreliable contractors. The difference is night and day. Same team every week, proactive communication, and genuinely responsive when we need something.</p>
-        <div class="testimonial-author">
-          <span class="author-name">Facilities Manager</span>
-          <span class="author-role">Commercial Office, Canary Wharf</span>
-        </div>
-      </div>
-      <div class="testimonial-card">
-        <span class="quote-mark">"</span>
-        <p class="testimonial-text">We manage six residential blocks across London. AskMiro handles all of them. Their reporting is excellent — we always know what's been done and when. First cleaning contractor I've trusted to self-manage.</p>
-        <div class="testimonial-author">
-          <span class="author-name">Property Manager</span>
-          <span class="author-role">Residential Block Portfolio, South London</span>
-        </div>
-      </div>
-      <div class="testimonial-card">
-        <span class="quote-mark">"</span>
-        <p class="testimonial-text">Our showrooms need to look immaculate every single morning. AskMiro gets it — they understand dealership standards. The handover bays and customer areas are always show-ready.</p>
-        <div class="testimonial-author">
-          <span class="author-name">General Manager</span>
-          <span class="author-role">Franchised Car Dealership, London</span>
-        </div>
-      </div>
+    <div class="testi-grid reveal">
+      <div class="testi-card"><span class="quote-mark">"</span><p class="testi-text">Switched to AskMiro after years of unreliable contractors. The difference is night and day. Same team every week, proactive communication, and genuinely responsive when we need something.</p><div><div class="author-name">Facilities Manager</div><div class="author-role">Commercial Office, Canary Wharf</div></div></div>
+      <div class="testi-card"><span class="quote-mark">"</span><p class="testi-text">We manage six residential blocks across London. AskMiro handles all of them. Their reporting is excellent — we always know what's been done and when. First cleaning contractor I've trusted to self-manage.</p><div><div class="author-name">Property Manager</div><div class="author-role">Residential Block Portfolio, South London</div></div></div>
+      <div class="testi-card"><span class="quote-mark">"</span><p class="testi-text">Our showrooms need to look immaculate every single morning. AskMiro gets it — they understand dealership standards. The handover bays and customer areas are always show-ready.</p><div><div class="author-name">General Manager</div><div class="author-role">Franchised Car Dealership, London</div></div></div>
     </div>
   </div>
 </section>
 
-<!-- ── FAQs ── -->
-<section class="faq-section" id="faqs">
-  <div class="container" style="max-width:800px">
-    <div class="section-header center reveal">
+<!-- FAQs -->
+<section id="faqs" style="background:var(--bg-alt);overflow:hidden">
+  <div class="teal-mesh" style="opacity:0.5"></div>
+  <div class="container" style="max-width:800px;position:relative;z-index:1">
+    <div class="section-head center reveal">
       <span class="eyebrow">FAQs</span>
-      <h2 class="display-md" style="margin-top:12px">Common questions.</h2>
+      <h2 class="display-md" style="margin-top:14px;color:var(--text-1)">Common questions.</h2>
+      <div class="section-divider center"></div>
     </div>
     <div class="faq-list reveal">
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>How do you price your cleaning contracts?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>We provide fixed monthly rates based on your site, frequency, and scope. After a site visit, we send a detailed quote showing exactly what's included. No hidden fees, no surprises.</p></div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>Are your staff vetted and insured?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>Yes. All staff are reference-checked, DBS-checked where required, and trained before deployment. We carry £10M public liability insurance and can provide certificates on request.</p></div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>What areas do you cover?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>We primarily serve London and the South East. For larger contracts, we can cover other UK regions. Get in touch and we'll confirm coverage for your location.</p></div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>How quickly can you start?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>For most contracts, we can begin within 5–10 working days of signing. Emergency or urgent mobilisation is sometimes possible — contact us directly to discuss.</p></div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>Do you provide COSHH documentation?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>Yes. COSHH risk assessments, method statements (RAMS), and safety data sheets are provided as standard for every site. We're audit-ready.</p></div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(this.parentElement)">
-          <h3>What happens if a cleaner is absent?</h3>
-          <div class="faq-toggle">+</div>
-        </div>
-        <div class="faq-answer"><p>We provide trained cover who has been briefed on your site. You get the service you're paying for, every time. No gaps, no last-minute cancellations.</p></div>
-      </div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>How do you price your cleaning contracts?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>We provide fixed monthly rates based on your site, frequency, and scope. After a site visit, we send a detailed quote showing exactly what's included. No hidden fees, no surprises.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>Are your staff vetted and insured?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>Yes. All staff are reference-checked, DBS-checked where required, and trained before deployment. We carry £10M public liability insurance and can provide certificates on request.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>What areas do you cover?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>We primarily serve London and the South East. For larger contracts, we can cover other UK regions. Get in touch and we'll confirm coverage for your location.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>How quickly can you start?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>For most contracts, we can begin within 5–10 working days of signing. Emergency mobilisation is sometimes possible — contact us directly to discuss.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>Do you provide COSHH documentation?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>Yes. COSHH risk assessments, method statements (RAMS), and safety data sheets are provided as standard for every site. We're audit-ready.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this.parentElement)"><h3>What happens if a cleaner is absent?</h3><div class="faq-toggle">+</div></div><div class="faq-ans"><p>We provide trained cover who has been briefed on your site. You get the service you're paying for, every time. No gaps, no last-minute cancellations.</p></div></div>
     </div>
   </div>
 </section>
 
-<!-- ── CTA ── -->
+<!-- CTA -->
 <section class="cta-section" id="contact">
+  <div class="cta-mesh"></div>
   <div class="cta-inner reveal">
-    <span class="eyebrow" style="display:block;margin-bottom:16px">Get Started</span>
-    <h2>Ready for cleaning<br>done properly?</h2>
+    <span class="eyebrow" style="display:block;margin-bottom:16px;color:var(--teal-mid)">Get Started</span>
+    <h2>Ready for cleaning<br>done <em>properly</em>?</h2>
     <p>Get a fixed monthly quote within 24 hours. Free site visit included.</p>
     <div class="cta-actions">
-      <a href="/get-quote.html" class="btn btn-primary btn-arrow">Request a Free Quote</a>
-      <a href="tel:02080730621" class="btn btn-ghost">📞 020 8073 0621</a>
+      <a href="/get-quote.html" class="btn btn-primary">Request a Free Quote <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="tel:02080730621" class="btn btn-ghost-light">📞 020 8073 0621</a>
     </div>
     <div class="cta-contact">
       <div class="cta-contact-item">📞 <a href="tel:02080730621">020 8073 0621</a></div>
@@ -1455,56 +800,26 @@ footer {
   </div>
 </section>
 
-<!-- ── FOOTER ── -->
+<!-- FOOTER -->
 <footer>
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <div class="nav-logo">
-          <img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:6px;flex-shrink:0">
-          Ask<span style="color:var(--teal-light)">Miro</span>
-        </div>
+        <div class="footer-logo"><img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">Ask<span style="color:var(--teal-light)">Miro</span></div>
         <p>Managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent, compliant, and eco-conscious.</p>
       </div>
-      <div class="footer-col">
-        <h5>Services</h5>
-        <ul>
-          <li><a href="#services">Office Cleaning</a></li>
-          <li><a href="#services">Residential Blocks</a></li>
-          <li><a href="#services">Automotive</a></li>
-          <li><a href="#services">Medical</a></li>
-          <li><a href="#services">Retail</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Company</h5>
-        <ul>
-          <li><a href="#why-askmiro">Why AskMiro</a></li>
-          <li><a href="#how-it-works">How It Works</a></li>
-          <li><a href="#credentials">Credentials</a></li>
-          <li><a href="#faqs">FAQs</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Contact</h5>
-        <ul>
-          <li><a href="tel:02080730621">020 8073 0621</a></li>
-          <li><a href="mailto:info@askmiro.com">info@askmiro.com</a></li>
-          <li><a href="/get-quote.html">Request a Quote</a></li>
-        </ul>
-      </div>
+      <div class="footer-col"><h5>Services</h5><ul><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
+      <div class="footer-col"><h5>Company</h5><ul><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
+      <div class="footer-col"><h5>Contact</h5><ul><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="mailto:info@askmiro.com">info@askmiro.com</a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
-      <div class="footer-legal">
-        <a href="/privacy-policy.html">Privacy Policy</a>
-        <a href="/terms.html">Terms</a>
-      </div>
+      <div class="footer-legal"><a href="/privacy-policy.html">Privacy Policy</a><a href="/terms.html">Terms</a></div>
     </div>
   </div>
 </footer>
 
-<!-- ── COOKIE ── -->
+<!-- COOKIE -->
 <div id="cookieConsent">
   <p>We use cookies to improve your experience. <a href="/privacy-policy.html">Learn more</a></p>
   <div class="cookie-btns">
@@ -1513,251 +828,94 @@ footer {
   </div>
 </div>
 
-<!-- ── VIDEO MODAL ── -->
-<div id="videoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;padding:40px">
-  <button onclick="closeVideoModal()" style="position:absolute;top:24px;right:24px;background:rgba(255,255,255,0.1);border:none;color:white;width:44px;height:44px;border-radius:50%;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-  <!-- Video tabs -->
+<!-- VIDEO MODAL -->
+<div id="videoModal" style="display:none;position:fixed;inset:0;background:rgba(13,28,46,0.96);backdrop-filter:blur(12px);z-index:9999;align-items:center;justify-content:center;padding:40px">
+  <button onclick="closeVideoModal()" style="position:absolute;top:24px;right:24px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:white;width:44px;height:44px;border-radius:12px;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
   <div style="width:100%;max-width:960px">
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="videoTabs">
-      <button onclick="switchVideo('office')" id="tab-office"
-        style="padding:8px 18px;border-radius:4px;border:1px solid rgba(13,148,136,0.6);background:var(--teal);color:#fff;font-family:var(--font-display);font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s">
-        Office & Commercial
-      </button>
-      <button onclick="switchVideo('residential')" id="tab-residential"
-        style="padding:8px 18px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.6);font-family:var(--font-display);font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s">
-        Residential Blocks
-      </button>
-      <button onclick="switchVideo('automotive')" id="tab-automotive"
-        style="padding:8px 18px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.6);font-family:var(--font-display);font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s">
-        Deep Clean & Specialist
-      </button>
+      <button onclick="switchVideo('office')" id="tab-office" style="padding:8px 18px;border-radius:6px;border:1px solid rgba(13,189,173,.5);background:linear-gradient(135deg,#0DBDAD,#0A9688);color:#fff;font-family:'Figtree',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer">Office & Commercial</button>
+      <button onclick="switchVideo('residential')" id="tab-residential" style="padding:8px 18px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-family:'Figtree',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer">Residential Blocks</button>
+      <button onclick="switchVideo('automotive')" id="tab-automotive" style="padding:8px 18px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-family:'Figtree',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer">Deep Clean & Specialist</button>
     </div>
-
-    <!-- Pexels video embeds — free, officially supported, no throttling -->
-    <div id="videoFrame" style="width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0a0a0a">
-      <!-- Office cleaning: professional cleaning service video, Pexels ID 6195111 -->
-      <iframe id="video-office"
-        src="https://player.vimeo.com/video/517228187?autoplay=1&muted=1&loop=1&background=1&quality=1080p"
-        style="width:100%;height:100%;border:none;display:block"
-        allow="autoplay; fullscreen"
-        allowfullscreen
-        title="Office & Commercial Cleaning">
-      </iframe>
-      <!-- Residential: hidden initially -->
-      <iframe id="video-residential"
-        src=""
-        data-src="https://player.vimeo.com/video/472691778?autoplay=1&muted=1&loop=1&background=1"
-        style="width:100%;height:100%;border:none;display:none"
-        allow="autoplay; fullscreen"
-        title="Residential Block Cleaning">
-      </iframe>
-      <!-- Automotive/deep: hidden initially -->
-      <iframe id="video-automotive"
-        src=""
-        data-src="https://player.vimeo.com/video/525546023?autoplay=1&muted=1&loop=1&background=1"
-        style="width:100%;height:100%;border:none;display:none"
-        allow="autoplay; fullscreen"
-        title="Deep Clean & Specialist Services">
-      </iframe>
+    <div id="videoFrame" style="width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a0a0a">
+      <iframe id="video-office" src="https://player.vimeo.com/video/517228187?autoplay=1&muted=1&loop=1&background=1&quality=1080p" style="width:100%;height:100%;border:none;display:block" allow="autoplay; fullscreen" title="Office Cleaning"></iframe>
+      <iframe id="video-residential" src="" data-src="https://player.vimeo.com/video/472691778?autoplay=1&muted=1&loop=1&background=1" style="width:100%;height:100%;border:none;display:none" allow="autoplay; fullscreen" title="Residential"></iframe>
+      <iframe id="video-automotive" src="" data-src="https://player.vimeo.com/video/525546023?autoplay=1&muted=1&loop=1&background=1" style="width:100%;height:100%;border:none;display:none" allow="autoplay; fullscreen" title="Deep Clean"></iframe>
     </div>
-    <p style="margin-top:12px;font-size:0.75rem;color:rgba(255,255,255,0.3);text-align:center">
-      Free stock footage via Vimeo · Replace with your own AskMiro footage for maximum impact
-    </p>
+    <p style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);text-align:center;letter-spacing:.08em;text-transform:uppercase">Free stock footage via Vimeo · Replace with your own AskMiro footage</p>
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── Hero slides ──
-const heroSlides = [
-  {
-    img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&h=1080&fit=crop&q=85',
-    headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',
-    sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'
-  },
-  {
-    img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&h=1080&fit=crop&q=85',
-    headline:'Managed service.<br>One point of <em>contact</em>.',
-    sub:'Site-specific plans, regular quality checks, and a single account manager for everything.'
-  },
-  {
-    img:'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1920&h=1080&fit=crop&q=85',
-    headline:'Every sector.<br>One <em>standard</em>.',
-    sub:'Offices, residential blocks, automotive dealerships — all managed to the same exacting level.'
-  }
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script>
+// Hero slides
+const heroSlides=[
+  {img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&h=1080&fit=crop&q=85',headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'},
+  {img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&h=1080&fit=crop&q=85',headline:'Managed service.<br>One point of <em>contact</em>.',sub:'Site-specific plans, regular quality checks, and a single account manager for everything.'},
+  {img:'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1920&h=1080&fit=crop&q=85',headline:'Every sector.<br>One <em>standard</em>.',sub:'Offices, residential blocks, automotive dealerships — all managed to the same exacting level.'}
 ];
-let heroIdx=0;
-let heroTimer;
-
+let heroIdx=0,heroTimer;
 function goHeroSlide(n){
-  heroIdx=n;
-  const s=heroSlides[n];
-  const img=document.getElementById('heroImg');
+  heroIdx=n;const s=heroSlides[n];
   const bg=document.getElementById('heroBg');
   bg.style.opacity='0';
-  setTimeout(()=>{
-    img.src=s.img;
-    document.getElementById('heroHeadline').innerHTML=s.headline;
-    document.getElementById('heroSub').textContent=s.sub;
-    bg.style.transition='opacity 1s ease';
-    bg.style.opacity='1';
-  },400);
+  setTimeout(()=>{document.getElementById('heroImg').src=s.img;document.getElementById('heroHeadline').innerHTML=s.headline;document.getElementById('heroSub').textContent=s.sub;bg.style.transition='opacity 1.2s ease';bg.style.opacity='1';},350);
   document.querySelectorAll('.slide-dot').forEach((d,i)=>d.classList.toggle('active',i===n));
-  clearInterval(heroTimer);
-  heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
+  clearInterval(heroTimer);heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
 }
 heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
 
-// ── Nav ──
-window.addEventListener('scroll',()=>{
-  document.getElementById('nav').classList.toggle('scrolled',window.scrollY>80);
-},{passive:true});
+// Nav scroll — switches between transparent-over-dark-hero and solid white
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',window.scrollY>80),{passive:true});
 
-// ── Mobile menu ──
-function toggleMobileMenu(){
-  document.getElementById('mobileMenu').classList.toggle('open');
-}
+// Mobile menu
+function toggleMobileMenu(){document.getElementById('mobileMenu').classList.toggle('open')}
 
-// ── FAQ ──
+// FAQ
 function toggleFAQ(el){el.classList.toggle('expanded')}
 
-// ── Video modal ──
-function openVideoModal(type){
-  document.getElementById('videoModal').style.display='flex';
-  document.body.style.overflow='hidden';
-  if(type) switchVideo(type);
-}
-function closeVideoModal(){
-  document.getElementById('videoModal').style.display='none';
-  document.body.style.overflow='';
-  // pause videos on close
-  ['office','residential','automotive'].forEach(t=>{
-    const f=document.getElementById('video-'+t);
-    if(f && f.src) f.src=f.src; // reload to stop
-  });
-}
+// Video modal
+function openVideoModal(type){document.getElementById('videoModal').style.display='flex';document.body.style.overflow='hidden';if(type)switchVideo(type)}
+function closeVideoModal(){document.getElementById('videoModal').style.display='none';document.body.style.overflow='';['office','residential','automotive'].forEach(t=>{const f=document.getElementById('video-'+t);if(f&&f.src)f.src=f.src;})}
 function switchVideo(type){
   ['office','residential','automotive'].forEach(t=>{
-    const f=document.getElementById('video-'+t);
-    const tab=document.getElementById('tab-'+t);
-    if(!f||!tab) return;
-    const isActive=t===type;
-    f.style.display=isActive?'block':'none';
-    // lazy load on first switch
-    if(isActive && !f.src && f.dataset.src){f.src=f.dataset.src;}
-    tab.style.background=isActive?'var(--teal)':'transparent';
-    tab.style.borderColor=isActive?'rgba(13,148,136,0.6)':'rgba(255,255,255,0.15)';
-    tab.style.color=isActive?'#fff':'rgba(255,255,255,0.6)';
+    const f=document.getElementById('video-'+t),tab=document.getElementById('tab-'+t);
+    if(!f||!tab)return;const on=t===type;
+    f.style.display=on?'block':'none';
+    if(on&&!f.src&&f.dataset.src)f.src=f.dataset.src;
+    tab.style.background=on?'linear-gradient(135deg,#0DBDAD,#0A9688)':'rgba(255,255,255,0.06)';
+    tab.style.borderColor=on?'rgba(13,189,173,.5)':'rgba(255,255,255,.12)';
+    tab.style.color=on?'#fff':'rgba(255,255,255,.55)';
   });
 }
-document.getElementById('videoModal').addEventListener('click',function(e){
-  if(e.target===this)closeVideoModal();
-});
+document.getElementById('videoModal').addEventListener('click',function(e){if(e.target===this)closeVideoModal()});
 
-// ── Scroll reveal ──
-const revealObs=new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');revealObs.unobserve(e.target);}});
-},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
-document.querySelectorAll('.reveal').forEach(el=>{
-  // stagger children
-  Array.from(el.children||[]).forEach((c,i)=>c.style.transitionDelay=(i*0.08)+'s');
-  revealObs.observe(el);
-});
+// Scroll reveal
+const revObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      e.target.querySelectorAll('.bento-card,.service-card,.trust-card,.testi-card,.step-item,.faq-item').forEach((c,i)=>{c.style.transitionDelay=i*60+'ms';c.classList.add('visible');});
+      revObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>revObs.observe(el));
 
-// ── Smooth scroll ──
+// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click',function(e){
-    const t=document.querySelector(this.getAttribute('href'));
-    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
-  });
+  a.addEventListener('click',function(e){const t=document.querySelector(this.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}});
 });
 
-// ── Cookie ──
-function showCookieConsent(){
-  if(!localStorage.getItem('cookieConsent'))document.getElementById('cookieConsent').classList.add('show');
-}
-function acceptCookies(){
-  localStorage.setItem('cookieConsent','accepted');
-  document.getElementById('cookieConsent').classList.remove('show');
-}
-function declineCookies(){
-  localStorage.setItem('cookieConsent','declined');
-  document.getElementById('cookieConsent').classList.remove('show');
-}
-window.addEventListener('load',showCookieConsent);
+// Cookie
+function showCookie(){if(!localStorage.getItem('cookieConsent'))document.getElementById('cookieConsent').classList.add('show')}
+function acceptCookies(){localStorage.setItem('cookieConsent','accepted');document.getElementById('cookieConsent').classList.remove('show')}
+function declineCookies(){localStorage.setItem('cookieConsent','declined');document.getElementById('cookieConsent').classList.remove('show')}
+window.addEventListener('load',showCookie);
 </script>
-<!-- Google Analytics 4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=GT-PJ7M23PN"></script>
-<script>
-window.dataLayer=window.dataLayer||[];
-function gtag(){dataLayer.push(arguments);}
-gtag('js',new Date());
-gtag('config','GT-PJ7M23PN');
-gtag('config','AW-17948916112');
-</script>
-
-<!-- AskMiro Web Form Intelligence -->
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','GT-PJ7M23PN');gtag('config','AW-17948916112');</script>
 <script src="/get_quote_form_patch_configured.js" defer></script>
-
-
-<script id="askmiro-reveal">
-/* ================================================================
-   ASKMIRO — SCROLL REVEAL + STAGGER
-   Paste before </body>. Does NOT touch any existing scripts.
-   ================================================================ */
-(function () {
-  'use strict';
-
-  // ── Intersection Observer for .reveal elements ──
-  const revealObs = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          const el = entry.target;
-
-          // Stagger children if the element is a grid/list wrapper
-          const children = el.querySelectorAll(
-            '.bento-card, .service-card, .trust-card, .testimonial-card, .step-item, .faq-item'
-          );
-
-          if (children.length > 0) {
-            children.forEach(function (child, i) {
-              child.style.transitionDelay = i * 60 + 'ms';
-              child.classList.add('visible');
-            });
-          }
-
-          el.classList.add('visible');
-          revealObs.unobserve(el);
-        }
-      });
-    },
-    { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
-  );
-
-  // Observe all .reveal elements
-  document.querySelectorAll('.reveal').forEach(function (el) {
-    revealObs.observe(el);
-  });
-
-  // Also reveal section-headers when they scroll in
-  document.querySelectorAll('.section-header').forEach(function (el) {
-    const headerObs = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            el.classList.add('visible');
-            headerObs.unobserve(el);
-          }
-        });
-      },
-      { threshold: 0.2 }
-    );
-    headerObs.observe(el);
-  });
-
-})();
-
-</script>
 <script src="/chat-widget.js" defer></script>
 </body>
 </html>
