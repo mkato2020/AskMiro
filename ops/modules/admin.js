@@ -1,4 +1,4 @@
-const Admin = (() => {
+window.Admin = (() => {
   async function render() {
     let settings = {};
     try { settings = await API.get('settings'); } catch(e) {}
