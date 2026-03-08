@@ -84,8 +84,10 @@ Only include LEAD_CAPTURED when you genuinely have all four values confirmed by 
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Anthropic API error:', errText);
-      throw new Error('Claude API error');
+      console.error('Anthropic API error — status:', response.status, '— body:', errText);
+      console.error('API key present:', !!process.env.ANTHROPIC_API_KEY);
+      console.error('API key prefix:', (process.env.ANTHROPIC_API_KEY || '').slice(0, 12));
+      throw new Error('Claude API error: ' + response.status);
     }
 
     const data = await response.json();
