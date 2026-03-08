@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leave Us a Review — AskMiro Cleaning</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:        #0D1C2E;
+    --navy-mid:    #122236;
+    --teal:        #0DBDAD;
+    --teal-dark:   #0A9688;
+    --teal-glow:   rgba(13,189,173,0.35);
+    --teal-subtle: rgba(13,189,173,0.07);
+    --teal-border: rgba(13,189,173,0.25);
+    --white:       #FFFFFF;
+    --glass:       rgba(255,255,255,0.06);
+    --glass-border:rgba(255,255,255,0.09);
+    --text:        rgba(255,255,255,0.88);
+    --muted:       rgba(255,255,255,0.45);
+    --dim:         rgba(255,255,255,0.18);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Figtree', system-ui, sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background — matches chat window radial glow ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(13,189,173,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(10,150,136,0.04) 0%, transparent 60%),
+      var(--navy);
+    pointer-events: none;
+  }
+
+  /* ── Animated teal line — same as chat header shimmer ── */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: -100%; width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+    animation: shimmer 4s ease-in-out infinite;
+    z-index: 10;
+  }
+  @keyframes shimmer {
+    0%   { left: -100%; opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+  }
+
+  /* ── Layout ── */
+  .wrap {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 56px 20px 80px;
+  }
+
+  /* ── Logo — same mark as chat header ── */
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 52px;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.05s ease forwards;
+  }
+  .logo-mark {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #0DBDAD, #0A9688);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(13,189,173,0.4);
+  }
+  .logo-mark svg { width: 22px; height: 22px; }
+  .logo-name {
+    font-size: 17px; font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.01em;
+  }
+  .logo-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(13,189,173,0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 1px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    max-width: 520px;
+    margin-bottom: 44px;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.12s ease forwards;
+  }
+
+  .stars {
+    display: flex; justify-content: center; gap: 5px;
+    margin-bottom: 22px;
+  }
+  .star {
+    font-size: 26px;
+    display: inline-block;
+    opacity: 0;
+    animation: starPop 0.35s cubic-bezier(0.34,1.3,0.64,1) forwards;
+  }
+  .star:nth-child(1) { animation-delay: 0.25s; }
+  .star:nth-child(2) { animation-delay: 0.33s; }
+  .star:nth-child(3) { animation-delay: 0.41s; }
+  .star:nth-child(4) { animation-delay: 0.49s; }
+  .star:nth-child(5) { animation-delay: 0.57s; }
+  @keyframes starPop {
+    from { transform: scale(0) rotate(-15deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0);      opacity: 1; }
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 5.5vw, 42px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 14px;
+  }
+  .hero h1 .accent {
+    background: linear-gradient(135deg, #0DBDAD, #0A9688);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.75;
+    font-weight: 400;
+  }
+
+  /* ── Card — same dark glass as chat window ── */
+  .card {
+    background: var(--navy-mid);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.2s ease forwards;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  }
+
+  /* teal gradient top bar — matches chat header */
+  .card-header {
+    background: linear-gradient(135deg, rgba(13,189,173,0.12) 0%, rgba(10,150,136,0.06) 100%);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 20px 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .card-header-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #0DBDAD, #0A9688);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(13,189,173,0.35);
+  }
+  .card-header-icon svg { width: 20px; height: 20px; }
+  .card-header-name {
+    font-size: 14px; font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.01em;
+  }
+  .card-header-status {
+    display: flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(13,189,173,0.8);
+    margin-top: 2px;
+  }
+  .card-header-status::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #0DBDAD;
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+  @keyframes statusPulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  .card-body { padding: 28px 24px 24px; }
+
+  /* ── CTA Button — same as chat send button gradient ── */
+  .btn-review {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #0DBDAD, #0A9688);
+    color: var(--white);
+    font-family: 'Figtree', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(13,189,173,0.45), 0 0 0 0 rgba(13,189,173,0.2);
+    margin-bottom: 10px;
+  }
+  .btn-review:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 32px rgba(13,189,173,0.55), 0 0 0 6px rgba(13,189,173,0.08);
+  }
+  .btn-review:active { transform: translateY(0) scale(0.99); }
+
+  .btn-icon {
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .btn-arrow { margin-left: auto; opacity: 0.7; }
+
+  .hint {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 24px;
+  }
+
+  /* ── Divider — same glass divider as chat ── */
+  .divider {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+  }
+  .divider span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  /* ── Steps — same glass bubbles as chat messages ── */
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+
+  .step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .step:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--teal-border);
+  }
+  .step-num {
+    width: 24px; height: 24px;
+    background: var(--teal-subtle);
+    border: 1px solid var(--teal-border);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--teal);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-text {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    padding-top: 3px;
+  }
+  .step-text strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ── Thank you state ── */
+  .thankyou {
+    display: none;
+    text-align: center;
+    padding: 16px 0 8px;
+  }
+  .ty-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #0DBDAD, #0A9688);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    box-shadow: 0 8px 24px rgba(13,189,173,0.45);
+    animation: popIn 0.4s cubic-bezier(0.34,1.3,0.64,1) both;
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .thankyou h2 {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  .thankyou p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  /* ── Trust bar — same monospace style as chat footer ── */
+  .trust {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 36px;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.35s ease forwards;
+    flex-wrap: wrap;
+    max-width: 460px;
+  }
+  .trust-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 0 14px;
+    border-right: 1px solid var(--glass-border);
+  }
+  .trust-item:last-child { border-right: none; }
+  .trust-dot {
+    width: 4px; height: 4px;
+    background: var(--teal);
+    border-radius: 50%;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 40px 16px 60px; }
+    .card-body { padding: 22px 18px 18px; }
+    .card-header { padding: 16px 18px; }
+    .trust-item { padding: 4px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 16L8 8L12 16L16 8L20 16" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">AskMiro</div>
+      <div class="logo-tag">Cleaning Services</div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="stars">
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+    </div>
+    <h1>Your review helps us<br><span class="accent">grow in London.</span></h1>
+    <p>We're a new cleaning business working hard to earn trust. A 30-second review makes a real difference — thank you.</p>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+
+    <!-- Card header — mirrors chat widget header -->
+    <div class="card-header">
+      <div class="card-header-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 16L8 8L12 16L16 8L20 16" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-header-name">AskMiro Cleaning</div>
+        <div class="card-header-status">Leave a review</div>
+      </div>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Default state -->
+      <div id="default-state">
+
+        <!-- ⚠️ Replace YOUR_GOOGLE_REVIEW_LINK with your GBP short review link -->
+        <a class="btn-review" href="YOUR_GOOGLE_REVIEW_LINK" target="_blank" rel="noopener" onclick="showThanks()">
+          <div class="btn-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="white" opacity="0.9"/>
+              <path d="M9 12l2 2 4-4" stroke="#0DBDAD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>Write a Google Review</span>
+          <svg class="btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <div class="hint">Opens Google · Takes 30 seconds</div>
+
+        <div class="divider"><span>How to write your review</span></div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Tap the button above</strong> — opens Google Reviews directly</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Select 5 stars</strong> if we delivered a great clean</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Write a sentence or two</strong> — mention the service if you can (e.g. end of tenancy, office clean, deep clean)</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text"><strong>Hit Post</strong> — done. We're genuinely grateful.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Thank you state -->
+      <div class="thankyou" id="thanks-state">
+        <div class="ty-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Thank you so much.</h2>
+        <p>Your review means everything to a small business just getting started. We won't let you down.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Trust bar — matches chat widget footer style -->
+  <div class="trust">
+    <div class="trust-item"><div class="trust-dot"></div>Fully insured</div>
+    <div class="trust-item"><div class="trust-dot"></div>DBS checked</div>
+    <div class="trust-item"><div class="trust-dot"></div>Central London</div>
+    <div class="trust-item"><div class="trust-dot"></div>info@askmiro.com</div>
+  </div>
+
+</div>
+
+<script>
+  function showThanks() {
+    setTimeout(function() {
+      document.getElementById('default-state').style.display = 'none';
+      var t = document.getElementById('thanks-state');
+      t.style.display = 'block';
+    }, 600);
+  }
+</script>
+
+</body>
+</html>
