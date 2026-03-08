@@ -1,4 +1,4 @@
-const Quality = (() => {
+window. Quality = (() => {
   let _tab = 'inspections', _inspections = [], _incidents = [];
   async function render() {
     try {
