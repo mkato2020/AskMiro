@@ -2,7 +2,7 @@
 // AskMiro Ops — api.js  v2
 // JSONP transport + smart cache + retry + deduplication
 // ============================================================
-const API = (() => {
+window.API = (() => {
 
   // ── CACHE ─────────────────────────────────────────────────
   // stale-while-revalidate: show cached data instantly, refresh in background
