@@ -1,7 +1,7 @@
 // ============================================================
 // AskMiro Ops — CRM  (Salesforce-lite, premium edition)
 // ============================================================
-const CRM = (() => {
+window. CRM = (() => {
   let _leads = [];
   let _view = 'pipeline';
   let _filter = 'all';
