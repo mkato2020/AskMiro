@@ -244,31 +244,8 @@
   }
 
   // ── Open / close ──────────────────────────────────────────
-  function _open() {
-    _open = true;
-    win.classList.remove('am-hidden');
-    badge.style.display = 'none';
-    inputEl.focus();
-
-    // Show greeting if first open
-    if (_messages.length === 0) {
-      _addMessage('assistant', CFG.greeting);
-      _messages.push({ role: 'assistant', content: CFG.greeting });
-      setTimeout(_addQuickReplies, 400);
-    }
-  }
-
-  function _close() {
-    _open = false;
-    win.classList.add('am-hidden');
-  }
-
-  bubble.addEventListener('click', () => _open ? _close() : _openFn());
-  closeBtn.addEventListener('click', _close);
-  const _openFn = _open; // alias
-
-  // Fix: use a proper boolean flag
   let chatVisible = false;
+
   bubble.onclick = () => {
     chatVisible = !chatVisible;
     chatVisible ? _openChat() : _closeChat();
