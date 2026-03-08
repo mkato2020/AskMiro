@@ -4,7 +4,7 @@
 // Matches AskMiro Ops SPA style. Requires: UI, API globals.
 // ============================================================
 
-window. Reception = (() => {
+window.Reception = (() => {
   // ── State ──────────────────────────────────────────────────
   let _calls  = [];
   let _leads  = [];
