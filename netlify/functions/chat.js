@@ -268,21 +268,24 @@ export default async (req) => {
           .concat([`Miro: ${message}`])
           .join('\n');
 
+        const gasPayload = JSON.stringify({
+          token:      process.env.GAS_TOKEN,
+          action:     'createChatLead',
+          name:       leadData.name     || '',
+          email:      leadData.email    || '',
+          phone:      leadData.phone    || '',
+          postcode:   leadData.postcode || '',
+          source:     'chat',
+          sessionId,
+          transcript,
+          createdAt:  new Date().toISOString(),
+        });
+
+        // GAS parseBody reads e.parameter._body — raw JSON body is unreliable in GAS web apps
         const gasRes = await fetch(process.env.GAS_URL + '?action=webhook.chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token:      process.env.GAS_TOKEN,
-            action:     'createChatLead',
-            name:       leadData.name     || '',
-            email:      leadData.email    || '',
-            phone:      leadData.phone    || '',
-            postcode:   leadData.postcode || '',
-            source:     'chat',
-            sessionId,
-            transcript,
-            createdAt:  new Date().toISOString(),
-          }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: '_body=' + encodeURIComponent(gasPayload),
         });
         if (gasRes.ok) {
           leadFired = true;
