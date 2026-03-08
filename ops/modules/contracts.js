@@ -1,4 +1,4 @@
-const Contracts = (() => {
+window.Contracts = (() => {
   let _contracts = [];
   async function render() {
     try { _contracts = await API.get('contracts'); } catch(e) { _contracts = []; }
