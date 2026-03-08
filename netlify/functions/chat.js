@@ -1,179 +1,173 @@
-/**
- * AskMiro Chat Function  v2.0.0
- * ─────────────────────────────────────────────────────────────────
- * Netlify Function: /api/chat
- *
- * What's new in v2:
- *  - Miro proactively collects name / email / phone / postcode
- *  - Once all 4 are detected, fires a lead to GAS (createChatLead)
- *  - GAS sends email notification + creates CRM lead row
- *  - Full transcript saved with every lead
- *  - Duplicate-safe: client passes leadAlreadyFired flag
- *
- * ENV VARS (set in Netlify → Site Settings → Environment Variables):
- *   ANTHROPIC_API_KEY   — your Claude API key
- *   GAS_URL             — your GAS deployment URL
- *   GAS_TOKEN           — your GAS secret token
- * ─────────────────────────────────────────────────────────────────
- */
+// ============================================================
+// netlify/functions/chat.js
+// AskMiro AI Website Assistant — Netlify AI Gateway
+// Uses Netlify's injected Anthropic credentials automatically.
+// No API key management needed.
+// ============================================================
+
+const SYSTEM_PROMPT = `You are the virtual assistant for AskMiro Cleaning Services, 
+a professional commercial and residential cleaning company based in London, UK.
+
+Your role is to help potential clients and existing customers get answers quickly, 
+feel confident about AskMiro's services, and — where appropriate — capture their 
+contact details so the team can follow up with a bespoke proposal.
+
+About AskMiro:
+- Professional cleaning company operating across London and surrounding areas
+- Services: office cleaning, school and education cleaning, gym and leisure facilities, 
+  car dealerships, residential blocks and communal areas, retail and hospitality, 
+  warehouses and industrial units, one-off deep cleans
+- Typical contract value: £800–£5,000/month depending on size and frequency
+- Turnaround: quotes issued within 24–48 hours, site visits available within the week
+- Contact: office@askmiro.com | 020 8073 0621 | www.askmiro.com
+- Director: Mike Kato
+
+How to handle common questions:
+- Areas covered: Greater London primarily, with some work across the Home Counties. 
+  Always ask for their postcode to confirm coverage.
+- Quote requests: Collect property type, approximate size or number of rooms, 
+  desired frequency, and a contact name + email. Say the team will be in touch 
+  within 24 hours with a tailored proposal.
+- Site visits: Available — ask for their preferred day and contact details.
+- Pricing: Never quote specific prices. Say pricing is bespoke and depends on 
+  size, frequency, and scope. Offer to arrange a quote.
+- Existing clients: Take their name and site, note the issue, and say the ops 
+  team will contact them within the hour during business hours.
+
+Tone rules:
+- Sound like a sharp, warm, professional PA — not a chatbot
+- British English at all times (colour not color, recognise not recognize, etc.)
+- Short sentences. No waffle. No filler phrases like "Certainly!" or "Great question!"
+- Never say you are an AI unless directly asked
+- If directly asked whether you are an AI, say: "I'm AskMiro's virtual assistant — 
+  here to help you get the right information quickly."
+- Never make up information. If you don't know something, say 
+  "I'll need to check that with the team — can I take your email?"
+
+
+
+Lead capture: When someone is clearly interested in a quote or service, 
+politely collect: name, email, phone number, postcode. 
+Keep it conversational — one question at a time, not a form dump.
+Once you have all four confirmed, add this token on its own line at the very end of your message:
+LEAD_CAPTURED:{"name":"VALUE","email":"VALUE","phone":"VALUE","postcode":"VALUE"}`;
 
 export default async (req) => {
+  // ── CORS headers ─────────────────────────────────────────
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers
+    });
   }
 
   let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400, headers
     });
   }
 
-  const {
-    messages = [],
-    sessionId = null,
-    leadAlreadyFired = false,
-  } = body;
+  const { messages } = body;
 
-  // ── SYSTEM PROMPT ──────────────────────────────────────────────
-  const SYSTEM = `You are Miro, the friendly AI receptionist for AskMiro Cleaning Services — a managed commercial cleaning company based in London.
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(JSON.stringify({ error: 'messages array required' }), {
+      status: 400, headers
+    });
+  }
 
-Your job:
-1. Answer questions about AskMiro's services warmly and helpfully
-2. Qualify the visitor (type of premises, cleaning frequency, location)
-3. Collect contact details so a human can follow up with a tailored quote
+  // Sanitise — only pass role + content, cap at last 20 messages
+  const safeMessages = messages.slice(-20).map(m => ({
+    role:    m.role === 'assistant' ? 'assistant' : 'user',
+    content: String(m.content || '').slice(0, 2000), // cap per message
+  }));
 
-SERVICES: Office & commercial cleaning, residential blocks, automotive dealerships, medical & healthcare, retail & hospitality, educational institutions. COSHH-compliant, DBS-checked teams, £10M public liability, eco-conscious methods, fixed monthly rates, 24h quote turnaround.
-
-CONTACT COLLECTION:
-- Only ask for contact details AFTER understanding what they need (at least 1-2 exchanges)
-- Ask naturally — not like a form. E.g. "I'd love to get someone to put a proper quote together for you — could I grab your name and best email?"
-- Collect in order over natural conversation: full name → email → phone number → postcode
-- Once you have all four, confirm them back warmly and say the team will be in touch within 24 hours
-- If they decline, offer: 020 8073 0621 and info@askmiro.com
-
-TONE: Professional but warm. Concise. Write in natural sentences — no bullet lists in chat. Never say "As an AI". You ARE Miro.
-
-CRITICAL: When you have successfully collected AND confirmed all four details (name, email, phone, postcode), append this JSON token on its own line at the very end of your message — nothing after it:
-LEAD_CAPTURED:{"name":"VALUE","email":"VALUE","phone":"VALUE","postcode":"VALUE"}
-
-Only include LEAD_CAPTURED when you genuinely have all four values confirmed by the user.`;
-
-  // ── CALL CLAUDE ────────────────────────────────────────────────
-  let assistantMessage = '';
-  let leadData = null;
-
+  // ── Call Anthropic via Netlify AI Gateway ─────────────────
+  // Netlify auto-injects ANTHROPIC_API_KEY + ANTHROPIC_BASE_URL
+  // into the function environment. No setup needed.
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(`${process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com'}/v1/messages`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'Content-Type':      'application/json',
         'anthropic-version': '2023-06-01',
+        'x-api-key':         process.env.ANTHROPIC_API_KEY || '',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 500,
-        system: SYSTEM,
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        model:      'claude-haiku-4-5-20251001', // fast + cheap for chat
+        max_tokens:  512,
+        system:      SYSTEM_PROMPT,
+        messages:    safeMessages,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Anthropic API error — status:', response.status, '— body:', errText);
-      console.error('API key present:', !!process.env.ANTHROPIC_API_KEY);
-      console.error('API key prefix:', (process.env.ANTHROPIC_API_KEY || '').slice(0, 12));
-      throw new Error('Claude API error: ' + response.status);
+      console.error('Anthropic error:', response.status, errText);
+      return new Response(JSON.stringify({ error: 'AI service unavailable, please try again shortly.' }), {
+        status: 502, headers
+      });
     }
 
     const data = await response.json();
-    assistantMessage = data.content?.[0]?.text
-      || "I'm sorry, I had a hiccup! Please call us on 020 8073 0621 or email info@askmiro.com.";
+    const reply = data?.content?.[0]?.text || 'Sorry, I couldn\'t generate a response. Please call us on 020 8073 0621.';
 
-    // ── EXTRACT LEAD TOKEN ───────────────────────────────────────
-    const leadMatch = assistantMessage.match(/LEAD_CAPTURED:(\{[^\n}]+\})/);
+    // Extract lead token if present
+    let assistantMessage = reply;
+    let leadData = null;
+    const leadMatch = reply.match(/LEAD_CAPTURED:(\{[^\n}]+\})/);
     if (leadMatch) {
-      try {
-        leadData = JSON.parse(leadMatch[1]);
-      } catch (parseErr) {
-        console.error('Lead JSON parse error:', parseErr, leadMatch[1]);
-        leadData = null;
-      }
-      // Remove token from the visible reply
-      assistantMessage = assistantMessage
-        .replace(/\n?LEAD_CAPTURED:\{[^\n}]+\}/, '')
-        .trim();
+      try { leadData = JSON.parse(leadMatch[1]); } catch { leadData = null; }
+      assistantMessage = reply.replace(/\n?LEAD_CAPTURED:\{[^\n}]+\}/, '').trim();
     }
+
+    // Fire lead to GAS if captured
+    let leadFired = false;
+    const { sessionId = null, leadAlreadyFired = false } = body;
+    if (leadData && !leadAlreadyFired && process.env.GAS_URL && process.env.GAS_TOKEN) {
+      try {
+        const transcript = [
+          ...safeMessages.map(m => `${m.role === 'user' ? 'Visitor' : 'Miro'}: ${m.content}`),
+          `Miro: ${assistantMessage}`,
+        ].join('\n');
+        const gasRes = await fetch(process.env.GAS_URL + '?action=webhook.chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: process.env.GAS_TOKEN, action: 'createChatLead',
+            name: leadData.name || '', email: leadData.email || '',
+            phone: leadData.phone || '', postcode: leadData.postcode || '',
+            source: 'chat', sessionId: sessionId || 'unknown',
+            transcript, createdAt: new Date().toISOString(),
+          }),
+        });
+        if (gasRes.ok) { leadFired = true; console.log('Chat lead saved:', leadData.email); }
+      } catch (e) { console.error('GAS error:', e.message); }
+    }
+
+    return new Response(JSON.stringify({ message: assistantMessage, leadFired, leadData: leadFired ? leadData : null }), { status: 200, headers });
 
   } catch (err) {
     console.error('Chat function error:', err);
-    assistantMessage = "Sorry, I'm having a moment! Please call us on 020 8073 0621 or email info@askmiro.com and we'll get right back to you.";
+    return new Response(JSON.stringify({
+      error: 'Something went wrong. Please call us on 020 8073 0621 or email office@askmiro.com.'
+    }), { status: 500, headers });
   }
-
-  // ── FIRE LEAD TO GAS ──────────────────────────────────────────
-  let leadFired = false;
-
-  if (leadData && !leadAlreadyFired && process.env.GAS_URL && process.env.GAS_TOKEN) {
-    // Build readable transcript
-    const transcript = [
-      ...messages.map(m =>
-        `${m.role === 'user' ? 'Visitor' : 'Miro'}: ${m.content}`
-      ),
-      `Miro: ${assistantMessage}`,
-    ].join('\n');
-
-    const gasPayload = {
-      token:      process.env.GAS_TOKEN,
-      action:     'createChatLead',
-      name:       leadData.name      || '',
-      email:      leadData.email     || '',
-      phone:      leadData.phone     || '',
-      postcode:   leadData.postcode  || '',
-      source:     'chat',
-      sessionId:  sessionId          || 'unknown',
-      transcript: transcript,
-      createdAt:  new Date().toISOString(),
-    };
-
-    try {
-      const gasRes = await fetch(process.env.GAS_URL + '?action=webhook.chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(gasPayload),
-      });
-
-      if (gasRes.ok) {
-        leadFired = true;
-        console.log('✅ Chat lead saved:', leadData.email);
-      } else {
-        const errBody = await gasRes.text();
-        console.error('GAS lead failed:', errBody);
-      }
-    } catch (gasErr) {
-      console.error('GAS fetch error:', gasErr);
-      // Non-fatal — chat still works fine
-    }
-  }
-
-  // ── RESPOND ───────────────────────────────────────────────────
-  return new Response(
-    JSON.stringify({
-      message:   assistantMessage,
-      leadFired: leadFired,
-      leadData:  leadFired ? leadData : null,
-    }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
 };
 
-export const config = { path: '/api/chat' };
+export const config = {
+  path: '/api/chat',
+};
