@@ -1,2 +1,8 @@
-# AskMiro Ops SPA routing
-/ops/*  /ops/index.html  200
+# AskMiro Ops — Netlify _redirects
+
+/assets/*   /assets/:splat   200
+/modules/*  /modules/:splat  200
+
+/api/*      /.netlify/functions/:splat   200
+
+/*          /index.html      200
