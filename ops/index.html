@@ -51,7 +51,7 @@
 
     <div id="login-err" class="login-err hidden"></div>
     <button class="btn bp" id="login-btn" onclick="Auth.login()">Sign In &#8594;</button>
-    <p class="login-help">Need access? Contact <a href="/cdn-cgi/l/email-protection#10797e767f5071637b7d79627f3e737f7d"><span class="__cf_email__" data-cfemail="0861666e6748697b6365617a67266b6765">[email&#160;protected]</span></a></p>
+    <p class="login-help">Need access? Contact <a href="mailto:info@askmiro.com" style="color:inherit">info@askmiro.com</a></p>
   </div>
 </div>
 
@@ -191,7 +191,7 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="assets/config.js"></script>
+<script src="assets/config.js"></script>
 <script src="assets/api.js"></script>
 <script src="assets/ui.js"></script>
 <script src="assets/auth.js"></script>
@@ -203,3 +203,227 @@
 <script src="modules/contracts.js"></script>
 <script src="modules/ops.js"></script>
 <script src="modules/quality.js
+<script src="modules/quality.js"></script>
+<script src="modules/finance.js"></script>
+<script src="modules/admin.js"></script>
+<script src="modules/email.js"></script>
+<script src="modules/reception.js"></script>
+<script src="assets/app.js"></script>
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AskMiro Ops</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:;">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<div id="toast-wrap"></div>
+
+<div class="ov hidden" id="ov" onclick="if(event.target===this)UI.closeModal()">
+  <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <h3 id="drawer-title">Details</h3>
+    <button class="xbtn" onclick="UI.closeDrawer()">&#x2715;</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen hidden">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="6" fill="#0D9488"/>
+        <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1>AskMiro <em>Ops</em></h1>
+    <p class="login-sub">Enter your access token to continue</p>
+
+    <div class="fg">
+      <label class="fl">Access Token</label>
+      <input
+        type="password"
+        class="fin"
+        id="token-input"
+        placeholder="miro_..."
+        autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')Auth.login()"
+      >
+    </div>
+
+    <div id="login-err" class="login-err hidden"></div>
+    <button class="btn bp" id="login-btn" onclick="Auth.login()">Sign In &#8594;</button>
+    <p class="login-help">Need access? Contact <a href="mailto:info@askmiro.com" style="color:inherit">info@askmiro.com</a></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-shell" class="hidden">
+  <aside class="sidebar">
+
+    <!-- BRAND / LOGO -->
+    <div class="sb-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="#0D9488"/>
+        <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="sb-wordmark">Ask<em>Miro</em></span>
+    </div>
+
+    <!-- NAV -->
+    <nav class="sb-nav" id="sb-nav">
+      <a class="ni" data-route="dashboard" href="#/dashboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+        </svg>
+        Dashboard
+      </a>
+
+      <a class="ni" data-route="crm" href="#/crm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        CRM
+        <span class="nb" id="badge-crm" style="display:none">0</span>
+      </a>
+
+      <a class="ni" data-route="quotes" href="#/quotes">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <path d="M14 2v6h6"></path>
+          <path d="M16 13H8"></path>
+          <path d="M16 17H8"></path>
+          <path d="M10 9H8"></path>
+        </svg>
+        Quotes
+        <span class="nb" id="badge-quotes" style="display:none">0</span>
+      </a>
+
+      <a class="ni" data-route="contracts" href="#/contracts">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        Contracts
+      </a>
+
+      <div class="nd"></div>
+
+      <a class="ni" data-route="ops" href="#/ops">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18"></path>
+          <path d="M3 6h18"></path>
+          <path d="M3 18h18"></path>
+        </svg>
+        Operations
+      </a>
+
+      <a class="ni" data-route="quality" href="#/quality">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5"></path>
+        </svg>
+        Quality
+      </a>
+
+      <a class="ni" data-route="finance" href="#/finance">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1v22"></path>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+        Finance
+      </a>
+
+      <a class="ni" data-route="email" href="#/email">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4h16v16H4z"></path>
+          <path d="M22 6l-10 7L2 6"></path>
+        </svg>
+        Email
+      </a>
+
+      <a class="ni" data-route="reception" href="#/reception">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16h.42a2 2 0 0 1 .08.92z"/>
+        </svg>
+        Reception
+      </a>
+
+      <a class="ni" data-route="admin" href="#/admin">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V22a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 20.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.26.5.39 1.06.39 1.62s-.13 1.12-.39 1.62"></path>
+        </svg>
+        Admin
+      </a>
+    </nav>
+
+    <!-- USER -->
+    <div class="sb-user">
+      <div class="av" id="user-av">MK</div>
+      <div class="sb-user-info">
+        <strong id="user-name">Loading…</strong>
+        <span id="user-role">—</span>
+      </div>
+      <button class="xbtn" onclick="Auth.logout()" title="Sign out">&#x2715;</button>
+    </div>
+
+  </aside>
+
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="live-dot"></div>
+      <span class="page-title" id="page-title">Dashboard</span>
+      <div class="tb-spacer"></div>
+      <span class="tb-env" id="tb-env">&#9679; Live</span>
+      <button class="btn bp btn-sm" id="primary-cta" style="display:none">Action</button>
+    </header>
+
+    <main class="main-content" id="main-content">
+      <div class="page-loader" id="page-loader">
+        <div class="spinner"></div>
+        <span>Loading&#8230;</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="assets/config.js"></script>
+<script src="assets/api.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/router.js"></script>
+<script src="assets/intelligence_panel_configured.js"></script>
+<script src="modules/dashboard.js"></script>
+<script src="modules/crm.js"></script>
+<script src="modules/quotes.js"></script>
+<script src="modules/contracts.js"></script>
+<script src="modules/ops.js"></script>
+<script src="modules/quality.js
+<script src="modules/quality.js"></script>
+<script src="modules/finance.js"></script>
+<script src="modules/admin.js"></script>
+<script src="modules/email.js"></script>
+<script src="modules/reception.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/chat-widget.js"></script>
+
+</body>
+</html>
+
+</body>
+</html>
