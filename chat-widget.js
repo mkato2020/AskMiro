@@ -30,19 +30,26 @@
       position: fixed; bottom: 28px; right: 28px; z-index: 9998;
       width: 58px; height: 58px; border-radius: 50%; border: none;
       background: linear-gradient(135deg, #0DBDAD, #0A9688);
-      box-shadow: 0 4px 24px rgba(10,150,136,.5), 0 0 0 0 rgba(13,189,173,.35);
+      box-shadow: 0 4px 24px rgba(10,150,136,.5);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: transform .3s cubic-bezier(0.34,1.3,0.64,1), box-shadow .25s;
+    }
+    /* GPU-composited pulse ring — uses transform not box-shadow */
+    #am-bubble::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: rgba(13,189,173,.35);
+      transform: scale(1); opacity: 1;
       animation: am-pulse 3s ease-in-out infinite;
+      will-change: transform, opacity;
     }
     #am-bubble:hover {
       transform: scale(1.1);
-      box-shadow: 0 8px 32px rgba(10,150,136,.6), 0 0 0 8px rgba(13,189,173,.12);
-      animation: none;
+      box-shadow: 0 8px 32px rgba(10,150,136,.6);
     }
+    #am-bubble:hover::before { animation: none; opacity: 0; }
     @keyframes am-pulse {
-      0%,100% { box-shadow: 0 4px 24px rgba(10,150,136,.5), 0 0 0 0 rgba(13,189,173,.35); }
-      50%      { box-shadow: 0 4px 24px rgba(10,150,136,.5), 0 0 0 10px rgba(13,189,173,.08); }
+      0%,100% { transform: scale(1);   opacity: .35; }
+      50%      { transform: scale(1.5); opacity: 0;   }
     }
     #am-bubble svg { pointer-events: none; transition: transform .3s cubic-bezier(0.34,1.3,0.64,1); }
     #am-bubble.open svg.icon-chat  { transform: scale(0) rotate(-90deg); }
