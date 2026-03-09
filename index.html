@@ -57,6 +57,10 @@ body { font-family:'Figtree',system-ui,sans-serif; background:var(--bg-base); co
 img { max-width:100%; display:block; }
 a   { text-decoration:none; color:inherit; }
 
+/* Skip link — accessibility */
+.skip-link{position:absolute;top:-40px;left:0;background:var(--teal);color:#fff;padding:8px 16px;border-radius:0 0 8px 0;font-size:14px;font-weight:600;z-index:9999;transition:top .2s;}
+.skip-link:focus{top:0;}
+
 /* ── TEAL MESH WASH (light sections) ── */
 .teal-mesh {
   position:absolute; inset:0; z-index:0; pointer-events:none;
@@ -435,11 +439,12 @@ section { padding:120px 40px; position:relative; }
     radial-gradient(ellipse 40% 40% at 100% 100%, rgba(10,150,136,0.1) 0%, transparent 50%);
 }
 .cta-section::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  content:''; position:absolute; top:0; left:-100%; right:auto; width:100%; height:1px;
   background:linear-gradient(90deg,transparent,var(--teal-mid),rgba(20,212,194,.7),var(--teal-mid),transparent);
-  background-size:200% 100%; animation:scan 5s linear infinite;
+  animation:scan 5s linear infinite;
+  will-change:transform;
 }
-@keyframes scan { 0%{background-position:120% 0} 100%{background-position:-120% 0} }
+@keyframes scan { 0%{transform:translateX(0)} 100%{transform:translateX(200%)} }
 .cta-inner { position:relative; z-index:1; max-width:700px; margin:0 auto; }
 .cta-inner h2 { font-size:clamp(2.5rem,5vw,4.5rem); font-weight:800; line-height:.95; letter-spacing:-.035em; margin-bottom:22px; color:#fff; }
 .cta-inner h2 em { font-style:normal; color:var(--teal-light); }
@@ -566,15 +571,16 @@ footer {
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"AskMiro Cleaning Services","url":"https://www.askmiro.com","telephone":"+442080730621","email":"info@askmiro.com","address":{"@type":"PostalAddress","addressLocality":"London","addressCountry":"GB"},"priceRange":"££"}</script>
 </head>
 <body>
+<a href="#home" class="skip-link">Skip to main content</a>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5TC9N4P5" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- NAV -->
 <nav id="nav" aria-label="Main navigation">
   <a href="/" class="nav-logo">
-    <img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">
+    <img src="/favicon.svg" alt="" width="28" height="28" style="border-radius:7px;flex-shrink:0" aria-hidden="true">
     Ask<span style="color:var(--teal-light)">Miro</span>
   </a>
-  <ul class="nav-links">
+  <ul class="nav-links" role="list">
     <li><a href="#why-askmiro">Why AskMiro</a></li>
     <li><a href="#services">Services</a></li>
     <li><a href="#how-it-works">How It Works</a></li>
@@ -716,16 +722,37 @@ footer {
     </div>
     <div class="video-grid reveal">
       <div class="video-cell large" onclick="openVideoModal('office')">
-        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1600&h=700&fit=crop&q=80" alt="Office cleaning">
-        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Office & Commercial Cleaning</div><div class="video-sub">Canary Wharf · City of London · Southwark</div></div>
+        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fm=webp&q=65&fit=crop"
+             srcset="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&auto=format&fm=webp&q=60&fit=crop 600w,
+                     https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fm=webp&q=65&fit=crop 800w,
+                     https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=65&fit=crop 1200w"
+             sizes="(max-width:768px) 100vw, 65vw"
+             width="800" height="350"
+             alt="Office and commercial cleaning service by AskMiro London"
+             loading="lazy" decoding="async">
+        <div class="video-overlay"><div class="play-btn" aria-label="View office cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Office & Commercial Cleaning</div><div class="video-sub">Canary Wharf · City of London · Southwark</div></div>
       </div>
       <div class="video-cell" onclick="openVideoModal('residential')">
-        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=500&fit=crop&q=80" alt="Residential blocks">
-        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Residential Blocks</div><div class="video-sub">Communal areas & lobbies</div></div>
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fm=webp&q=65&fit=crop"
+             srcset="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&auto=format&fm=webp&q=60&fit=crop 400w,
+                     https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fm=webp&q=65&fit=crop 600w,
+                     https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fm=webp&q=65&fit=crop 800w"
+             sizes="(max-width:768px) 100vw, 33vw"
+             width="600" height="375"
+             alt="Residential block communal area cleaning London"
+             loading="lazy" decoding="async">
+        <div class="video-overlay"><div class="play-btn" aria-label="View residential cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Residential Blocks</div><div class="video-sub">Communal areas & lobbies</div></div>
       </div>
       <div class="video-cell" onclick="openVideoModal('automotive')">
-        <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&h=500&fit=crop&q=80" alt="Deep clean">
-        <div class="video-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 18 18" fill="white"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Deep Clean & Specialist</div><div class="video-sub">Dealerships, facilities & specialist sectors</div></div>
+        <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fm=webp&q=65&fit=crop"
+             srcset="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=400&auto=format&fm=webp&q=60&fit=crop 400w,
+                     https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fm=webp&q=65&fit=crop 600w,
+                     https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&auto=format&fm=webp&q=65&fit=crop 800w"
+             sizes="(max-width:768px) 100vw, 33vw"
+             width="600" height="375"
+             alt="Deep clean and specialist cleaning service AskMiro"
+             loading="lazy" decoding="async">
+        <div class="video-overlay"><div class="play-btn" aria-label="View deep cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Deep Clean & Specialist</div><div class="video-sub">Dealerships, facilities & specialist sectors</div></div>
       </div>
     </div>
   </div>
@@ -818,7 +845,7 @@ footer {
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px">
 
       <!-- Card 1 -->
-      <a href="/office-cleaning-cost-london" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
+      <a href="/office-cleaning-cost-london" aria-label="Read our office cleaning cost guide for London" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
         <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:hidden">
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 100% 0%,rgba(13,189,173,.12) 0%,transparent 60%)"></div>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 14px rgba(13,189,173,.35);position:relative">
@@ -830,15 +857,15 @@ footer {
         <div style="padding:20px 28px 24px;flex:1;display:flex;flex-direction:column;gap:12px">
           <p style="font-size:13px;color:var(--text-2);line-height:1.65;margin:0">Transparent pricing for every office size — from a 5-desk startup to a 100-person floor. What the market charges and what you should pay.</p>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto">
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">From £48/visit</span>
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">All sizes</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">From £48/visit</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">All sizes</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--teal);margin-top:4px">Read guide <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0A7A70;margin-top:4px">Read guide <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
       </a>
 
       <!-- Card 2 -->
-      <a href="/office-cleaning-checklist-london" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
+      <a href="/office-cleaning-checklist-london" aria-label="Open the office cleaning checklist for London" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
         <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:hidden">
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 0% 100%,rgba(13,189,173,.1) 0%,transparent 60%)"></div>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 14px rgba(13,189,173,.35);position:relative">
@@ -850,15 +877,15 @@ footer {
         <div style="padding:20px 28px 24px;flex:1;display:flex;flex-direction:column;gap:12px">
           <p style="font-size:13px;color:var(--text-2);line-height:1.65;margin:0">Daily, weekly, monthly and quarterly tasks — all in one interactive checklist you can tick off in the browser or print for your cleaning team.</p>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto">
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">Interactive</span>
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">Printable</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Interactive</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Printable</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--teal);margin-top:4px">Open checklist <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0A7A70;margin-top:4px">Open checklist <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
       </a>
 
       <!-- Card 3 -->
-      <a href="/deep-cleaning-service-london" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
+      <a href="/deep-cleaning-service-london" aria-label="Read our deep cleaning service guide for London" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
         <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:hidden">
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 100% 100%,rgba(13,189,173,.1) 0%,transparent 60%)"></div>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 14px rgba(13,189,173,.35);position:relative">
@@ -870,15 +897,15 @@ footer {
         <div style="padding:20px 28px 24px;flex:1;display:flex;flex-direction:column;gap:12px">
           <p style="font-size:13px;color:var(--text-2);line-height:1.65;margin:0">What a real deep clean includes, when you need one, and exactly what AskMiro covers from £295. For residential, commercial, and post-tenancy.</p>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto">
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">From £295</span>
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">Residential + Commercial</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">From £295</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Residential + Commercial</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--teal);margin-top:4px">Read guide <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0A7A70;margin-top:4px">Read guide <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
       </a>
 
       <!-- Card 4 -->
-      <a href="/end-of-tenancy-cleaning-checklist-london" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
+      <a href="/end-of-tenancy-cleaning-checklist-london" aria-label="Open the end of tenancy cleaning checklist for London" style="text-decoration:none;display:flex;flex-direction:column;background:var(--bg-alt);border:1px solid rgba(13,28,46,.08);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(13,28,46,.1)';this.style.borderColor='rgba(13,189,173,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,28,46,.08)'">
         <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:relative;overflow:hidden">
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 0%,rgba(13,189,173,.1) 0%,transparent 60%)"></div>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 14px rgba(13,189,173,.35);position:relative">
@@ -890,10 +917,10 @@ footer {
         <div style="padding:20px 28px 24px;flex:1;display:flex;flex-direction:column;gap:12px">
           <p style="font-size:13px;color:var(--text-2);line-height:1.65;margin:0">Room-by-room checklist used by London letting agents. What landlords actually check, what tenants miss, and how to get your full deposit back.</p>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto">
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">From £275</span>
-            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em">Deposit protection</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">From £275</span>
+            <span style="background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#065F56;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Deposit protection</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--teal);margin-top:4px">Open checklist <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0A7A70;margin-top:4px">Open checklist <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
       </a>
 
@@ -966,12 +993,12 @@ footer {
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <div class="footer-logo"><img src="/favicon.svg" alt="AskMiro" width="28" height="28" style="border-radius:7px;flex-shrink:0">Ask<span style="color:var(--teal-light)">Miro</span></div>
+        <div class="footer-logo"><img src="/favicon.svg" alt="" aria-hidden="true" width="28" height="28" style="border-radius:7px;flex-shrink:0">Ask<span style="color:var(--teal-light)">Miro</span></div>
         <p>Managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent, compliant, and eco-conscious.</p>
       </div>
-      <div class="footer-col"><p class="footer-col-title">Services</p><ul><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Company</p><ul><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Contact</p><ul><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Services</p><ul role="list" aria-label="Services"><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Company</p><ul role="list" aria-label="Company links"><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Contact</p><ul role="list" aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
@@ -1011,18 +1038,33 @@ footer {
 <script>
 // Hero slides
 const heroSlides=[
-  {img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1920&h=1080&fit=crop&q=85',headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'},
-  {img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&h=1080&fit=crop&q=85',headline:'Managed service.<br>One point of <em>contact</em>.',sub:'Site-specific plans, regular quality checks, and a single account manager for everything.'},
-  {img:'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1920&h=1080&fit=crop&q=85',headline:'Every sector.<br>One <em>standard</em>.',sub:'Offices, residential blocks, automotive dealerships — all managed to the same exacting level.'}
+  {img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75&fit=crop',headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'},
+  {img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fm=webp&q=75&fit=crop',headline:'Managed service.<br>One point of <em>contact</em>.',sub:'Site-specific plans, regular quality checks, and a single account manager for everything.'},
+  {img:'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=1200&auto=format&fm=webp&q=75&fit=crop',headline:'Every sector.<br>One <em>standard</em>.',sub:'Offices, residential blocks, automotive dealerships — all managed to the same exacting level.'}
 ];
 let heroIdx=0,heroTimer;
 function goHeroSlide(n){
-  heroIdx=n;const s=heroSlides[n];
+  heroIdx=n;
+  const s=heroSlides[n];
   const bg=document.getElementById('heroBg');
-  bg.style.opacity='0';
-  setTimeout(()=>{document.getElementById('heroImg').src=s.img;document.getElementById('heroHeadline').innerHTML=s.headline;document.getElementById('heroSub').textContent=s.sub;bg.style.transition='opacity 1.2s ease';bg.style.opacity='1';},350);
+  const img=document.getElementById('heroImg');
+  const hl=document.getElementById('heroHeadline');
+  const sub=document.getElementById('heroSub');
+  // Read phase — no DOM writes yet
+  requestAnimationFrame(()=>{
+    bg.style.opacity='0';
+    setTimeout(()=>{
+      // Batch all writes together
+      img.src=s.img;
+      hl.innerHTML=s.headline;
+      sub.textContent=s.sub;
+      bg.style.transition='opacity 1.2s ease';
+      bg.style.opacity='1';
+    },350);
+  });
   document.querySelectorAll('.slide-dot').forEach((d,i)=>d.classList.toggle('active',i===n));
-  clearInterval(heroTimer);heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
+  clearInterval(heroTimer);
+  heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
 }
 heroTimer=setInterval(()=>goHeroSlide((heroIdx+1)%heroSlides.length),7000);
 
