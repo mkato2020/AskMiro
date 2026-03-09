@@ -33,9 +33,9 @@ window.Email = (() => {
     navy:        '#0A1628',   // header background
     navyMid:     '#0F2040',   // secondary dark
     charcoal:    '#111827',   // primary text
-    body:        '#374151',   // body text
-    slate:       '#6B7280',   // secondary text
-    muted:       '#9CA3AF',   // placeholder/meta
+    body:        '#1F2937',   // body text — high contrast
+    slate:       '#374151',   // secondary text — darkened for WCAG AA contrast
+    muted:       '#6B7280',   // placeholder/meta — darkened for WCAG AA contrast
     border:      '#E5E7EB',   // hairlines
     borderLight: '#F3F4F6',   // zebra rows
     offWhite:    '#F9FAFB',   // panel backgrounds
@@ -117,12 +117,12 @@ window.Email = (() => {
 
   // Display headline — heavy, tight, confident
   function _h(t) {
-    return `<h1 style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:32px;font-weight:900;color:${T.charcoal};letter-spacing:-1.5px;line-height:1.05">${t}</h1>`;
+    return `<h1 style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:800;color:${T.charcoal};letter-spacing:-0.8px;line-height:1.15">${t}</h1>`;
   }
 
-  // Eyebrow — teal pill badge
+  // Eyebrow — uppercase tracking, teal
   function _sub(t) {
-    return `<p style="margin:0 0 30px"><span style="display:inline-block;background:${T.tealGhost};border:1.5px solid ${T.tealLight};border-radius:20px;padding:5px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:800;color:${T.teal};letter-spacing:1.8px;text-transform:uppercase">${t}</span></p>`;
+    return `<p style="margin:0 0 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:${T.teal};letter-spacing:1.5px;text-transform:uppercase">${t}</p>`;
   }
 
   // Body paragraph
@@ -130,14 +130,14 @@ window.Email = (() => {
     return `<p style="margin:0 0 18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;color:${T.body};line-height:1.8">${t}</p>`;
   }
 
-  // Salutation — personal, warm, bold
+  // Salutation — personal, warm
   function _gr(name) {
-    return `<p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:${T.charcoal}">Hi ${_esc(name || 'there')},</p>`;
+    return `<p style="margin:0 0 22px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:${T.charcoal}">Hi ${_esc(name || 'there')},</p>`;
   }
 
-  // Section heading — bold with teal left accent bar
+  // Section heading — tight uppercase inside body
   function _sh(t) {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0 14px"><tr><td style="width:3px;background:${T.teal};border-radius:3px;font-size:1px;line-height:1px">&nbsp;</td><td style="padding-left:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;color:${T.charcoal};letter-spacing:1px;text-transform:uppercase">${t}</td></tr></table>`;
+    return `<p style="margin:24px 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;color:${T.charcoal};letter-spacing:0.8px;text-transform:uppercase">${t}</p>`;
   }
 
   // Small print
@@ -145,9 +145,9 @@ window.Email = (() => {
     return `<p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.muted};line-height:1.7">${t}</p>`;
   }
 
-  // Gradient divider
+  // Hairline divider
   function _div() {
-    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin:32px 0"><tr><td style="height:2px;background:linear-gradient(90deg,${T.teal},${T.tealLight},transparent);border-radius:2px;font-size:2px;line-height:2px">&nbsp;</td></tr></table>`;
+    return `<table cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0"><tr><td style="height:1px;background:${T.border};font-size:1px;line-height:1px">&nbsp;</td></tr></table>`;
   }
 
   // ── CHECKLIST — clean enterprise rows ────────────────────
@@ -238,7 +238,7 @@ window.Email = (() => {
     return `<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px">
       <tr><td style="background:linear-gradient(135deg,${T.teal},${T.tealDark});border-radius:12px;padding:28px 32px">
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.55);margin-bottom:8px">${label}</div>
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:58px;font-weight:900;color:#FFFFFF;letter-spacing:-3px;line-height:1">${amount}</div>
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:48px;font-weight:800;color:#FFFFFF;letter-spacing:-2px;line-height:1">${amount}</div>
         ${sub ? `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.55);margin-top:10px">${sub}</div>` : ''}
       </td></tr>
     </table>`;
@@ -322,7 +322,7 @@ window.Email = (() => {
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 
   <!-- ACCENT BAR -->
-  <tr><td style="height:6px;background:linear-gradient(90deg,${ac},${T.tealMid},${T.tealLight});border-radius:12px 12px 0 0;font-size:6px;line-height:6px">&nbsp;</td></tr>
+  <tr><td style="height:4px;background:linear-gradient(90deg,${ac},${T.tealMid});border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>
 
   <!-- HEADER -->
   <tr><td style="background:${T.navy};padding:26px 36px">
@@ -332,14 +332,14 @@ window.Email = (() => {
           <table cellpadding="0" cellspacing="0"><tr>
             <td style="padding-right:14px;vertical-align:middle">${LOGO}</td>
             <td style="vertical-align:middle">
-              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:24px;font-weight:900;color:#FFFFFF;letter-spacing:-1px;line-height:1">AskMiro</div>
-              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase;margin-top:4px;font-weight:600">Professional Cleaning · London &amp; UK</div>
+              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>
+              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>
             </td>
           </tr></table>
         </td>
         <td align="right" style="vertical-align:middle">
-          <div style="display:inline-block;background:${ac};border-radius:20px;padding:6px 16px">
-            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:800;color:#FFFFFF;letter-spacing:0.8px;text-transform:uppercase">${_esc(label)}</span>
+          <div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">${_esc(label)}</span>
           </div>
         </td>
       </tr>
@@ -347,7 +347,7 @@ window.Email = (() => {
   </td></tr>
 
   <!-- BODY -->
-  <tr><td style="background:#FFFFFF;padding:48px 44px 40px;border-left:1px solid ${T.border};border-right:1px solid ${T.border}">
+  <tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ${T.border};border-right:1px solid ${T.border}">
     ${bodyHtml}
     ${_sig(sender)}
   </td></tr>
@@ -814,12 +814,12 @@ Thanks again and nice to meet you.`;
     subjEl.value  = _resolveTokens(TEMPLATES[tmpl].subject, fields);
   }
 
-  // Frame loader — tries srcdoc first (most compatible), falls back to base64 data URI
+  // Frame loader — srcdoc first, then base64 fallback, then doc.write
   function _setFrameHTML(frameId, html) {
     const frame = document.getElementById(frameId);
     if (!frame) return;
     try {
-      // Method 1: srcdoc — works in most browsers including sandboxed environments
+      // Method 1: srcdoc — works in sandboxed iframes (Netlify, Cloudflare)
       frame.removeAttribute('src');
       frame.srcdoc = html;
     } catch(e) {
@@ -828,13 +828,13 @@ Thanks again and nice to meet you.`;
         const b64 = btoa(unescape(encodeURIComponent(html)));
         frame.src = 'data:text/html;base64,' + b64;
       } catch(e2) {
-        // Method 3: write directly (last resort)
+        // Method 3: write directly to contentDocument
         frame.src = 'about:blank';
         setTimeout(() => {
           try {
             const doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
             if (doc) { doc.open(); doc.write(html); doc.close(); }
-          } catch(e3) { console.warn('Preview blocked:', e3); }
+          } catch(e3) { console.warn('Email preview blocked by CSP:', e3); }
         }, 80);
       }
     }
@@ -939,8 +939,10 @@ Thanks again and nice to meet you.`;
         subject:  resolvedSubject,
         template: tmpl || 'Custom',
         fields:   JSON.stringify(fields),
-        replyTo:  BRAND.replyTo,    // explicit Reply-To header for GAS
-        fromName: BRAND.company,    // display name instead of personal Gmail
+        replyTo:  BRAND.replyTo,           // explicit Reply-To header for GAS
+        fromName: BRAND.company,           // display name instead of personal Gmail
+        listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,  // Gmail deliverability
+        listUnsubscribePost: 'List-Unsubscribe=One-Click',                      // one-click unsubscribe
       });
 
       if (window.UI) UI.toast('✓ Email sent to ' + to, 'g');
@@ -1293,6 +1295,8 @@ Thanks again and nice to meet you.`;
       await API.post('email.send', {
         to, subject: reSubject, notes: body, htmlBody: '', template: 'Reply',
         replyTo: BRAND.replyTo, fromName: BRAND.company,
+        listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,
+        listUnsubscribePost: 'List-Unsubscribe=One-Click',
       });
       if (window.UI) UI.toast('Reply sent', 'g');
       _closeThread();
