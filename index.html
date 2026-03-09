@@ -250,7 +250,7 @@ section { padding:120px 40px; position:relative; }
 
 /* ── WHY — BENTO ── */
 .bento {
-  display:grid; grid-template-columns:repeat(3,1fr);
+  display:grid; grid-template-columns:repeat(2,1fr);
   gap:0;
   border:1px solid var(--border);
   border-radius:var(--r-xl); overflow:hidden;
@@ -271,11 +271,8 @@ section { padding:120px 40px; position:relative; }
 .bento-card:hover { background:var(--teal-wash); box-shadow:var(--shadow-md); }
 .bento-card:hover::after { transform:scaleX(1); }
 .bento-card.featured {
-  grid-column:span 2;
   background:linear-gradient(135deg, rgba(13,189,173,0.05) 0%, rgba(10,150,136,0.02) 100%);
-  border-bottom:1px solid var(--border-teal);
 }
-.bento-card.tall { grid-row:span 2; }
 .bento-icon {
   width:44px; height:44px;
   background:linear-gradient(135deg,var(--teal-mid),var(--teal));
@@ -523,7 +520,7 @@ footer {
 
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){
-  .bento{grid-template-columns:1fr 1fr}.bento-card.featured{grid-column:span 2}
+  .bento{grid-template-columns:repeat(2,1fr)}
   .process-grid{grid-template-columns:repeat(2,1fr);gap:40px}.process-grid::before{display:none}
   .trust-grid{grid-template-columns:repeat(2,1fr)}.testi-grid{grid-template-columns:1fr 1fr}
   .footer-grid{grid-template-columns:1fr 1fr}
@@ -531,7 +528,7 @@ footer {
 @media(max-width:768px){
   section{padding:80px 24px} nav{padding:0 24px} .hero-content{padding:0 24px 60px}
   .hero-stats{gap:28px;flex-wrap:wrap} .nav-links{display:none} .nav-mobile-btn{display:block}
-  .bento{grid-template-columns:1fr} .bento-card.featured{grid-column:span 1} .bento-card.tall{grid-row:span 1}
+  .bento{grid-template-columns:1fr}
   .video-grid{grid-template-columns:1fr} .video-cell.large{grid-column:span 1;aspect-ratio:16/9}
   .testi-grid{grid-template-columns:1fr} .trust-grid{grid-template-columns:1fr 1fr}
   .footer-grid{grid-template-columns:1fr} .hero-slide-nav{display:none} .services-grid{grid-template-columns:1fr}
@@ -1224,7 +1221,7 @@ footer {
       </div>
       <div class="footer-col"><p class="footer-col-title">Services</p><ul aria-label="Services"><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
       <div class="footer-col"><p class="footer-col-title">Company</p><ul aria-label="Company links"><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Contact</p><ul aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="mailto:office@askmiro.com">office@askmiro.com</a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Contact</p><ul aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#3f505959565c5a7f5e4c5452564d50115c5052"><span class="__cf_email__" data-cfemail="640b02020d07012405170f090d160b4a070b09">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
@@ -1261,7 +1258,7 @@ footer {
 </div>
 
 <!-- Cloudflare email-decode: injected automatically by CF proxy — removed hardcoded duplicate that was 404ing -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Hero slides
 const heroSlides=[
   {img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75&fit=crop',headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'},
@@ -1343,8 +1340,4 @@ function declineCookies(){localStorage.setItem('cookieConsent','declined');docum
 window.addEventListener('load',showCookie);
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=GT-PJ7M23PN"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','GT-PJ7M23PN');gtag('config','AW-17948916112');</script>
-<script src="/get_quote_form_patch_configured.js" defer></script>
-<script src="/chat-widget.js" defer></script>
-</body>
-</html>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLa
