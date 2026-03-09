@@ -251,13 +251,16 @@ section { padding:120px 40px; position:relative; }
 /* ── WHY — BENTO ── */
 .bento {
   display:grid; grid-template-columns:repeat(3,1fr);
-  gap:1px; background:var(--border);
+  gap:0;
+  border:1px solid var(--border);
   border-radius:var(--r-xl); overflow:hidden;
   box-shadow:var(--shadow-lg);
 }
 .bento-card {
   background:var(--bg-surface); padding:42px 36px;
-  transition:background .25s, transform .25s var(--ease), box-shadow .25s;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  transition:background .25s, box-shadow .25s;
   position:relative; overflow:hidden;
 }
 .bento-card::after {
