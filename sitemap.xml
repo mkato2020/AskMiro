@@ -67,11 +67,6 @@
   </url>
 
   <!-- Utility -->
-  <url>
-    <loc>https://www.askmiro.com/review</loc>
-    <lastmod>2026-03-08</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
+  <!-- /review intentionally excluded — noindex page for customer use only -->
 
 </urlset>
