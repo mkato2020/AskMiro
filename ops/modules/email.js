@@ -33,9 +33,9 @@ window.Email = (() => {
     navy:        '#0A1628',   // header background
     navyMid:     '#0F2040',   // secondary dark
     charcoal:    '#111827',   // primary text
-    body:        '#1F2937',   // body text — high contrast
-    slate:       '#374151',   // secondary text — darkened for WCAG AA contrast
-    muted:       '#6B7280',   // placeholder/meta — darkened for WCAG AA contrast
+    body:        '#1F2937',   // body text — WCAG AA (#1F2937 on #FFF = 15.3:1)
+    slate:       '#4B5563',   // secondary text — WCAG AA (#4B5563 on #FFF = 7.2:1)
+    muted:       '#6B7280',   // placeholder/meta — used only on dark bg footer (passes AA)
     border:      '#E5E7EB',   // hairlines
     borderLight: '#F3F4F6',   // zebra rows
     offWhite:    '#F9FAFB',   // panel backgrounds
@@ -492,7 +492,7 @@ Thanks again and nice to meet you.`,
       fields: [
         { id: 'name',      label: 'Client Name',     ph: 'e.g. Sarah Collins',  type: 'text', default: '' },
         { id: 'site',      label: 'Company / Site',  ph: 'e.g. Acme Ltd',       type: 'text', default: '' },
-        { id: 'renewDate', label: 'Renewal Date',    ph: 'e.g. 1 April 2026',   type: 'text', default: '' },
+        { id: 'renewDate', label: 'Renewal Date',    ph: 'e.g. 1 April 2026',   type: 'text', default: '' },  // no default — must be entered
         { id: 'schedule',  label: 'Schedule',        ph: 'e.g. Mon–Fri, 6–9am', type: 'text', default: '' },
         { id: 'amount',    label: 'Monthly Fee (£)', ph: 'e.g. 1200',           type: 'text', default: '' },
       ],
@@ -696,7 +696,7 @@ Thanks again and nice to meet you.`;
 
       return _wrap('Invoice', T.navy,
         _h(`Invoice ${_esc(f.invNum || '[INV-XXX]')}.`) +
-        _sub(`${_esc(f.period || '[Month Year]')} — ${_esc(f.site || '[Site]')}`) +
+        _sub(`${_esc(f.period || 'Service Period')} — ${_esc(f.site || 'Your Organisation')}`) +
         _gr(f.name || 'Client') +
         (net ? _heroPrice('£' + parseFloat(total).toLocaleString(), 'Total Amount Due', `Due by ${_esc(f.dueDate || '—')} &nbsp;&bull;&nbsp; Includes VAT`) : '') +
         _p(`Please find below your invoice for commercial cleaning services at <strong>${_esc(f.site || 'your site')}</strong> for <strong>${_esc(f.period || 'the service period')}</strong>.`) +
@@ -730,7 +730,7 @@ Thanks again and nice to meet you.`;
         _h('Your service agreement is up for renewal.') +
         _sub("We'd love to continue working with you") +
         _gr(f.name || 'there') +
-        _p(`Your current service agreement for <strong>${_esc(f.site || 'your site')}</strong> is due for renewal on <strong>${_esc(f.renewDate || '[DATE]')}</strong>. We would love to continue working with you.`) +
+        _p(`Your current service agreement for <strong>${_esc(f.site || 'your site')}</strong> is due for renewal on <strong>${_esc(f.renewDate || '[Renewal Date]')}</strong>. We would love to continue working with you.`) +
         _sh('Current service summary') +
         _table([
           ['Site',          _esc(f.site      || '—')],
@@ -814,26 +814,23 @@ Thanks again and nice to meet you.`;
     subjEl.value  = _resolveTokens(TEMPLATES[tmpl].subject, fields);
   }
 
-  // Frame loader — srcdoc first, then base64 fallback, then doc.write
+  // Frame loader — srcdoc first (works in sandboxed envs), base64 fallback, doc.write last resort
   function _setFrameHTML(frameId, html) {
     const frame = document.getElementById(frameId);
     if (!frame) return;
     try {
-      // Method 1: srcdoc — works in sandboxed iframes (Netlify, Cloudflare)
       frame.removeAttribute('src');
-      frame.srcdoc = html;
+      frame.srcdoc = html;                          // Method 1: srcdoc — Netlify/Cloudflare safe
     } catch(e) {
       try {
-        // Method 2: base64 data URI
         const b64 = btoa(unescape(encodeURIComponent(html)));
-        frame.src = 'data:text/html;base64,' + b64;
+        frame.src = 'data:text/html;base64,' + b64; // Method 2: base64 data URI
       } catch(e2) {
-        // Method 3: write directly to contentDocument
         frame.src = 'about:blank';
         setTimeout(() => {
           try {
             const doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
-            if (doc) { doc.open(); doc.write(html); doc.close(); }
+            if (doc) { doc.open(); doc.write(html); doc.close(); } // Method 3: doc.write
           } catch(e3) { console.warn('Email preview blocked by CSP:', e3); }
         }, 80);
       }
@@ -907,6 +904,10 @@ Thanks again and nice to meet you.`;
   }
 
   // ── SEND ─────────────────────────────────────────────────
+  // Bulk/outreach templates require List-Unsubscribe (RFC 2369 + Gmail best practice)
+  // 1:1 operational emails (Invoice, Welcome, Proposal, Renewal) do NOT need it
+  const BULK_TEMPLATES = new Set(['Introduction', 'Follow-up', 'Referral / Introduction Follow-Up']);
+
   async function _send() {
     const toEl    = document.getElementById('em-to');
     const subjEl  = document.getElementById('em-subj');
@@ -934,15 +935,19 @@ Thanks again and nice to meet you.`;
     try {
       if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
+      const isBulk = BULK_TEMPLATES.has(tmpl);
       await API.post('email.send', {
         to,
         subject:  resolvedSubject,
         template: tmpl || 'Custom',
         fields:   JSON.stringify(fields),
-        replyTo:  BRAND.replyTo,           // explicit Reply-To header for GAS
-        fromName: BRAND.company,           // display name instead of personal Gmail
-        listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,  // Gmail deliverability
-        listUnsubscribePost: 'List-Unsubscribe=One-Click',                      // one-click unsubscribe
+        replyTo:  BRAND.replyTo,    // explicit Reply-To header for GAS
+        fromName: BRAND.company,    // display name instead of personal Gmail
+        // List-Unsubscribe only on bulk/outreach emails — not on 1:1 operational mail
+        ...(isBulk && {
+          listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,
+          listUnsubscribePost: 'List-Unsubscribe=One-Click',
+        }),
       });
 
       if (window.UI) UI.toast('✓ Email sent to ' + to, 'g');
@@ -1295,8 +1300,6 @@ Thanks again and nice to meet you.`;
       await API.post('email.send', {
         to, subject: reSubject, notes: body, htmlBody: '', template: 'Reply',
         replyTo: BRAND.replyTo, fromName: BRAND.company,
-        listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,
-        listUnsubscribePost: 'List-Unsubscribe=One-Click',
       });
       if (window.UI) UI.toast('Reply sent', 'g');
       _closeThread();
