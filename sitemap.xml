@@ -66,6 +66,14 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- Legal -->
+  <url>
+    <loc>https://www.askmiro.com/cookie-policy.html</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
   <!-- Utility -->
   <!-- /review intentionally excluded — noindex page for customer use only -->
 
