@@ -53,13 +53,17 @@
 
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
-body { font-family:'Figtree',system-ui,sans-serif; background:var(--bg-base); color:var(--text-1); overflow-x:hidden; line-height:1.65; }
+/* font-display:swap equivalent — system font renders hero immediately, Figtree swaps in */
+body { font-family:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--bg-base); color:var(--text-1); overflow-x:hidden; line-height:1.65; }
 img { max-width:100%; display:block; }
 a   { text-decoration:none; color:inherit; }
 
 /* Skip link — accessibility */
 .skip-link{position:absolute;top:-40px;left:0;background:var(--teal);color:#fff;padding:8px 16px;border-radius:0 0 8px 0;font-size:14px;font-weight:600;z-index:9999;transition:top .2s;}
 .skip-link:focus{top:0;}
+
+/* Critical hero text — paint immediately with system font, no layout shift */
+.hero h1, .hero-badge, .hero-sub { font-synthesis: none; }
 
 /* ── TEAL MESH WASH (light sections) ── */
 .teal-mesh {
@@ -333,6 +337,7 @@ section { padding:120px 40px; position:relative; }
   border:1px solid rgba(255,255,255,0.3); border-radius:50%;
   display:flex; align-items:center; justify-content:center; margin-bottom:14px;
   transition:background .25s,border-color .25s,transform .3s var(--spring);
+  cursor:pointer; padding:0; /* button reset */
 }
 .video-cell:hover .play-btn { background:var(--teal); border-color:var(--teal); transform:scale(1.1); }
 .video-label { font-size:1.125rem; font-weight:700; color:#fff; }
@@ -558,12 +563,9 @@ footer {
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#0A9688">
-<!-- Fonts: preconnect + non-blocking load -->
+<!-- Fonts: non-blocking load via print media trick -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Preload the most critical font file to unblock LCP -->
-<link rel="preload" as="font" type="font/woff2" href="https://fonts.gstatic.com/s/figtree/v6/_Xmz-HUzqDCFdgfMsYiV_F7wfS-Bs_d_QF5ewkEU4HTy.woff2" crossorigin>
-<!-- Load fonts non-blocking via media trick — swaps to all on load -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap"></noscript>
 <!-- Preload hero image — biggest LCP win -->
@@ -730,7 +732,7 @@ footer {
              width="800" height="350"
              alt="Office and commercial cleaning service by AskMiro London"
              loading="lazy" decoding="async">
-        <div class="video-overlay"><div class="play-btn" aria-label="View office cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Office & Commercial Cleaning</div><div class="video-sub">Canary Wharf · City of London · Southwark</div></div>
+        <div class="video-overlay"><button class="play-btn" aria-label="View office cleaning work" onclick="openVideoModal('office')"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></button><div class="video-label">Office & Commercial Cleaning</div><div class="video-sub">Canary Wharf · City of London · Southwark</div></div>
       </div>
       <div class="video-cell" onclick="openVideoModal('residential')">
         <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fm=webp&q=65&fit=crop"
@@ -741,7 +743,7 @@ footer {
              width="600" height="375"
              alt="Residential block communal area cleaning London"
              loading="lazy" decoding="async">
-        <div class="video-overlay"><div class="play-btn" aria-label="View residential cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Residential Blocks</div><div class="video-sub">Communal areas & lobbies</div></div>
+        <div class="video-overlay"><button class="play-btn" aria-label="View residential cleaning work" onclick="openVideoModal('residential')"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></button><div class="video-label">Residential Blocks</div><div class="video-sub">Communal areas & lobbies</div></div>
       </div>
       <div class="video-cell" onclick="openVideoModal('automotive')">
         <img src="https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=600&auto=format&fm=webp&q=65&fit=crop"
@@ -752,7 +754,7 @@ footer {
              width="600" height="375"
              alt="Deep clean and specialist cleaning service AskMiro"
              loading="lazy" decoding="async">
-        <div class="video-overlay"><div class="play-btn" aria-label="View deep cleaning work"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></div><div class="video-label">Deep Clean & Specialist</div><div class="video-sub">Dealerships, facilities & specialist sectors</div></div>
+        <div class="video-overlay"><button class="play-btn" aria-label="View deep cleaning work" onclick="openVideoModal('automotive')"><svg width="18" height="18" viewBox="0 0 18 18" fill="white" aria-hidden="true"><path d="M3 2L15 9L3 16V2Z"/></svg></button><div class="video-label">Deep Clean & Specialist</div><div class="video-sub">Dealerships, facilities & specialist sectors</div></div>
       </div>
     </div>
   </div>
@@ -996,9 +998,9 @@ footer {
         <div class="footer-logo"><img src="/favicon.svg" alt="" aria-hidden="true" width="28" height="28" style="border-radius:7px;flex-shrink:0">Ask<span style="color:var(--teal-light)">Miro</span></div>
         <p>Managed commercial cleaning for offices, residential blocks, and facilities across London and the UK. Consistent, compliant, and eco-conscious.</p>
       </div>
-      <div class="footer-col"><p class="footer-col-title">Services</p><ul role="list" aria-label="Services"><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Company</p><ul role="list" aria-label="Company links"><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Contact</p><ul role="list" aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Services</p><ul aria-label="Services"><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Company</p><ul aria-label="Company links"><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Contact</p><ul aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#442d2a222b0425372f292d362b6a272b29"><span class="__cf_email__" data-cfemail="3950575f5679584a5254504b56175a5654">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
@@ -1026,7 +1028,7 @@ footer {
       <button onclick="switchVideo('automotive')" id="tab-automotive" style="padding:8px 18px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-family:'Figtree',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer">Deep Clean & Specialist</button>
     </div>
     <div id="videoFrame" style="width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0a0a0a">
-      <iframe id="video-office" src="https://player.vimeo.com/video/517228187?autoplay=1&muted=1&loop=1&background=1&quality=1080p" style="width:100%;height:100%;border:none;display:block" allow="autoplay; fullscreen" title="Office Cleaning"></iframe>
+      <iframe id="video-office" src="" data-src="https://player.vimeo.com/video/517228187?autoplay=1&muted=1&loop=1&background=1&quality=1080p" style="width:100%;height:100%;border:none;display:block" allow="autoplay; fullscreen" title="Office Cleaning"></iframe>
       <iframe id="video-residential" src="" data-src="https://player.vimeo.com/video/472691778?autoplay=1&muted=1&loop=1&background=1" style="width:100%;height:100%;border:none;display:none" allow="autoplay; fullscreen" title="Residential"></iframe>
       <iframe id="video-automotive" src="" data-src="https://player.vimeo.com/video/525546023?autoplay=1&muted=1&loop=1&background=1" style="width:100%;height:100%;border:none;display:none" allow="autoplay; fullscreen" title="Deep Clean"></iframe>
     </div>
@@ -1034,7 +1036,7 @@ footer {
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<!-- Cloudflare email-decode: injected automatically by CF proxy — removed hardcoded duplicate that was 404ing -->
 <script>
 // Hero slides
 const heroSlides=[
