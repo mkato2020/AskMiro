@@ -173,7 +173,7 @@ function validateLeadData(d) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('invalid email');
 
   const phone = (d.phone || '').replace(/\s/g, '');
-  if (!/^(\+44\d{10}|0[1-9]\d{9})$/.test(phone)) errors.push('invalid UK phone');
+  if (!/^(\+44\d{9,10}|0[1-9]\d{8,9})$/.test(phone)) errors.push('invalid UK phone');
 
   const postcode = (d.postcode || '').trim().toUpperCase();
   if (!/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/.test(postcode)) errors.push('invalid UK postcode');
@@ -254,8 +254,8 @@ export default async (req) => {
     if (leadData) {
       const errors = validateLeadData(leadData);
       if (errors.length > 0) {
-        console.warn('Lead failed server validation:', errors.join(', '), JSON.stringify(leadData));
-        leadData = null; // don't fire to GAS
+        console.warn('Lead soft-validation warning (still saving):', errors.join(', '), JSON.stringify(leadData));
+        // Soft-warn only — do NOT nullify leadData, save the lead regardless
       }
     }
 
