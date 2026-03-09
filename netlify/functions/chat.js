@@ -153,7 +153,7 @@ When someone is clearly interested in a quote or service, politely collect their
 VALIDATION RULES — before accepting each field, silently check it. If invalid, ask again politely:
 - Name: must be at least two words (first and last). If one word only, ask for their full name.
 - Email: must contain @ and a dot after it (e.g. name@domain.com). If it looks wrong: "Just to make sure I have that right — could you double-check your email?"
-- Phone: must be a valid UK number — 11 digits starting with 07, 01, 02 or 03, or +44 format. If it contains letters or is the wrong length, ask them to confirm.
+- Phone: must be a valid UK number — 10 or 11 digits starting with 07, 01, 02 or 03, or +44 format. If it contains letters or is clearly too short (under 10 digits), ask them to confirm.
 - Postcode: must match UK postcode format (e.g. SW1A 1AA, E1 6AN, M1 1AE). If it doesn't look right, ask them to confirm.
 
 Only emit the LEAD_CAPTURED token once ALL FOUR fields are collected and pass validation. Never emit it with missing or invalid data.
@@ -244,10 +244,10 @@ export default async (req) => {
     // Extract LEAD_CAPTURED token if present
     let message = rawReply;
     let leadData = null;
-    const leadMatch = rawReply.match(/\nLEAD_CAPTURED:(\{[^\n}]+\})/);
+    const leadMatch = rawReply.match(/\nLEAD_CAPTURED:(\{[^\n]+\})/);
     if (leadMatch) {
       try { leadData = JSON.parse(leadMatch[1]); } catch { leadData = null; }
-      message = rawReply.replace(/\nLEAD_CAPTURED:\{[^\n}]+\}/, '').trim();
+      message = rawReply.replace(/\nLEAD_CAPTURED:\{[^\n]+\}/, '').trim();
     }
 
     // Server-side validation — reject bad data even if Claude missed it
