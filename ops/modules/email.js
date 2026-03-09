@@ -15,16 +15,16 @@ window.Email = (() => {
   let _inboxSearch = '';
 
   // ── BRAND ─────────────────────────────────────────────────
-  const BRAND = {
-    company:    'AskMiro Cleaning Services',
-    from:       'office@askmiro.com',
-    replyTo:    'info@askmiro.com',
-    phone:      '020 8073 0621',
-    phoneTel:   '02080730621',
-    website:    'www.askmiro.com',
-    senderName: 'Mike Kato',
-    senderRole: 'Director — AskMiro Cleaning Services',
-  };
+ const BRAND = {
+  company:    'AskMiro Cleaning Services',
+  from:       'Mike Kato <office@askmiro.com>',
+  replyTo:    'info@askmiro.com',
+  phone:      '020 8073 0621',
+  phoneTel:   '02080730621',
+  website:    'www.askmiro.com',
+  senderName: 'Mike Kato',
+  senderRole: 'Director — AskMiro Cleaning Services',
+};
 
   // ── DESIGN TOKENS — Tesla × Microsoft Fluent ─────────────
   const T = {
