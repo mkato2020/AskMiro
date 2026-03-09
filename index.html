@@ -343,6 +343,60 @@ section { padding:120px 40px; position:relative; }
 .video-label { font-size:1.125rem; font-weight:700; color:#fff; }
 .video-sub   { font-size:0.8125rem; color:rgba(255,255,255,0.65); margin-top:4px; }
 
+/* ── REAL RESULTS GALLERY ── */
+.rr-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:240px 240px;
+  gap:12px;
+  margin-bottom:12px;
+}
+.rr-grid-3 {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:12px;
+}
+.rr-card {
+  position:relative;
+  border-radius:16px;
+  overflow:hidden;
+  background:#0D1C2E;
+}
+.rr-card img {
+  width:100%; height:100%;
+  object-fit:cover; display:block;
+  transition:transform .5s ease;
+}
+.rr-card:hover img { transform:scale(1.04); }
+.rr-featured {
+  grid-row:span 2;
+}
+.rr-grid-3 .rr-card { height:220px; }
+.rr-label {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:18px 18px 16px;
+  background:linear-gradient(transparent,rgba(13,28,46,0.85));
+  pointer-events:none;
+}
+.rr-title { font-size:0.875rem; font-weight:700; color:#fff; line-height:1.3; }
+.rr-sub   { font-size:0.75rem; color:rgba(255,255,255,0.55); margin-top:3px; }
+
+/* ── KNOWLEDGE HUB text fix on dark bg ── */
+#guides .section-head h2 { color:#fff; }
+#guides .section-head p  { color:rgba(255,255,255,.55) !important; }
+
+@media(max-width:900px) {
+  .rr-grid { grid-template-columns:1fr; grid-template-rows:auto; }
+  .rr-featured { grid-row:span 1; height:260px; }
+  .rr-grid-3 { grid-template-columns:1fr 1fr; }
+  .rr-grid-3 .rr-card { height:180px; }
+}
+@media(max-width:540px) {
+  .rr-grid-3 { grid-template-columns:1fr; }
+  .rr-grid-3 .rr-card { height:200px; }
+}
+
 /* ── PROCESS ── */
 .process-grid {
   display:grid; grid-template-columns:repeat(4,1fr); gap:0; position:relative;
@@ -807,7 +861,7 @@ footer {
 </section>
 
 <!-- PHOTO GALLERY -->
-<section id="gallery" style="background:var(--bg-surface);overflow:hidden;padding:120px 40px">
+<section id="gallery" style="background:var(--bg-alt);overflow:hidden;padding:100px 40px">
   <div class="teal-mesh" style="opacity:0.4"></div>
   <div class="container" style="position:relative;z-index:1">
     <div class="section-head reveal">
@@ -815,131 +869,122 @@ footer {
       <h2 class="display-lg" style="margin-top:14px;color:var(--text-1)">Every clean.<br>Photo documented.</h2>
       <div class="section-divider"></div>
     </div>
-    <div class="reveal" style="display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:auto;gap:12px;margin-top:0">
 
-      <!-- Large: luxury kitchen floor -->
-      <div style="grid-column:span 7;grid-row:span 2;border-radius:16px;overflow:hidden;position:relative;aspect-ratio:4/3;min-height:260px;background:#0D1C2E">
-        <img src="/ops/assets/views/luxury-kitchen-deep-clean.jpg"
-             alt="Luxury kitchen floor polish — AskMiro deep clean London"
+    <!-- Row 1: featured left (spans 2 rows) + 2 stacked right -->
+    <div class="rr-grid reveal">
+
+      <!-- Featured: Luxury Kitchen Floor — tall left card -->
+      <div class="rr-card rr-featured">
+        <img src="/ops/assets/views/luxury-kitchen-floor-polish.jpg"
+             alt="Luxury kitchen floor polish and deep clean — AskMiro London"
              loading="lazy" decoding="async"
-             onerror="this.onerror=null;this.src='/ops/assets/views/residential-kitchen-cleaned.jpg'"
-             style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 20px 18px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Luxury Kitchen Floor</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Deep polish &amp; restoration</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Luxury Kitchen Floor</div>
+          <div class="rr-sub">Deep polish &amp; restoration</div>
         </div>
       </div>
 
-      <!-- Top right: bathroom deep clean -->
-      <div style="grid-column:span 5;border-radius:16px;overflow:hidden;position:relative">
+      <!-- Top right -->
+      <div class="rr-card">
         <img src="/ops/assets/views/bathroom-deep-clean-result.jpg"
              alt="Bathroom deep clean result — AskMiro London"
              loading="lazy" decoding="async"
-             style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:16/9;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Bathroom Deep Clean</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Sanitised to clinical standard</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Bathroom Deep Clean</div>
+          <div class="rr-sub">Sanitised to clinical standard</div>
         </div>
       </div>
 
-      <!-- Bottom right: kitchen sink -->
-      <div style="grid-column:span 5;border-radius:16px;overflow:hidden;position:relative">
+      <!-- Bottom right -->
+      <div class="rr-card">
         <img src="/ops/assets/views/kitchen-sink-polished.jpg"
-             alt="Kitchen sink polished — AskMiro cleaning London"
+             alt="Kitchen sink polished and descaled — AskMiro London"
              loading="lazy" decoding="async"
-             style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:16/9;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Kitchen Sink</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Polished &amp; descaled</div>
-        </div>
-      </div>
-
-      <!-- Bottom row: 3 equal -->
-      <div style="grid-column:span 4;border-radius:16px;overflow:hidden;position:relative">
-        <img src="/ops/assets/views/bedroom-cleaned-finished.jpg"
-             alt="Bedroom cleaned and finished — AskMiro London"
-             loading="lazy" decoding="async"
-             style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:4/3;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Bedroom</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">End of tenancy finish</div>
-        </div>
-      </div>
-
-      <div style="grid-column:span 4;border-radius:16px;overflow:hidden;position:relative">
-        <img src="/ops/assets/views/family-kitchen-cleaned.jpg"
-             alt="Family kitchen cleaned — AskMiro London"
-             loading="lazy" decoding="async"
-             style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:4/3;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Family Kitchen</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Regular domestic clean</div>
-        </div>
-      </div>
-
-      <div style="grid-column:span 4;border-radius:16px;overflow:hidden;position:relative">
-        <img src="/ops/assets/views/office-sink-area-before-after.png"
-             alt="Office sink area before and after — AskMiro London"
-             loading="lazy" decoding="async"
-             style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:4/3;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Office Sink Area</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Before &amp; after</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Kitchen Sink</div>
+          <div class="rr-sub">Polished &amp; descaled</div>
         </div>
       </div>
 
     </div>
 
-    <!-- Commercial row -->
-    <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px">
-      <div style="border-radius:16px;overflow:hidden;position:relative">
+    <!-- Row 2: 3 equal -->
+    <div class="rr-grid-3 reveal">
+
+      <div class="rr-card">
+        <img src="/ops/assets/views/bedroom-cleaned-finished.jpg"
+             alt="Bedroom cleaned and finished — AskMiro London"
+             loading="lazy" decoding="async"
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Bedroom</div>
+          <div class="rr-sub">End of tenancy finish</div>
+        </div>
+      </div>
+
+      <div class="rr-card">
+        <img src="/ops/assets/views/family-kitchen-cleaned.jpg"
+             alt="Family kitchen cleaned — AskMiro London"
+             loading="lazy" decoding="async"
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Family Kitchen</div>
+          <div class="rr-sub">Regular domestic clean</div>
+        </div>
+      </div>
+
+      <div class="rr-card">
+        <img src="/ops/assets/views/shower-drain-before-after.jpg"
+             alt="Shower drain before and after deep clean — AskMiro London"
+             loading="lazy" decoding="async"
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Shower Drain</div>
+          <div class="rr-sub">Before &amp; after deep clean</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 3: commercial — 3 equal -->
+    <div class="rr-grid-3 reveal">
+
+      <div class="rr-card">
         <img src="/ops/assets/views/office-kitchen-cleaning-before-after.png"
-             alt="Office kitchen cleaning before and after — AskMiro London"
+             alt="Office kitchen before and after cleaning — AskMiro London"
              loading="lazy" decoding="async"
-             style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Office Kitchen</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Deep cleaned &amp; sanitised</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Office Kitchen</div>
+          <div class="rr-sub">Before &amp; after</div>
         </div>
       </div>
-      <div style="border-radius:16px;overflow:hidden;position:relative">
-        <img src="/ops/assets/views/realistic-bar-gym-lobby-grid-before-after.png"
-             alt="Commercial lobby cleaning before and after — AskMiro London"
+
+      <div class="rr-card">
+        <img src="/ops/assets/views/commercial-lobby-cleaning-before-after.jpg"
+             alt="Commercial lobby cleaning and maintenance — AskMiro London"
              loading="lazy" decoding="async"
-             style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Commercial Lobby</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Cleaned &amp; maintained</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Commercial Lobby</div>
+          <div class="rr-sub">Cleaned &amp; maintained</div>
         </div>
       </div>
-      <div style="border-radius:16px;overflow:hidden;position:relative">
+
+      <div class="rr-card">
         <img src="/ops/assets/views/residential-kitchen-cleaned.jpg"
              alt="Residential kitchen cleaned — AskMiro London"
              loading="lazy" decoding="async"
-             style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;transition:transform .5s ease"
-             onmouseover="this.style.transform='scale(1.03)'"
-             onmouseout="this.style.transform='scale(1)'">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 16px 14px;background:linear-gradient(transparent,rgba(13,28,46,0.82));pointer-events:none">
-          <div style="font-size:0.8125rem;font-weight:700;color:#fff">Residential Kitchen</div>
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px">Post-tenancy clean</div>
+             style="width:100%;height:100%;object-fit:cover;display:block">
+        <div class="rr-label">
+          <div class="rr-title">Residential Kitchen</div>
+          <div class="rr-sub">Post-tenancy clean</div>
         </div>
       </div>
+
     </div>
 
   </div>
@@ -1121,12 +1166,12 @@ footer {
 
     <div class="section-head reveal" style="margin-bottom:56px">
       <span class="eyebrow">Knowledge Hub</span>
-      <h2>Guides & resources</h2>
+      <h2 style="color:#fff;font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-top:12px">Guides &amp; resources</h2>
       <p style="max-width:520px;color:var(--text-2);font-size:16px;line-height:1.75;margin-top:12px">Guides covering pricing, cleaning checklists, and what professional commercial cleaning actually includes.</p>
       <div class="section-divider"></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;align-items:stretch">
 
       <!-- Card 1 -->
       <a href="/office-cleaning-cost-london" aria-label="Read our office cleaning cost guide for London" style="text-decoration:none;display:flex;flex-direction:column;background:#0D1C2E;border:1px solid rgba(13,189,173,.15);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(0,0,0,.5)';this.style.borderColor='rgba(13,189,173,.4)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,189,173,.15)'">
@@ -1190,7 +1235,7 @@ footer {
 
       <!-- Card 4 -->
       <a href="/end-of-tenancy-cleaning-checklist-london" aria-label="Open the end of tenancy cleaning checklist for London" style="text-decoration:none;display:flex;flex-direction:column;background:#0D1C2E;border:1px solid rgba(13,189,173,.15);border-radius:20px;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .22s,border-color .22s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(0,0,0,.5)';this.style.borderColor='rgba(13,189,173,.4)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(13,189,173,.15)'">
-        <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:relative;overflow:hidden">
+        <div style="background:var(--navy);padding:28px 28px 24px;position:relative;overflow:hidden">
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 0%,rgba(13,189,173,.1) 0%,transparent 60%)"></div>
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 14px rgba(13,189,173,.35);position:relative">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="white" stroke-width="1.8"/><path d="M9 22V12h6v10" stroke="white" stroke-width="1.8"/></svg>
@@ -1225,7 +1270,7 @@ footer {
     </div>
     <div class="cta-contact">
       <div class="cta-contact-item" style="flex-direction:column;align-items:flex-start;gap:2px"><span style="font-size:0.7rem;color:rgba(255,255,255,0.3);letter-spacing:.06em;text-transform:uppercase;font-weight:600">Speak directly to AskMiro</span><span>📞 <a href="tel:02080730621">020 8073 0621</a></span></div>
-      <div class="cta-contact-item">✉️ <a href="mailto:office@askmiro.com">office@askmiro.com</a></div>
+      <div class="cta-contact-item">✉️ <a href="/cdn-cgi/l/email-protection#e08f8686898385a081938b8d89928fce838f8d"><span class="__cf_email__" data-cfemail="335c55555a5056735240585e5a415c1d505c5e">[email&#160;protected]</span></a></div>
       <div class="cta-contact-item">📍 London & UK</div>
     </div>
   </div>
@@ -1240,7 +1285,7 @@ footer {
       </div>
       <div class="footer-col"><p class="footer-col-title">Services</p><ul aria-label="Services"><li><a href="#services">Office Cleaning</a></li><li><a href="#services">Residential Blocks</a></li><li><a href="#services">Automotive</a></li><li><a href="#services">Medical</a></li><li><a href="#services">Retail</a></li></ul></div>
       <div class="footer-col"><p class="footer-col-title">Company</p><ul aria-label="Company links"><li><a href="#why-askmiro">Why AskMiro</a></li><li><a href="#how-it-works">How It Works</a></li><li><a href="#credentials">Credentials</a></li><li><a href="#faqs">FAQs</a></li></ul></div>
-      <div class="footer-col"><p class="footer-col-title">Contact</p><ul aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="mailto:office@askmiro.com">office@askmiro.com</a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
+      <div class="footer-col"><p class="footer-col-title">Contact</p><ul aria-label="Contact information"><li><a href="tel:02080730621">020 8073 0621</a></li><li><a href="/cdn-cgi/l/email-protection#fa959c9c93999fba9b899197938895d4999597"><span class="__cf_email__" data-cfemail="117e77777872745170627a7c78637e3f727e7c">[email&#160;protected]</span></a></li><li><a href="/get-quote.html">Request a Quote</a></li></ul></div>
     </div>
     <div class="footer-bottom">
       <p>© 2025 AskMiro Cleaning Services Ltd. All rights reserved.</p>
@@ -1277,7 +1322,7 @@ footer {
 </div>
 
 <!-- Cloudflare email-decode: injected automatically by CF proxy — removed hardcoded duplicate that was 404ing -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Hero slides
 const heroSlides=[
   {img:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fm=webp&q=75&fit=crop',headline:'Commercial cleaning<br>you don\'t have to <em>chase</em>',sub:'A managed service — not just cleaners. Consistent teams, quality checks, and eco-conscious methods.'},
@@ -1358,9 +1403,4 @@ function acceptCookies(){localStorage.setItem('cookieConsent','accepted');docume
 function declineCookies(){localStorage.setItem('cookieConsent','declined');document.getElementById('cookieConsent').classList.remove('show')}
 window.addEventListener('load',showCookie);
 </script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=GT-PJ7M23PN"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','GT-PJ7M23PN');gtag('config','AW-17948916112');</script>
-<script src="/get_quote_form_patch_configured.js" defer></script>
-<script src="/chat-widget.js" defer></script>
-</body>
-</html>
+<script async src="h
