@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+# Block internal/utility pages from indexing
+Disallow: /review
+Disallow: /thank-you
+Disallow: /tracker
+Disallow: /margin-calculator-clean
+
 Sitemap: https://www.askmiro.com/sitemap.xml
