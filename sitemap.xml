@@ -1,80 +1,150 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Core pages -->
+  <!-- ── Core pages ── -->
   <url>
     <loc>https://www.askmiro.com/</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://www.askmiro.com/get-quote</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://www.askmiro.com/tracker</loc>
-    <lastmod>2026-03-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://www.askmiro.com/margin-calculator-clean</loc>
-    <lastmod>2026-03-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
     <loc>https://www.askmiro.com/thank-you</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
 
-  <!-- SEO content pages -->
+  <!-- ── Original SEO pages ── -->
   <url>
     <loc>https://www.askmiro.com/office-cleaning-cost-london</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://www.askmiro.com/office-cleaning-checklist-london</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.askmiro.com/deep-cleaning-service-london</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.askmiro.com/end-of-tenancy-cleaning-checklist-london</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
-  <!-- Legal -->
+  <!-- ── New SEO articles ── -->
   <url>
-    <loc>https://www.askmiro.com/cookie-policy.html</loc>
-    <lastmod>2026-03-09</lastmod>
+    <loc>https://www.askmiro.com/seo-articles/data-centre-cleaning-london</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/pest-control-commercial-building-cleaning</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/medical-facility-cleaning-standards</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/automotive-dealership-showroom-cleaning</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/commercial-kitchen-cleaning-standards</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/warehouse-cleaning-london</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/green-commercial-cleaning-eco-friendly</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/high-touch-surfaces-office-disinfection</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/communal-area-cleaning-residential-blocks</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/school-cleaning-standards</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/how-often-should-office-be-cleaned</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.askmiro.com/seo-articles/what-does-commercial-cleaning-include</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ── Legal ── -->
+  <url>
+    <loc>https://www.askmiro.com/cookie-policy</loc>
+    <lastmod>2026-03-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
-  <!-- Utility -->
   <!-- /review intentionally excluded — noindex page for customer use only -->
 
 </urlset>
