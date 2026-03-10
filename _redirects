@@ -2,3 +2,22 @@
 http://askmiro.com/* https://www.askmiro.com/:splat 301!
 http://www.askmiro.com/* https://www.askmiro.com/:splat 301!
 https://askmiro.com/* https://www.askmiro.com/:splat 301!
+
+# Clean URL rewrites for SEO articles
+/commercial-cleaning-london /commercial-cleaning-london.html 200
+/office-cleaning-cost-london /office-cleaning-cost-london.html 200
+/office-cleaning-checklist-london /office-cleaning-checklist-london.html 200
+/deep-cleaning-service-london /deep-cleaning-service-london.html 200
+/end-of-tenancy-cleaning-checklist-london /end-of-tenancy-cleaning-checklist-london.html 200
+/data-centre-cleaning-london /data-centre-cleaning-london.html 200
+/warehouse-cleaning-london /warehouse-cleaning-london.html 200
+/medical-facility-cleaning-standards /medical-facility-cleaning-standards.html 200
+/automotive-dealership-showroom-cleaning /automotive-dealership-showroom-cleaning.html 200
+/how-often-should-office-be-cleaned /how-often-should-office-be-cleaned.html 200
+/what-does-commercial-cleaning-include /what-does-commercial-cleaning-include.html 200
+/green-commercial-cleaning-eco-friendly /green-commercial-cleaning-eco-friendly.html 200
+/high-touch-surfaces-office-disinfection /high-touch-surfaces-office-disinfection.html 200
+/communal-area-cleaning-residential-blocks /communal-area-cleaning-residential-blocks.html 200
+/school-cleaning-standards /school-cleaning-standards.html 200
+/commercial-kitchen-cleaning-standards /commercial-kitchen-cleaning-standards.html 200
+/pest-control-commercial-building-cleaning /pest-control-commercial-building-cleaning.html 200
