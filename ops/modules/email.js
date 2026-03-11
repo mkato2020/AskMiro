@@ -414,6 +414,11 @@ window.Email = (() => {
         { id: 'days',   label: 'Days',            ph: 'e.g. Mon–Fri',               type: 'text', default: '' },
         { id: 'hours',  label: 'Hours per Visit', ph: 'e.g. 3',                     type: 'text', default: '' },
         { id: 'areas',  label: 'Areas Covered',   ph: 'e.g. Offices, Kitchen, WCs', type: 'text', default: '' },
+        { id: 'body',   label: 'Email Body — edit or delete any line',
+          ph: 'Edit the message body…',
+          type: 'textarea', rows: 10,
+          default: "Thank you for your time during our site visit. We’re pleased to present our proposal for managed commercial cleaning services.\n\nWhat’s included in your service:\n✓ Dedicated cleaning team — inducted and briefed to your site specification\n✓ All professional equipment, chemicals and consumables supplied\n✓ COSHH risk assessments and full RAMS documentation\n✓ Monthly supervisor quality inspection with written report\n✓ Absence cover — your schedule is never disrupted",
+        },
       ],
     },
 
@@ -518,6 +523,11 @@ Thanks again and nice to meet you.`,
         { id: 'avail3',     label: 'Available Date 3',          ph: 'e.g. Thursday 20 March',                       type: 'text',     default: '' },
         { id: 'qual_q',     label: 'Qualifying Questions (opt.) — Provisional only', ph: 'e.g. Are there pets? Will the property be vacant? Any delicate items?', type: 'textarea', rows: 3, default: '' },
         { id: 'extras',     label: 'Additional Notes (opt.)',   ph: 'e.g. Parking needed. External windows quoted separately at £X.', type: 'textarea', rows: 3, default: '' },
+        { id: 'body',       label: 'Email Body — edit or replace the main message',
+          ph: 'The opening paragraph shown below the greeting…',
+          type: 'textarea', rows: 7,
+          default: '',   // auto-populated per quote_type in the builder
+        },
       ],
     },
 
@@ -586,7 +596,19 @@ Thanks again and nice to meet you.`,
         _h('Your Cleaning Proposal.') +
         _sub('Prepared following our site visit — valid for 30 days') +
         _gr(f.name || 'there') +
-        _p(`Thank you for your time during our site visit to <strong>${_esc(f.site || 'your site')}</strong>. We're pleased to present our proposal for managed commercial cleaning services.`) +
+        (() => {
+          const bodyRaw = (f.body || '').trim();
+          const defaultBody = "Thank you for your time during our site visit to <strong>" + _esc(f.site || 'your site') + "</strong>. We\u2019re pleased to present our proposal for managed commercial cleaning services.\n\nWhat\u2019s included in your service:\n\u2713 Dedicated cleaning team \u2014 inducted and briefed to your site specification\n\u2713 All professional equipment, chemicals and consumables supplied\n\u2713 COSHH risk assessments and full RAMS documentation\n\u2713 Monthly supervisor quality inspection with written report\n\u2713 Absence cover \u2014 your schedule is never disrupted";
+          const bodyText = bodyRaw.length > 0 ? bodyRaw : defaultBody;
+          return bodyText.split(/\n{2,}/).map(chunk => {
+            const lines = chunk.split('\n');
+            const isChecklist = lines.every(l => /^[✓✔•\-\*]/.test(l.trim()));
+            if (isChecklist) {
+              return _checklist(lines.map(l => _esc(l.replace(/^[✓✔•\-\*]\s*/, ''))));
+            }
+            return _p(lines.map(l => _esc(l)).join('<br>'));
+          }).join('');
+        })() +
         (net
           ? _heroPrice(`£${net.toLocaleString()}<span style="font-size:18px;font-weight:500;opacity:0.65">/mo</span>`, 'Monthly Service Investment', `${_esc(f.visits || '—')} visits per week &nbsp;&bull;&nbsp; ${_esc(f.hours || '—')} hrs per visit &nbsp;&bull;&nbsp; Fixed rate, no hidden costs`)
           : _statBand([
@@ -595,15 +617,6 @@ Thanks again and nice to meet you.`,
               { label: 'Hours per Visit',    value: f.hours ? f.hours + 'hrs' : 'TBC', sub: 'Dedicated team' },
             ])
         ) +
-        _sh("What's included in your service") +
-        _checklist([
-          `<strong>${_esc(f.areas || 'All agreed areas')}</strong>`,
-          'Dedicated cleaning team — inducted and briefed to your site specification',
-          'All professional equipment, chemicals and consumables supplied',
-          'COSHH risk assessments and full RAMS documentation',
-          'Monthly supervisor quality inspection with written report',
-          'Absence cover — your schedule is never disrupted',
-        ]) +
         _amber(`<strong>This proposal is valid for 30 days.</strong> Reply to confirm and we can have your service live within <strong>5–7 working days</strong>. A signed service agreement follows on acceptance.`) +
         _cta('&#10003; Accept This Proposal', `mailto:${BRAND.replyTo}?subject=Accepting Proposal — ${_esc(f.site || '')}`) +
         _div() +
@@ -893,11 +906,16 @@ Thanks again and nice to meet you.`;
         ? `Thank you for your enquiry. We've reviewed the scope and are pleased to confirm we can carry out a full deep clean of <strong>${_esc(property)}</strong> on a fixed-price basis.`
         : `Thank you for getting in touch and for outlining the scope so clearly — it's really helpful to have that detail upfront. Yes, we'd be very happy to help with a one-off deep clean for <strong>${_esc(property)}</strong>.`;
 
+      const bodyRaw = (f.body || '').trim();
+      const bodyHtmlDC = bodyRaw.length > 0
+        ? bodyRaw.split(/\n{2,}/).map(chunk => _p(_esc(chunk).replace(/\n/g, '<br>'))).join('')
+        : _p(openingP);
+
       return _wrap('Deep Clean Quote', T.teal,
         _h(heroH) +
         _sub(heroSub) +
         _gr(f.name || 'there') +
-        _p(openingP) +
+        bodyHtmlDC +
         priceBand +
         visitNotice +
         scopeHtml +
