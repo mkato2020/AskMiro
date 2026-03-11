@@ -492,9 +492,45 @@ Thanks again and nice to meet you.`,
       fields: [
         { id: 'name',      label: 'Client Name',     ph: 'e.g. Sarah Collins',  type: 'text', default: '' },
         { id: 'site',      label: 'Company / Site',  ph: 'e.g. Acme Ltd',       type: 'text', default: '' },
-        { id: 'renewDate', label: 'Renewal Date',    ph: 'e.g. 1 April 2026',   type: 'text', default: '' },  // no default — must be entered
+        { id: 'renewDate', label: 'Renewal Date',    ph: 'e.g. 1 April 2026',   type: 'text', default: '' },
         { id: 'schedule',  label: 'Schedule',        ph: 'e.g. Mon–Fri, 6–9am', type: 'text', default: '' },
         { id: 'amount',    label: 'Monthly Fee (£)', ph: 'e.g. 1200',           type: 'text', default: '' },
+      ],
+    },
+
+    'Deep Clean Quote Reply': {
+      icon: '🧹', badge: 'Quote Reply',
+      blurb: 'Branded reply to a deep clean enquiry. Toggle between Provisional (range price, qualifying questions) and Fixed (confirmed price, ready to book).',
+      subject: 'Re: Deep Clean Enquiry — AskMiro Cleaning Services',
+      fields: [
+        { id: 'quote_type', label: 'Quote Type', type: 'select', default: 'provisional',
+          options: [
+            { value: 'provisional', label: '🔍 Provisional — range price, qualifying questions, site visit request' },
+            { value: 'fixed',       label: '✅ Fixed — confirmed price, full scope, ready to book' },
+          ]
+        },
+        { id: 'name',       label: 'Client First Name',        ph: 'e.g. Zia',                                    type: 'text',     default: '' },
+        { id: 'property',   label: 'Property Description',     ph: 'e.g. 5 bed, 2 bath Victorian, 3 floors, SW18', type: 'text',     default: '' },
+        { id: 'price',      label: 'Price / Range (£)',         ph: 'Provisional: 420–550  |  Fixed: 595',          type: 'text',     default: '' },
+        { id: 'duration',   label: 'Duration / Team Size',      ph: 'e.g. 6–7 hours (3 cleaners)',                  type: 'text',     default: '' },
+        { id: 'avail1',     label: 'Available Date 1',          ph: 'e.g. Tuesday 18 March',                        type: 'text',     default: '' },
+        { id: 'avail2',     label: 'Available Date 2',          ph: 'e.g. Wednesday 19 March',                      type: 'text',     default: '' },
+        { id: 'avail3',     label: 'Available Date 3',          ph: 'e.g. Thursday 20 March',                       type: 'text',     default: '' },
+        { id: 'qual_q',     label: 'Qualifying Questions (opt.) — Provisional only', ph: 'e.g. Are there pets? Will the property be vacant? Any delicate items?', type: 'textarea', rows: 3, default: '' },
+        { id: 'extras',     label: 'Additional Notes (opt.)',   ph: 'e.g. Parking needed. External windows quoted separately at £X.', type: 'textarea', rows: 3, default: '' },
+      ],
+    },
+
+    'Cold Outreach': {
+      icon: '🎯', badge: 'Lead OS',
+      blurb: 'AI-generated cold outreach from the Lead Intelligence OS. Paste the subject line and email body from your outreach pack.',
+      subject: '{{subject}}',
+      fields: [
+        { id: 'subject',       label: 'Subject Line',   ph: 'e.g. Managed Cleaning for Vantage Offices — AskMiro',              type: 'text',     default: '' },
+        { id: 'business_name', label: 'Business Name',  ph: 'e.g. Vantage Offices',                                             type: 'text',     default: '' },
+        { id: 'sector',        label: 'Sector',         ph: 'e.g. offices / healthcare / residential blocks',                   type: 'text',     default: '' },
+        { id: 'borough',       label: 'London Borough', ph: 'e.g. Canary Wharf',                                               type: 'text',     default: '' },
+        { id: 'cold_email',    label: 'Email Body (paste from Lead OS outreach pack)', ph: 'Paste the AI-generated email body here…', type: 'textarea', rows: 14, default: '' },
       ],
     },
 
@@ -755,6 +791,169 @@ Thanks again and nice to meet you.`;
       );
     }
 
+    // ── DEEP CLEAN QUOTE REPLY ────────────────────────────────
+    if (tmpl === 'Deep Clean Quote Reply') {
+      const isFixed  = (f.quote_type || 'provisional') === 'fixed';
+      const property = f.property || 'the property';
+      const priceRaw = (f.price || '').trim();
+      const priceStr = priceRaw ? `£${_esc(priceRaw)}` : 'TBC';
+      const duration = f.duration ? _esc(f.duration) : 'TBC';
+      const slots    = [f.avail1, f.avail2, f.avail3].filter(Boolean);
+      const extras   = (f.extras  || '').trim();
+      const qualQ    = (f.qual_q  || '').trim();
+
+      // ── Price/duration hero band ──
+      // Provisional: amber/warm tone + "Estimated" label + "subject to site visit" sub
+      // Fixed: navy + "Quoted Price" label + "all materials included" sub
+      const bandBg     = isFixed ? `linear-gradient(135deg,${T.navy},#122440)` : 'linear-gradient(135deg,#78350F,#92400E)';
+      const priceLabel = isFixed ? 'Quoted Price' : 'Estimated Range';
+      const priceSub   = isFixed ? 'all materials &amp; equipment included' : 'subject to site visit / photos';
+      const priceFontSz = priceRaw.length > 7 ? '26px' : '34px'; // shrink slightly for ranges like £420–£550
+
+      const priceBand =
+        `<table cellpadding="0" cellspacing="0" width="100%" style="border-radius:12px;overflow:hidden;margin-bottom:24px"><tr>` +
+        `<td align="center" style="background:${bandBg};padding:22px 20px;border-right:1px solid rgba(255,255,255,0.08)">` +
+        `<div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:6px">${priceLabel}</div>` +
+        `<div style="font-family:Georgia,serif;font-size:${priceFontSz};font-weight:700;color:#fff;letter-spacing:-1px">${priceStr}</div>` +
+        `<div style="font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px">${priceSub}</div>` +
+        `</td>` +
+        `<td align="center" style="background:${bandBg};padding:22px 20px">` +
+        `<div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:6px">Duration</div>` +
+        `<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#fff">${duration}</div>` +
+        `<div style="font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px">professional deep clean team</div>` +
+        `</td></tr></table>`;
+
+      // ── Provisional: site-visit / photo request notice ──
+      const visitNotice = !isFixed
+        ? `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px"><tr><td style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:14px 16px;font-family:Arial,sans-serif;font-size:13px;color:#1E40AF;line-height:1.7">` +
+          `<strong>📸 To confirm a fixed price</strong> — we'd welcome a quick site visit, or a few photos of the kitchen, bathrooms, and any areas of particular concern. This lets us give you an exact figure with confidence.</td></tr></table>`
+        : '';
+
+      // ── Provisional: qualifying questions block ──
+      const qualHtml = !isFixed && qualQ
+        ? _sh('A couple of quick questions') +
+          `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px"><tr><td style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px 16px;font-family:Arial,sans-serif;font-size:13px;color:#3D5A74;line-height:1.85">` +
+          _esc(qualQ).replace(/\n/g, '<br>') +
+          `<br><br><span style="font-size:12px;color:#6B8FA8">This simply helps us plan the safest products and approach for the clean.</span>` +
+          `</td></tr></table>`
+        : '';
+
+      // ── Availability dates ──
+      const datesHtml = slots.length > 0
+        ? _sh(isFixed ? 'Available dates' : 'Provisional availability') +
+          `<table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:20px">` +
+          slots.map((s, i) =>
+            `<tr${i < slots.length - 1 ? ' style="border-bottom:1px solid #F3F4F6"' : ''}><td style="padding:12px 16px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#0D1C2E">📅 ${_esc(s)}</td></tr>`
+          ).join('') +
+          `</table>`
+        : '';
+
+      // ── Extras / additional notes ──
+      const extrasHtml = extras
+        ? `<table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px"><tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;font-family:Arial,sans-serif;font-size:13px;color:#92400E;line-height:1.7"><strong>Additional notes:</strong> ${_esc(extras)}</td></tr></table>`
+        : '';
+
+      // ── Scope checklist — only show in fixed mode ──
+      const scopeHtml = isFixed
+        ? _sh("What's included") +
+          _checklist([
+            '<strong>Kitchen</strong> — oven &amp; hob deep clean, extractor hood &amp; filters degreased, behind &amp; under appliances, inside cupboards &amp; drawers, fridge interior, tile grout, microwave, dishwasher filter, kettle descale',
+            '<strong>Bathrooms</strong> — limescale removed from taps, showerheads &amp; screens, tile grout &amp; silicone scrubbed, behind &amp; around toilet, shower tray/bath descaled &amp; disinfected, inside cabinets, extraction fan covers, mirrors &amp; chrome polished',
+            '<strong>Living areas</strong> — under &amp; behind all furniture, skirting boards, light switches &amp; door frames, sofa &amp; cushion vacuuming, TV &amp; electronics, windows, frames &amp; sills',
+            '<strong>Bedrooms</strong> — under bed vacuuming, wardrobe interiors &amp; drawers, bed frames &amp; headboards, lampshades &amp; picture frames dusted',
+            '<strong>Whole house</strong> — internal windows &amp; tracks, skirting boards throughout, all doors, frames &amp; handles, light fittings, under movable furniture, radiators, ceiling corners &amp; cobwebs',
+          ])
+        : '';
+
+      // ── CTA and closing copy ──
+      const ctaLabel  = isFixed ? '📅 Confirm Your Booking' : '📸 Send Photos / Request Site Visit';
+      const ctaSubject= isFixed ? 'Confirming Deep Clean Booking' : 'Deep Clean — Photos / Site Visit Request';
+      const closingP  = isFixed
+        ? `To confirm a date, simply reply to this email or call us directly. We'll send confirmation with arrival time and any final access details.`
+        : `Once we've seen the property we can confirm a fixed price and get a date in the diary. We currently have availability within the next two weeks.`;
+      const closingChecklist = isFixed
+        ? _checklist([
+            '<strong>All materials &amp; professional equipment included</strong> — nothing for you to provide',
+            '<strong>Eco-conscious, low-odour products</strong> — safe for families and pets',
+            '<strong>Fully insured team</strong> — £10M public liability cover',
+            '<strong>Satisfaction guaranteed</strong> — if anything is missed we\'ll return to put it right',
+          ])
+        : _checklist([
+            'No obligation — the site visit or photo review is completely free',
+            '<strong>Eco-conscious, low-odour products</strong> — safe for families and pets',
+            '<strong>Fully insured team</strong> — £10M public liability cover',
+            'Fixed price confirmed before any work begins — no surprises',
+          ]);
+
+      const heroH     = isFixed ? 'Your deep clean quote.' : 'We can help — here\'s your estimate.';
+      const heroSub   = isFixed
+        ? `One-off deep clean · ${_esc(property)}`
+        : `Provisional estimate · ${_esc(property)}`;
+      const openingP  = isFixed
+        ? `Thank you for your enquiry. We've reviewed the scope and are pleased to confirm we can carry out a full deep clean of <strong>${_esc(property)}</strong> on a fixed-price basis.`
+        : `Thank you for getting in touch and for outlining the scope so clearly — it's really helpful to have that detail upfront. Yes, we'd be very happy to help with a one-off deep clean for <strong>${_esc(property)}</strong>.`;
+
+      return _wrap('Deep Clean Quote', T.teal,
+        _h(heroH) +
+        _sub(heroSub) +
+        _gr(f.name || 'there') +
+        _p(openingP) +
+        priceBand +
+        visitNotice +
+        scopeHtml +
+        qualHtml +
+        datesHtml +
+        extrasHtml +
+        _p(closingP) +
+        _cta(ctaLabel, `mailto:${BRAND.replyTo}?subject=${encodeURIComponent(ctaSubject)}`, T.teal) +
+        _div() +
+        closingChecklist +
+        _div() +
+        _sm(isFixed
+          ? `All prices include materials and labour. Payment due on completion. Parking access required on the day.`
+          : `All prices include materials and labour. Final price confirmed after site visit or photo review. No work begins until you're happy with the fixed quote.`
+        ),
+        sender
+      );
+    }
+
+    // ── COLD OUTREACH (Lead Intelligence OS) ─────────────────
+    if (tmpl === 'Cold Outreach') {
+      const bizName  = _esc(f.business_name || 'there');
+      const sector   = _esc(f.sector        || '');
+      const borough  = _esc(f.borough       || 'London');
+      const rawBody  = (f.cold_email || '').trim();
+      const bodyHtml = rawBody.length > 0
+        ? rawBody
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .split(/\n{2,}/)
+            .map(chunk => _p(chunk.replace(/\n/g,'<br>')))
+            .join('')
+        : _p(`I wanted to reach out about managed commercial cleaning for <strong>${bizName}</strong>.`) +
+          _p(`We work with ${sector ? sector + ' businesses' : 'organisations'} across ${borough} and would welcome the chance to arrange a brief conversation or no-obligation site visit.`);
+      const sectorCreds = sector
+        ? `We currently serve ${sector} clients across London — COSHH compliant, fully insured, and audit-ready.`
+        : 'We work with offices, residential blocks, healthcare, automotive, and education clients across London.';
+      return _wrap('Cold Outreach', T.teal,
+        _h('Managed commercial cleaning — done properly.') +
+        _sub(`AskMiro Cleaning Services · ${borough}`) +
+        bodyHtml +
+        _div() +
+        _checklist([
+          '<strong>Consistent, site-trained teams</strong> — same people every visit, not rotating agency staff',
+          '<strong>Managed quality checks</strong> — supervisor oversight and written inspection reports',
+          '<strong>COSHH-compliant documentation</strong> — RAMS and safety data sheets as standard',
+          '<strong>£10M public liability</strong> — fully insured, certificates on request',
+          '<strong>Fixed monthly pricing</strong> — no hidden costs, no surprise invoices',
+        ]) +
+        _sm(sectorCreds) +
+        _cta('📅 Book a Free Site Visit', `mailto:${BRAND.replyTo}?subject=Site Visit Request — ${_esc(f.business_name || 'Your Business')}`, T.teal) +
+        _div() +
+        _sm(`To stop receiving these emails please reply with "Unsubscribe".`),
+        sender
+      );
+    }
+
     // ── FALLBACK ─────────────────────────────────────────────
     return _wrap('Email', T.teal,
       _h(_esc(rawSubject || 'Message')) +
@@ -906,7 +1105,7 @@ Thanks again and nice to meet you.`;
   // ── SEND ─────────────────────────────────────────────────
   // Bulk/outreach templates require List-Unsubscribe (RFC 2369 + Gmail best practice)
   // 1:1 operational emails (Invoice, Welcome, Proposal, Renewal) do NOT need it
-  const BULK_TEMPLATES = new Set(['Introduction', 'Follow-up', 'Referral / Introduction Follow-Up']);
+  const BULK_TEMPLATES = new Set(['Introduction', 'Follow-up', 'Referral / Introduction Follow-Up', 'Cold Outreach']);
 
   async function _send() {
     const toEl    = document.getElementById('em-to');
