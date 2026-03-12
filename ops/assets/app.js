@@ -19,6 +19,7 @@
   Router.register('finance',   Finance.render);
   Router.register('email',      Email.render);
   Router.register('reception',  Reception.render);  // ← AI Receptionist
+  Router.register('cleaners', Cleaners.render);
   Router.register('admin',      Admin.render);
 
   // ── SIDEBAR NAVIGATION ────────────────────────────────────
