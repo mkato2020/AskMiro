@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join Our Cleaning Team | AskMiro</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" media="print" onload="this.media='all'">
+<style>
+:root{
+  --teal:#0A9688;--teal-mid:#0DBDAD;--teal-light:#14D4C2;
+  --teal-wash:rgba(13,189,173,0.07);--teal-wash2:rgba(13,189,173,0.12);
+  --border-teal:rgba(13,189,173,0.25);
+  --navy:#0D1C2E;--navy-mid:#0e2438;
+  --bg:#F4F8FB;--surface:#FFFFFF;--raised:#EBF2F8;
+  --text1:#0D1C2E;--text2:#3D5A74;--text3:#7A9BB5;
+  --border:rgba(13,28,46,0.08);--border-md:rgba(13,28,46,0.13);
+  --shadow-sm:0 1px 3px rgba(13,28,46,.06),0 1px 2px rgba(13,28,46,.04);
+  --shadow-md:0 4px 20px rgba(13,28,46,.08),0 2px 6px rgba(13,28,46,.05);
+  --shadow-lg:0 12px 48px rgba(13,28,46,.1),0 4px 12px rgba(13,28,46,.06);
+  --shadow-teal:0 4px 20px rgba(10,150,136,.22);
+  --shadow-teal-lg:0 8px 32px rgba(10,150,136,.28);
+  --r:10px;--r-lg:16px;--r-xl:24px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--text1);line-height:1.65;min-height:100vh}
+
+/* HEADER */
+header{
+  background:var(--navy);padding:0 1.5rem;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.hd-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;letter-spacing:-.02em;color:#fff;text-decoration:none}
+.hd-logo-icon{width:34px;height:34px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(10,150,136,.4)}
+.hd-sub{font-size:.75rem;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-left:4px}
+
+/* HERO */
+.hero{
+  background:var(--navy);padding:56px 1.5rem 60px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 120%,rgba(13,189,173,.18) 0%,transparent 55%),
+    radial-gradient(ellipse 40% 40% at 0% 0%,rgba(13,189,173,.08) 0%,transparent 50%),
+    radial-gradient(ellipse 30% 30% at 100% 0%,rgba(13,189,173,.06) 0%,transparent 50%);
+}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(13,189,173,.4),transparent)}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:7px;position:relative;
+  background:rgba(13,189,173,.12);border:1px solid rgba(13,189,173,.3);
+  border-radius:100px;padding:5px 14px;margin-bottom:22px;
+}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.6);opacity:.5}}
+.hero-badge span{font-family:'JetBrains Mono',monospace;font-size:.625rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid)}
+.hero h1{font-size:clamp(1.75rem,5vw,3.25rem);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:#fff;margin-bottom:14px;position:relative}
+.hero h1 em{font-style:normal;color:var(--teal-light)}
+.hero p{font-size:1.0625rem;color:rgba(255,255,255,.6);max-width:520px;margin:0 auto;position:relative;line-height:1.75}
+
+/* PERKS BAND */
+.perks{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:20px 1.5rem}
+.perks-inner{max-width:860px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px}
+.perk{display:flex;align-items:center;gap:7px;font-size:.8125rem;font-weight:600;color:var(--text2)}
+.perk svg{flex-shrink:0;color:var(--teal)}
+
+/* LAYOUT */
+.wrap{max-width:700px;margin:0 auto;padding:40px 1.5rem 80px}
+
+/* PROGRESS */
+.progress-bar{display:flex;gap:0;margin-bottom:36px;background:var(--surface);border:1px solid var(--border);border-radius:100px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.step-tab{flex:1;padding:10px 6px;text-align:center;font-size:.75rem;font-weight:700;color:var(--text3);cursor:default;transition:background .25s,color .25s;border-right:1px solid var(--border);white-space:nowrap;letter-spacing:.02em}
+.step-tab:last-child{border-right:none}
+.step-tab.active{background:linear-gradient(135deg,var(--teal-mid),var(--teal));color:#fff}
+.step-tab.done{background:var(--raised);color:var(--teal)}
+
+/* FORM CARD */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-md);overflow:hidden}
+.card-hd{padding:24px 28px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.card-hd-icon{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-teal)}
+.card-hd h2{font-size:1.1rem;font-weight:800;color:var(--text1);letter-spacing:-.02em}
+.card-hd p{font-size:.875rem;color:var(--text2);margin-top:3px}
+.card-body{padding:24px 28px}
+
+/* STEP panels */
+.step-panel{display:none}
+.step-panel.active{display:block}
+
+/* FORM FIELDS */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+label{font-size:.8125rem;font-weight:700;color:var(--text2);letter-spacing:.01em}
+label .opt{font-weight:500;color:var(--text3);font-size:.75rem}
+input[type=text],input[type=email],input[type=tel],input[type=number],select,textarea{
+  height:42px;padding:0 12px;
+  border:1.5px solid var(--border-md);border-radius:var(--r);
+  font-family:'Figtree',sans-serif;font-size:.9375rem;color:var(--text1);background:var(--surface);
+  transition:border-color .2s,box-shadow .2s;outline:none;width:100%;
+}
+textarea{height:100px;padding:10px 12px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,189,173,.12)}
+input.err,select.err,textarea.err{border-color:#E53E3E;box-shadow:0 0 0 3px rgba(229,62,62,.1)}
+input.ok,select.ok{border-color:var(--teal)}
+.err-msg{font-size:.75rem;color:#E53E3E;display:none;margin-top:2px}
+.err-msg.show{display:block}
+
+/* SERVICE CHECKBOXES */
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.check-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1.5px solid var(--border-md);border-radius:var(--r);cursor:pointer;transition:border-color .2s,background .2s;font-size:.875rem;font-weight:600;color:var(--text2)}
+.check-item:hover{border-color:var(--teal);background:var(--teal-wash)}
+.check-item input[type=checkbox]{display:none}
+.check-item.selected{border-color:var(--teal);background:var(--teal-wash2);color:var(--teal)}
+.check-tick{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s,border-color .2s}
+.check-item.selected .check-tick{background:var(--teal);border-color:var(--teal)}
+
+/* AVAILABILITY DAYS */
+.days-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.day-btn{padding:7px 12px;border-radius:7px;border:1.5px solid var(--border-md);background:transparent;font-family:'Figtree',sans-serif;font-size:.8125rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all .2s}
+.day-btn.sel{border-color:var(--teal);background:var(--teal-wash2);color:var(--teal)}
+
+/* SECTION DIVIDER */
+.sdiv{font-family:'JetBrains Mono',monospace;font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:8px;margin:20px 0 16px}
+
+/* NAV BUTTONS */
+.card-foot{padding:18px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--raised)}
+.btn-back{padding:10px 20px;border-radius:var(--r);border:1.5px solid var(--border-md);background:transparent;color:var(--text2);font-family:'Figtree',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-back:hover{border-color:var(--text2);color:var(--text1)}
+.btn-next{padding:11px 28px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--teal-mid),var(--teal));color:#fff;font-family:'Figtree',sans-serif;font-size:.9375rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow-teal);transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-next:hover{transform:translateY(-2px);box-shadow:var(--shadow-teal-lg)}
+.btn-next:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-submit{padding:13px 32px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--teal-mid),var(--teal));color:#fff;font-family:'Figtree',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:var(--shadow-teal);transition:all .2s;display:flex;align-items:center;gap:8px;letter-spacing:.01em}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:var(--shadow-teal-lg)}
+.btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+/* SUCCESS */
+#success{display:none;text-align:center;padding:56px 28px 64px}
+#success.show{display:block}
+.success-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:var(--shadow-teal-lg)}
+#success h2{font-size:1.75rem;font-weight:800;color:var(--text1);letter-spacing:-.03em;margin-bottom:12px}
+#success p{font-size:1rem;color:var(--text2);max-width:380px;margin:0 auto;line-height:1.75}
+
+/* NOTE BOX */
+.note{background:var(--teal-wash);border:1px solid var(--border-teal);border-radius:var(--r);padding:12px 14px;font-size:.8125rem;color:var(--text2);line-height:1.65;margin-bottom:16px}
+.note strong{color:var(--teal)}
+
+/* MOBILE */
+@media(max-width:600px){
+  .fr,.fr3{grid-template-columns:1fr}
+  .checks{grid-template-columns:1fr}
+  .card-hd,.card-body,.card-foot{padding-left:18px;padding-right:18px}
+  .hero{padding:44px 1rem 50px}
+  .hero h1{font-size:1.75rem}
+  .wrap{padding:24px 1rem 60px}
+  .progress-bar{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="hd-logo">
+    <div class="hd-logo-icon">
+      <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    Ask<span style="color:var(--teal-light)">Miro</span>
+    <span class="hd-sub">· Cleaning Services</span>
+  </a>
+  <span style="font-size:.8125rem;font-weight:600;color:rgba(255,255,255,.4)">London & UK</span>
+</header>
+
+<section class="hero">
+  <div class="hero-badge"><span class="dot"></span><span>Now Recruiting · London & South East</span></div>
+  <h1>Join our <em>cleaning team</em></h1>
+  <p>Tell us about yourself and we'll be in touch within 48 hours. Takes about 3 minutes.</p>
+</section>
+
+<div class="perks">
+  <div class="perks-inner">
+    <div class="perk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Competitive pay</div>
+    <div class="perk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Flexible hours</div>
+    <div class="perk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Consistent sites</div>
+    <div class="perk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>Fully managed</div>
+    <div class="perk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>Prompt payment</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Progress steps -->
+  <div class="progress-bar" id="progress-bar">
+    <div class="step-tab active" id="tab-1">1 · About You</div>
+    <div class="step-tab" id="tab-2">2 · Services</div>
+    <div class="step-tab" id="tab-3">3 · Availability</div>
+    <div class="step-tab" id="tab-4">4 · Compliance</div>
+  </div>
+
+  <div class="form-card">
+
+    <!-- ═══════════════════════════════
+         STEP 1 — About You
+    ═══════════════════════════════ -->
+    <div class="step-panel active" id="step-1">
+      <div class="card-hd">
+        <div class="card-hd-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div>
+          <h2>About you</h2>
+          <p>Your basic contact details</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="fr">
+          <div class="fg">
+            <label for="firstName">First name <span style="color:#E53E3E">*</span></label>
+            <input type="text" id="firstName" placeholder="e.g. Maria" autocomplete="given-name">
+            <span class="err-msg" id="firstName-err">Please enter your first name</span>
+          </div>
+          <div class="fg">
+            <label for="lastName">Last name <span style="color:#E53E3E">*</span></label>
+            <input type="text" id="lastName" placeholder="e.g. Santos" autocomplete="family-name">
+            <span class="err-msg" id="lastName-err">Please enter your last name</span>
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label for="phone">Phone number <span style="color:#E53E3E">*</span></label>
+            <input type="tel" id="phone" placeholder="e.g. 07911 234 567" autocomplete="tel">
+            <span class="err-msg" id="phone-err">Please enter a valid UK phone number</span>
+          </div>
+          <div class="fg">
+            <label for="email">Email <span class="opt">(optional)</span></label>
+            <input type="email" id="email" placeholder="e.g. maria@email.com" autocomplete="email">
+            <span class="err-msg" id="email-err">Please enter a valid email</span>
+          </div>
+        </div>
+        <div class="sdiv">Location</div>
+        <div class="fr">
+          <div class="fg">
+            <label for="homePostcode">Home postcode <span style="color:#E53E3E">*</span></label>
+            <input type="text" id="homePostcode" placeholder="e.g. SW18 2QA" autocomplete="postal-code" style="text-transform:uppercase">
+            <span class="err-msg" id="homePostcode-err">Please enter your postcode</span>
+          </div>
+          <div class="fg">
+            <label for="borough">Borough / area</label>
+            <input type="text" id="borough" placeholder="e.g. Wandsworth">
+          </div>
+        </div>
+        <div class="fg">
+          <label for="maxTravel">How far are you willing to travel? <span class="opt">(miles)</span></label>
+          <select id="maxTravel">
+            <option value="">— Select —</option>
+            <option value="3">Up to 3 miles</option>
+            <option value="5">Up to 5 miles</option>
+            <option value="8">Up to 8 miles</option>
+            <option value="10">Up to 10 miles</option>
+            <option value="15">Up to 15 miles</option>
+            <option value="20">20+ miles</option>
+          </select>
+        </div>
+        <div class="sdiv">Cleaner type</div>
+        <div class="fg">
+          <label for="cleanerType">How do you prefer to work? <span style="color:#E53E3E">*</span></label>
+          <select id="cleanerType">
+            <option value="">— Select —</option>
+            <option value="Subcontractor">Self-employed / Subcontractor</option>
+            <option value="Employee">Employed (PAYE)</option>
+            <option value="Agency">Through an agency</option>
+          </select>
+          <span class="err-msg" id="cleanerType-err">Please select an option</span>
+        </div>
+      </div>
+      <div class="card-foot">
+        <span style="font-size:.8125rem;color:var(--text3)">Step 1 of 4</span>
+        <button class="btn-next" onclick="goStep(2)">
+          Next
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         STEP 2 — Services
+    ═══════════════════════════════ -->
+    <div class="step-panel" id="step-2">
+      <div class="card-hd">
+        <div class="card-hd-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </div>
+        <div>
+          <h2>Services & experience</h2>
+          <p>What types of cleaning can you do?</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="sdiv">Services you can offer</div>
+        <div class="note"><strong>Select all that apply.</strong> You can still be considered for types not listed — just add a note at the end.</div>
+        <div class="checks" id="services-checks">
+          <label class="check-item" onclick="toggleCheck(this,'Office Cleaning')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Office Cleaning</label>
+          <label class="check-item" onclick="toggleCheck(this,'Residential')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Residential / Domestic</label>
+          <label class="check-item" onclick="toggleCheck(this,'Deep Clean')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Deep Clean</label>
+          <label class="check-item" onclick="toggleCheck(this,'End of Tenancy')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>End of Tenancy</label>
+          <label class="check-item" onclick="toggleCheck(this,'Communal Areas')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Communal / Blocks</label>
+          <label class="check-item" onclick="toggleCheck(this,'Medical')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Medical / Healthcare</label>
+          <label class="check-item" onclick="toggleCheck(this,'Educational')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Schools / Education</label>
+          <label class="check-item" onclick="toggleCheck(this,'Automotive')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Automotive / Dealerships</label>
+        </div>
+        <span class="err-msg" id="services-err" style="margin-bottom:12px">Please select at least one service</span>
+
+        <div class="sdiv">Experience</div>
+        <div class="fr">
+          <div class="fg">
+            <label for="yearsExp">Years of cleaning experience</label>
+            <select id="yearsExp">
+              <option value="0">Less than 1 year</option>
+              <option value="1">1–2 years</option>
+              <option value="3">3–5 years</option>
+              <option value="6">6–10 years</option>
+              <option value="10">10+ years</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="hourlyRate">Expected hourly rate (£)</label>
+            <input type="number" id="hourlyRate" placeholder="e.g. 13.50" min="10" max="30" step="0.50">
+          </div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <button class="btn-back" onclick="goStep(1)">← Back</button>
+        <button class="btn-next" onclick="goStep(3)">
+          Next
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         STEP 3 — Availability
+    ═══════════════════════════════ -->
+    <div class="step-panel" id="step-3">
+      <div class="card-hd">
+        <div class="card-hd-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div>
+          <h2>Availability</h2>
+          <p>When can you work?</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="sdiv">Available days</div>
+        <div class="days-grid" id="days-grid">
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Mon')">Mon</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Tue')">Tue</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Wed')">Wed</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Thu')">Thu</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Fri')">Fri</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Sat')">Sat</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Sun')">Sun</button>
+          <button type="button" class="day-btn" onclick="toggleDay(this,'Flexible')">Flexible</button>
+        </div>
+
+        <div class="fr">
+          <div class="fg">
+            <label for="availType">Availability type <span style="color:#E53E3E">*</span></label>
+            <select id="availType">
+              <option value="">— Select —</option>
+              <option value="Full-time">Full-time (Mon–Fri)</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Ad-hoc">Ad-hoc / as needed</option>
+              <option value="Weekends">Weekends only</option>
+              <option value="Evenings">Evenings only</option>
+              <option value="Nights">Nights</option>
+            </select>
+            <span class="err-msg" id="availType-err">Please select your availability</span>
+          </div>
+          <div class="fg">
+            <label for="startDate">When can you start?</label>
+            <input type="text" id="startDate" placeholder="e.g. Immediately, 2 weeks" >
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label for="startTime">Earliest start time</label>
+            <input type="text" id="startTime" placeholder="e.g. 06:00">
+          </div>
+          <div class="fg">
+            <label for="endTime">Latest finish time</label>
+            <input type="text" id="endTime" placeholder="e.g. 20:00">
+          </div>
+        </div>
+
+        <div class="sdiv">Transport</div>
+        <div class="fr">
+          <div class="fg">
+            <label for="transport">How do you travel to work? <span style="color:#E53E3E">*</span></label>
+            <select id="transport">
+              <option value="">— Select —</option>
+              <option value="Public Transport">Public transport</option>
+              <option value="Car">Car</option>
+              <option value="Van">Van</option>
+              <option value="Bicycle">Bicycle</option>
+              <option value="Walking">Walking</option>
+            </select>
+            <span class="err-msg" id="transport-err">Please select your transport</span>
+          </div>
+          <div class="fg" style="justify-content:flex-end;padding-bottom:4px">
+            <label style="margin-bottom:10px">&nbsp;</label>
+            <label class="check-item" onclick="toggleCheck(this,'_emergency')" id="emergency-check" style="height:42px">
+              <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+              Available for emergency cover
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <button class="btn-back" onclick="goStep(2)">← Back</button>
+        <button class="btn-next" onclick="goStep(4)">
+          Next
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         STEP 4 — Compliance & Submit
+    ═══════════════════════════════ -->
+    <div class="step-panel" id="step-4">
+      <div class="card-hd">
+        <div class="card-hd-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <h2>Compliance & submit</h2>
+          <p>Almost done — just a few final details</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="note">
+          <strong>Don't worry if you don't have everything yet.</strong> We can help with DBS checks and will guide you through the rest when we contact you.
+        </div>
+        <div class="fr">
+          <div class="fg">
+            <label for="dbsStatus">DBS check status</label>
+            <select id="dbsStatus">
+              <option value="None">I don't have one yet</option>
+              <option value="Basic">Basic DBS</option>
+              <option value="Enhanced">Enhanced DBS</option>
+              <option value="Expired">I have one but it's expired</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="payrollType">Preferred payroll type</label>
+            <select id="payrollType">
+              <option value="Self-employed">Self-employed</option>
+              <option value="PAYE">PAYE (employed)</option>
+              <option value="Agency">Via agency</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sdiv">Right to work</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <label class="check-item" onclick="toggleCheck(this,'_rtw')" id="rtw-check">
+            <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+            I have the right to work in the UK
+          </label>
+          <label class="check-item" onclick="toggleCheck(this,'_licence')" id="licence-check">
+            <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+            I have a valid driving licence
+          </label>
+        </div>
+
+        <div class="sdiv">Anything else?</div>
+        <div class="fg">
+          <label for="notes">Notes <span class="opt">(optional)</span></label>
+          <textarea id="notes" placeholder="Any other information you'd like us to know — experience, preferred areas, special skills, etc."></textarea>
+        </div>
+
+        <div style="background:var(--raised);border-radius:var(--r);padding:14px 16px;font-size:.8125rem;color:var(--text2);line-height:1.65;margin-top:8px">
+          By submitting this form you agree that AskMiro Cleaning Services may contact you about cleaning opportunities. Your details are stored securely and never shared with third parties.
+        </div>
+      </div>
+      <div class="card-foot">
+        <button class="btn-back" onclick="goStep(3)">← Back</button>
+        <button class="btn-submit" id="submitBtn" onclick="submitForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Submit Application
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div id="success">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2>Application received!</h2>
+      <p>Thanks for applying. A member of the AskMiro team will be in touch within <strong>48 hours</strong> to discuss opportunities in your area.</p>
+      <p style="margin-top:14px;font-size:.875rem;color:var(--text3)">In the meantime, if you have any questions call us on <a href="tel:02080730621" style="color:var(--teal);font-weight:700">020 8073 0621</a></p>
+    </div>
+
+  </div><!-- /form-card -->
+</div><!-- /wrap -->
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentStep = 1;
+const selectedServices = new Set();
+const selectedDays     = new Set();
+const toggleStates     = {};  // _emergency, _rtw, _licence
+
+// ── STEP NAV ──────────────────────────────────────────────────
+function goStep(n) {
+  if (n > currentStep && !validateStep(currentStep)) return;
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('tab-' + currentStep).classList.remove('active');
+  document.getElementById('tab-' + currentStep).classList.add('done');
+  currentStep = n;
+  document.getElementById('step-' + n).classList.add('active');
+  document.getElementById('tab-' + n).classList.add('active');
+  document.getElementById('tab-' + n).classList.remove('done');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── VALIDATION ────────────────────────────────────────────────
+function validateStep(step) {
+  let ok = true;
+  const setErr = (id, show) => {
+    const el = document.getElementById(id + '-err');
+    if (el) el.classList.toggle('show', show);
+    const field = document.getElementById(id);
+    if (field) field.classList.toggle('err', show);
+  };
+
+  if (step === 1) {
+    const first = v('firstName'), last = v('lastName'), phone = v('phone'), post = v('homePostcode'), type = v('cleanerType');
+    if (!first)  { setErr('firstName', true); ok = false; }    else setErr('firstName', false);
+    if (!last)   { setErr('lastName', true); ok = false; }     else setErr('lastName', false);
+    if (!phone || phone.replace(/\D/g,'').length < 10) { setErr('phone', true); ok = false; } else setErr('phone', false);
+    if (!post)   { setErr('homePostcode', true); ok = false; } else setErr('homePostcode', false);
+    if (!type)   { setErr('cleanerType', true); ok = false; }  else setErr('cleanerType', false);
+  }
+
+  if (step === 2) {
+    const svcErr = document.getElementById('services-err');
+    if (selectedServices.size === 0) {
+      if (svcErr) svcErr.classList.add('show');
+      ok = false;
+    } else {
+      if (svcErr) svcErr.classList.remove('show');
+    }
+  }
+
+  if (step === 3) {
+    const at = v('availType'), tr = v('transport');
+    if (!at) { setErr('availType', true); ok = false; }    else setErr('availType', false);
+    if (!tr) { setErr('transport', true); ok = false; }    else setErr('transport', false);
+  }
+
+  return ok;
+}
+
+// ── CHECKBOX TOGGLES ─────────────────────────────────────────
+function toggleCheck(el, key) {
+  el.classList.toggle('selected');
+  if (key.startsWith('_')) {
+    toggleStates[key] = el.classList.contains('selected');
+  } else {
+    if (el.classList.contains('selected')) selectedServices.add(key);
+    else selectedServices.delete(key);
+  }
+}
+
+function toggleDay(btn, day) {
+  btn.classList.toggle('sel');
+  if (btn.classList.contains('sel')) selectedDays.add(day);
+  else selectedDays.delete(day);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+// ── JSONP POST TO GAS ─────────────────────────────────────────
+function jsonp(url) {
+  return new Promise(function(resolve, reject) {
+    const cb = '_cb' + Date.now();
+    const s  = document.createElement('script');
+    const t  = setTimeout(function() { cleanup(); reject(new Error('timeout')); }, 20000);
+    function cleanup() { clearTimeout(t); delete window[cb]; if (s.parentNode) s.parentNode.removeChild(s); }
+    window[cb] = function(d) { cleanup(); resolve(d); };
+    s.onerror  = function() { cleanup(); reject(new Error('network')); };
+    s.src      = url + '&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────
+async function submitForm() {
+  if (!validateStep(4)) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .8s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sending…';
+
+  const data = {
+    action:        'cleaner.apply',
+    firstName:     v('firstName'),
+    lastName:      v('lastName'),
+    fullName:      (v('firstName') + ' ' + v('lastName')).trim(),
+    phone:         v('phone'),
+    email:         v('email'),
+    homePostcode:  v('homePostcode').toUpperCase(),
+    borough:       v('borough'),
+    maxTravelDistanceMiles: v('maxTravel'),
+    cleanerType:   v('cleanerType'),
+    servicesOffered: [...selectedServices].join('|'),
+    commercialExperience:  selectedServices.has('Office Cleaning') ? 'Yes' : 'No',
+    domesticExperience:    selectedServices.has('Residential') ? 'Yes' : 'No',
+    medicalCleaningExperience: selectedServices.has('Medical') ? 'Yes' : 'No',
+    educationSectorExperience: selectedServices.has('Educational') ? 'Yes' : 'No',
+    dealershipCleaningExperience: selectedServices.has('Automotive') ? 'Yes' : 'No',
+    communalCleaningExperience: selectedServices.has('Communal Areas') ? 'Yes' : 'No',
+    yearsExperience: v('yearsExp'),
+    hourlyRate:      v('hourlyRate'),
+    availabilityType: v('availType'),
+    availableDays:   [...selectedDays].join(', '),
+    availableStartTime: v('startTime'),
+    availableEndTime:   v('endTime'),
+    startDateAvailable: v('startDate'),
+    emergencyCover:  toggleStates['_emergency'] ? 'Yes' : 'No',
+    currentlyAvailable: 'Yes',
+    transportMode:   v('transport'),
+    hasDrivingLicence: toggleStates['_licence'] ? 'Yes' : 'No',
+    hasOwnVehicle:   (v('transport') === 'Car' || v('transport') === 'Van') ? 'Yes' : 'No',
+    dbsStatus:       v('dbsStatus'),
+    rightToWorkChecked: toggleStates['_rtw'] ? 'Yes' : 'No',
+    referencesChecked: 'No',
+    complianceStatus: 'Pending',
+    payrollType:     v('payrollType'),
+    invoiceRequired: v('payrollType') === 'Self-employed' ? 'Yes' : 'No',
+    notes:           v('notes'),
+    source:          'Web Application Form',
+    status:          'Trial',
+    createdAt:       new Date().toISOString(),
+    updatedAt:       new Date().toISOString(),
+  };
+
+  // Build JSONP URL
+  const url = new URL(GAS_URL);
+  Object.entries(data).forEach(([k, val]) => { if (val !== undefined && val !== '') url.searchParams.set(k, String(val)); });
+
+  try {
+    const res = await jsonp(url.toString());
+    if (res && res.ok) {
+      showSuccess();
+    } else {
+      throw new Error(res && res.error ? res.error : 'Submission failed');
+    }
+  } catch(err) {
+    // Still show success — data may have gone through even on timeout
+    // GAS logs the entry either way
+    if (err.message === 'timeout') {
+      showSuccess();
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Submit Application';
+      alert('Something went wrong. Please try again or call us on 020 8073 0621.');
+    }
+  }
+}
+
+function showSuccess() {
+  // Hide all steps
+  document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('progress-bar').style.display = 'none';
+  document.getElementById('success').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── SPIN ANIMATION ────────────────────────────────────────────
+const styleEl = document.createElement('style');
+styleEl.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(styleEl);
+
+// ── POSTCODE UPPERCASE ────────────────────────────────────────
+document.getElementById('homePostcode').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
+</body>
+</html>
