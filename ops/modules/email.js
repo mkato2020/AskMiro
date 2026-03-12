@@ -544,6 +544,17 @@ Thanks again and nice to meet you.`,
       ],
     },
 
+    'General Email': {
+      icon: '✉️', badge: 'General',
+      blurb: 'Blank branded template. Write a subject line and your message — AskMiro header, footer, and signature are added automatically.',
+      subject: '{{subject}}',
+      fields: [
+        { id: 'subject',   label: 'Subject Line', ph: 'e.g. Following up on your enquiry',               type: 'text',     default: '' },
+        { id: 'to_name',   label: 'To (Name)',    ph: 'e.g. Sarah',                                       type: 'text',     default: '' },
+        { id: 'body',      label: 'Message',      ph: 'Write your message here. Use blank lines between paragraphs.', type: 'textarea', rows: 14, default: '' },
+      ],
+    },
+
   };
 
   // ════════════════════════════════════════════════════════════
@@ -968,6 +979,27 @@ Thanks again and nice to meet you.`;
         _cta('📅 Book a Free Site Visit', `mailto:${BRAND.replyTo}?subject=Site Visit Request — ${_esc(f.business_name || 'Your Business')}`, T.teal) +
         _div() +
         _sm(`To stop receiving these emails please reply with "Unsubscribe".`),
+        sender
+      );
+    }
+
+    // ── GENERAL EMAIL ────────────────────────────────────────
+    if (tmpl === 'General Email') {
+      const toName  = _esc(f.to_name || 'there');
+      const rawBody = (f.body || '').trim();
+      const bodyHtml = rawBody.length > 0
+        ? rawBody
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .split(/\n{2,}/)
+            .map(chunk => _p(chunk.replace(/\n/g,'<br>')))
+            .join('')
+        : _p('Please write your message in the Message field above.');
+      return _wrap('General Email', T.teal,
+        _gr(toName) +
+        bodyHtml +
+        _div() +
+        _sm("If you have any questions, please don't hesitate to get in touch.") +
+        _cta('\u260e\ufe0f Call Us', `tel:${BRAND.phoneTel}`, T.teal),
         sender
       );
     }
