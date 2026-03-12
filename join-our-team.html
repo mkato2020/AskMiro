@@ -493,6 +493,9 @@ input.ok,select.ok{border-color:var(--teal)}
       </div>
       <div class="card-foot">
         <button class="btn-back" onclick="goStep(3)">← Back</button>
+        <div id="submit-error" style="display:none;font-size:.8125rem;color:#E53E3E;background:#FFF5F5;border:1px solid #FED7D7;border-radius:8px;padding:10px 14px;margin-bottom:12px">
+  Something went wrong — please check your connection and try again, or call us on <strong>020 8073 0621</strong>.
+</div>
         <button class="btn-submit" id="submitBtn" onclick="submitForm()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           Submit Application
@@ -519,9 +522,18 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2
 
 // ── STATE ─────────────────────────────────────────────────────
 let currentStep = 1;
+let _submitting = false;
 const selectedServices = new Set();
 const selectedDays     = new Set();
 const toggleStates     = {};  // _emergency, _rtw, _licence
+
+  
+  function _alreadySubmitted(phone, postcode) {
+  const key = 'am_apply_' + (phone||'').replace(/\D/g,'').slice(-6) + '_' + (postcode||'').replace(/\s/g,'').toUpperCase();
+  if (sessionStorage.getItem(key)) return true;
+  sessionStorage.setItem(key, '1');
+  return false;
+}
 
 // ── STEP NAV ──────────────────────────────────────────────────
 function goStep(n) {
@@ -613,7 +625,10 @@ function jsonp(url) {
 // ── SUBMIT ────────────────────────────────────────────────────
 async function submitForm() {
   if (!validateStep(4)) return;
-
+  if (_submitting) return;
+  if (_alreadySubmitted(v('phone'), v('homePostcode'))) { showSuccess(); return; }
+  
+  _submitting = true;
   // Honeypot check — bots fill hidden fields
   if (document.getElementById('hp_website') && document.getElementById('hp_website').value) return;
 
@@ -683,7 +698,9 @@ async function submitForm() {
     } else {
       btn.disabled = false;
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Submit Application';
-      alert('Something went wrong. Please try again or call us on 020 8073 0621.');
+      _submitting = false;
+const errBox = document.getElementById('submit-error');
+if (errBox) errBox.style.display = 'block';
     }
   }
 }
