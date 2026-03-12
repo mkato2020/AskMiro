@@ -191,6 +191,10 @@ input.ok,select.ok{border-color:var(--teal)}
 </div>
 
 <div class="wrap">
+  <!-- Honeypot: hidden from humans, bots fill it in -->
+  <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
+    <input type="text" id="hp_website" tabindex="-1" autocomplete="off">
+  </div>
 
   <!-- Progress steps -->
   <div class="progress-bar" id="progress-bar">
@@ -232,7 +236,7 @@ input.ok,select.ok{border-color:var(--teal)}
           <div class="fg">
             <label for="phone">Phone number <span style="color:#E53E3E">*</span></label>
             <input type="tel" id="phone" placeholder="e.g. 07911 234 567" autocomplete="tel">
-            <span class="err-msg" id="phone-err">Please enter a valid UK phone number</span>
+            <span class="err-msg" id="phone-err">Please enter a valid UK number (e.g. 07911 234 567)</span>
           </div>
           <div class="fg">
             <label for="email">Email <span class="opt">(optional)</span></label>
@@ -245,7 +249,7 @@ input.ok,select.ok{border-color:var(--teal)}
           <div class="fg">
             <label for="homePostcode">Home postcode <span style="color:#E53E3E">*</span></label>
             <input type="text" id="homePostcode" placeholder="e.g. SW18 2QA" autocomplete="postal-code" style="text-transform:uppercase">
-            <span class="err-msg" id="homePostcode-err">Please enter your postcode</span>
+            <span class="err-msg" id="homePostcode-err">Please enter a valid UK postcode (e.g. SW18 2QA)</span>
           </div>
           <div class="fg">
             <label for="borough">Borough / area</label>
@@ -544,11 +548,13 @@ function validateStep(step) {
 
   if (step === 1) {
     const first = v('firstName'), last = v('lastName'), phone = v('phone'), post = v('homePostcode'), type = v('cleanerType');
-    if (!first)  { setErr('firstName', true); ok = false; }    else setErr('firstName', false);
-    if (!last)   { setErr('lastName', true); ok = false; }     else setErr('lastName', false);
-    if (!phone || phone.replace(/\D/g,'').length < 10) { setErr('phone', true); ok = false; } else setErr('phone', false);
-    if (!post)   { setErr('homePostcode', true); ok = false; } else setErr('homePostcode', false);
-    if (!type)   { setErr('cleanerType', true); ok = false; }  else setErr('cleanerType', false);
+    const phoneOk  = /^[\d\s\+\(\)\-]{10,}$/.test(phone);
+    const postcodeOk = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i.test(post.trim());
+    if (!first || first.length < 2)  { setErr('firstName', true); ok = false; }    else setErr('firstName', false);
+    if (!last  || last.length < 2)   { setErr('lastName', true); ok = false; }     else setErr('lastName', false);
+    if (!phone || !phoneOk)          { setErr('phone', true); ok = false; }         else setErr('phone', false);
+    if (!post  || !postcodeOk)       { setErr('homePostcode', true); ok = false; }  else setErr('homePostcode', false);
+    if (!type)                       { setErr('cleanerType', true); ok = false; }   else setErr('cleanerType', false);
   }
 
   if (step === 2) {
@@ -607,6 +613,9 @@ function jsonp(url) {
 // ── SUBMIT ────────────────────────────────────────────────────
 async function submitForm() {
   if (!validateStep(4)) return;
+
+  // Honeypot check — bots fill hidden fields
+  if (document.getElementById('hp_website') && document.getElementById('hp_website').value) return;
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
