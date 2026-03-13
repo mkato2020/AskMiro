@@ -71,20 +71,11 @@ window.Email = (() => {
     };
   }
 
-  // ── LOGO SVG ──────────────────────────────────────────────
-  const LOGO = `<svg width="40" height="40" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="44" height="44" rx="10" fill="#0D9488"/>
-    <rect width="44" height="44" rx="10" fill="url(#lg)" opacity="0.25"/>
-    <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <defs><linearGradient id="lg" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-      <stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>
-    </linearGradient></defs>
-  </svg>`;
-
-  const LOGO_SM = `<svg width="30" height="30" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="44" height="44" rx="10" fill="#0D9488"/>
-    <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
+  // ── LOGO ──────────────────────────────────────────────────
+  // PNG hosted on CDN — the only format email clients reliably render.
+  // SVG is stripped by Gmail, Outlook, and Apple Mail without exception.
+  const LOGO    = `<img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0">`;
+  const LOGO_SM = `<img src="https://www.askmiro.com/favicon-32x32.png" width="30" height="30" alt="AskMiro" style="display:block;border:0;border-radius:6px" border="0">`;
 
   // ── ESCAPE ────────────────────────────────────────────────
   function _esc(s) {
