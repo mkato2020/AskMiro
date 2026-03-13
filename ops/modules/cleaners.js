@@ -540,8 +540,27 @@ window.Cleaners = (() => {
     _openDrawer(_formDrawer(_editTarget));
   }
 
+  function _cleanTime(val) {
+    if (!val) return '';
+    var s = String(val);
+    // Strip 1899 epoch garbage from Google Sheets time cells
+    if (s.indexOf('1899') !== -1 || s.indexOf('GMT') !== -1) {
+      try {
+        var d = new Date(s);
+        if (!isNaN(d)) {
+          var h = ('0' + d.getUTCHours()).slice(-2);
+          var m = ('0' + d.getUTCMinutes()).slice(-2);
+          return h + ':' + m;
+        }
+      } catch(e) {}
+      return '';
+    }
+    return s;
+  }
+
   function _formDrawer(c) {
     const v = f => (c && c[f]) ? c[f] : '';
+    const vt = f => _cleanTime(v(f)); // time-safe value getter
     const isEdit = !!c;
 
     return `
@@ -595,8 +614,8 @@ window.Cleaners = (() => {
       )}
       ${_frow(_fi('availableDays','Available Days','e.g. Mon–Fri', v('availableDays')),
               _fi('startDateAvailable','Start Date','e.g. 2026-03-01', v('startDateAvailable')))}
-      ${_frow(_fi('availableStartTime','Start Time','e.g. 06:00', v('availableStartTime')),
-              _fi('availableEndTime',  'End Time',  'e.g. 22:00', v('availableEndTime')))}
+      ${_frow(_fi('availableStartTime','Start Time','e.g. 06:00', vt('availableStartTime')),
+              _fi('availableEndTime',  'End Time',  'e.g. 22:00', vt('availableEndTime')))}
       <div style="padding:0 24px;margin-bottom:12px">
         ${_fcb('emergencyCover','Available for emergency cover (short notice)', v('emergencyCover'))}
       </div>
