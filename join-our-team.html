@@ -102,6 +102,9 @@ input[type=text],input[type=email],input[type=tel],input[type=number],select,tex
   border:1.5px solid var(--border-md);border-radius:var(--r);
   font-family:'Figtree',sans-serif;font-size:.9375rem;color:var(--text1);background:var(--surface);
   transition:border-color .2s,box-shadow .2s;outline:none;width:100%;
+  position:relative;z-index:1;  /* ensure fields sit above any decorative layers */
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 textarea{height:100px;padding:10px 12px;resize:vertical}
 input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,189,173,.12)}
@@ -306,14 +309,14 @@ input.ok,select.ok{border-color:var(--teal)}
         <div class="sdiv">Services you can offer</div>
         <div class="note"><strong>Select all that apply.</strong> You can still be considered for types not listed — just add a note at the end.</div>
         <div class="checks" id="services-checks">
-          <label class="check-item" onclick="toggleCheck(this,'Office Cleaning')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Office Cleaning</label>
-          <label class="check-item" onclick="toggleCheck(this,'Residential')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Residential / Domestic</label>
-          <label class="check-item" onclick="toggleCheck(this,'Deep Clean')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Deep Clean</label>
-          <label class="check-item" onclick="toggleCheck(this,'End of Tenancy')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>End of Tenancy</label>
-          <label class="check-item" onclick="toggleCheck(this,'Communal Areas')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Communal / Blocks</label>
-          <label class="check-item" onclick="toggleCheck(this,'Medical')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Medical / Healthcare</label>
-          <label class="check-item" onclick="toggleCheck(this,'Educational')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Schools / Education</label>
-          <label class="check-item" onclick="toggleCheck(this,'Automotive')"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Automotive / Dealerships</label>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Office Cleaning')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Office Cleaning')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Office Cleaning</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Residential')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Residential')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Residential / Domestic</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Deep Clean')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Deep Clean')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Deep Clean</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'End of Tenancy')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'End of Tenancy')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>End of Tenancy</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Communal Areas')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Communal Areas')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Communal / Blocks</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Medical')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Medical')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Medical / Healthcare</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Educational')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Educational')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Schools / Education</div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'Automotive')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'Automotive')}"><div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>Automotive / Dealerships</div>
         </div>
         <span class="err-msg" id="services-err" style="margin-bottom:12px">Please select at least one service</span>
 
@@ -416,10 +419,10 @@ input.ok,select.ok{border-color:var(--teal)}
           </div>
           <div class="fg" style="justify-content:flex-end;padding-bottom:4px">
             <label style="margin-bottom:10px">&nbsp;</label>
-            <label class="check-item" onclick="toggleCheck(this,'_emergency')" id="emergency-check" style="height:42px">
+            <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'_emergency')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'_emergency')}" id="emergency-check" style="height:42px">
               <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
               Available for emergency cover
-            </label>
+            </div>
           </div>
         </div>
       </div>
@@ -471,14 +474,14 @@ input.ok,select.ok{border-color:var(--teal)}
 
         <div class="sdiv">Right to work</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-          <label class="check-item" onclick="toggleCheck(this,'_rtw')" id="rtw-check">
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'_rtw')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'_rtw')}" id="rtw-check">
             <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
             I have the right to work in the UK
-          </label>
-          <label class="check-item" onclick="toggleCheck(this,'_licence')" id="licence-check">
+          </div>
+          <div class="check-item" role="checkbox" aria-checked="false" tabindex="0" onclick="toggleCheck(this,'_licence')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleCheck(this,'_licence')}" id="licence-check">
             <div class="check-tick"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
             I have a valid driving licence
-          </label>
+          </div>
         </div>
 
         <div class="sdiv">Anything else?</div>
@@ -493,9 +496,9 @@ input.ok,select.ok{border-color:var(--teal)}
       </div>
       <div class="card-foot">
         <button class="btn-back" onclick="goStep(3)">← Back</button>
-        <div id="submit-error" style="display:none;font-size:.8125rem;color:#E53E3E;background:#FFF5F5;border:1px solid #FED7D7;border-radius:8px;padding:10px 14px;margin-bottom:12px">
-  Something went wrong — please check your connection and try again, or call us on <strong>020 8073 0621</strong>.
-</div>
+        <div id="submit-error" style="display:none;font-size:.8125rem;color:#E53E3E;background:#FFF5F5;border:1px solid #FED7D7;border-radius:8px;padding:10px 14px;margin-bottom:0;flex:1">
+          Something went wrong — please check your connection and try again, or call us on <strong>020 8073 0621</strong>.
+        </div>
         <button class="btn-submit" id="submitBtn" onclick="submitForm()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           Submit Application
@@ -522,14 +525,16 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2
 
 // ── STATE ─────────────────────────────────────────────────────
 let currentStep = 1;
-let _submitting = false;
+let _submitting = false;   // prevents double-submit
 const selectedServices = new Set();
 const selectedDays     = new Set();
 const toggleStates     = {};  // _emergency, _rtw, _licence
 
-  
-  function _alreadySubmitted(phone, postcode) {
-  const key = 'am_apply_' + (phone||'').replace(/\D/g,'').slice(-6) + '_' + (postcode||'').replace(/\s/g,'').toUpperCase();
+// ── DUPLICATE GUARD ───────────────────────────────────────────
+// Store a fingerprint (phone last 6 digits + postcode) in sessionStorage
+// so refreshing the page after success doesn't re-submit
+function _alreadySubmitted(phone, postcode) {
+  const key = 'am_apply_' + (phone || '').replace(/\D/g,'').slice(-6) + '_' + (postcode || '').replace(/\s/g,'').toUpperCase();
   if (sessionStorage.getItem(key)) return true;
   sessionStorage.setItem(key, '1');
   return false;
@@ -591,6 +596,7 @@ function validateStep(step) {
 // ── CHECKBOX TOGGLES ─────────────────────────────────────────
 function toggleCheck(el, key) {
   el.classList.toggle('selected');
+  el.setAttribute('aria-checked', el.classList.contains('selected') ? 'true' : 'false');
   if (key.startsWith('_')) {
     toggleStates[key] = el.classList.contains('selected');
   } else {
@@ -625,13 +631,15 @@ function jsonp(url) {
 // ── SUBMIT ────────────────────────────────────────────────────
 async function submitForm() {
   if (!validateStep(4)) return;
-  if (_submitting) return;
-  if (_alreadySubmitted(v('phone'), v('homePostcode'))) { showSuccess(); return; }
-  
-  _submitting = true;
+  if (_submitting) return;  // block double-tap / double-click
+
   // Honeypot check — bots fill hidden fields
   if (document.getElementById('hp_website') && document.getElementById('hp_website').value) return;
 
+  // Duplicate guard — same phone+postcode already submitted this session
+  if (_alreadySubmitted(v('phone'), v('homePostcode'))) { showSuccess(); return; }
+
+  _submitting = true;
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .8s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sending…';
@@ -691,16 +699,20 @@ async function submitForm() {
       throw new Error(res && res.error ? res.error : 'Submission failed');
     }
   } catch(err) {
-    // Still show success — data may have gone through even on timeout
-    // GAS logs the entry either way
+    // GAS JSONP often "times out" on the callback side even when the
+    // write succeeded — treat timeout as success to avoid confusing the applicant.
+    // A real network error (no internet, blocked domain) shows the error UI.
     if (err.message === 'timeout') {
       showSuccess();
     } else {
+      _submitting = false;
+      // Clear the duplicate guard so they can retry
+      sessionStorage.removeItem('am_apply_' + (v('phone')||'').replace(/\D/g,'').slice(-6) + '_' + (v('homePostcode')||'').replace(/\s/g,'').toUpperCase());
       btn.disabled = false;
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Submit Application';
-      _submitting = false;
-const errBox = document.getElementById('submit-error');
-if (errBox) errBox.style.display = 'block';
+      // Show inline error rather than alert
+      const errBox = document.getElementById('submit-error');
+      if (errBox) errBox.style.display = 'block';
     }
   }
 }
