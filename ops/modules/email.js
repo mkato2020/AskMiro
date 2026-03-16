@@ -537,12 +537,11 @@ Thanks again and nice to meet you.`,
 
     'General Email': {
       icon: '✉️', badge: 'General',
-      blurb: 'Blank branded template. Write a subject line and your message — AskMiro header, footer, and signature are added automatically.',
-      subject: '{{subject}}',
+      blurb: 'Blank branded template. Write your subject and message — the AskMiro header, footer, and signature are added automatically.',
+      subject: '',
       fields: [
-        { id: 'subject',   label: 'Subject Line', ph: 'e.g. Following up on your enquiry',               type: 'text',     default: '' },
-        { id: 'to_name',   label: 'To (Name)',    ph: 'e.g. Sarah',                                       type: 'text',     default: '' },
-        { id: 'body',      label: 'Message',      ph: 'Write your message here. Use blank lines between paragraphs.', type: 'textarea', rows: 14, default: '' },
+        { id: 'to_name', label: 'Recipient Name', ph: 'e.g. Sarah',                                          type: 'text',     default: '' },
+        { id: 'body',    label: 'Message',         ph: 'Write your message here. Use blank lines between paragraphs.', type: 'textarea', rows: 14, default: '' },
       ],
     },
 
