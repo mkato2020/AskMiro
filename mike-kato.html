@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mike Kato — Data Analyst, Educator & Founder | London</title>
+<meta name="description" content="Mike Kato — Data Analyst, educator, community volunteer, and founder of AskMiro Cleaning Services. Based in London. Open to data analyst roles and freelance projects.">
+<link rel="canonical" href="https://mikekato.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  /* AskMiro palette */
+  --teal:        #0A9688;
+  --teal-mid:    #0DBDAD;
+  --teal-light:  #14D4C2;
+  --teal-wash:   rgba(13,189,173,0.07);
+  --teal-wash-2: rgba(13,189,173,0.13);
+  --border-teal: rgba(13,189,173,0.28);
+  --navy:        #0D1C2E;
+  --navy-mid:    #0e2438;
+  --navy-card:   #111f30;
+  --bg-base:     #F4F8FB;
+  --bg-surface:  #FFFFFF;
+  --bg-alt:      #F0F7FA;
+  --text-1:      #0D1C2E;
+  --text-2:      #3D5A74;
+  --text-3:      #6B8FA8;
+  --border:      rgba(13,28,46,0.08);
+  --border-md:   rgba(13,28,46,0.13);
+  --shadow-sm:   0 1px 3px rgba(13,28,46,0.06);
+  --shadow-md:   0 4px 20px rgba(13,28,46,0.09);
+  --shadow-lg:   0 12px 48px rgba(13,28,46,0.11);
+  --shadow-teal: 0 4px 20px rgba(10,150,136,0.25);
+  --r-sm: 8px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px;
+  --spring: cubic-bezier(0.34,1.3,0.64,1);
+  --ease:   cubic-bezier(0.25,0.46,0.45,0.94);
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body { font-family:'Figtree',system-ui,sans-serif; background:var(--bg-base); color:var(--text-1); overflow-x:hidden; line-height:1.65; }
+a { text-decoration:none; color:inherit; }
+img { max-width:100%; display:block; }
+
+/* ── SKIP ── */
+.skip-link { position:absolute;top:-40px;left:0;background:var(--teal);color:#fff;padding:8px 16px;border-radius:0 0 8px 0;font-size:14px;font-weight:600;z-index:9999;transition:top .2s; }
+.skip-link:focus { top:0; }
+
+/* ── NAV ── */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  padding:0 48px;height:66px;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:background .3s,box-shadow .3s;
+}
+nav.scrolled {
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.nav-logo {
+  font-size:1.1rem;font-weight:800;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:10px;color:#fff;transition:color .3s;
+}
+nav.scrolled .nav-logo { color:var(--text-1); }
+.nav-mark {
+  width:32px;height:32px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.nav-links { display:flex;align-items:center;gap:28px;list-style:none; }
+.nav-links a { font-size:0.8125rem;font-weight:500;color:rgba(255,255,255,0.6);transition:color .2s; }
+.nav-links a:hover { color:#fff; }
+nav.scrolled .nav-links a { color:var(--text-3); }
+nav.scrolled .nav-links a:hover { color:var(--text-1); }
+.nav-hire {
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  color:#fff!important;padding:9px 20px;border-radius:var(--r-sm);
+  font-size:0.8125rem;font-weight:700;box-shadow:var(--shadow-teal);
+  transition:transform .2s var(--spring),box-shadow .2s;
+}
+.nav-hire:hover { transform:translateY(-1px);box-shadow:0 8px 24px rgba(10,150,136,0.38); }
+@media(max-width:768px) { nav { padding:0 20px; } .nav-links { display:none; } }
+
+/* ── HERO ── */
+.hero {
+  background:var(--navy);
+  min-height:100vh;
+  display:grid;grid-template-columns:1fr 420px;
+  align-items:center;gap:60px;
+  padding:120px 80px 80px;
+  position:relative;overflow:hidden;
+}
+.hero-mesh {
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 0% 20%, rgba(13,189,173,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 100% 80%, rgba(10,150,136,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 30% at 60% 5%, rgba(13,189,173,0.04) 0%, transparent 50%);
+}
+.hero-grid-lines {
+  position:absolute;inset:0;pointer-events:none;opacity:0.025;
+  background-image:linear-gradient(rgba(13,189,173,1) 1px,transparent 1px),linear-gradient(90deg,rgba(13,189,173,1) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.hero-content { position:relative;z-index:1; }
+.avail-badge {
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(13,189,173,0.1);border:1px solid rgba(13,189,173,0.28);
+  border-radius:100px;padding:6px 14px;margin-bottom:28px;
+}
+.avail-dot { width:6px;height:6px;background:var(--teal-mid);border-radius:50%;animation:pulse 2.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:.4} }
+.avail-badge span { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid); }
+.hero-eyebrow { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-bottom:16px;display:flex;align-items:center;gap:10px; }
+.hero-eyebrow::before { content:'';display:block;width:28px;height:1px;background:var(--teal-mid); }
+.hero h1 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2.8rem,4.5vw,4rem);
+  font-weight:700;line-height:1.05;letter-spacing:-.02em;
+  color:#fff;margin-bottom:8px;
+}
+.hero h1 em { font-style:italic;color:var(--teal-light); }
+.hero-roles {
+  display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 24px;
+}
+.hero-role-tag {
+  font-family:'JetBrains Mono',monospace;font-size:0.6875rem;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 12px;border-radius:4px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.55);
+}
+.hero-role-tag.primary { background:var(--teal-wash-2);border-color:var(--border-teal);color:var(--teal-mid); }
+.hero-desc { font-size:1rem;color:rgba(255,255,255,0.6);line-height:1.8;max-width:480px;margin-bottom:36px; }
+.hero-btns { display:flex;gap:12px;flex-wrap:wrap;margin-bottom:52px; }
+.btn-primary {
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  color:#fff;padding:13px 26px;border-radius:var(--r-sm);
+  font-weight:700;font-size:0.875rem;box-shadow:var(--shadow-teal);
+  transition:transform .2s var(--spring),box-shadow .2s;
+}
+.btn-primary:hover { transform:translateY(-2px);box-shadow:0 8px 28px rgba(10,150,136,0.45); }
+.btn-ghost {
+  display:inline-flex;align-items:center;gap:8px;
+  border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.75);
+  padding:12px 24px;border-radius:var(--r-sm);font-weight:600;font-size:0.875rem;
+  transition:border-color .2s,color .2s;
+}
+.btn-ghost:hover { border-color:var(--teal-mid);color:#fff; }
+.hero-stats { display:flex;gap:40px;padding-top:36px;border-top:1px solid rgba(255,255,255,0.08); }
+.stat-num { font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:#fff;line-height:1; }
+.stat-num span { color:var(--teal-light); }
+.stat-label { font-size:0.75rem;color:rgba(255,255,255,0.38);margin-top:4px;letter-spacing:.03em; }
+
+/* Hero photo */
+.hero-visual { position:relative;z-index:1;display:flex;justify-content:center; }
+.photo-wrap {
+  position:relative;width:340px;
+}
+.photo-wrap::before {
+  content:'';position:absolute;top:16px;left:16px;right:-16px;bottom:-16px;
+  border:1.5px solid var(--border-teal);border-radius:var(--r-lg);opacity:.5;
+}
+.photo-wrap img {
+  width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;
+  border-radius:var(--r-lg);display:block;position:relative;z-index:1;
+  box-shadow:var(--shadow-lg);
+}
+.photo-initials {
+  width:100%;aspect-ratio:3/4;border-radius:var(--r-lg);
+  background:linear-gradient(135deg,var(--navy-card),#1e3a5f);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:5rem;font-weight:700;color:var(--teal-mid);
+  position:relative;z-index:1;box-shadow:var(--shadow-lg);
+}
+.photo-badge {
+  position:absolute;bottom:-14px;right:-14px;z-index:2;
+  background:linear-gradient(135deg,var(--teal-mid),var(--teal));
+  color:#fff;padding:10px 16px;border-radius:var(--r-sm);
+  font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  box-shadow:var(--shadow-teal);
+}
+.photo-badge-2 {
+  position:absolute;top:-14px;left:-14px;z-index:2;
+  background:var(--navy-card);border:1px solid var(--border-teal);
+  color:var(--teal-mid);padding:8px 14px;border-radius:var(--r-sm);
+  font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+}
+@media(max-width:960px) { .hero { grid-template-columns:1fr;padding:100px 24px 60px; } .hero-visual { order:-1;margin-bottom:20px; } .photo-wrap { width:220px; } }
+
+/* ── SECTION BASE ── */
+.section { padding:96px 80px; }
+.section-inner { max-width:1100px;margin:0 auto; }
+.section-label { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:10px; }
+.section-label::before { content:'';display:block;width:24px;height:1.5px;background:var(--teal); }
+.section-title { font-family:'Playfair Display',serif;font-size:clamp(1.75rem,2.5vw,2.4rem);font-weight:700;color:var(--text-1);margin-bottom:12px;letter-spacing:-.02em;line-height:1.15; }
+.section-title em { font-style:italic;color:var(--teal); }
+.section-sub { font-size:1rem;color:var(--text-2);line-height:1.75;max-width:560px;margin-bottom:52px; }
+@media(max-width:768px) { .section { padding:64px 24px; } }
+
+/* ── ABOUT / FOUR HATS ── */
+.hats-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg); }
+.hat-card {
+  background:var(--bg-surface);padding:36px 32px;
+  position:relative;overflow:hidden;
+  transition:background .25s;
+}
+.hat-card::after { content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),var(--teal-light));transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease); }
+.hat-card:hover { background:var(--teal-wash); }
+.hat-card:hover::after { transform:scaleX(1); }
+.hat-icon { width:48px;height:48px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:1.375rem;box-shadow:var(--shadow-teal); }
+.hat-card h3 { font-size:1.1rem;font-weight:700;color:var(--text-1);margin-bottom:10px; }
+.hat-card p { font-size:0.9rem;color:var(--text-2);line-height:1.75; }
+.hat-tag { display:inline-block;margin-top:14px;padding:4px 10px;background:var(--teal-wash);border:1px solid var(--border-teal);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal); }
+@media(max-width:680px) { .hats-grid { grid-template-columns:1fr; } }
+
+/* ── EXPERIENCE ── */
+.exp-list { display:flex;flex-direction:column; }
+.exp-item {
+  display:grid;grid-template-columns:200px 1fr;gap:32px;
+  padding:32px 0;border-top:1px solid var(--border);
+  transition:background .2s;
+}
+.exp-item:last-child { border-bottom:1px solid var(--border); }
+.exp-meta { padding-top:4px; }
+.exp-date { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.06em;color:var(--teal);margin-bottom:6px;font-weight:500; }
+.exp-location { font-size:0.78rem;color:var(--text-3);line-height:1.5; }
+.exp-title { font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--text-1);margin-bottom:4px; }
+.exp-org { font-size:0.8125rem;color:var(--text-3);margin-bottom:14px; }
+.exp-bullets { list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:16px; }
+.exp-bullets li { font-size:0.875rem;color:var(--text-2);line-height:1.65;padding-left:16px;position:relative; }
+.exp-bullets li::before { content:'–';position:absolute;left:0;color:var(--teal);opacity:.7; }
+.exp-tags { display:flex;flex-wrap:wrap;gap:6px; }
+.exp-tag { font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;background:var(--teal-wash);border:1px solid var(--border-teal);border-radius:4px;color:var(--teal); }
+@media(max-width:680px) { .exp-item { grid-template-columns:1fr; gap:8px; } }
+
+/* ── SKILLS ── */
+.skills-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg); }
+.skill-card { background:var(--bg-surface);padding:32px 28px;transition:background .25s,transform .2s var(--spring); }
+.skill-card:hover { background:var(--teal-wash);transform:translateY(-2px); }
+.skill-icon { font-size:1.75rem;margin-bottom:14px; }
+.skill-name { font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:8px; }
+.skill-desc { font-size:0.875rem;color:var(--text-2);line-height:1.7; }
+.skill-pills { display:flex;flex-wrap:wrap;gap:5px;margin-top:12px; }
+.skill-pill { font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.06em;padding:3px 8px;background:var(--bg-alt);border:1px solid var(--border-md);border-radius:3px;color:var(--text-3); }
+@media(max-width:768px) { .skills-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:480px) { .skills-grid { grid-template-columns:1fr; } }
+
+/* ── PROJECTS ── */
+.projects-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:20px; }
+.project-card {
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;
+  transition:transform .25s var(--spring),box-shadow .25s,border-color .25s;
+}
+.project-card:hover { transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--border-teal); }
+.project-top { background:var(--navy);padding:22px;position:relative;overflow:hidden; }
+.project-top::before { content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 100% 0%,rgba(13,189,173,.1),transparent 60%); }
+.project-num { font-family:'JetBrains Mono',monospace;font-size:0.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:10px;position:relative; }
+.project-name { font-size:1.0625rem;font-weight:700;color:#fff;line-height:1.25;position:relative; }
+.project-status { position:absolute;top:16px;right:16px;font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:rgba(13,189,173,.15);border:1px solid var(--border-teal);color:var(--teal-light); }
+.project-body { padding:20px; }
+.project-desc { font-size:0.875rem;color:var(--text-2);line-height:1.7;margin-bottom:14px; }
+.project-chips { display:flex;flex-wrap:wrap;gap:5px; }
+.project-chip { font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.06em;padding:3px 9px;background:var(--teal-wash);border:1px solid var(--border-teal);border-radius:3px;color:var(--teal); }
+@media(max-width:768px) { .projects-grid { grid-template-columns:1fr; } }
+
+/* ── ASKMIRO FEATURE ── */
+.askmiro-feature {
+  background:var(--navy);border-radius:var(--r-xl);padding:52px;
+  display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;
+  position:relative;overflow:hidden;box-shadow:var(--shadow-lg);
+}
+.askmiro-feature::before { content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 0% 50%,rgba(13,189,173,.1),transparent 55%),radial-gradient(ellipse 40% 40% at 100% 0%,rgba(13,189,173,.06),transparent 50%);pointer-events:none; }
+.askmiro-content { position:relative;z-index:1; }
+.askmiro-eyebrow { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:16px;display:flex;align-items:center;gap:10px; }
+.askmiro-eyebrow::before { content:'';display:block;width:24px;height:1px;background:var(--teal-mid); }
+.askmiro-feature h3 { font-family:'Playfair Display',serif;font-size:clamp(1.5rem,2vw,2rem);font-weight:700;color:#fff;margin-bottom:16px;line-height:1.15; }
+.askmiro-feature h3 em { font-style:italic;color:var(--teal-light); }
+.askmiro-feature p { font-size:0.9375rem;color:rgba(255,255,255,.55);line-height:1.8;margin-bottom:24px; }
+.askmiro-stats { display:grid;grid-template-columns:repeat(2,1fr);gap:16px; }
+.askmiro-stat { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-md);padding:16px; }
+.askmiro-stat-num { font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:700;color:#fff; }
+.askmiro-stat-num span { color:var(--teal-light); }
+.askmiro-stat-label { font-size:0.75rem;color:rgba(255,255,255,.35);margin-top:3px; }
+.askmiro-visual { position:relative;z-index:1; }
+.askmiro-card-stack { position:relative;height:300px; }
+.askmiro-card {
+  position:absolute;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--r-lg);padding:20px 22px;backdrop-filter:blur(8px);
+}
+.askmiro-card:nth-child(1) { top:0;left:0;right:40px; }
+.askmiro-card:nth-child(2) { top:90px;left:20px;right:0;background:var(--teal-wash-2);border-color:var(--border-teal); }
+.askmiro-card:nth-child(3) { top:190px;left:0;right:60px; }
+.askmiro-card-label { font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:6px; }
+.askmiro-card-val { font-size:0.9375rem;font-weight:700;color:#fff; }
+.askmiro-card-sub { font-size:0.75rem;color:rgba(255,255,255,.4);margin-top:2px; }
+@media(max-width:768px) { .askmiro-feature { grid-template-columns:1fr;padding:32px 24px; gap:32px; } .askmiro-card-stack { height:220px; } }
+
+/* ── VOLUNTEER ── */
+.volunteer-card {
+  display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:start;
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.volunteer-card:hover { border-color:var(--border-teal);box-shadow:var(--shadow-md); }
+.volunteer-icon { width:60px;height:60px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:var(--shadow-teal); }
+.volunteer-card h4 { font-size:1.0625rem;font-weight:700;color:var(--text-1);margin-bottom:4px; }
+.volunteer-card .org { font-size:0.8125rem;color:var(--teal);font-weight:600;margin-bottom:10px; }
+.volunteer-card p { font-size:0.875rem;color:var(--text-2);line-height:1.7; }
+
+/* ── EDUCATION ── */
+.edu-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:16px; }
+.edu-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;transition:border-color .2s,box-shadow .2s; }
+.edu-card:hover { border-color:var(--border-teal);box-shadow:var(--shadow-md); }
+.edu-icon { font-size:1.5rem;margin-bottom:14px; }
+.edu-degree { font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:4px; }
+.edu-school { font-size:0.8125rem;color:var(--teal);font-weight:600;margin-bottom:4px; }
+.edu-years { font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.06em;color:var(--text-3); }
+
+.certs-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:20px; }
+.cert-pill { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 16px;font-size:0.8125rem;color:var(--text-2);display:flex;align-items:center;gap:10px; }
+.cert-pill::before { content:'✓';color:var(--teal);font-weight:700;flex-shrink:0; }
+@media(max-width:560px) { .edu-grid { grid-template-columns:1fr; } }
+
+/* ── CONTACT ── */
+.contact-section { background:var(--navy);padding:96px 80px;position:relative;overflow:hidden; }
+.contact-mesh { position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 65% 70% at 50% 0%,rgba(13,189,173,.14),transparent 55%),radial-gradient(ellipse 40% 40% at 0% 100%,rgba(10,150,136,.08),transparent 50%); }
+.contact-inner { max-width:700px;margin:0 auto;text-align:center;position:relative;z-index:1; }
+.contact-inner h2 { font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;color:#fff;margin-bottom:16px;line-height:1.1; }
+.contact-inner h2 em { font-style:italic;color:var(--teal-light); }
+.contact-inner p { font-size:1rem;color:rgba(255,255,255,.5);line-height:1.75;margin-bottom:40px; }
+.contact-links { display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:40px; }
+.contact-link {
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 22px;border-radius:var(--r-sm);font-size:0.875rem;font-weight:600;
+  transition:transform .2s var(--spring),box-shadow .2s;
+}
+.contact-link.primary { background:linear-gradient(135deg,var(--teal-mid),var(--teal));color:#fff;box-shadow:var(--shadow-teal); }
+.contact-link.primary:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(10,150,136,.4); }
+.contact-link.ghost { border:1.5px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7); }
+.contact-link.ghost:hover { border-color:var(--teal-mid);color:#fff; }
+.contact-details { display:flex;gap:32px;justify-content:center;flex-wrap:wrap; }
+.contact-detail { font-size:0.875rem;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:8px; }
+.contact-detail a { color:rgba(255,255,255,.65);font-weight:600;transition:color .2s; }
+.contact-detail a:hover { color:var(--teal-light); }
+@media(max-width:768px) { .contact-section { padding:64px 24px; } }
+
+/* ── FOOTER ── */
+footer { background:var(--navy-mid);border-top:1px solid rgba(255,255,255,.06);padding:32px 80px; }
+.footer-inner { max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px; }
+.footer-copy { font-size:0.8125rem;color:rgba(255,255,255,.22); }
+.footer-links { display:flex;gap:20px; }
+.footer-links a { font-size:0.8125rem;color:rgba(255,255,255,.3);transition:color .2s; }
+.footer-links a:hover { color:rgba(255,255,255,.7); }
+@media(max-width:768px) { footer { padding:24px; } .footer-inner { flex-direction:column;text-align:center; } }
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity:0;transform:translateY(24px);transition:opacity .6s var(--ease),transform .6s var(--ease); }
+.reveal.visible { opacity:1;transform:translateY(0); }
+.reveal-delay-1 { transition-delay:.1s; }
+.reveal-delay-2 { transition-delay:.2s; }
+.reveal-delay-3 { transition-delay:.3s; }
+
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important;transition-duration:.01ms!important; } }
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- NAV -->
+<nav id="nav" aria-label="Main navigation">
+  <a href="#home" class="nav-logo">
+    <div class="nav-mark" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 16L8 8L12 16L16 8L20 16" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    Mike Kato
+  </a>
+  <ul class="nav-links" role="list">
+    <li><a href="#about">About</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#askmiro">AskMiro</a></li>
+    <li><a href="#contact" class="nav-hire">Hire Me</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home" aria-labelledby="hero-name">
+  <div class="hero-mesh" aria-hidden="true"></div>
+  <div class="hero-grid-lines" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="avail-badge">
+      <span class="avail-dot" aria-hidden="true"></span>
+      <span>Open to opportunities · London</span>
+    </div>
+    <div class="hero-eyebrow">Data Analyst · Educator · Founder</div>
+    <h1 id="hero-name">Mike<br><em>Kato.</em></h1>
+    <div class="hero-roles">
+      <span class="hero-role-tag primary">Data Analyst</span>
+      <span class="hero-role-tag primary">Educator</span>
+      <span class="hero-role-tag">Community Volunteer</span>
+      <span class="hero-role-tag">Founder · AskMiro</span>
+      <span class="hero-role-tag">London, UK</span>
+    </div>
+    <p class="hero-desc">I turn complex data into clear decisions — through dashboards, analytics, and storytelling that moves people and organisations forward. Six years of experience across research, logistics, and entrepreneurship.</p>
+    <div class="hero-btns">
+      <a href="#projects" class="btn-primary">View My Work <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="#contact" class="btn-ghost">Let's Talk</a>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-num">6<span>+</span></div>
+        <div class="stat-label">Years experience</div>
+      </div>
+      <div>
+        <div class="stat-num">20<span>%</span></div>
+        <div class="stat-label">Data processing gain</div>
+      </div>
+      <div>
+        <div class="stat-num">70<span>+</span></div>
+        <div class="stat-label">Staff tracked via dashboards</div>
+      </div>
+      <div>
+        <div class="stat-num">20<span>+</span></div>
+        <div class="stat-label">Managed sites · AskMiro</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="photo-wrap">
+      <img id="heroPhoto" src="https://www.askmiro.com/ChatGPT%20Image%20Feb%2028,%202026,%2002_06_56%20AM.png" alt="Mike Kato — Data Analyst &amp; Founder, London" loading="eager" decoding="sync" onerror="this.outerHTML='<div class="photo-initials">MK</div>'">
+      <div class="photo-badge">📍 London, UK</div>
+      <div class="photo-badge-2">Available Now</div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="section" id="about" style="background:var(--bg-base)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">About</div>
+      <h2 class="section-title">Four hats.<br><em>One mission.</em></h2>
+      <p class="section-sub">I operate at the intersection of data, education, community, and entrepreneurship — bringing the same rigour and care to every role I take on.</p>
+    </div>
+    <div class="hats-grid reveal">
+      <div class="hat-card">
+        <div class="hat-icon">📊</div>
+        <h3>Data Analyst</h3>
+        <p>Six years building dashboards, cleaning datasets, and translating complex data into insight. Power BI, Tableau, Python, SQL, and Excel — applied across research, logistics, and commercial environments.</p>
+        <span class="hat-tag">Power BI · Python · SQL · Tableau</span>
+      </div>
+      <div class="hat-card">
+        <div class="hat-icon">🎓</div>
+        <h3>Educator</h3>
+        <p>Postgraduate-trained teacher with experience training and mentoring teams at Amazon and teaching in Uganda. I break down complexity into clarity — whether it's data concepts or operational SOPs.</p>
+        <span class="hat-tag">PGDE · Training · Mentoring</span>
+      </div>
+      <div class="hat-card">
+        <div class="hat-icon">🤝</div>
+        <h3>Community Volunteer</h3>
+        <p>Active volunteer with the London Metropolitan Police — representing the service at public events, building community trust, and using data to support outreach and engagement planning across London.</p>
+        <span class="hat-tag">Met Police · Community · Engagement</span>
+      </div>
+      <div class="hat-card">
+        <div class="hat-icon">🏢</div>
+        <h3>Founder · AskMiro</h3>
+        <p>Founded AskMiro Cleaning Services — a managed commercial cleaning operation serving 20+ active sites across London. Built the operations, tech stack, and client base from the ground up.</p>
+        <span class="hat-tag">Founder · Operations · B2B</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section class="section" id="experience" style="background:var(--bg-surface)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Career</div>
+      <h2 class="section-title">Professional <em>experience.</em></h2>
+      <p class="section-sub">A track record across research analytics, IT, logistics, and entrepreneurship — in London and internationally.</p>
+    </div>
+    <div class="exp-list">
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-date">04/2019 – Present</div>
+          <div class="exp-location">Kampala, Uganda<br>(Remote)</div>
+        </div>
+        <div>
+          <div class="exp-title">Data Analyst</div>
+          <div class="exp-org">Makerere University – Johns Hopkins University Research Collaboration (Situka Media)</div>
+          <ul class="exp-bullets">
+            <li>Cleaned and analysed large datasets in Excel — improving data processing time by <strong>20%</strong></li>
+            <li>Conducted validation checks that reduced data entry errors by <strong>15%</strong></li>
+            <li>Developed Power BI and Tableau dashboards to support client campaigns and reporting</li>
+            <li>Defined and tracked KPIs with leadership, achieving a <strong>10%</strong> improvement in business performance</li>
+            <li>Generated data-driven insights supporting successful project deliverables and research quality</li>
+          </ul>
+          <div class="exp-tags">
+            <span class="exp-tag">Power BI</span><span class="exp-tag">Tableau</span><span class="exp-tag">Excel</span><span class="exp-tag">KPIs</span><span class="exp-tag">Research Analytics</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-date">11/2024 – Present</div>
+          <div class="exp-location">London, UK</div>
+        </div>
+        <div>
+          <div class="exp-title">Volunteer – Community Engagement</div>
+          <div class="exp-org">London Metropolitan Police</div>
+          <ul class="exp-bullets">
+            <li>Represented the service at public events, building community trust and providing information</li>
+            <li>Used data to support community engagement and outreach planning</li>
+            <li>Coordinated information sharing between police and local residents</li>
+          </ul>
+          <div class="exp-tags">
+            <span class="exp-tag">Community</span><span class="exp-tag">Engagement</span><span class="exp-tag">Data</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-date">10/2024 – 01/2025</div>
+          <div class="exp-location">London, UK</div>
+        </div>
+        <div>
+          <div class="exp-title">Step Up Supervisor</div>
+          <div class="exp-org">Amazon Fulfilment Centre (DXN1)</div>
+          <ul class="exp-bullets">
+            <li>Led Sorting Cycle 2, managing <strong>10,000+</strong> parcels per shift across <strong>20+</strong> associates</li>
+            <li>Coordinated real-time responses to flow blockages and equipment halts</li>
+            <li>Ensured seamless AM handovers, communicating key updates and resolutions</li>
+          </ul>
+          <div class="exp-tags">
+            <span class="exp-tag">Leadership</span><span class="exp-tag">Logistics</span><span class="exp-tag">Operations</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-date">03/2023 – Present</div>
+          <div class="exp-location">London, UK</div>
+        </div>
+        <div>
+          <div class="exp-title">Warehouse Associate &amp; Internal Data Projects</div>
+          <div class="exp-org">Amazon Fulfilment Centre (DXN1)</div>
+          <ul class="exp-bullets">
+            <li>Built a staffing tracker combining attendance, VTO, VET, and leave data for <strong>70+</strong> staff</li>
+            <li>Trained and mentored new associates ensuring SOP and safety compliance</li>
+            <li>Served as Yard Marshal, coordinating safe vehicle and materials movement</li>
+          </ul>
+          <div class="exp-tags">
+            <span class="exp-tag">Excel</span><span class="exp-tag">Staffing Analytics</span><span class="exp-tag">SOPs</span><span class="exp-tag">Mentoring</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-date">08/2015 – 05/2018</div>
+          <div class="exp-location">Kampala, Uganda</div>
+        </div>
+        <div>
+          <div class="exp-title">IT Analyst</div>
+          <div class="exp-org">MTN Uganda</div>
+          <ul class="exp-bullets">
+            <li>Analysed business processes and implemented IT solutions across departments</li>
+            <li>Provided frontline IT support for <strong>200+</strong> internal users resolving hardware, software, and connectivity issues</li>
+            <li>Contributed to automated reporting dashboards and BI tools to support decision-making</li>
+            <li>Trained staff on new systems, reducing downtime and improving adoption</li>
+          </ul>
+          <div class="exp-tags">
+            <span class="exp-tag">IT</span><span class="exp-tag">BI Tools</span><span class="exp-tag">SAP</span><span class="exp-tag">Support</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="section" style="background:var(--bg-alt)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Capabilities</div>
+      <h2 class="section-title">Skills &amp; <em>expertise.</em></h2>
+      <p class="section-sub">A full-stack analytics skill set — from raw data to executive dashboards.</p>
+    </div>
+    <div class="skills-grid reveal">
+      <div class="skill-card">
+        <div class="skill-icon">📊</div>
+        <div class="skill-name">Business Intelligence</div>
+        <div class="skill-desc">Power BI and Tableau dashboard development, data storytelling, KPI tracking, and performance reporting for cross-functional stakeholders.</div>
+        <div class="skill-pills"><span class="skill-pill">Power BI</span><span class="skill-pill">Tableau</span><span class="skill-pill">KPI Design</span><span class="skill-pill">Storytelling</span></div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">🗄️</div>
+        <div class="skill-name">Data Management</div>
+        <div class="skill-desc">SQL, advanced Excel, large dataset cleaning, validation and transformation. Building automated data pipelines and operational trackers.</div>
+        <div class="skill-pills"><span class="skill-pill">SQL</span><span class="skill-pill">Excel</span><span class="skill-pill">ETL</span><span class="skill-pill">Data Quality</span></div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">🐍</div>
+        <div class="skill-name">Python &amp; Analytics</div>
+        <div class="skill-desc">Python for data science and analysis. Statistical modelling, cohort analysis, churn prediction, and customer segmentation.</div>
+        <div class="skill-pills"><span class="skill-pill">Python</span><span class="skill-pill">Pandas</span><span class="skill-pill">Cohort Analysis</span><span class="skill-pill">Churn Prediction</span></div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">☁️</div>
+        <div class="skill-name">Cloud &amp; Platforms</div>
+        <div class="skill-desc">AWS data analytics, SAP ERP, and enterprise software. CNSS-certified in network security. Google Advanced Data Analytics certified.</div>
+        <div class="skill-pills"><span class="skill-pill">AWS</span><span class="skill-pill">SAP</span><span class="skill-pill">Google Analytics</span><span class="skill-pill">CNSS</span></div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">👥</div>
+        <div class="skill-name">Leadership &amp; Teams</div>
+        <div class="skill-desc">Supervisor-level experience managing 20+ staff. Strong communication, stakeholder engagement, and cross-functional collaboration.</div>
+        <div class="skill-pills"><span class="skill-pill">Supervision</span><span class="skill-pill">Mentoring</span><span class="skill-pill">Stakeholders</span><span class="skill-pill">Comms</span></div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">✅</div>
+        <div class="skill-name">Quality &amp; Compliance</div>
+        <div class="skill-desc">Safety and quality compliance, audit-ready documentation, SOP development, and process standardisation across logistics and research.</div>
+        <div class="skill-pills"><span class="skill-pill">SOPs</span><span class="skill-pill">COSHH</span><span class="skill-pill">Audit</span><span class="skill-pill">Documentation</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section class="section" id="projects" style="background:var(--bg-surface)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Portfolio</div>
+      <h2 class="section-title">Personal <em>projects.</em></h2>
+      <p class="section-sub">Real-world data problems solved with Python, Power BI, and analytical thinking.</p>
+    </div>
+    <div class="projects-grid reveal">
+
+      <div class="project-card">
+        <div class="project-top">
+          <div class="project-num">01 · Ongoing</div>
+          <div class="project-name">Customer Insights Dashboard</div>
+          <div class="project-status">Live</div>
+        </div>
+        <div class="project-body">
+          <p class="project-desc">Interactive Power BI dashboard analysing customer behaviour across multiple data sources. Covers lifetime value, purchase frequency, segmentation, cohort analysis, and churn prediction using historical trends. Built dynamic filters by region, time period, and demographics.</p>
+          <div class="project-chips"><span class="project-chip">Power BI</span><span class="project-chip">Cohort Analysis</span><span class="project-chip">Churn Prediction</span><span class="project-chip">Segmentation</span></div>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-top">
+          <div class="project-num">02 · Ongoing</div>
+          <div class="project-name">AusEnergy Demand Analysis</div>
+          <div class="project-status">In Progress</div>
+        </div>
+        <div class="project-body">
+          <p class="project-desc">Analysed energy demand patterns in Australia to help AusEnergy manage supply efficiently. Explored demand fluctuations over time, extreme demand scenarios, and the impact of weather and public holidays on energy consumption.</p>
+          <div class="project-chips"><span class="project-chip">Python</span><span class="project-chip">Time Series</span><span class="project-chip">Energy Analytics</span><span class="project-chip">Forecasting</span></div>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-top">
+          <div class="project-num">03 · Completed</div>
+          <div class="project-name">Camden Tree Data Quality Assessment</div>
+          <div class="project-status" style="background:rgba(61,172,120,.15);border-color:rgba(61,172,120,.3);color:#3dac78">Done</div>
+        </div>
+        <div class="project-body">
+          <p class="project-desc">Evaluated data quality for Camden Council's tree dataset. Documented sources, identified missing values, outliers, and duplicates, and verified geolocation accuracy. Delivered a comprehensive data quality report for Tree Walk Brochures and Environment Report initiatives.</p>
+          <div class="project-chips"><span class="project-chip">Data Quality</span><span class="project-chip">Geolocation</span><span class="project-chip">Public Sector</span><span class="project-chip">Python</span></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="reveal" style="margin-top:28px;text-align:center">
+      <a href="https://mikekato.notion.site/My-Projects-ce51459d468c4342b019461579f0c189" target="_blank" rel="noopener noreferrer" class="btn-primary" style="display:inline-flex">
+        View all projects on Notion
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ASKMIRO FOUNDER -->
+<section class="section" id="askmiro" style="background:var(--bg-alt)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Founder</div>
+      <h2 class="section-title">Building <em>AskMiro.</em></h2>
+      <p class="section-sub">From idea to 20+ active managed sites across London — an entrepreneur's story told in data.</p>
+    </div>
+    <div class="askmiro-feature reveal">
+      <div class="askmiro-content">
+        <div class="askmiro-eyebrow">AskMiro Cleaning Services · Founded 2023</div>
+        <h3>Managed commercial cleaning<br>built on <em>data and discipline.</em></h3>
+        <p>I founded AskMiro to solve a problem I kept hearing from London property managers — unreliable cleaners, zero accountability, and no documentation. I built a managed service that runs like a data operation: checklists, quality checks, compliance records, and a single point of contact.</p>
+        <p>The same analytical thinking I apply to dashboards drives how we track sites, staff, and service quality at AskMiro.</p>
+        <a href="https://www.askmiro.com" target="_blank" rel="noopener noreferrer" class="btn-primary" style="display:inline-flex;margin-top:8px">
+          Visit AskMiro.com
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+      <div class="askmiro-visual">
+        <div class="askmiro-stats" style="margin-bottom:20px">
+          <div class="askmiro-stat">
+            <div class="askmiro-stat-num">20<span>+</span></div>
+            <div class="askmiro-stat-label">Active managed sites</div>
+          </div>
+          <div class="askmiro-stat">
+            <div class="askmiro-stat-num">98<span>%</span></div>
+            <div class="askmiro-stat-label">Client retention rate</div>
+          </div>
+          <div class="askmiro-stat">
+            <div class="askmiro-stat-num">£10<span>M</span></div>
+            <div class="askmiro-stat-label">Public liability cover</div>
+          </div>
+          <div class="askmiro-stat">
+            <div class="askmiro-stat-num">5.0<span>★</span></div>
+            <div class="askmiro-stat-label">Google rating</div>
+          </div>
+        </div>
+        <div class="askmiro-card-stack">
+          <div class="askmiro-card">
+            <div class="askmiro-card-label">Monthly Sites Served</div>
+            <div class="askmiro-card-val">20+ active contracts</div>
+            <div class="askmiro-card-sub">Offices · Residential · Automotive · Healthcare</div>
+          </div>
+          <div class="askmiro-card">
+            <div class="askmiro-card-label">Operations Stack</div>
+            <div class="askmiro-card-val">Custom Ops Dashboard</div>
+            <div class="askmiro-card-sub">Built in-house · CRM · Quotes · Scheduling</div>
+          </div>
+          <div class="askmiro-card">
+            <div class="askmiro-card-label">Compliance</div>
+            <div class="askmiro-card-val">COSHH · DBS · £10M Insured</div>
+            <div class="askmiro-card-sub">Audit-ready documentation as standard</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VOLUNTEER -->
+<section class="section" style="background:var(--bg-surface)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Community</div>
+      <h2 class="section-title">Giving back to <em>London.</em></h2>
+      <p class="section-sub">Community engagement is part of who I am — not just what I do.</p>
+    </div>
+    <div class="volunteer-card reveal">
+      <div class="volunteer-icon">🚔</div>
+      <div>
+        <h4>Community Engagement Volunteer</h4>
+        <div class="org">London Metropolitan Police · November 2024 – Present</div>
+        <p>Representing the Metropolitan Police at public events across London — building trust between the service and local communities. I bring both a data mindset and a genuine belief in community-led policing to this role, supporting outreach planning and helping residents engage with the service.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section class="section" style="background:var(--bg-alt)">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label">Education</div>
+      <h2 class="section-title">Qualifications &amp; <em>certifications.</em></h2>
+    </div>
+    <div class="edu-grid reveal">
+      <div class="edu-card">
+        <div class="edu-icon">🎓</div>
+        <div class="edu-degree">BSc Mathematics &amp; Computer Science</div>
+        <div class="edu-school">Makerere University</div>
+        <div class="edu-years">2010 – 2014 · Kampala, Uganda</div>
+      </div>
+      <div class="edu-card">
+        <div class="edu-icon">📚</div>
+        <div class="edu-degree">Postgraduate Diploma in Education</div>
+        <div class="edu-school">Makerere University</div>
+        <div class="edu-years">2017 – 2019 · Kampala, Uganda</div>
+      </div>
+    </div>
+    <div class="reveal" style="margin-top:36px">
+      <div class="section-label" style="margin-bottom:16px">Certifications</div>
+      <div class="certs-grid">
+        <div class="cert-pill">Google Advanced Data Analytics</div>
+        <div class="cert-pill">AWS Data Analytics (2024)</div>
+        <div class="cert-pill">Python for Data Science – IBM (2023)</div>
+        <div class="cert-pill">Power BI Dashboards – OpenClassrooms</div>
+        <div class="cert-pill">KPMG Data Analytics Virtual Internship</div>
+        <div class="cert-pill">CNSS Network Security Specialist</div>
+        <div class="cert-pill">Excel Fundamentals – OpenClassrooms</div>
+        <div class="cert-pill">Data Analytics Bootcamp – OpenClassrooms</div>
+        <div class="cert-pill">Correlation One – Amazon (In Progress)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact" aria-labelledby="contact-heading">
+  <div class="contact-mesh" aria-hidden="true"></div>
+  <div class="contact-inner">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-mid);display:block;margin-bottom:16px">Let's connect</span>
+    <h2 id="contact-heading">Open to roles,<br>projects &amp; <em>collaborations.</em></h2>
+    <p>Data analyst roles, freelance dashboard projects, and collaborations across London and remote. I respond to every message personally.</p>
+    <div class="contact-links">
+      <a href="mailto:info@askmiro.com" class="contact-link primary">
+        ✉️ Email Me
+      </a>
+      <a href="https://www.linkedin.com/in/mike-kato/" target="_blank" rel="noopener noreferrer" class="contact-link ghost">
+        💼 LinkedIn
+      </a>
+      <a href="https://mikekato.notion.site/My-Projects-ce51459d468c4342b019461579f0c189" target="_blank" rel="noopener noreferrer" class="contact-link ghost">
+        🗂️ Portfolio
+      </a>
+    </div>
+    <div class="contact-details">
+      <div class="contact-detail">📞 <a href="tel:07549354362">07549 354 362</a></div>
+      <div class="contact-detail">📍 London, UK</div>
+      <div class="contact-detail">🌐 <a href="https://www.askmiro.com" target="_blank" rel="noopener noreferrer">askmiro.com</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-copy">Mike Kato © 2026 · Data Analyst · London, UK</div>
+    <div class="footer-links">
+      <a href="https://www.linkedin.com/in/mike-kato/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="https://mikekato.notion.site/My-Projects-ce51459d468c4342b019461579f0c189" target="_blank" rel="noopener noreferrer">Portfolio</a>
+      <a href="https://www.askmiro.com" target="_blank" rel="noopener noreferrer">AskMiro</a>
+      <a href="mailto:info@askmiro.com">Email</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll
+  var nav = document.getElementById('nav');
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+
+  // Scroll reveal
+  var revObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        revObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(function(el) { revObs.observe(el); });
+
+  // Smooth scroll for nav links
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      var t = document.querySelector(this.getAttribute('href'));
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+</script>
+</body>
+</html>
