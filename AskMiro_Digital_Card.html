@@ -46,9 +46,6 @@
   /* ── Status bar ──────────────────────────────────────────────────── */
   .status-bar {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 14px 20px 8px;
     font-size: 12px;
     font-weight: 600;
@@ -56,8 +53,6 @@
     letter-spacing: 0.02em;
   }
   .status-bar .time { font-size: 15px; font-weight: 700; }
-  .status-icons { display: flex; gap: 6px; align-items: center; }
-  .status-icons svg { width: 16px; height: 16px; fill: var(--charcoal); }
 
   /* ── Wallet header ───────────────────────────────────────────────── */
   .wallet-header {
@@ -485,38 +480,7 @@
   }
   .footer-dot { margin: 0 5px; color: var(--teal); }
 
-  /* ── Person switcher ─────────────────────────────────────────────── */
-  .switcher {
-    width: calc(100% - 32px);
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-    animation: fadeUp 0.4s 1.0s both;
-  }
-  .switch-btn {
-    flex: 1;
-    padding: 10px 8px;
-    border-radius: 12px;
-    border: 1px solid var(--light);
-    background: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--mid);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.18s;
-    line-height: 1.3;
-  }
-  .switch-btn.active {
-    background: var(--charcoal);
-    color: var(--white);
-    border-color: var(--charcoal);
-  }
-  .switch-btn:hover:not(.active) {
-    border-color: var(--teal);
-    color: var(--teal);
-  }
+
 
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(14px); }
@@ -568,15 +532,7 @@
 
   <!-- Status bar -->
   <div class="status-bar">
-    <span class="time">9:41</span>
-    <div class="status-icons">
-      <!-- Signal -->
-      <svg viewBox="0 0 24 24"><rect x="1" y="16" width="3" height="5" rx="1"/><rect x="6" y="12" width="3" height="9" rx="1"/><rect x="11" y="8" width="3" height="13" rx="1"/><rect x="16" y="4" width="3" height="17" rx="1"/></svg>
-      <!-- WiFi -->
-      <svg viewBox="0 0 24 24" style="fill:none;stroke:#1C1C1E;stroke-width:2;stroke-linecap:round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#1C1C1E"/></svg>
-      <!-- Battery -->
-      <svg viewBox="0 0 24 24" style="fill:none;stroke:#1C1C1E;stroke-width:2;stroke-linecap:round"><rect x="1" y="7" width="18" height="10" rx="2"/><path d="M23 11v2" stroke-width="2.5"/><rect x="3" y="9" width="12" height="6" rx="1" fill="#1C1C1E" stroke="none"/></svg>
-    </div>
+    <span class="time" id="live-time"></span>
   </div>
 
   <!-- Wallet header -->
@@ -765,11 +721,7 @@
   </div>
 
   <!-- Person switcher -->
-  <div class="switcher">
-    <button class="switch-btn active" onclick="switchPerson(0, this)">Mike<br>Kato</button>
-    <button class="switch-btn" onclick="switchPerson(1, this)">Romel<br>Rodas</button>
-    <button class="switch-btn" onclick="switchPerson(2, this)">Warida<br>Lenia</button>
-  </div>
+
 
   <!-- Footer -->
   <div class="footer">
@@ -854,6 +806,19 @@ function saveContact() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+  // ── Live clock ───────────────────────────────────────────────────
+  function updateTime() {
+    const now  = new Date();
+    let h      = now.getHours();
+    const m    = String(now.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    document.getElementById('live-time').textContent = `${h}:${m}`;
+  }
+  updateTime();
+  setInterval(updateTime, 10000); // update every 10s
+
 </script>
 </body>
 </html>
