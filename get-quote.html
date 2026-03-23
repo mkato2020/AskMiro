@@ -258,7 +258,7 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     submitBtn.disabled=true;submitBtn.textContent='Submitting…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
-    document.getElementById('successOverlay').classList.add('show');
+    window.location.href='/thank-you';
   });
   document.getElementById('postcode').addEventListener('input',function(){this.value=this.value.toUpperCase()});
   document.getElementById('phone').addEventListener('input',function(){this.value=this.value.replace(/[^\d\s\+\(\)\-]/g,'')});
