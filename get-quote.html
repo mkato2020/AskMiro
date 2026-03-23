@@ -257,7 +257,6 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     if(!ok){const fe=form.querySelector('.error');if(fe){fe.scrollIntoView({behavior:'smooth',block:'center'});fe.focus();}return;}
     submitBtn.disabled=true;submitBtn.textContent='Submitting…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
-    if(typeof gtag!=='undefined'){gtag('event','conversion',{'send_to':'AW-17948916112','value':1.0,'currency':'GBP'});gtag('event','generate_lead');}
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
     document.getElementById('successOverlay').classList.add('show');
   });
