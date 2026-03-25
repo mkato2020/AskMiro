@@ -275,14 +275,8 @@ Rules:
         console.warn('Sitemap update failed (non-fatal):', smErr.message);
       }
 
-      // ── 4. Submit to Google Indexing API ──
-      let indexingStatus = null;
-      try {
-        indexingStatus = await submitToIndexingAPI(`https://askmiro.co.uk/${slug}`);
-      } catch (idxErr) {
-        console.warn('Indexing API failed (non-fatal):', idxErr.message);
-        indexingStatus = { error: idxErr.message };
-      }
+      // Note: Google Indexing API is not applicable for general pages (job postings/livestreams only).
+      // Discovery relies on sitemap.xml update above + Googlebot crawling on next visit.
 
       const pushData = await pushRes.json();
       return new Response(JSON.stringify({
@@ -291,7 +285,6 @@ Rules:
         commitUrl: pushData.commit?.html_url,
         sitemapUpdated,
         updated: !!existingSha,
-        indexing: indexingStatus,
       }), { status: 200, headers });
 
     } catch (e) {
@@ -303,69 +296,6 @@ Rules:
   return new Response(JSON.stringify({ error: 'Invalid mode or missing keyword' }), { status: 400, headers });
 };
 
-// ── GOOGLE INDEXING API ──────────────────────────────────────────────────────
-// Requires GOOGLE_SA_JSON env var — paste the full service account JSON file contents.
-// The service account must be added as an Owner in Google Search Console for askmiro.co.uk.
-async function submitToIndexingAPI(pageUrl) {
-  const saJson = process.env.GOOGLE_SA_JSON;
-  if (!saJson) throw new Error('GOOGLE_SA_JSON not configured');
-
-  let sa;
-  try { sa = JSON.parse(saJson); } catch { throw new Error('GOOGLE_SA_JSON is not valid JSON'); }
-
-  const { client_email, private_key } = sa;
-  if (!client_email || !private_key) throw new Error('Service account missing client_email or private_key');
-
-  // ── Build JWT for Google OAuth ──
-  const now = Math.floor(Date.now() / 1000);
-  const jwtHeader  = _b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const jwtPayload = _b64url(JSON.stringify({
-    iss:   client_email,
-    scope: 'https://www.googleapis.com/auth/indexing',
-    aud:   'https://oauth2.googleapis.com/token',
-    iat:   now,
-    exp:   now + 3600,
-  }));
-
-  const sigInput = `${jwtHeader}.${jwtPayload}`;
-
-  // ── Sign with RS256 ──
-  const { createSign } = await import('node:crypto');
-  const signer = createSign('SHA256');
-  signer.update(sigInput);
-  const sigB64 = signer.sign(private_key, 'base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  const jwt = `${sigInput}.${sigB64}`;
-
-  // ── Exchange JWT for access token ──
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
-  });
-  if (!tokenRes.ok) {
-    const e = await tokenRes.text();
-    throw new Error(`Google OAuth failed: ${e}`);
-  }
-  const { access_token } = await tokenRes.json();
-
-  // ── Submit URL to Indexing API ──
-  const idxRes = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ url: pageUrl, type: 'URL_UPDATED' }),
-  });
-  if (!idxRes.ok) {
-    const e = await idxRes.text();
-    throw new Error(`Indexing API error ${idxRes.status}: ${e}`);
-  }
-  const result = await idxRes.json();
-  console.log('Indexing API submitted:', pageUrl, result);
-  return { submitted: true, notifyTime: result.urlNotificationMetadata?.latestUpdate?.notifyTime };
-}
 
 function _b64url(str) {
   return Buffer.from(str).toString('base64')

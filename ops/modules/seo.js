@@ -319,7 +319,6 @@ window.SEO = (() => {
               <div style="font-size:12px;color:#6EE7B7;line-height:1.7">
                 Live in ~60s at <a href="${data.url}" target="_blank" style="color:#34D399;text-decoration:underline">${data.url}</a><br>
                 ${data.sitemapUpdated ? '✓ sitemap.xml updated · ' : ''}
-                ${data.indexing?.submitted ? '✓ Submitted to Google for indexing · ' : (data.indexing?.error ? '⚠ Indexing API: ' + _esc(data.indexing.error) + ' · ' : '')}
                 ${data.commitUrl ? `<a href="${data.commitUrl}" target="_blank" style="color:#34D399;text-decoration:underline">view commit →</a>` : ''}
               </div>
             </div>
