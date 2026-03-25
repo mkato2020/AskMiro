@@ -485,7 +485,7 @@ window.CRM = (() => {
         <button onclick="Router.navigate('quotes')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📋 Quote</button>
-        <button onclick="Router.navigate('email')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
+        <button onclick="CRM._openEmail('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✉️ Email</button>
         <a href="tel:${_esc(l.phone||'')}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
@@ -796,9 +796,14 @@ window.CRM = (() => {
   function _setFilter(f) { _filter = f; _draw(); }
   function _search(q) { _q = q; _draw(); }
 
+  function _openEmail(email, name) {
+    window._emailPrefill = { to: email, name: name };
+    if (window.Router) Router.navigate('email');
+  }
+
   return {
     render, openNewLead, openEdit, openDetail, saveLead, updateLead,
     moveStage, confirmLost, saveQual, saveFollowUp, openLogNote, saveLogNote,
-    _confirmWin, _setView, _setFilter, _search, _checkDuplicate,
+    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail,
   };
 })();

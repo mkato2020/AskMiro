@@ -451,6 +451,8 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     UI.closeModal();
     // Store prefill data for Email module to pick up
     window._emailPrefill = {
+      to:       q.email || q.contactEmail || '',
+      name:     q.clientName || '',
       template: 'Proposal / Quote',
       fields: {
         name:   q.clientName || '',

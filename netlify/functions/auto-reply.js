@@ -42,6 +42,7 @@ export async function sendAutoReply(type, data) {
   let email;
   if (type === 'quote') email = buildQuoteReply(data);
   else if (type === 'chat') email = buildChatReply(data);
+  else if (type === 'quote-estimate') email = buildQuoteEstimateReply(data);
   else return { sent: false, reason: `Unknown type: ${type}` };
 
   if (!email.to || !email.to.includes('@')) {
@@ -60,6 +61,7 @@ export async function sendAutoReply(type, data) {
         from: FROM,
         reply_to: REPLY_TO,
         to: [email.to],
+        bcc: [REPLY_TO],
         subject: email.subject,
         html: email.html,
       }),
@@ -152,6 +154,46 @@ function buildChatReply(d) {
 
       ${ctaButton('Get a Quote Online', SITE + '/get-quote.html')}
     `, { name, type: 'chat' }),
+  };
+}
+
+// ── QUOTE ESTIMATE REPLY ─────────────────────────────────
+function buildQuoteEstimateReply(d) {
+  const name     = d.name     || 'there';
+  const first    = name.split(' ')[0];
+  const facility = d.facility || d.sector || '';
+  const sqft     = d.sqft     || '';
+  const frequency = d.frequency || '';
+  const level    = d.level    || '';
+  const total    = d.total    || '';
+
+  return {
+    to: d.email,
+    subject: `Your cleaning estimate from AskMiro, ${first} — here's what we found`,
+    html: baseTemplate(`
+      <p style="font-size:16px;color:#3D5A74;line-height:1.8;margin:0 0 20px">Hi ${esc(first)},</p>
+
+      <p style="font-size:16px;color:#3D5A74;line-height:1.8;margin:0 0 20px">
+        Thanks for using our quote calculator. Here's a summary of the estimate based on the details you entered.
+      </p>
+
+      <div style="background:#F4F8FB;border-left:3px solid #0DBDAD;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:28px">
+        <div style="font-size:13px;font-weight:600;color:#7A9BB5;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Quote Estimate</div>
+        <table cellpadding="0" cellspacing="0" style="width:100%">
+          ${facility  ? `<tr><td style="font-size:14px;color:#7A9BB5;padding:4px 0;width:50%">Facility type</td><td style="font-size:14px;color:#0D1C2E;font-weight:600">${esc(facility)}</td></tr>` : ''}
+          ${sqft      ? `<tr><td style="font-size:14px;color:#7A9BB5;padding:4px 0">Size</td><td style="font-size:14px;color:#0D1C2E;font-weight:600">${esc(sqft)} sq ft</td></tr>` : ''}
+          ${frequency ? `<tr><td style="font-size:14px;color:#7A9BB5;padding:4px 0">Frequency</td><td style="font-size:14px;color:#0D1C2E;font-weight:600">${esc(frequency)}</td></tr>` : ''}
+          ${level     ? `<tr><td style="font-size:14px;color:#7A9BB5;padding:4px 0">Service level</td><td style="font-size:14px;color:#0D1C2E;font-weight:600">${esc(level)}</td></tr>` : ''}
+          ${total     ? `<tr><td style="font-size:14px;color:#7A9BB5;padding:8px 0 4px;border-top:1px solid #DCE8F0">Estimated monthly cost</td><td style="font-size:16px;color:#0DBDAD;font-weight:800;border-top:1px solid #DCE8F0">${esc(total)}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <p style="font-size:13px;color:#7A9BB5;line-height:1.7;margin:0 0 20px">
+        This is an estimate based on the information provided. Final pricing will be confirmed after a site visit — no obligation.
+      </p>
+
+      ${ctaButton('Request a Full Quote', SITE + '/get-quote.html')}
+    `, { name, type: 'quote-estimate' }),
   };
 }
 

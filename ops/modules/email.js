@@ -1778,12 +1778,39 @@ Thanks again and nice to meet you.`;
 
   // ── ENTRY POINT ───────────────────────────────────────────
   async function render() {
-    _tab = 'inbox';
-    // Load sent log immediately (fast, our own sheet)
+    const prefill = window._emailPrefill || null;
+    window._emailPrefill = null; // consume before any async
+
+    // If coming from CRM/Quotes with a prefill, go straight to compose
+    _tab = prefill ? 'compose' : 'inbox';
+
     try { await _loadEmails(); } catch(e) { _emails = []; }
     _draw();
-    // Load Gmail inbox in background
-    _loadInbox('').then(() => _draw()).catch(() => {});
+    // Load Gmail inbox in background (skip if going to compose)
+    if (!prefill) _loadInbox('').then(() => _draw()).catch(() => {});
+
+    // Pre-fill compose fields after DOM renders
+    if (prefill) {
+      setTimeout(() => {
+        const toEl   = document.getElementById('em-to');
+        if (toEl && prefill.to)   toEl.value = prefill.to;
+
+        if (prefill.template && TEMPLATES[prefill.template]) {
+          const tmplEl = document.getElementById('em-tmpl');
+          if (tmplEl) { tmplEl.value = prefill.template; _pickTmpl(prefill.template); }
+
+          if (prefill.fields) {
+            setTimeout(() => {
+              Object.entries(prefill.fields).forEach(([k, v]) => {
+                const el = document.getElementById('emf-' + k);
+                if (el && v) el.value = v;
+              });
+              _livePreview();
+            }, 80);
+          }
+        }
+      }, 60);
+    }
   }
 
   // ── PUBLIC API ────────────────────────────────────────────

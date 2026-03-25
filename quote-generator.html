@@ -823,30 +823,40 @@
             const totalCost = document.getElementById('result-total').textContent;
             const frequency = document.getElementById('result-frequency').textContent;
             const level = document.getElementById('result-level').textContent;
-            
-            // Create mailto link with quote details
-            const subject = encodeURIComponent('AskMiro Cleaning Services - Quote Estimate');
-            const body = encodeURIComponent(`Dear ${clientName || 'Valued Client'},
 
-Thank you for your interest in AskMiro Cleaning Services.
+            // Send via Resend (Netlify function) — no email client redirect
+            const btn = document.querySelector('button[onclick="emailQuote()"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
-QUOTE ESTIMATE:
-Facility Type: ${facilityType.charAt(0).toUpperCase() + facilityType.slice(1)}
-Square Footage: ${squareFeet.toLocaleString()} sq ft
-Cleaning Frequency: ${frequency}
-Service Level: ${level}
-
-Estimated Monthly Cost: ${totalCost}
-
-This is an estimate based on the information provided. Final pricing will be confirmed after a site visit.
-
-All prices include VAT. Standard contract terms: 3-12 months.
-
-Best regards,
-AskMiro Cleaning Services
-www.askmiro.com`);
-            
-            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            fetch('/api/auto-reply', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'quote-estimate',
+                data: {
+                  email,
+                  name: clientName,
+                  facility: facilityType.charAt(0).toUpperCase() + facilityType.slice(1),
+                  sqft: squareFeet.toLocaleString(),
+                  frequency,
+                  level,
+                  total: totalCost,
+                }
+              })
+            })
+            .then(r => r.json())
+            .then(res => {
+              if (btn) { btn.disabled = false; btn.textContent = '📧 Email Quote'; }
+              if (res.sent) {
+                alert('Quote sent to ' + email);
+              } else {
+                alert('Failed to send: ' + (res.reason || 'Unknown error'));
+              }
+            })
+            .catch(err => {
+              if (btn) { btn.disabled = false; btn.textContent = '📧 Email Quote'; }
+              alert('Send error: ' + err.message);
+            });
         }
     </script>
 </body>
