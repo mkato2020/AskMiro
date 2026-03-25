@@ -477,6 +477,14 @@ window.CRM = (() => {
         <div style="display:flex;gap:4px;flex-wrap:wrap">${stageButtons}</div>
       </div>
 
+      <!-- Follow-up nudge buttons -->
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:700;color:#166534;flex-shrink:0">⚡ Follow up:</span>
+        <button onclick="CRM._quickFollowUp('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}','followup3')" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #86EFAC;background:#fff;color:#166534;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='#166534';this.style.color='#fff'" onmouseleave="this.style.background='#fff';this.style.color='#166534'">Day 3 check-in</button>
+        <button onclick="CRM._quickFollowUp('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}','followup7')" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #86EFAC;background:#fff;color:#166534;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='#166534';this.style.color='#fff'" onmouseleave="this.style.background='#fff';this.style.color='#166534'">Day 7 nudge</button>
+        <button onclick="CRM._quickFollowUp('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}','quote_followup')" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #86EFAC;background:#fff;color:#166534;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='#166534';this.style.color='#fff'" onmouseleave="this.style.background='#fff';this.style.color='#166534'">Quote chaser</button>
+      </div>
+
       <!-- Quick actions -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">
         <button onclick="CRM.openEdit('${_esc(l.id)}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
@@ -804,9 +812,29 @@ window.CRM = (() => {
     if (window.Router) Router.navigate('email');
   }
 
+  function _quickFollowUp(email, name, template) {
+    const templateMap = {
+      followup3:     'Follow-up',
+      followup7:     'Follow-up',
+      quote_followup: 'Follow-up',
+    };
+    const subjectMap = {
+      followup3:     'Following up on your cleaning enquiry',
+      followup7:     'Still thinking it over? — AskMiro',
+      quote_followup: 'Quick question about your quote — AskMiro',
+    };
+    window._emailPrefill = {
+      to: email,
+      name: name,
+      template: templateMap[template] || 'Follow-up',
+      subject: subjectMap[template] || '',
+    };
+    if (window.Router) Router.navigate('email');
+  }
+
   return {
     render, openNewLead, openEdit, openDetail, saveLead, updateLead,
     moveStage, confirmLost, saveQual, saveFollowUp, openLogNote, saveLogNote,
-    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail,
+    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail, _quickFollowUp,
   };
 })();

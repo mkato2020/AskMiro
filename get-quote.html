@@ -377,6 +377,10 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
         <label for="message">Anything else we should know? <span style="font-weight:400;color:var(--text-3);font-size:.875rem">(optional)</span></label>
         <textarea id="message" name="message" rows="3" placeholder="e.g. Currently using another provider, need evening shifts, have a commercial kitchen…" style="width:100%;resize:vertical;padding:.8rem .875rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:1rem;color:var(--text-1);background:var(--bg-surface);transition:border-color .2s,box-shadow .2s;box-sizing:border-box" maxlength="500"></textarea>
         <button type="submit" id="submitBtn">Get My Free Quote →</button>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;margin-bottom:4px">
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:.8125rem;font-weight:600;color:var(--teal);background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:5px 12px">⚡ We reply within 2 hours</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:.8125rem;font-weight:600;color:var(--text-2);background:var(--bg-alt);border:1px solid var(--border);border-radius:20px;padding:5px 12px">🔒 No obligation</span>
+        </div>
         <div class="form-note" id="form-note">⏱ <strong>Takes 30 seconds.</strong> We'll send a ballpark price by email and follow up to arrange a free site visit — no obligation.</div>
       </form>
     </div>
@@ -446,6 +450,27 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   });
 
   document.getElementById('postcode').addEventListener('input',function(){this.value=this.value.toUpperCase()});
+
+  // Pre-fill service type from URL param ?service=
+  (function(){
+    const map = {
+      'oven-clean':      'One-Off — Kitchen / Oven Clean',
+      'deep-clean':      'One-Off — Deep Clean',
+      'end-of-tenancy':  'One-Off — End of Tenancy',
+      'office':          'Managed Contract — Office',
+      'commercial':      'Managed Contract — Commercial',
+      'school':          'Managed Contract — School',
+      'healthcare':      'Managed Contract — Healthcare',
+    };
+    const param = new URLSearchParams(window.location.search).get('service');
+    const val = param && map[param];
+    if(val){
+      var sel = document.getElementById('service-type');
+      sel.value = val;
+      sel.dispatchEvent(new Event('change'));
+      sel.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  })();
 
   // Premises size unit toggle
   window.PremisesUnit={

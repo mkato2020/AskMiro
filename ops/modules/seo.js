@@ -134,7 +134,7 @@ window.SEO = (() => {
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         ${_suggestions.map((k, i) => `
           <button
-            onclick="SEO.generate(${JSON.stringify(k.keyword)})"
+            onclick="SEO.generate(${_esc(JSON.stringify(k.keyword))})"
             style="
               display:inline-flex;align-items:center;gap:6px;
               padding:7px 12px;border-radius:20px;
@@ -223,7 +223,7 @@ window.SEO = (() => {
         <div class="card" style="padding:24px">
           <div style="color:var(--rd);font-weight:600;font-size:14px;margin-bottom:6px">Failed to create page</div>
           <div style="font-size:13px;color:var(--ll);margin-bottom:14px">${_esc(e.message)}</div>
-          <button class="btn bp btn-sm" onclick="SEO.generate(${JSON.stringify(keyword)})">Try again</button>
+          <button class="btn bp btn-sm" onclick="SEO.generate(${_esc(JSON.stringify(keyword))})">Try again</button>
           <button class="btn bo btn-sm" style="margin-left:8px" onclick="document.getElementById('gen-panel').style.display='none'">Dismiss</button>
         </div>`;
     }
