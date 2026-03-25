@@ -275,10 +275,36 @@ Rules:
         console.warn('Sitemap update failed (non-fatal):', smErr.message);
       }
 
+      // ── 4. Update _redirects (clean URL rewrite) ──
+      try {
+        const REDIRECTS_PATH = '_redirects';
+        const rdRes = await fetch(`${GH_API}/repos/${REPO}/contents/${REDIRECTS_PATH}`, { headers: ghHeaders });
+        if (rdRes.ok) {
+          const rdData = await rdRes.json();
+          const current = Buffer.from(rdData.content, 'base64').toString('utf8');
+          const rule = `/${slug} /${slug}.html 200`;
+          if (!current.includes(rule)) {
+            const updated = current.trimEnd() + '\n' + rule + '\n';
+            await fetch(`${GH_API}/repos/${REPO}/contents/${REDIRECTS_PATH}`, {
+              method: 'PUT',
+              headers: ghHeaders,
+              body: JSON.stringify({
+                message: `feat(seo): add redirect for ${slug}`,
+                content: Buffer.from(updated).toString('base64'),
+                sha: rdData.sha,
+                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+              }),
+            });
+          }
+        }
+      } catch (rdErr) {
+        console.warn('_redirects update failed (non-fatal):', rdErr.message);
+      }
+
       // Note: Google Indexing API is not applicable for general pages (job postings/livestreams only).
       // Discovery relies on sitemap.xml update above + Googlebot crawling on next visit.
 
-      // ── 4. Update _pages-index.json registry ──
+      // ── 5. Update _pages-index.json registry ──
       try {
         const PAGES_INDEX_PATH = '_pages-index.json';
         const piRes = await fetch(`${GH_API}/repos/${REPO}/contents/${PAGES_INDEX_PATH}`, { headers: ghHeaders });
