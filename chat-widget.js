@@ -32,7 +32,16 @@
       background: linear-gradient(135deg, #0DBDAD, #0A9688);
       box-shadow: 0 4px 24px rgba(10,150,136,.5);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: transform .3s cubic-bezier(0.34,1.3,0.64,1), box-shadow .25s;
+      transition: transform .3s cubic-bezier(0.34,1.3,0.64,1), box-shadow .25s, opacity .4s ease;
+      opacity: 0; pointer-events: none; transform: scale(0);
+    }
+    #am-bubble.am-visible {
+      opacity: 1; pointer-events: auto; transform: scale(1);
+      animation: am-bubble-in .5s cubic-bezier(0.34,1.3,0.64,1) forwards;
+    }
+    @keyframes am-bubble-in {
+      from { opacity: 0; transform: scale(0) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
     }
     /* GPU-composited pulse ring — uses transform not box-shadow */
     #am-bubble::before {
@@ -389,10 +398,15 @@
 
   sendBtn.addEventListener('click', () => send());
 
-  // Badge after 8s to invite engagement
+  // Bubble appears after 7s (hidden on page load)
+  setTimeout(() => {
+    bubble.classList.add('am-visible');
+  }, 7000);
+
+  // Badge after 15s to invite engagement (after bubble is already visible)
   setTimeout(() => {
     if (!chatVisible && _messages.length === 0) badge.style.display = 'block';
-  }, 8000);
+  }, 15000);
 
   // ── Proactive nudge after 45s ─────────────────────────────
   // Only fires once per session, only if user hasn't opened chat
