@@ -41,9 +41,9 @@ window.Finance = (() => {
       <td>${UI.fmt(i.amount||0)}</td>
       <td>${i.dueDate||'—'}</td>
       <td>${UI.statusPill(i.status)}</td>
-      <td>${i.status!=='Paid'
-        ? `<button class="btn bo btn-xs" onclick="Finance.openSendInvoice('${i.id}')">Send</button>`
-        : ''}</td>
+      <td style="white-space:nowrap">${i.status!=='Paid'
+        ? `<button class="btn bo btn-xs" onclick="Finance.openSendInvoice('${i.id}')" style="margin-right:4px">Send</button><button class="btn bo btn-xs" onclick="Finance.openRecordPayment('${i.id}','${i.amount||0}')" style="border-color:#059669;color:#059669">Paid ✓</button>`
+        : '<span style="font-size:12px;color:#059669;font-weight:600">✓ Paid</span>'}</td>
     </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--ll);padding:24px">No invoices yet</td></tr>`;
 
     app.innerHTML = `
@@ -132,5 +132,40 @@ ${UI.secHd('Invoices', 'Invoice Tracker')}
     }
   }
 
-  return { render, openNewInvoice, saveInvoice, openSendInvoice, doSendInvoice };
+  function openRecordPayment(id, amount) {
+    const today = new Date().toISOString().slice(0, 10);
+    UI.openModal(`<div class="modal-hd"><h2>Record Payment</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
+<div class="modal-body">
+  <div class="fr">
+    <div class="fg"><label class="fl">Amount Received (£) <span class="req">*</span></label><input class="fin" id="pay-am" type="number" value="${amount}" placeholder="5000"></div>
+    <div class="fg"><label class="fl">Date Received <span class="req">*</span></label><input class="fin" id="pay-dt" type="date" value="${today}"></div>
+  </div>
+  <div class="fg"><label class="fl">Reference / Notes</label><input class="fin" id="pay-ref" placeholder="e.g. BACS transfer, ref 12345"></div>
+  <div class="modal-foot">
+    <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
+    <button class="btn bp" style="background:#059669" onclick="Finance.doRecordPayment('${id}')">Mark as Paid ✓</button>
+  </div>
+</div>`);
+  }
+
+  async function doRecordPayment(id) {
+    if (!UI.rq('pay-am') || !UI.rq('pay-dt')) return;
+    const btn = document.querySelector('.modal .bp');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      await API.post('payment', {
+        invoiceId: id,
+        amount: UI.gv('pay-am'),
+        date: UI.gv('pay-dt'),
+        reference: UI.gv('pay-ref')
+      });
+      UI.closeModal(); UI.toast('Payment recorded ✓', 'g');
+      await render();
+    } catch(e) {
+      UI.toast(e.message, 'r');
+      if (btn) { btn.disabled = false; btn.textContent = 'Mark as Paid ✓'; }
+    }
+  }
+
+  return { render, openNewInvoice, saveInvoice, openSendInvoice, doSendInvoice, openRecordPayment, doRecordPayment };
 })();

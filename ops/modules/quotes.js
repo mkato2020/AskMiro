@@ -272,6 +272,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
       suppliesCost: UI.gv('q-sp'),
       otherCosts: UI.gv('q-oc'),
       llwRate: UI.gv('q-lw'),
+      oncostPct: 0.36,
       notes: UI.gv('q-nt')
     };
 

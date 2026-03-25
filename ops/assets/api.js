@@ -159,16 +159,16 @@ window.API = (() => {
     const data = await _withRetry(function() { return _jsonp(url, 20000); });
 
     const invalidateMap = {
-      'quote':              ['quotes', 'dashboard'],
-      'quote.send':         ['quotes'],
-      'quote.approve':      ['quotes', 'dashboard'],
-      'crm.lead':           ['crm', 'dashboard'],
-      'email.send':         ['emails'],
-      'invoice':            ['finance', 'dashboard'],
-      'ops.log':            ['ops'],
-      'quality.inspection': ['quality', 'dashboard'],
-      'voice.callback':     ['voice'],
-      'voice.convert':      ['voice', 'crm'],
+      'quote':          ['quotes', 'dashboard'],
+      'quote.send':     ['quotes'],
+      'quote.approve':  ['quotes', 'dashboard'],
+      'lead':           ['crm', 'dashboard'],
+      'lead.stage':     ['crm', 'dashboard'],
+      'email.send':     ['emails'],
+      'invoice':        ['finance', 'dashboard'],
+      'invoice.generate': ['finance', 'dashboard'],
+      'inspection':     ['quality', 'dashboard'],
+      'payment':        ['finance', 'dashboard'],
     };
     (invalidateMap[action] || []).forEach(function(prefix) { invalidate(prefix); });
 

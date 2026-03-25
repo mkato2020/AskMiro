@@ -677,7 +677,8 @@ window.CRM = (() => {
       // Append stage change to activity log
       const log = _activityLog(lead || {});
       log.push({ date: new Date().toISOString(), note: `Stage moved to ${STAGE_META[status].label}` });
-      await API.post('lead.stage', { id, status, activityLog: JSON.stringify(log) });
+      await API.post('lead.stage', { id, status });
+      await API.post('lead', { id, activityLog: JSON.stringify(log) });
       UI.toast(`Moved to ${STAGE_META[status].label}`, status === 'Lost' ? 'r' : 'g');
       UI.closeDrawer();
       await render();
@@ -716,7 +717,8 @@ window.CRM = (() => {
     const log = _activityLog(lead);
     log.push({ date: new Date().toISOString(), note: 'Stage moved to Won — onboarding checklist reviewed' });
     try {
-      await API.post('lead.stage', { id, status: 'Won', activityLog: JSON.stringify(log) });
+      await API.post('lead.stage', { id, status: 'Won' });
+      await API.post('lead', { id, activityLog: JSON.stringify(log) });
       UI.closeModal();
       UI.toast('Marked as Won! 🎉', 'g');
       await render();
@@ -786,7 +788,8 @@ window.CRM = (() => {
       const lead = _leads.find(l => l.id === id) || {};
       const log = _activityLog(lead);
       log.push({ date: new Date().toISOString(), note: 'Marked as Lost' });
-      API.post('lead.stage', { id, status: 'Lost', activityLog: JSON.stringify(log) })
+      API.post('lead.stage', { id, status: 'Lost' })
+        .then(() => API.post('lead', { id, activityLog: JSON.stringify(log) }))
         .then(() => { UI.toast('Marked as Lost', 'r'); UI.closeDrawer(); render(); })
         .catch(e => UI.toast(e.message, 'r'));
     }
