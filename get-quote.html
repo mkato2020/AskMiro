@@ -444,7 +444,10 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     const fd=new FormData(form);
     // 1. Netlify Forms (storage)
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
-    // 2. GAS — creates CRM lead + fires auto-reply email to client
+    // 2. Auto-reply email via Resend (fire-and-forget)
+    var gv0=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+    fetch('/api/form-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:gv0('name'),email:gv0('email'),sector:gv0('service-type'),postcode:gv0('postcode')})}).catch(function(){});
+    // 3. GAS — creates CRM lead + fires auto-reply email to client
     (function(){
       var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
       var params=new URLSearchParams({
