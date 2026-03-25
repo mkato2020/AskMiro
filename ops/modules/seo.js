@@ -178,26 +178,101 @@ window.SEO = (() => {
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
-      const res = await fetch('/api/seo-generate', {
+      // Step 1 — generate article
+      const genRes = await fetch('/api/seo-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'generate', keyword }),
       });
-      const data = await res.json();
+      const data = await genRes.json();
       if (data.error) throw new Error(data.error);
 
       _generated = data;
-      _renderResult(data, keyword);
+
+      // Step 2 — auto-publish to GitHub
+      panel.innerHTML = `
+        <div class="card" style="padding:28px;text-align:center">
+          <div class="spinner" style="width:28px;height:28px;margin:0 auto 14px"></div>
+          <div style="font-weight:700;font-size:14px;color:var(--ch);margin-bottom:4px">Creating page…</div>
+          <div style="font-size:12px;color:var(--ll)">Committing <strong>${_esc(data.slug)}.html</strong> to GitHub — Netlify deploys automatically</div>
+        </div>`;
+
+      const pubRes = await fetch('/api/seo-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'publish',
+          slug: data.slug,
+          html: data.html,
+          title: data.article && data.article.title ? data.article.title : data.slug,
+        }),
+      });
+      const pubData = await pubRes.json();
+      if (pubData.error) throw new Error(pubData.error);
+
+      _renderSuccess(data, pubData, keyword);
 
     } catch (e) {
+      // If we have the article HTML but publish failed, show the result with manual publish button
+      if (_generated && _generated.html) {
+        _renderResult(_generated, keyword);
+        if (typeof UI !== 'undefined') UI.toast('Article ready — publish failed: ' + e.message + '. Click "Publish to Site" to retry.', 'w', 8000);
+        return;
+      }
       panel.innerHTML = `
         <div class="card" style="padding:24px">
-          <div style="color:var(--rd);font-weight:600;font-size:14px;margin-bottom:6px">Generation failed</div>
+          <div style="color:var(--rd);font-weight:600;font-size:14px;margin-bottom:6px">Failed to create page</div>
           <div style="font-size:13px;color:var(--ll);margin-bottom:14px">${_esc(e.message)}</div>
           <button class="btn bp btn-sm" onclick="SEO.generate(${JSON.stringify(keyword)})">Try again</button>
           <button class="btn bo btn-sm" style="margin-left:8px" onclick="document.getElementById('gen-panel').style.display='none'">Dismiss</button>
         </div>`;
     }
+  }
+
+  function _renderSuccess(data, pubData, keyword) {
+    const panel = document.getElementById('gen-panel');
+    const slug  = data.slug || 'generated-article';
+    const title = (data.article && data.article.title) ? data.article.title : keyword;
+    const liveUrl = pubData.url || ('https://askmiro.co.uk/' + slug);
+
+    panel.innerHTML = `
+      <div class="card" style="padding:0;overflow:hidden;border-color:#059669">
+        <div style="background:linear-gradient(135deg,#052e16,#064E3B);padding:20px 24px;display:flex;align-items:center;gap:14px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:700;color:#ECFDF5;font-size:15px;margin-bottom:3px">Page created! Netlify is deploying…</div>
+            <div style="font-size:12px;color:#6EE7B7">${_esc(title)}</div>
+          </div>
+          <button class="btn bo btn-sm" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)" onclick="document.getElementById('gen-panel').style.display='none';document.getElementById('custom-keyword').value=''">✕ Clear</button>
+        </div>
+        <div style="padding:20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+            ${[
+              ['Live URL', liveUrl],
+              ['Filename', slug + '.html'],
+              ['Status', pubData.sitemapUpdated ? 'sitemap.xml updated' : 'Deploying…'],
+            ].map(([label, val]) => `
+            <div style="background:var(--of);border:1px solid var(--bd);border-radius:8px;padding:12px 14px">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ll);margin-bottom:4px">${label}</div>
+              <div style="font-size:12px;font-weight:600;color:var(--ch);word-break:break-all">${_esc(val)}</div>
+            </div>`).join('')}
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <a href="${liveUrl}" target="_blank" class="btn bp btn-sm">Open live page →</a>
+            ${pubData.commitUrl ? `<a href="${_esc(pubData.commitUrl)}" target="_blank" class="btn bo btn-sm">View commit</a>` : ''}
+            <button class="btn bo btn-sm" onclick="SEO.download()">Download HTML</button>
+          </div>
+          <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:12px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0369A1;margin-bottom:5px">Speed up indexing</div>
+            <div style="font-size:12px;color:#0C4A6E;line-height:1.6">Submit <code style="background:#E0F2FE;padding:1px 4px;border-radius:3px">${_esc(liveUrl)}</code> to <strong>Google Search Console</strong> to get it indexed faster.</div>
+          </div>
+        </div>
+      </div>`;
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof UI !== 'undefined') UI.toast('Page created and deploying!', 's', 5000);
   }
 
   function _renderResult(data, keyword) {
