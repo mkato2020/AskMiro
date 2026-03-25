@@ -158,6 +158,14 @@
     <priority>0.3</priority>
   </url>
 
+  <!-- ── GEO / Trust pages ── -->
+  <url>
+    <loc>https://www.askmiro.com/about-askmiro-cleaning-london</loc>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- /review intentionally excluded — noindex page for customer use only -->
 
 </urlset>
