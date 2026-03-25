@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Netlify Dev (full stack — recommended)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["netlify-cli", "dev", "--port", "8888"],
+      "port": 8888
+    },
+    {
+      "name": "Static Server (HTML only, no functions)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8080"],
+      "port": 8080
+    }
+  ]
+}

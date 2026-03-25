@@ -17,6 +17,7 @@ window. Router = (() => {
     finance:   'Finance & Invoicing',
     admin:     'Admin & Settings',
     email:     'Email Centre',
+    seo:       'SEO Content Generator',
   };
 
   const PAGE_CTA = {

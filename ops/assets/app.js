@@ -21,6 +21,7 @@
   Router.register('reception',  Reception.render);  // ← AI Receptionist
   Router.register('cleaners', Cleaners.render);
   Router.register('admin',      Admin.render);
+  Router.register('seo',        SEO.render);
 
   // ── SIDEBAR NAVIGATION ────────────────────────────────────
   document.addEventListener('click', async (e) => {
