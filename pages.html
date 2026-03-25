@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cleaning Guides & Articles | AskMiro</title>
+<meta name="description" content="Expert guides on commercial cleaning standards, office cleaning, healthcare, schools, deep cleans and more — from AskMiro Cleaning Services, London.">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0D1C2E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0A9688;--teal-mid:#0DBDAD;--navy:#0D1C2E;--bg:#F4F8FB;--bg-surface:#fff;--text-1:#0D1C2E;--text-2:#486070;--text-3:#8AAABB;--border:rgba(13,28,46,.08);--sh-sm:0 1px 4px rgba(13,28,46,.06)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--text-1);line-height:1.65}
+header{background:rgba(13,28,46,.96);backdrop-filter:blur(20px);padding:0 1.5rem;height:60px;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:100}
+.hd-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;letter-spacing:-.02em;color:#fff;text-decoration:none}
+.hd-back{margin-left:auto;font-size:.875rem;font-weight:600;color:rgba(255,255,255,.45);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color .2s}
+.hd-back:hover{color:rgba(255,255,255,.8)}
+.hero{background:var(--navy);padding:52px 1.5rem 48px;text-align:center}
+.hero-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(13,189,173,.12);border:1px solid rgba(13,189,173,.25);border-radius:100px;padding:5px 14px;margin-bottom:18px}
+.hero-pill span{font-family:'JetBrains Mono',monospace;font-size:.625rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid)}
+.hero h1{font-size:clamp(1.6rem,4vw,2.5rem);font-weight:800;color:#fff;letter-spacing:-.03em;margin-bottom:12px}
+.hero p{color:rgba(255,255,255,.55);font-size:.9375rem;max-width:520px;margin:0 auto}
+.container{max-width:1080px;margin:0 auto;padding:40px 1.5rem}
+.filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.filter-btn{font-size:.8125rem;font-weight:600;padding:6px 14px;border-radius:100px;border:1.5px solid var(--border);background:var(--bg-surface);color:var(--text-2);cursor:pointer;font-family:'Figtree',sans-serif;transition:all .15s}
+.filter-btn:hover,.filter-btn.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:10px;transition:box-shadow .2s,transform .2s;box-shadow:var(--sh-sm)}
+.card:hover{box-shadow:0 8px 28px rgba(13,28,46,.1);transform:translateY(-2px)}
+.card-cat{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:400}
+.card-title{font-size:1rem;font-weight:700;line-height:1.35;color:var(--text-1)}
+.card-arrow{margin-top:auto;font-size:.8125rem;font-weight:600;color:var(--teal);display:flex;align-items:center;gap:4px}
+.empty{text-align:center;padding:60px 20px;color:var(--text-3);font-size:.9375rem;display:none}
+footer{text-align:center;padding:24px 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);border-top:1px solid var(--border);margin-top:20px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.container{padding:28px 1rem}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="hd-logo">
+    <img src="/favicon.svg" alt="AskMiro" width="26" height="26" style="border-radius:7px;flex-shrink:0">
+    Ask<span style="color:#14D4C2">Miro</span>
+  </a>
+  <a href="/" class="hd-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back</a>
+</header>
+
+<section class="hero">
+  <div class="hero-pill"><span>Cleaning Guides · London · 2026</span></div>
+  <h1>Cleaning Guides & Articles</h1>
+  <p>Expert knowledge on commercial cleaning standards, compliance, and best practice — from the AskMiro team.</p>
+</section>
+
+<div class="container">
+  <div class="filter-row" id="filterRow"></div>
+  <div class="grid" id="pageGrid"></div>
+  <div class="empty" id="emptyState">No articles in this category yet.</div>
+</div>
+
+<footer>© 2026 AskMiro Cleaning Services · London & UK</footer>
+
+<script>
+(function(){
+  fetch('/_pages-index.json')
+    .then(r => r.json())
+    .then(pages => {
+      pages.sort((a,b) => b.date.localeCompare(a.date));
+      const cats = ['All', ...new Set(pages.map(p => p.category))];
+      let active = 'All';
+
+      const filterRow = document.getElementById('filterRow');
+      cats.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn' + (cat === 'All' ? ' active' : '');
+        btn.textContent = cat;
+        btn.onclick = () => {
+          active = cat;
+          filterRow.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
+          render();
+        };
+        filterRow.appendChild(btn);
+      });
+
+      function render() {
+        const grid = document.getElementById('pageGrid');
+        const empty = document.getElementById('emptyState');
+        const filtered = active === 'All' ? pages : pages.filter(p => p.category === active);
+        grid.innerHTML = filtered.map(p => `
+          <a class="card" href="/${p.slug}">
+            <div class="card-cat">${p.category}</div>
+            <div class="card-title">${p.title}</div>
+            <div class="card-arrow">Read guide <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </a>`).join('');
+        empty.style.display = filtered.length ? 'none' : 'block';
+      }
+      render();
+    })
+    .catch(() => {
+      document.getElementById('pageGrid').innerHTML = '<p style="color:var(--text-3)">Could not load guides. Please try again.</p>';
+    });
+})();
+</script>
+</body>
+</html>

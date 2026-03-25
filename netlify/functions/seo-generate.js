@@ -278,6 +278,34 @@ Rules:
       // Note: Google Indexing API is not applicable for general pages (job postings/livestreams only).
       // Discovery relies on sitemap.xml update above + Googlebot crawling on next visit.
 
+      // ── 4. Update _pages-index.json registry ──
+      try {
+        const PAGES_INDEX_PATH = '_pages-index.json';
+        const piRes = await fetch(`${GH_API}/repos/${REPO}/contents/${PAGES_INDEX_PATH}`, { headers: ghHeaders });
+        let pages = [];
+        let piSha = null;
+        if (piRes.ok) {
+          const piData = await piRes.json();
+          piSha = piData.sha;
+          pages = JSON.parse(Buffer.from(piData.content, 'base64').toString('utf8'));
+        }
+        if (!pages.find(p => p.slug === slug)) {
+          const category = body.category || 'Guide';
+          pages.unshift({ slug, title: title || slug, date: new Date().toISOString().split('T')[0], category });
+          const piBody = {
+            message: `feat(seo): register ${slug} in pages index`,
+            content: Buffer.from(JSON.stringify(pages, null, 2)).toString('base64'),
+            committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+          };
+          if (piSha) piBody.sha = piSha;
+          await fetch(`${GH_API}/repos/${REPO}/contents/${PAGES_INDEX_PATH}`, {
+            method: 'PUT', headers: ghHeaders, body: JSON.stringify(piBody),
+          });
+        }
+      } catch (piErr) {
+        console.warn('Pages index update failed (non-fatal):', piErr.message);
+      }
+
       const pushData = await pushRes.json();
       return new Response(JSON.stringify({
         success: true,
