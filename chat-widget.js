@@ -8,7 +8,7 @@
 
   const CFG = {
     endpoint:    '/api/chat',
-    greeting:    "Hello! I'm Miro, AskMiro's virtual assistant. How can I help you today?",
+    greeting:    "Hi there 👋 I'm Miro — AskMiro's virtual assistant. Whether you need a quick price, want to know what's included, or just have a question, I'm here to help. What can I do for you today?",
     placeholder: 'Ask about services, coverage, or a quote…',
     brand:       'AskMiro',
   };
@@ -398,15 +398,15 @@
 
   sendBtn.addEventListener('click', () => send());
 
-  // Bubble appears after 7s (hidden on page load)
+  // Bubble + chat auto-open after 7s — only once per session
+  const AUTO_KEY = 'am_auto_opened';
   setTimeout(() => {
     bubble.classList.add('am-visible');
+    if (!sessionStorage.getItem(AUTO_KEY) && !chatVisible) {
+      sessionStorage.setItem(AUTO_KEY, '1');
+      openChat();
+    }
   }, 7000);
-
-  // Badge after 15s to invite engagement (after bubble is already visible)
-  setTimeout(() => {
-    if (!chatVisible && _messages.length === 0) badge.style.display = 'block';
-  }, 15000);
 
   // ── Proactive nudge after 45s ─────────────────────────────
   // Only fires once per session, only if user hasn't opened chat
