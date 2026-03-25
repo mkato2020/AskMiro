@@ -298,6 +298,16 @@ export default async (req) => {
       }
     }
 
+    // Auto-reply email to lead
+    if (leadFired && leadData) {
+      try {
+        const { sendAutoReply } = await import('./auto-reply.js');
+        await sendAutoReply('chat', leadData);
+      } catch (e) {
+        console.warn('Auto-reply error (non-fatal):', e.message);
+      }
+    }
+
     return new Response(JSON.stringify({ message, leadFired, leadData: leadFired ? leadData : null }), { status: 200, headers });
 
   } catch (err) {
