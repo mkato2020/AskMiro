@@ -7,24 +7,24 @@ const ASKMIRO_OPS_URL   = 'https://script.google.com/macros/s/AKfycbyOkdutI4j-bl
 const ASKMIRO_OPS_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
 
 // ── Confirmed from your actual form HTML ──────────────────────
-// Frequency field:  <select id="frequency" name="frequency">
-// Sector field:     <select id="sector" name="sector">
+// Service field:    <select id="service-type" name="service-type">
+// Postcode field:   <input id="postcode" name="postcode">
 // Form id:          <form id="quoteForm">
 
 
 // ============================================================
 // INJECT PREMISES SIZE FIELD
-// Inserts after the frequency-error div to keep form order clean
+// Inserts after the postcode-error div to keep form order clean
 // ============================================================
 
 function injectPremisesSizeField() {
   if (document.getElementById('field-premises-size')) return;
 
-  const insertAfter = document.getElementById('frequency-error')
-                   || document.getElementById('frequency');
+  const insertAfter = document.getElementById('postcode-error')
+                   || document.getElementById('postcode');
 
   if (!insertAfter) {
-    console.warn('AskMiro patch: #frequency not found — premises field not injected');
+    console.warn('AskMiro patch: #postcode not found — premises field not injected');
     return;
   }
 
@@ -160,8 +160,8 @@ function _buildPayload() {
     email:             get('email'),
     phone:             get('phone'),
     postcode:          get('postcode'),
-    facilityType:      get('sector'),       // your form uses id="sector"
-    cleaningFrequency: get('frequency'),    // your form uses id="frequency"
+    facilityType:      get('service-type'),  // your form uses id="service-type"
+    cleaningFrequency: '',                   // not in simplified form
     requirements:      get('message'),      // your form uses id="message"
     premisesSize:      get('premisesSize'),
     premisesSizeM2:    get('premisesSizeM2'),

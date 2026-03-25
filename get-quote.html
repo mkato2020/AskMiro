@@ -44,8 +44,7 @@ header{
 
 .why{
   background:var(--bg-surface);border:1px solid var(--border);border-radius:20px;
-  padding:32px;position:sticky;top:76px;box-shadow:var(--sh-lg);
-  position:relative;overflow:hidden;
+  padding:32px;position:sticky;top:76px;box-shadow:var(--sh-lg);overflow:hidden;
 }
 .why .teal-mesh{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 60% at 100% 0%,var(--mesh-a) 0%,transparent 55%)}
 .why-inner{position:relative;z-index:1}
@@ -181,16 +180,6 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
         </ul>
         <div class="trust-badge"><p><strong>Transparent pricing.</strong> No hidden fees, no surprises — whether it's a one-off clean or a managed contract. You'll know the full price before anything starts.</p></div>
 
-        <div style="margin-top:24px;border-radius:14px;overflow:hidden;box-shadow:var(--sh-lg);">
-          <iframe
-            src="https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Freel%2F27404904279099562%2F&show_text=false&width=267&t=0"
-            width="100%" height="400"
-            style="border:none;overflow:hidden;display:block;"
-            scrolling="no" frameborder="0"
-            allowfullscreen="true"
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-          </iframe>
-        </div>
       </div>
     </div>
 
@@ -229,6 +218,71 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
         <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" maxlength="10">
         <div class="err-msg" id="postcode-error">Please enter a valid UK postcode</div>
         <div class="mb-20"></div>
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+            <label style="margin:0">Additional Services <span style="font-weight:400;color:var(--text-3)">(optional)</span></label>
+            <span style="font-size:.75rem;font-weight:600;color:var(--teal);background:rgba(13,189,173,.08);border:1px solid rgba(13,189,173,.2);border-radius:20px;padding:2px 10px;white-space:nowrap">Quoted separately</span>
+          </div>
+          <style>
+            .addon-lbl{display:flex;flex-direction:column;cursor:pointer;padding:14px;border:1.5px solid var(--border-md);border-radius:12px;transition:border-color .2s,background .2s,box-shadow .2s;position:relative;overflow:hidden;background:var(--bg-surface)}
+            .addon-lbl input{position:absolute;opacity:0;width:0;height:0}
+            .addon-icon{width:36px;height:36px;border-radius:10px;background:var(--bg-alt);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px;transition:background .2s,box-shadow .2s;flex-shrink:0}
+            .addon-check{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-md);background:#fff;display:flex;align-items:center;justify-content:center;transition:all .2s}
+            .addon-check svg{display:none}
+            .addon-lbl.is-checked{border-color:var(--teal-mid);background:rgba(13,189,173,.04);box-shadow:0 0 0 3px rgba(13,189,173,.08)}
+            .addon-lbl.is-checked .addon-icon{background:linear-gradient(135deg,var(--teal-mid),var(--teal));box-shadow:var(--sh-teal)}
+            .addon-lbl.is-checked .addon-icon span{filter:brightness(0) invert(1)}
+            .addon-lbl.is-checked .addon-check{background:linear-gradient(135deg,var(--teal-mid),var(--teal));border-color:var(--teal)}
+            .addon-lbl.is-checked .addon-check svg{display:block}
+            .addon-lbl:hover:not(.is-checked){border-color:rgba(13,189,173,.4);background:rgba(13,189,173,.02)}
+            #addons-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+            @media(max-width:520px){#addons-grid{grid-template-columns:1fr}}
+          </style>
+          <div id="addons-grid">
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-mould" value="Mould Removal">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>🍃</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Mould Removal</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">Walls, ceilings, grout &amp; frames — COSHH-compliant treatment</div>
+            </label>
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-carpet" value="Carpet Cleaning">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>🟫</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Carpet Cleaning</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">Hot water extraction, stain treatment &amp; deodorising</div>
+            </label>
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-windows" value="Window Cleaning">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>🪟</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Window Cleaning</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">Internal &amp; external, streak-free finish</div>
+            </label>
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-deep" value="Deep Clean">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>✨</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Deep Clean</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">One-off intensive — kitchens, washrooms &amp; high areas</div>
+            </label>
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-pressure" value="Pressure Washing">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>💧</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Pressure Washing</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">Car parks, entrances, external paving &amp; walls</div>
+            </label>
+            <label class="addon-lbl">
+              <input type="checkbox" name="addon-consumables" value="Consumables Supply">
+              <div class="addon-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="addon-icon"><span>🧴</span></div>
+              <div style="font-size:.9375rem;font-weight:700;color:var(--text-1);margin-bottom:4px">Consumables Supply</div>
+              <div style="font-size:.8125rem;color:var(--text-3);line-height:1.5">Soap, paper, bin liners &amp; sanitiser — fully managed</div>
+            </label>
+          </div>
+        </div>
         <button type="submit" id="submitBtn">Get My Free Quote →</button>
         <div class="form-note" id="form-note">⏱ <strong>Takes 30 seconds.</strong> We'll send a ballpark price by email and follow up to arrange a free site visit — no obligation.</div>
       </form>
@@ -269,6 +323,12 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     window.location.href='/thank-you';
   });
   document.getElementById('postcode').addEventListener('input',function(){this.value=this.value.toUpperCase()});
+  // Addon checkbox highlight
+  document.querySelectorAll('.addon-lbl input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      this.closest('.addon-lbl').classList.toggle('is-checked', this.checked);
+    });
+  });
 })();
 </script>
 <script src="/get_quote_form_patch_configured.js"></script>
