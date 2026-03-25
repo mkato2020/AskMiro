@@ -539,6 +539,7 @@ window.CRM = (() => {
           ['Phone', l.phone],
           ['Postcode', l.postcode],
           ['Service', l.serviceType || l['service-type']],
+          ['Add-ons', l.additionalServices],
           ['Premises', l.premisesSize ? (l.premisesSize + (l.premisesSizeUnit || 'm²')) : null],
           ['Frequency', l.frequency],
           ['Source', l.source],

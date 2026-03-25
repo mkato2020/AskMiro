@@ -453,6 +453,9 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
       var _segMap={'Managed Contract — Office':'Office','Managed Contract — Commercial':'Industrial','Managed Contract — School':'School','Managed Contract — Healthcare':'Healthcare','One-Off — Deep Clean':'Residential','One-Off — End of Tenancy':'Residential','One-Off — Kitchen / Oven Clean':'Industrial'};
       var _svc=gv('service-type');
       var _seg=_segMap[_svc]||(_svc.toLowerCase().includes('office')?'Office':_svc.toLowerCase().includes('school')?'School':_svc.toLowerCase().includes('health')?'Healthcare':'');
+      var _addons=Array.from(document.querySelectorAll('.addon-lbl input[type=checkbox]:checked')).map(function(c){return c.value;}).join(', ');
+      var _notes=gv('message');
+      var _fullNotes=_addons?(_notes?_notes+'\n\nAdditional services: '+_addons:'Additional services: '+_addons):_notes;
       var params=new URLSearchParams({
         action:'lead',
         companyName:   gv('company'),
@@ -464,8 +467,9 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
         segment:       _seg,
         premisesSize:  gv('premisesSize'),
         frequency:     gv('frequency'),
-        message:                gv('message'),
-        additionalRequirements: gv('message'),
+        additionalServices: _addons,
+        message:                _fullNotes,
+        additionalRequirements: _fullNotes,
         source:        'Website Quote Form',
         status:        'New',
         createdAt:     new Date().toISOString()
