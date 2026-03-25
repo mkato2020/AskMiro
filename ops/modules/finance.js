@@ -22,11 +22,18 @@ window.Finance = (() => {
       .filter(i => i.status==='Sent' || i.status==='Overdue')
       .reduce((s,i) => s + parseFloat(i.amount||0), 0);
 
+    const fmtMonth = m => {
+      if (!m) return '—';
+      const d = new Date(m);
+      if (!isNaN(d.getTime())) return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+      return m; // already a string like "2025-05"
+    };
+
     const fRows = finance.map(r => {
       const dc=parseFloat(r.directCost||0), rv=parseFloat(r.revenue||0), gm=rv-dc, gmp=rv>0?gm/rv*100:0;
       return `<tr>
         <td class="tfw">${r.siteId}</td>
-        <td>${r.month||'—'}</td>
+        <td>${fmtMonth(r.month)}</td>
         <td>${UI.fmt(rv)}</td>
         <td>${UI.fmt(dc)}</td>
         <td>${UI.fmt(gm)}</td>
@@ -37,7 +44,7 @@ window.Finance = (() => {
     const invRows = invoices.map(i => `<tr>
       <td class="tmn">${i.id}</td>
       <td>${i.siteId}</td>
-      <td>${i.month||'—'}</td>
+      <td>${fmtMonth(i.month)}</td>
       <td>${UI.fmt(i.amount||0)}</td>
       <td>${i.dueDate||'—'}</td>
       <td>${UI.statusPill(i.status)}</td>

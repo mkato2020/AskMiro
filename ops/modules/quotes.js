@@ -290,6 +290,29 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     if (el) el.focus();
   }
 
+  function loadIntoBuilder(qJson) {
+    const q = typeof qJson === 'string' ? JSON.parse(qJson) : qJson;
+    UI.closeModal();
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+    set('q-cl', q.clientName);
+    set('q-sa', q.siteAddress);
+    set('q-sg', q.segment);
+    set('q-md', q.mode || 'hourly');
+    set('q-hw', q.hoursPerWeek);
+    set('q-cr', q.hourlyRate);
+    set('q-fm', q.fixedMonthly);
+    set('q-sp', q.suppliesCost);
+    set('q-oc', q.otherCosts);
+    set('q-lw', q.llwRate || 13.85);
+    set('q-nt', q.notes);
+    toggleMode();
+    calc();
+    // Scroll builder into view
+    const builder = document.getElementById('q-cl');
+    if (builder) builder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    UI.toast(`Loaded ${q.id} into builder — edit and save as new version`);
+  }
+
   // --- staff helper ---
   function _staffCount(hoursPerWeek, visitsPerWeek) {
     const h = parseFloat(hoursPerWeek) || 0;
@@ -384,6 +407,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     ${blocked ? `<button class="btn bo" onclick="Quotes.openApprove('${_escHtml(q.id)}')">&#9888; Request Approval</button>` : ''}
     <div style="flex:1"></div>
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
+    <button class="btn bo" onclick="Quotes.loadIntoBuilder(${JSON.stringify(JSON.stringify(q))})">&#9998; Edit</button>
     ${!blocked ? `
     <button class="btn bo" onclick="Quotes._sendProposal(${JSON.stringify(JSON.stringify(q))})" style="border-color:#0D9488;color:#0D9488">&#9993; Send Proposal</button>
     <button class="btn bp" onclick="Quotes.openSend('${_escHtml(q.id)}','${clientNameSafe}')">&#9992; Send Quote</button>` : ''}
@@ -472,7 +496,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
   return {
     render, calc, toggleMode, save, openNew,
     openView, openSend, doSend, openApprove, doApprove,
-    setFilter, openViewById, _sendProposal,
+    setFilter, openViewById, _sendProposal, loadIntoBuilder,
   };
 })();
 
