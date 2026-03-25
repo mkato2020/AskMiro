@@ -24,7 +24,7 @@ window.SEO = (() => {
   <div style="margin-bottom:24px">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t);margin-bottom:6px">SEO Content Engine</div>
     <h2 style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--ch);margin-bottom:6px">Generate SEO Articles</h2>
-    <p style="font-size:13px;color:var(--ll);line-height:1.6">Pick a keyword idea or type your own. Claude writes a full, publish-ready HTML page matching your site's exact design. Click <strong style="color:var(--sl)">Publish to Site</strong> — it commits to GitHub, Netlify deploys, and Google is notified automatically.</p>
+    <p style="font-size:13px;color:var(--ll);line-height:1.6">Pick a keyword idea or type your own. Claude writes a full, publish-ready HTML page matching your site's exact design. Click <strong style="color:var(--sl)">Publish to Site</strong> — it commits to GitHub, Netlify deploys, and sitemap.xml is updated for Google to discover.</p>
   </div>
 
   <!-- Two-column layout -->
