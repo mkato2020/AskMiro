@@ -225,7 +225,7 @@ window.CRM = (() => {
 
   function _pipelineCard(l) {
     const meta = STAGE_META[l.status] || STAGE_META['New'];
-    const seg = l.segment || '';
+    const seg = l.segment || _segmentFromService(l.serviceType) || '';
     const initials = UI.initials(l.companyName || l.contactName || '?');
     const overdue = _isOverdue(l);
     const qualDone = _isQualified(l);
@@ -294,7 +294,7 @@ window.CRM = (() => {
                   </div>
                 </td>
                 <td style="padding:12px"><div style="color:#1F2937;font-weight:500">${l.contactName||'—'}</div><div style="font-size:11px;color:#94A3B8">${l.email||''}</div></td>
-                <td style="padding:12px"><span style="font-size:12px">${SEGMENT_ICON[l.segment]||''}</span> <span style="color:#475569">${l.segment||'—'}</span></td>
+                <td style="padding:12px">${(()=>{const s=l.segment||_segmentFromService(l.serviceType)||'';return s?`<span style="font-size:12px">${SEGMENT_ICON[s]||''}</span> <span style="color:#475569">${s}</span>`:'<span style="color:#94A3B8">—</span>'})()}</td>
                 <td style="padding:12px"><span style="background:${meta.bg};color:${meta.color};font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">${meta.icon} ${meta.label}</span></td>
                 <td style="padding:12px;text-align:right;font-weight:700;color:#0D9488">${l.annualValue ? UI.fmtk(l.annualValue) : '—'}</td>
                 <td style="padding:12px">
@@ -629,7 +629,7 @@ window.CRM = (() => {
         <div class="fg"><label class="fl">Postcode</label><input class="fin" id="l-pc" value="${_esc(l.postcode||'')}"></div>
         <div class="fg"><label class="fl">Segment</label>
           <select class="fse" id="l-sg">
-            ${['Office','Healthcare','School','Gym','Industrial','Automotive','Residential'].map(s=>`<option ${s===l.segment?'selected':''}>${s}</option>`).join('')}
+            ${(()=>{const derived=l.segment||_segmentFromService(l.serviceType)||'';return['Office','Healthcare','School','Gym','Industrial','Automotive','Residential'].map(s=>`<option ${s===derived?'selected':''}>${s}</option>`).join('');})()}
           </select>
         </div>
       </div>
