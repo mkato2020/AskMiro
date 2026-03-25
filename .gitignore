@@ -1,0 +1,13 @@
+# Secrets — never commit these
+.claude/secrets.local
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
