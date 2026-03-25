@@ -316,10 +316,11 @@ window.SEO = (() => {
             </div>
             <div style="flex:1">
               <div style="font-weight:700;color:#ECFDF5;font-size:14px;margin-bottom:2px">Published! Netlify is deploying now…</div>
-              <div style="font-size:12px;color:#6EE7B7">
-                Live in ~60s at <a href="${data.url}" target="_blank" style="color:#34D399;text-decoration:underline">${data.url}</a>
-                ${data.sitemapUpdated ? ' · sitemap.xml updated' : ''}
-                ${data.commitUrl ? ` · <a href="${data.commitUrl}" target="_blank" style="color:#34D399;text-decoration:underline">view commit</a>` : ''}
+              <div style="font-size:12px;color:#6EE7B7;line-height:1.7">
+                Live in ~60s at <a href="${data.url}" target="_blank" style="color:#34D399;text-decoration:underline">${data.url}</a><br>
+                ${data.sitemapUpdated ? '✓ sitemap.xml updated · ' : ''}
+                ${data.indexing?.submitted ? '✓ Submitted to Google for indexing · ' : (data.indexing?.error ? '⚠ Indexing API: ' + _esc(data.indexing.error) + ' · ' : '')}
+                ${data.commitUrl ? `<a href="${data.commitUrl}" target="_blank" style="color:#34D399;text-decoration:underline">view commit →</a>` : ''}
               </div>
             </div>
           </div>`;
