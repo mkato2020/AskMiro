@@ -208,15 +208,44 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
           </optgroup>
         </select>
         <div class="err-msg" id="service-type-error">Please select a service type</div>
+        <label for="company">Company / Organisation *</label>
+        <input type="text" id="company" name="company" required placeholder="e.g. Acme Ltd, St George's School" maxlength="120">
+        <div class="err-msg" id="company-error">Please enter your company or organisation name</div>
         <label for="name">Your Name *</label>
         <input type="text" id="name" name="name" required placeholder="Your full name" minlength="2" maxlength="100">
         <div class="err-msg" id="name-error">Please enter your full name (at least 2 characters)</div>
         <label for="email">Email *</label>
         <input type="email" id="email" name="email" required placeholder="your.email@company.com">
         <div class="err-msg" id="email-error">Please enter a valid email address</div>
+        <label for="phone">Phone <span style="font-weight:400;color:var(--text-3);font-size:.875rem">(optional — faster follow-up)</span></label>
+        <input type="tel" id="phone" name="phone" placeholder="e.g. 020 7123 4567" maxlength="20">
         <label for="postcode">Site Postcode *</label>
         <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" maxlength="10">
         <div class="err-msg" id="postcode-error">Please enter a valid UK postcode</div>
+        <div id="frequency-wrap" style="display:none">
+          <label for="frequency">Cleaning Frequency *</label>
+          <select id="frequency" name="frequency">
+            <option value="">Select frequency…</option>
+            <option value="daily">Daily (5×/week)</option>
+            <option value="weekly">Weekly (1×/week)</option>
+            <option value="twice-weekly">Twice a week (2×/week)</option>
+            <option value="three-weekly">Three times a week (3×/week)</option>
+            <option value="fortnightly">Fortnightly (every 2 weeks)</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <div class="err-msg" id="frequency-error">Please select a cleaning frequency</div>
+        </div>
+        <label for="premisesSize">Approximate Size of Premises <span style="font-weight:400;color:var(--text-3);font-size:.875rem">(optional — helps us quote accurately)</span></label>
+        <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,box-shadow .2s" id="premises-input-wrap">
+          <input type="number" id="premisesSize" name="premisesSize" placeholder="e.g. 250" min="1" step="1" autocomplete="off" style="flex:1;border:none;outline:none;padding:.8rem .875rem;font-size:1rem;font-family:inherit;color:var(--text-1);background:transparent;margin-bottom:0">
+          <div style="display:flex;align-items:stretch;border-left:1px solid var(--border)">
+            <button type="button" id="unit-m2" style="padding:0 14px;border:none;background:var(--teal);color:#fff;font-weight:600;font-size:.8125rem;cursor:pointer;border-right:1px solid var(--border)" onclick="PremisesUnit.set('m2',this)">m²</button>
+            <button type="button" id="unit-sqft" style="padding:0 14px;border:none;background:var(--bg-alt);color:var(--text-3);font-size:.8125rem;cursor:pointer" onclick="PremisesUnit.set('sqft',this)">sq ft</button>
+          </div>
+        </div>
+        <div id="premises-hint" style="display:none;font-size:.8125rem;color:var(--teal);margin-top:4px;font-weight:500"></div>
+        <input type="hidden" id="premisesSizeM2" name="premisesSizeM2" value="">
+        <input type="hidden" id="premisesSizeUnit" name="premisesSizeUnit" value="m2">
         <div class="mb-20"></div>
         <div style="margin-bottom:20px">
           <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
@@ -283,6 +312,8 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
             </label>
           </div>
         </div>
+        <label for="message">Anything else we should know? <span style="font-weight:400;color:var(--text-3);font-size:.875rem">(optional)</span></label>
+        <textarea id="message" name="message" rows="3" placeholder="e.g. Currently using another provider, need evening shifts, have a commercial kitchen…" style="width:100%;resize:vertical;padding:.8rem .875rem;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:1rem;color:var(--text-1);background:var(--bg-surface);transition:border-color .2s,box-shadow .2s;box-sizing:border-box" maxlength="500"></textarea>
         <button type="submit" id="submitBtn">Get My Free Quote →</button>
         <div class="form-note" id="form-note">⏱ <strong>Takes 30 seconds.</strong> We'll send a ballpark price by email and follow up to arrange a free site visit — no obligation.</div>
       </form>
@@ -295,26 +326,45 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   const form=document.getElementById('quoteForm'),submitBtn=document.getElementById('submitBtn');
   let t=Date.now();document.getElementById('form-timestamp').value=t;
   const pat={name:/^[a-zA-Z\s\-']{2,100}$/,email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,postcode:/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i};
-  const fields=['service-type','name','email','postcode'];
   const SUBMIT_KEY='am_quote_submitted';
-  // Dynamic note based on service type
+  // Core required fields (always)
+  const coreFields=['service-type','company','name','email','postcode'];
   const NOTE_CONTRACT='⏱ <strong>Takes 30 seconds.</strong> We\'ll send a ballpark monthly price by email and arrange a free site visit — no obligation.';
   const NOTE_ONEOFF='⏱ <strong>Takes 30 seconds.</strong> We\'ll email you a price and confirm availability — usually within a few hours.';
+
+  // Show/hide frequency field based on service type
+  const freqWrap=document.getElementById('frequency-wrap');
   document.getElementById('service-type').addEventListener('change',function(){
-    const isOneOff = this.value.startsWith('One-Off');
-    document.getElementById('form-note').innerHTML = isOneOff ? NOTE_ONEOFF : NOTE_CONTRACT;
-    document.getElementById('email').placeholder = isOneOff ? 'your@email.com' : 'your.email@company.com';
+    const isOneOff=this.value.startsWith('One-Off');
+    document.getElementById('form-note').innerHTML=isOneOff?NOTE_ONEOFF:NOTE_CONTRACT;
+    document.getElementById('email').placeholder=isOneOff?'your@email.com':'your.email@company.com';
+    freqWrap.style.display=isOneOff?'none':'block';
+    document.getElementById('frequency').required=!isOneOff;
   });
-  fields.forEach(id=>{const f=document.getElementById(id),e=document.getElementById(id+'-error');f.addEventListener('blur',()=>vf(f,e));f.addEventListener('input',()=>{if(f.classList.contains('error'))vf(f,e)})});
+
+  // Attach validation listeners to core fields
+  coreFields.forEach(id=>{
+    const f=document.getElementById(id),e=document.getElementById(id+'-error');
+    if(!f)return;
+    f.addEventListener('blur',()=>vf(f,e));
+    f.addEventListener('input',()=>{if(f.classList.contains('error'))vf(f,e)});
+  });
+  // Also attach to frequency when visible
+  const freqEl=document.getElementById('frequency');
+  freqEl.addEventListener('blur',()=>{if(freqEl.required)vf(freqEl,document.getElementById('frequency-error'))});
+
   function vf(f,e){
     const v=f.value.trim();let ok=!!v;
     if(ok){if(f.id==='name')ok=pat.name.test(v);else if(f.type==='email')ok=pat.email.test(v);else if(f.id==='postcode')ok=pat.postcode.test(v.toUpperCase());else if(f.tagName==='SELECT')ok=v!=='';}
     f.classList.toggle('error',!ok);f.classList.toggle('success',ok);if(e)e.classList.toggle('show',!ok);return ok;
   }
+
   form.addEventListener('submit',async function(e){
     e.preventDefault();if(Date.now()-t<3000)return;
     if(sessionStorage.getItem(SUBMIT_KEY)){alert('You\'ve already submitted a quote request. We\'ll be in touch soon!');return;}
-    let ok=true;fields.forEach(id=>{const f=document.getElementById(id);if(!vf(f,document.getElementById(id+'-error')))ok=false});
+    let ok=true;
+    coreFields.forEach(id=>{const f=document.getElementById(id);if(f&&!vf(f,document.getElementById(id+'-error')))ok=false});
+    if(freqEl.required&&!vf(freqEl,document.getElementById('frequency-error')))ok=false;
     if(!ok){const fe=form.querySelector('.error');if(fe){fe.scrollIntoView({behavior:'smooth',block:'center'});fe.focus();}return;}
     submitBtn.disabled=true;submitBtn.textContent='Sending…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
@@ -322,12 +372,45 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     sessionStorage.setItem(SUBMIT_KEY,'1');
     window.location.href='/thank-you';
   });
+
   document.getElementById('postcode').addEventListener('input',function(){this.value=this.value.toUpperCase()});
+
+  // Premises size unit toggle
+  window.PremisesUnit={
+    _unit:'m2',
+    set:function(unit,btn){
+      this._unit=unit;
+      var m2=document.getElementById('unit-m2'),sf=document.getElementById('unit-sqft');
+      m2.style.background=unit==='m2'?'var(--teal)':'var(--bg-alt)';m2.style.color=unit==='m2'?'#fff':'var(--text-3)';
+      sf.style.background=unit==='sqft'?'var(--teal)':'var(--bg-alt)';sf.style.color=unit==='sqft'?'#fff':'var(--text-3)';
+      document.getElementById('premisesSizeUnit').value=unit;
+      this.calc();
+    },
+    calc:function(){
+      var raw=parseFloat(document.getElementById('premisesSize').value)||0;
+      var hint=document.getElementById('premises-hint'),m2el=document.getElementById('premisesSizeM2');
+      if(!raw){hint.style.display='none';m2el.value='';return;}
+      var m2,txt;
+      if(this._unit==='sqft'){m2=+(raw*0.0929).toFixed(1);txt='≈ '+m2+' m²';}
+      else{m2=raw;txt='≈ '+Math.round(raw/0.0929).toLocaleString()+' sq ft';}
+      m2el.value=m2;hint.textContent=txt;hint.style.display='block';
+    }
+  };
+  document.getElementById('premisesSize').addEventListener('input',function(){PremisesUnit.calc()});
+
+  // Premises input focus ring
+  var pw=document.getElementById('premises-input-wrap');
+  document.getElementById('premisesSize').addEventListener('focus',function(){pw.style.borderColor='var(--teal)';pw.style.boxShadow='0 0 0 3px rgba(13,189,173,.1)'});
+  document.getElementById('premisesSize').addEventListener('blur',function(){pw.style.borderColor='var(--border)';pw.style.boxShadow='none'});
+
+  // Message textarea focus ring
+  var msgEl=document.getElementById('message');
+  msgEl.addEventListener('focus',function(){this.style.borderColor='var(--teal)';this.style.boxShadow='0 0 0 3px rgba(13,189,173,.1)'});
+  msgEl.addEventListener('blur',function(){this.style.borderColor='var(--border)';this.style.boxShadow='none'});
+
   // Addon checkbox highlight
   document.querySelectorAll('.addon-lbl input[type=checkbox]').forEach(function(cb){
-    cb.addEventListener('change', function(){
-      this.closest('.addon-lbl').classList.toggle('is-checked', this.checked);
-    });
+    cb.addEventListener('change',function(){this.closest('.addon-lbl').classList.toggle('is-checked',this.checked)});
   });
 })();
 </script>
