@@ -24,7 +24,7 @@ window.SEO = (() => {
   <div style="margin-bottom:24px">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t);margin-bottom:6px">SEO Content Engine</div>
     <h2 style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--ch);margin-bottom:6px">Generate SEO Articles</h2>
-    <p style="font-size:13px;color:var(--ll);line-height:1.6">Pick a keyword idea or type your own. Claude writes a full, publish-ready HTML page matching your site's exact design. Download it and drop it into your repo — Netlify deploys it automatically.</p>
+    <p style="font-size:13px;color:var(--ll);line-height:1.6">Pick a keyword idea or type your own. Claude writes a full, publish-ready HTML page matching your site's exact design. Click <strong style="color:var(--sl)">Publish to Site</strong> — it commits to GitHub, Netlify deploys, and Google is notified automatically.</p>
   </div>
 
   <!-- Two-column layout -->
@@ -77,7 +77,7 @@ window.SEO = (() => {
       <div class="card" style="padding:18px">
         <div style="font-weight:700;font-size:13px;color:var(--ch);margin-bottom:12px">How it works</div>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${['Pick a keyword or type your own', 'Claude writes the full article (15–25s)', 'Download the HTML file', 'Drop it in your repo root', 'Commit &amp; push → Netlify deploys it', 'Add the URL to sitemap.xml'].map((s, i) => `
+          ${['Pick a keyword or type your own', 'Claude writes the full article (15–25s)', 'Click <strong>Publish to Site</strong>', 'GitHub commit is created automatically', 'Netlify deploys in ~60 seconds', 'Google is notified to crawl it'].map((s, i) => `
           <div style="display:flex;align-items:flex-start;gap:10px">
             <div style="width:20px;height:20px;border-radius:50%;background:var(--t);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i + 1}</div>
             <div style="font-size:12px;color:var(--sl);line-height:1.5">${s}</div>
@@ -415,5 +415,5 @@ window.SEO = (() => {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  return { render, generate, download, copyHTML, previewHTML, refreshSuggestions };
+  return { render, generate, publish, download, copyHTML, previewHTML, refreshSuggestions };
 })();
