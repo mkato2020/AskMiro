@@ -23,7 +23,7 @@ window.Email = (() => {
   phoneTel:   '02080730621',
   website:    'www.askmiro.com',
   senderName: 'Mike Kato',
-  senderRole: 'Director — AskMiro Cleaning Services',
+  senderRole: 'Co-founder — AskMiro Cleaning Services',
 };
 
   // ── DESIGN TOKENS — Tesla × Microsoft Fluent ─────────────
@@ -67,7 +67,7 @@ window.Email = (() => {
     return {
       name:  u.name  || BRAND.senderName,
       email: BRAND.from,
-      role:  u.role  || BRAND.senderRole,
+      role:  BRAND.senderRole,
     };
   }
 

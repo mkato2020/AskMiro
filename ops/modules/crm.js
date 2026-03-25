@@ -67,6 +67,33 @@ window.CRM = (() => {
     return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
   }
 
+  function _timeAgo(dateStr) {
+    if (!dateStr) return '—';
+    const diff = Date.now() - new Date(dateStr);
+    if (diff < 0) return 'Just now';
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return hours + 'h ago';
+    const days = Math.floor(diff / 86400000);
+    if (days === 1) return 'Yesterday';
+    return days + 'd ago';
+  }
+
+  function _segmentFromService(serviceType) {
+    if (!serviceType) return null;
+    const s = serviceType.toLowerCase();
+    if (s.includes('healthcare') || s.includes('medical')) return 'Healthcare';
+    if (s.includes('school') || s.includes('education')) return 'School';
+    if (s.includes('gym') || s.includes('leisure') || s.includes('sport')) return 'Gym';
+    if (s.includes('warehouse') || s.includes('industrial') || s.includes('factory')) return 'Industrial';
+    if (s.includes('automotive') || s.includes('dealership')) return 'Automotive';
+    if (s.includes('residential') || s.includes('end of tenancy') || s.includes('airbnb')) return 'Residential';
+    if (s.includes('office')) return 'Office';
+    return null;
+  }
+
   // ── RENDER ────────────────────────────────────────────────
   async function render() {
     const app = document.getElementById('main-content');
@@ -200,7 +227,6 @@ window.CRM = (() => {
     const meta = STAGE_META[l.status] || STAGE_META['New'];
     const seg = l.segment || '';
     const initials = UI.initials(l.companyName || l.contactName || '?');
-    const age = l.createdAt ? Math.floor((Date.now() - new Date(l.createdAt)) / 86400000) : 0;
     const overdue = _isOverdue(l);
     const qualDone = _isQualified(l);
     return `
@@ -224,7 +250,7 @@ window.CRM = (() => {
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between">
         ${l.annualValue ? `<span style="font-size:11.5px;font-weight:700;color:#0D9488">${UI.fmtk(l.annualValue)}<span style="font-weight:400;color:#94A3B8">/yr</span></span>` : '<span></span>'}
-        <span style="font-size:10px;color:${overdue?'#EF4444':'#CBD5E1'}">${overdue ? '⚠ overdue' : age + 'd ago'}</span>
+        <span style="font-size:10px;color:${overdue?'#EF4444':'#CBD5E1'}">${overdue ? '⚠ overdue' : _timeAgo(l.createdAt)}</span>
       </div>
       ${l.nextActionDate && !overdue ? `<div style="margin-top:6px;font-size:10px;color:#0D9488;font-weight:600">↗ ${_fmtDate(l.nextActionDate)}</div>` : ''}
     </div>`;
@@ -313,7 +339,7 @@ window.CRM = (() => {
                 </div>
                 <div style="text-align:right;flex-shrink:0">
                   <div style="font-size:12px;font-weight:700;color:#0D9488">${l.annualValue?UI.fmtk(l.annualValue):''}</div>
-                  <div style="font-size:10.5px;color:#CBD5E1">${age === 0 ? 'Today' : age + 'd ago'}</div>
+                  <div style="font-size:10.5px;color:#CBD5E1">${_timeAgo(l.createdAt)}</div>
                 </div>
               </div>`;
             }).join('')}
@@ -349,7 +375,7 @@ window.CRM = (() => {
     const l = JSON.parse(jsonStr);
     _selectedLead = l;
     const meta = STAGE_META[l.status] || STAGE_META['New'];
-    const age = l.createdAt ? Math.floor((Date.now()-new Date(l.createdAt))/86400000) : 0;
+    const segment = l.segment || _segmentFromService(l.serviceType) || '';
     const overdue = _isOverdue(l);
     const qualDone = _isQualified(l);
     const log = _activityLog(l);
@@ -455,20 +481,20 @@ window.CRM = (() => {
             <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px">${_esc(l.contactName||'')} ${l.email?'· '+_esc(l.email):''}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
               <span style="background:${meta.bg};color:${meta.color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${meta.icon} ${meta.label}</span>
-              ${l.segment?`<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:11px;padding:3px 9px;border-radius:20px">${SEGMENT_ICON[l.segment]||''} ${l.segment}</span>`:''}
+              ${segment?`<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:11px;padding:3px 9px;border-radius:20px">${SEGMENT_ICON[segment]||''} ${segment}</span>`:''}
             </div>
           </div>
         </div>
-        ${l.annualValue?`<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);margin-bottom:2px">Est. Annual Value</div>
-            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#5EEAD4;letter-spacing:-1px">${UI.fmt(l.annualValue)}</div>
+            ${l.annualValue?`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);margin-bottom:2px">Est. Annual Value</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#5EEAD4;letter-spacing:-1px">${UI.fmt(l.annualValue)}</div>`:''}
           </div>
           <div style="text-align:right">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);margin-bottom:2px">Added</div>
-            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6)">${age === 0 ? 'Today' : age + ' days ago'}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);margin-bottom:2px">Received</div>
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6)">${_timeAgo(l.createdAt)}</div>
           </div>
-        </div>`:''}
+        </div>
       </div>
 
       <!-- Stage mover -->
@@ -510,6 +536,9 @@ window.CRM = (() => {
           ['Email', l.email],
           ['Phone', l.phone],
           ['Postcode', l.postcode],
+          ['Service', l.serviceType || l['service-type']],
+          ['Premises', l.premisesSize ? (l.premisesSize + (l.premisesSizeUnit || 'm²')) : null],
+          ['Frequency', l.frequency],
           ['Source', l.source],
           ['Lead ID', l.id],
         ].filter(r=>r[1]).map(([label, val], i, arr) => `
@@ -522,6 +551,10 @@ window.CRM = (() => {
       ${qualSection}
       ${followUpSection}
       ${activitySection}
+
+      ${(l.message || l.additionalRequirements) ? `
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Client Message</div>
+      <div style="background:#F0FDF9;border:1px solid #A7F3D0;border-radius:10px;padding:12px 14px;font-size:13px;color:#065F46;line-height:1.6;margin-bottom:14px">${_esc(l.message || l.additionalRequirements)}</div>` : ''}
 
       ${l.notes ? `
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Notes</div>
