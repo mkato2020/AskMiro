@@ -215,7 +215,7 @@ window.SEO = (() => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
           <div style="flex:1">
-            <div style="font-weight:700;font-size:14px;color:#064E3B">Article generated successfully</div>
+            <div style="font-weight:700;font-size:14px;color:#064E3B">Article generated — ready to publish</div>
             <div style="font-size:12px;color:#047857;margin-top:1px">${_esc(title)}</div>
           </div>
           <button class="btn bo btn-sm" onclick="document.getElementById('gen-panel').style.display='none';document.getElementById('custom-keyword').value=''">
@@ -238,39 +238,127 @@ window.SEO = (() => {
             </div>`).join('')}
           </div>
 
-          <!-- Actions -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
-            <button class="btn bp" onclick="SEO.download()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <!-- Publish CTA -->
+          <div style="background:linear-gradient(135deg,#0C1929 0%,#0D2420 100%);border:1px solid #0D9488;border-radius:10px;padding:18px 20px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;color:#e8f4f3;font-size:14px;margin-bottom:3px">Push to GitHub → Netlify deploys automatically</div>
+                <div style="font-size:12px;color:#6b8fa8">Commits the HTML to your repo + updates sitemap.xml. Live in ~60 seconds.</div>
+              </div>
+              <button id="publish-btn" class="btn bp" style="background:linear-gradient(135deg,#0DBDAD,#0D9488);white-space:nowrap" onclick="SEO.publish()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                Publish to Site
+              </button>
+            </div>
+          </div>
+
+          <!-- Secondary actions -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <button class="btn bo btn-sm" onclick="SEO.previewHTML()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Preview
+            </button>
+            <button class="btn bo btn-sm" onclick="SEO.download()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download HTML
             </button>
-            <button class="btn bo" onclick="SEO.copyHTML()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <button class="btn bo btn-sm" onclick="SEO.copyHTML()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               Copy HTML
-            </button>
-            <button class="btn bo" onclick="SEO.previewHTML()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              Preview
             </button>
           </div>
 
-          <!-- Next steps -->
-          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;margin-bottom:8px">Next steps to publish</div>
-            <ol style="margin-left:16px;display:flex;flex-direction:column;gap:5px">
-              ${[
-                `Save <code style="background:#FEF3C7;padding:1px 5px;border-radius:3px;font-size:11px">${slug}.html</code> to your project root`,
-                'Commit and push to GitHub — Netlify auto-deploys',
-                `Add <code style="background:#FEF3C7;padding:1px 5px;border-radius:3px;font-size:11px">&lt;url&gt;https://askmiro.co.uk/${slug}&lt;/url&gt;</code> to sitemap.xml`,
-                'Submit the URL to Google Search Console',
-              ].map(s => `<li style="font-size:12px;color:#78350F;line-height:1.5">${s}</li>`).join('')}
-            </ol>
+          <!-- After publish: submit to Search Console reminder -->
+          <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:12px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0369A1;margin-bottom:5px">After publishing</div>
+            <div style="font-size:12px;color:#0C4A6E;line-height:1.6">Submit <code style="background:#E0F2FE;padding:1px 4px;border-radius:3px">https://askmiro.co.uk/${_esc(slug)}</code> to <strong>Google Search Console</strong> to get it indexed faster.</div>
           </div>
 
         </div>
       </div>`;
 
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── PUBLISH TO GITHUB ────────────────────────────────────
+  async function publish() {
+    if (!_generated?.html) return;
+
+    const btn = document.getElementById('publish-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Publishing…';
+    }
+
+    try {
+      const res = await fetch('/api/seo-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'publish',
+          slug: _generated.slug,
+          html: _generated.html,
+          title: _generated.article?.title || _generated.slug,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Replace publish button area with success state
+      const publishArea = btn?.closest('div[style*="gradient"]');
+      if (publishArea) {
+        publishArea.style.background = 'linear-gradient(135deg,#052e16 0%,#064E3B 100%)';
+        publishArea.style.borderColor = '#059669';
+        publishArea.innerHTML = `
+          <div style="display:flex;align-items:center;gap:14px;width:100%">
+            <div style="width:36px;height:36px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-weight:700;color:#ECFDF5;font-size:14px;margin-bottom:2px">Published! Netlify is deploying now…</div>
+              <div style="font-size:12px;color:#6EE7B7">
+                Live in ~60s at <a href="${data.url}" target="_blank" style="color:#34D399;text-decoration:underline">${data.url}</a>
+                ${data.sitemapUpdated ? ' · sitemap.xml updated' : ''}
+                ${data.commitUrl ? ` · <a href="${data.commitUrl}" target="_blank" style="color:#34D399;text-decoration:underline">view commit</a>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }
+
+      UI.toast('Published to GitHub — deploying now', 's', 5000);
+
+    } catch (e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Publish to Site';
+      }
+
+      const errMsg = e.message.includes('GITHUB_TOKEN')
+        ? 'Add GITHUB_TOKEN to your Netlify environment variables first — see instructions below'
+        : e.message;
+
+      UI.toast('Publish failed: ' + errMsg, 'e', 7000);
+
+      // Show setup instructions if token is missing
+      if (e.message.includes('GITHUB_TOKEN')) {
+        const panel = document.getElementById('gen-panel');
+        const existing = panel?.querySelector('.github-token-instructions');
+        if (!existing && panel) {
+          const div = document.createElement('div');
+          div.className = 'github-token-instructions';
+          div.style.cssText = 'margin-top:14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:14px 16px';
+          div.innerHTML = `
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#991B1B;margin-bottom:8px">One-time setup: add GITHUB_TOKEN</div>
+            <ol style="margin-left:16px;display:flex;flex-direction:column;gap:6px">
+              <li style="font-size:12px;color:#7F1D1D;line-height:1.5">Go to <strong>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong></li>
+              <li style="font-size:12px;color:#7F1D1D;line-height:1.5">Create token with <strong>Contents: Read and write</strong> permission on the AskMiro repo</li>
+              <li style="font-size:12px;color:#7F1D1D;line-height:1.5">Go to <strong>Netlify → Site → Environment variables</strong> → add <code style="background:#FEE2E2;padding:1px 4px;border-radius:3px">GITHUB_TOKEN</code> = your token</li>
+              <li style="font-size:12px;color:#7F1D1D;line-height:1.5">Trigger a Netlify redeploy, then click Publish again</li>
+            </ol>`;
+          panel.appendChild(div);
+        }
+      }
+    }
   }
 
   // ── ACTIONS ──────────────────────────────────────────────

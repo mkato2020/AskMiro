@@ -192,6 +192,104 @@ Rules:
     }
   }
 
+  // ── PUBLISH TO GITHUB ────────────────────────────────────────────────────
+  if (mode === 'publish') {
+    const { slug, html, title } = body;
+    if (!slug || !html) {
+      return new Response(JSON.stringify({ error: 'Missing slug or html' }), { status: 400, headers });
+    }
+
+    const ghToken = process.env.GITHUB_TOKEN;
+    if (!ghToken) {
+      return new Response(JSON.stringify({ error: 'GITHUB_TOKEN not configured in Netlify env vars' }), { status: 500, headers });
+    }
+
+    const REPO = 'mkato2020/AskMiro';
+    const FILE_PATH = `${slug}.html`;
+    const SITEMAP_PATH = 'sitemap.xml';
+    const GH_API = 'https://api.github.com';
+    const ghHeaders = {
+      'Authorization': `Bearer ${ghToken}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+      'User-Agent': 'AskMiro-SEO-Bot',
+    };
+
+    try {
+      // ── 1. Check if file already exists (need SHA to update) ──
+      let existingSha = null;
+      const checkRes = await fetch(`${GH_API}/repos/${REPO}/contents/${FILE_PATH}`, { headers: ghHeaders });
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        existingSha = existing.sha;
+      }
+
+      // ── 2. Push article HTML ──
+      const fileBody = {
+        message: `feat(seo): add article — ${title || slug}`,
+        content: Buffer.from(html).toString('base64'),
+        committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+      };
+      if (existingSha) fileBody.sha = existingSha;
+
+      const pushRes = await fetch(`${GH_API}/repos/${REPO}/contents/${FILE_PATH}`, {
+        method: 'PUT',
+        headers: ghHeaders,
+        body: JSON.stringify(fileBody),
+      });
+
+      if (!pushRes.ok) {
+        const err = await pushRes.text();
+        throw new Error(`GitHub API error ${pushRes.status}: ${err}`);
+      }
+
+      // ── 3. Update sitemap.xml ──
+      let sitemapUpdated = false;
+      try {
+        const smRes = await fetch(`${GH_API}/repos/${REPO}/contents/${SITEMAP_PATH}`, { headers: ghHeaders });
+        if (smRes.ok) {
+          const smData = await smRes.json();
+          const currentXml = Buffer.from(smData.content, 'base64').toString('utf8');
+          const newUrl = `https://askmiro.co.uk/${slug}`;
+
+          if (!currentXml.includes(newUrl)) {
+            const today = new Date().toISOString().split('T')[0];
+            const newEntry = `\n  <url>\n    <loc>${newUrl}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+            const updatedXml = currentXml.replace('</urlset>', newEntry + '\n</urlset>');
+
+            await fetch(`${GH_API}/repos/${REPO}/contents/${SITEMAP_PATH}`, {
+              method: 'PUT',
+              headers: ghHeaders,
+              body: JSON.stringify({
+                message: `feat(seo): add ${slug} to sitemap`,
+                content: Buffer.from(updatedXml).toString('base64'),
+                sha: smData.sha,
+                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+              }),
+            });
+            sitemapUpdated = true;
+          }
+        }
+      } catch (smErr) {
+        console.warn('Sitemap update failed (non-fatal):', smErr.message);
+      }
+
+      const pushData = await pushRes.json();
+      return new Response(JSON.stringify({
+        success: true,
+        url: `https://askmiro.co.uk/${slug}`,
+        commitUrl: pushData.commit?.html_url,
+        sitemapUpdated,
+        updated: !!existingSha,
+      }), { status: 200, headers });
+
+    } catch (e) {
+      console.error('publish error:', e.message);
+      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
+    }
+  }
+
   return new Response(JSON.stringify({ error: 'Invalid mode or missing keyword' }), { status: 400, headers });
 };
 
