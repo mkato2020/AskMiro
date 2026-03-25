@@ -442,7 +442,33 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     if(!ok){const fe=form.querySelector('.error');if(fe){fe.scrollIntoView({behavior:'smooth',block:'center'});fe.focus();}return;}
     submitBtn.disabled=true;submitBtn.textContent='Sending…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
+    // 1. Netlify Forms (storage)
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
+    // 2. GAS — creates CRM lead + fires auto-reply email to client
+    (function(){
+      var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+      var params=new URLSearchParams({
+        action:'lead',
+        companyName:   gv('company'),
+        contactName:   gv('name'),
+        email:         gv('email'),
+        phone:         gv('phone'),
+        postcode:      gv('postcode'),
+        serviceType:   gv('service-type'),
+        premisesSize:  gv('premisesSize'),
+        frequency:     gv('frequency'),
+        message:       gv('message'),
+        source:        'Website Quote Form',
+        status:        'New',
+        createdAt:     new Date().toISOString()
+      });
+      var cb='_gcb'+Date.now();
+      var s=document.createElement('script');
+      s.src='https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec?'+params.toString()+'&callback='+cb;
+      window[cb]=function(){delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);};
+      s.onerror=function(){delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);};
+      document.head.appendChild(s);
+    })();
     window.location.href='/thank-you';
   });
 
