@@ -200,6 +200,7 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
             <option value="Managed Contract — Other">Other Managed Contract</option>
           </optgroup>
           <optgroup label="One-Off Service">
+            <option value="One-Off — Kitchen / Oven Clean">Kitchen / Oven Clean</option>
             <option value="One-Off — Deep Clean">Deep Clean</option>
             <option value="One-Off — End of Tenancy">End of Tenancy Clean</option>
             <option value="One-Off — Post-Construction">Post-Construction / Builder's Clean</option>
@@ -234,6 +235,67 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
             <option value="monthly">Monthly</option>
           </select>
           <div class="err-msg" id="frequency-error">Please select a cleaning frequency</div>
+        </div>
+        <div id="oven-equipment-wrap" style="display:none;margin-bottom:4px">
+          <label>Kitchen Equipment to Clean <span class="req">*</span></label>
+          <div style="font-size:.8125rem;color:var(--text-3);margin-bottom:12px;line-height:1.5">Enter the quantity for each piece of equipment — leave blank if not applicable. We price per unit.</div>
+          <style>
+            .eq-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+            @media(max-width:480px){.eq-row{grid-template-columns:1fr}}
+            .eq-card{border:1.5px solid var(--border-md);border-radius:12px;padding:14px;background:var(--bg-surface);transition:border-color .2s}
+            .eq-card:focus-within{border-color:var(--teal-mid);box-shadow:0 0 0 3px rgba(13,189,173,.1)}
+            .eq-card-label{font-size:.8125rem;font-weight:600;color:var(--text-2);margin-bottom:4px}
+            .eq-card-hint{font-size:.75rem;color:var(--text-3);margin-bottom:10px;line-height:1.4}
+            .eq-card-price{font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:10px}
+            .eq-qty{display:flex;align-items:center;gap:10px}
+            .eq-qty button{width:28px;height:28px;border:1.5px solid var(--border-md);border-radius:7px;background:var(--bg-alt);color:var(--text-2);font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s,border-color .15s}
+            .eq-qty button:hover{background:var(--teal-wash);border-color:var(--teal-mid)}
+            .eq-qty input{width:48px;text-align:center;border:1.5px solid var(--border-md);border-radius:7px;padding:4px 6px;font-size:.9375rem;font-weight:700;color:var(--text-1);background:var(--bg-surface);outline:none}
+            .eq-qty input:focus{border-color:var(--teal-mid)}
+          </style>
+          <div class="eq-row">
+            <div class="eq-card">
+              <div class="eq-card-label">Standard Commercial Oven</div>
+              <div class="eq-card-hint">Single or double deck, gas or electric</div>
+              <div class="eq-card-price">From £85 per unit</div>
+              <div class="eq-qty">
+                <button type="button" onclick="EqQty.dec('eq-standard')">−</button>
+                <input type="number" id="eq-standard" name="eq-standard-oven" min="0" max="20" value="0">
+                <button type="button" onclick="EqQty.inc('eq-standard')">+</button>
+              </div>
+            </div>
+            <div class="eq-card">
+              <div class="eq-card-label">Combi Oven</div>
+              <div class="eq-card-hint">Rational iCombi, Convotherm, Unox, etc.</div>
+              <div class="eq-card-price">From £120 per unit</div>
+              <div class="eq-qty">
+                <button type="button" onclick="EqQty.dec('eq-combi')">−</button>
+                <input type="number" id="eq-combi" name="eq-combi-oven" min="0" max="20" value="0">
+                <button type="button" onclick="EqQty.inc('eq-combi')">+</button>
+              </div>
+            </div>
+            <div class="eq-card">
+              <div class="eq-card-label">Deck / Pizza Oven</div>
+              <div class="eq-card-hint">Stone deck, pizza, baking ovens</div>
+              <div class="eq-card-price">From £130 per unit</div>
+              <div class="eq-qty">
+                <button type="button" onclick="EqQty.dec('eq-deck')">−</button>
+                <input type="number" id="eq-deck" name="eq-deck-oven" min="0" max="20" value="0">
+                <button type="button" onclick="EqQty.inc('eq-deck')">+</button>
+              </div>
+            </div>
+            <div class="eq-card">
+              <div class="eq-card-label">Range / 6-Burner</div>
+              <div class="eq-card-hint">Ranges, griddles, solid-top ranges</div>
+              <div class="eq-card-price">From £160 per unit</div>
+              <div class="eq-qty">
+                <button type="button" onclick="EqQty.dec('eq-range')">−</button>
+                <input type="number" id="eq-range" name="eq-range" min="0" max="20" value="0">
+                <button type="button" onclick="EqQty.inc('eq-range')">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="err-msg" id="oven-equipment-error">Please enter at least one piece of equipment to clean</div>
         </div>
         <label for="premisesSize">Approximate Size of Premises <span style="font-weight:400;color:var(--text-3);font-size:.875rem">(optional — helps us quote accurately)</span></label>
         <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s,box-shadow .2s" id="premises-input-wrap">
@@ -332,14 +394,18 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   const NOTE_CONTRACT='⏱ <strong>Takes 30 seconds.</strong> We\'ll send a ballpark monthly price by email and arrange a free site visit — no obligation.';
   const NOTE_ONEOFF='⏱ <strong>Takes 30 seconds.</strong> We\'ll email you a price and confirm availability — usually within a few hours.';
 
-  // Show/hide frequency field based on service type
+  // Show/hide frequency + oven equipment fields based on service type
   const freqWrap=document.getElementById('frequency-wrap');
+  const ovenWrap=document.getElementById('oven-equipment-wrap');
   document.getElementById('service-type').addEventListener('change',function(){
     const isOneOff=this.value.startsWith('One-Off');
+    const isOven=this.value==='One-Off — Kitchen / Oven Clean';
     document.getElementById('form-note').innerHTML=isOneOff?NOTE_ONEOFF:NOTE_CONTRACT;
     document.getElementById('email').placeholder=isOneOff?'your@email.com':'your.email@company.com';
     freqWrap.style.display=isOneOff?'none':'block';
     document.getElementById('frequency').required=!isOneOff;
+    ovenWrap.style.display=isOven?'block':'none';
+    if(!isOven)document.getElementById('oven-equipment-error').classList.remove('show');
   });
 
   // Attach validation listeners to core fields
@@ -365,6 +431,12 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     let ok=true;
     coreFields.forEach(id=>{const f=document.getElementById(id);if(f&&!vf(f,document.getElementById(id+'-error')))ok=false});
     if(freqEl.required&&!vf(freqEl,document.getElementById('frequency-error')))ok=false;
+    if(ovenWrap.style.display!=='none'){
+      const total=['eq-standard','eq-combi','eq-deck','eq-range'].reduce((s,id)=>s+(parseInt(document.getElementById(id).value)||0),0);
+      const ovenErr=document.getElementById('oven-equipment-error');
+      if(total<1){ovenErr.classList.add('show');ovenWrap.scrollIntoView({behavior:'smooth',block:'center'});ok=false;}
+      else ovenErr.classList.remove('show');
+    }
     if(!ok){const fe=form.querySelector('.error');if(fe){fe.scrollIntoView({behavior:'smooth',block:'center'});fe.focus();}return;}
     submitBtn.disabled=true;submitBtn.textContent='Sending…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
@@ -407,6 +479,12 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   var msgEl=document.getElementById('message');
   msgEl.addEventListener('focus',function(){this.style.borderColor='var(--teal)';this.style.boxShadow='0 0 0 3px rgba(13,189,173,.1)'});
   msgEl.addEventListener('blur',function(){this.style.borderColor='var(--border)';this.style.boxShadow='none'});
+
+  // Equipment qty stepper
+  window.EqQty={
+    inc:function(id){var el=document.getElementById(id),v=parseInt(el.value)||0;if(v<20)el.value=v+1;},
+    dec:function(id){var el=document.getElementById(id),v=parseInt(el.value)||0;if(v>0)el.value=v-1;}
+  };
 
   // Addon checkbox highlight
   document.querySelectorAll('.addon-lbl input[type=checkbox]').forEach(function(cb){
