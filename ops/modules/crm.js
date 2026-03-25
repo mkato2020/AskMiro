@@ -90,6 +90,8 @@ window.CRM = (() => {
     if (s.includes('warehouse') || s.includes('industrial') || s.includes('factory')) return 'Industrial';
     if (s.includes('automotive') || s.includes('dealership')) return 'Automotive';
     if (s.includes('residential') || s.includes('end of tenancy') || s.includes('airbnb')) return 'Residential';
+    if (s.includes('deep clean') || s.includes('one-off')) return 'Residential';
+    if (s.includes('oven') || s.includes('kitchen') || s.includes('commercial')) return 'Industrial';
     if (s.includes('office')) return 'Office';
     return null;
   }

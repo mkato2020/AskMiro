@@ -429,7 +429,7 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   }
 
   form.addEventListener('submit',async function(e){
-    e.preventDefault();if(Date.now()-t<3000)return;
+    e.preventDefault();
     let ok=true;
     coreFields.forEach(id=>{const f=document.getElementById(id);if(f&&!vf(f,document.getElementById(id+'-error')))ok=false});
     if(freqEl.required&&!vf(freqEl,document.getElementById('frequency-error')))ok=false;
@@ -450,6 +450,9 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     // 3. GAS — creates CRM lead + fires auto-reply email to client
     (function(){
       var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+      var _segMap={'Managed Contract — Office':'Office','Managed Contract — Commercial':'Industrial','Managed Contract — School':'School','Managed Contract — Healthcare':'Healthcare','One-Off — Deep Clean':'Residential','One-Off — End of Tenancy':'Residential','One-Off — Kitchen / Oven Clean':'Industrial'};
+      var _svc=gv('service-type');
+      var _seg=_segMap[_svc]||(_svc.toLowerCase().includes('office')?'Office':_svc.toLowerCase().includes('school')?'School':_svc.toLowerCase().includes('health')?'Healthcare':'');
       var params=new URLSearchParams({
         action:'lead',
         companyName:   gv('company'),
@@ -457,7 +460,8 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
         email:         gv('email'),
         phone:         gv('phone'),
         postcode:      gv('postcode'),
-        serviceType:   gv('service-type'),
+        serviceType:   _svc,
+        segment:       _seg,
         premisesSize:  gv('premisesSize'),
         frequency:     gv('frequency'),
         message:                gv('message'),
