@@ -392,7 +392,6 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
   const form=document.getElementById('quoteForm'),submitBtn=document.getElementById('submitBtn');
   let t=Date.now();document.getElementById('form-timestamp').value=t;
   const pat={name:/^[a-zA-Z\s\-']{2,100}$/,email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,postcode:/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i};
-  const SUBMIT_KEY='am_quote_submitted';
   // Core required fields (always)
   const coreFields=['service-type','company','name','email','postcode'];
   const NOTE_CONTRACT='⏱ <strong>Takes 30 seconds.</strong> We\'ll send a ballpark monthly price by email and arrange a free site visit — no obligation.';
@@ -431,7 +430,6 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
 
   form.addEventListener('submit',async function(e){
     e.preventDefault();if(Date.now()-t<3000)return;
-    if(sessionStorage.getItem(SUBMIT_KEY)){alert('You\'ve already submitted a quote request. We\'ll be in touch soon!');return;}
     let ok=true;
     coreFields.forEach(id=>{const f=document.getElementById(id);if(f&&!vf(f,document.getElementById(id+'-error')))ok=false});
     if(freqEl.required&&!vf(freqEl,document.getElementById('frequency-error')))ok=false;
@@ -445,7 +443,6 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
     submitBtn.disabled=true;submitBtn.textContent='Sending…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
-    sessionStorage.setItem(SUBMIT_KEY,'1');
     window.location.href='/thank-you';
   });
 
