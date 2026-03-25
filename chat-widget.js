@@ -394,4 +394,58 @@
     if (!chatVisible && _messages.length === 0) badge.style.display = 'block';
   }, 8000);
 
+  // ── Proactive nudge after 45s ─────────────────────────────
+  // Only fires once per session, only if user hasn't opened chat
+  (function() {
+    const NUDGE_KEY = 'am_nudge_shown';
+    if (sessionStorage.getItem(NUDGE_KEY)) return;
+
+    setTimeout(() => {
+      if (chatVisible || _messages.length > 0) return;
+      sessionStorage.setItem(NUDGE_KEY, '1');
+
+      // Show a floating nudge bubble above the chat button
+      const nudge = document.createElement('div');
+      nudge.id = 'am-nudge';
+      nudge.innerHTML = `
+        <button id="am-nudge-close" aria-label="Dismiss">&#x2715;</button>
+        <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:3px">Looking for a cleaning quote? 👋</div>
+        <div style="font-size:12px;color:#475569;line-height:1.4">I can give you a ballpark price in 60 seconds.</div>
+      `;
+      nudge.style.cssText = `
+        position:fixed;bottom:90px;right:20px;z-index:99998;
+        background:#fff;border:1px solid #E2E8F0;border-radius:14px;
+        padding:14px 16px;max-width:220px;
+        box-shadow:0 8px 28px rgba(0,0,0,.14);
+        animation:am-nudge-in .35s cubic-bezier(0.34,1.3,0.64,1);
+      `;
+
+      // Inject keyframe if not already present
+      if (!document.getElementById('am-nudge-style')) {
+        const s = document.createElement('style');
+        s.id = 'am-nudge-style';
+        s.textContent = '@keyframes am-nudge-in{from{opacity:0;transform:translateY(12px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}';
+        document.head.appendChild(s);
+      }
+
+      document.body.appendChild(nudge);
+      badge.style.display = 'block';
+
+      // Clicking the nudge opens chat
+      nudge.addEventListener('click', (e) => {
+        if (e.target.id === 'am-nudge-close') { nudge.remove(); return; }
+        nudge.remove();
+        openChat();
+      });
+
+      document.getElementById('am-nudge-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        nudge.remove();
+      });
+
+      // Auto-dismiss after 12s
+      setTimeout(() => { if (nudge.parentNode) nudge.remove(); }, 12000);
+    }, 45000);
+  })();
+
 })();

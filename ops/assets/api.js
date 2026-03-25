@@ -9,11 +9,11 @@ window.API = (() => {
   const _pending = new Map();
 
   const TTL = {
-    default:   30000,
-    dashboard: 20000,
-    inbox:     60000,
-    me:       300000,
-    emails:    15000,
+    default:   60000,
+    dashboard: 45000,
+    inbox:    120000,
+    me:       600000,
+    emails:    30000,
   };
 
   function _ttl(action) {
@@ -196,7 +196,7 @@ window.API = (() => {
   function init() {
     health().catch(function() {});
     ['dashboard', 'crm', 'quotes', 'me'].forEach(function(a) { prefetch(a); });
-    setInterval(function() { health().catch(function() {}); }, 4 * 60 * 1000);
+    setInterval(function() { health().catch(function() {}); }, 2 * 60 * 1000);
   }
 
   return { init, get, post, prefetch, invalidate, health, token };

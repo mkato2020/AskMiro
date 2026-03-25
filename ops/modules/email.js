@@ -535,6 +535,76 @@ Thanks again and nice to meet you.`,
       ],
     },
 
+    'Sector Proposal — Healthcare': {
+      icon: '🏥', badge: 'Healthcare',
+      blurb: 'Proposal for medical, dental, or care facility — infection control, colour-coded equipment, clinical-grade standards.',
+      subject: 'AskMiro — Clinical Cleaning Proposal for {{name}}',
+      fields: [
+        { id: 'name',     label: 'Contact Name',    ph: 'e.g. Karen Hughes',           type: 'text', default: '' },
+        { id: 'site',     label: 'Facility Name',   ph: 'e.g. Maple Dental Clinic',    type: 'text', default: '' },
+        { id: 'amount',   label: 'Monthly Fee (£)', ph: 'e.g. 1800',                   type: 'text', default: '' },
+        { id: 'visits',   label: 'Visits per Week', ph: 'e.g. 5',                      type: 'text', default: '' },
+        { id: 'hours',    label: 'Hours per Visit', ph: 'e.g. 2.5',                    type: 'text', default: '' },
+      ],
+    },
+
+    'Sector Proposal — School': {
+      icon: '🏫', badge: 'Education',
+      blurb: 'Proposal for schools and colleges — DBS-checked staff, safeguarding, term-time and holiday deep cleans.',
+      subject: 'AskMiro — Cleaning Proposal for {{name}}',
+      fields: [
+        { id: 'name',      label: 'Contact Name',      ph: 'e.g. David Clarke, Bursar',   type: 'text', default: '' },
+        { id: 'site',      label: 'School / Site',     ph: 'e.g. St. Mary\'s Primary',    type: 'text', default: '' },
+        { id: 'amount',    label: 'Monthly Fee (£)',   ph: 'e.g. 2400',                   type: 'text', default: '' },
+        { id: 'visits',    label: 'Visits per Week',   ph: 'e.g. 5',                      type: 'text', default: '' },
+        { id: 'termStart', label: 'Term Start Date',   ph: 'e.g. 7 September 2026',       type: 'text', default: '' },
+      ],
+    },
+
+    'Price Objection Reply': {
+      icon: '💬', badge: 'Objection',
+      blurb: 'Confident, professional response when a prospect says you\'re too expensive. Focuses on value, consistency, and risk — not price.',
+      subject: 'Re: Cleaning Quote — Value of a Managed Service',
+      fields: [
+        { id: 'name',        label: 'Contact Name',           ph: 'e.g. James',                                  type: 'text',     default: '' },
+        { id: 'site',        label: 'Company / Site',         ph: 'e.g. Apex Offices',                           type: 'text',     default: '' },
+        { id: 'amount',      label: 'Your Quoted Fee (£/mo)', ph: 'e.g. 1,400',                                  type: 'text',     default: '' },
+        { id: 'competitor',  label: 'Their Current/Alt Price',ph: 'e.g. £950/mo (leave blank if unknown)',        type: 'text',     default: '' },
+        { id: 'body',        label: 'Custom Opening (optional)', ph: 'Leave blank for standard objection response…', type: 'textarea', rows: 4, default: '' },
+      ],
+    },
+
+    'Counter-Proposal': {
+      icon: '🔄', badge: 'Counter',
+      blurb: 'Revised proposal after price negotiation — shows reduced scope clearly so the client understands the trade-off.',
+      subject: 'AskMiro — Revised Proposal for {{name}}',
+      fields: [
+        { id: 'name',       label: 'Contact Name',         ph: 'e.g. James',                              type: 'text', default: '' },
+        { id: 'site',       label: 'Company / Site',       ph: 'e.g. Apex Offices',                       type: 'text', default: '' },
+        { id: 'origAmount', label: 'Original Fee (£/mo)',  ph: 'e.g. 1,400',                              type: 'text', default: '' },
+        { id: 'newAmount',  label: 'Revised Fee (£/mo)',   ph: 'e.g. 1,150',                              type: 'text', default: '' },
+        { id: 'origScope',  label: 'Original Scope',       ph: 'e.g. 5 days/week, 3hrs, all areas',       type: 'text', default: '' },
+        { id: 'newScope',   label: 'Revised Scope',        ph: 'e.g. 5 days/week, 2.5hrs, excl. windows', type: 'text', default: '' },
+        { id: 'offerNote',  label: 'Sweetener (optional)', ph: 'e.g. Free initial deep clean included',   type: 'text', default: '' },
+      ],
+    },
+
+    'Service Agreement': {
+      icon: '📜', badge: 'Contract',
+      blurb: 'Formal service agreement summary email — confirms contract terms before the start date. Not a legal document but creates a written record.',
+      subject: 'AskMiro — Service Agreement Confirmation for {{site}}',
+      fields: [
+        { id: 'name',       label: 'Contact Name',        ph: 'e.g. Sarah Collins',          type: 'text', default: '' },
+        { id: 'site',       label: 'Company / Site',      ph: 'e.g. Apex Offices, 12 High St', type: 'text', default: '' },
+        { id: 'amount',     label: 'Monthly Fee (£)',     ph: 'e.g. 1,400',                  type: 'text', default: '' },
+        { id: 'startDate',  label: 'Service Start Date',  ph: 'e.g. 1 April 2026',           type: 'text', default: '' },
+        { id: 'schedule',   label: 'Schedule',            ph: 'e.g. Mon–Fri, 6:00–9:00am',   type: 'text', default: '' },
+        { id: 'notice',     label: 'Notice Period',       ph: 'e.g. 4 weeks',                type: 'text', default: '' },
+        { id: 'scope',      label: 'Scope Summary',       ph: 'e.g. Offices, kitchen, 2 WCs, reception — full checklist per site specification', type: 'textarea', rows: 3, default: '' },
+        { id: 'tupeNote',   label: 'TUPE Note (if applicable)', ph: 'Leave blank if not applicable', type: 'text', default: '' },
+      ],
+    },
+
     'General Email': {
       icon: '✉️', badge: 'General',
       blurb: 'Blank branded template. Write your subject and message — the AskMiro header, footer, and signature are added automatically.',
@@ -990,6 +1060,155 @@ Thanks again and nice to meet you.`;
         _div() +
         _sm("If you have any questions, please don't hesitate to get in touch.") +
         _cta('\u260e\ufe0f Call Us', `tel:${BRAND.phoneTel}`, T.teal),
+        sender
+      );
+    }
+
+    // ── SECTOR PROPOSAL — HEALTHCARE ────────────────────────
+    if (tmpl === 'Sector Proposal — Healthcare') {
+      return _wrap('Healthcare Proposal', T.teal,
+        _h('Clinical Cleaning. Properly Managed.') +
+        _sub('AskMiro — Healthcare & Medical Facility Cleaning') +
+        _gr(f.name || 'there') +
+        _p(`Thank you for the opportunity to quote for managed cleaning services at <strong>${_esc(f.site||'your facility')}</strong>. We understand that healthcare environments demand a higher standard — and we're built to deliver it.`) +
+        _sh('Your proposed service') +
+        _table([
+          ['Facility', f.site || '—', true],
+          ['Monthly fee', f.amount ? '£' + _esc(f.amount) : '—', true, true],
+          ['Visits per week', f.visits || '—', false],
+          ['Hours per visit', f.hours || '—', false],
+          ['Start date', 'To be confirmed', false],
+        ]) +
+        _sh('Healthcare-grade standards included') +
+        _checklist([
+          '<strong>Colour-coded equipment</strong> — BICSc protocol, no cross-contamination between zones',
+          '<strong>Clinical-grade disinfectants</strong> — EN1276 / EN14476 certified, hospital-grade where required',
+          '<strong>COSHH risk assessments</strong> — full documentation, staff trained per site specification',
+          '<strong>DBS-checked, uniformed staff</strong> — all Enhanced DBS with healthcare induction',
+          '<strong>Infection control protocol</strong> — PPE worn, hand hygiene enforced, waste segregation',
+          '<strong>Supervisor quality audits</strong> — scored inspections with written reports, issues corrected same day',
+          '<strong>Re-clean guarantee</strong> — if anything is missed, we return at no charge',
+        ]) +
+        _info('All AskMiro healthcare cleaning staff complete additional infection control training specific to your sector. We hold £10M public liability insurance and are fully COSHH compliant.') +
+        _cta('Accept Proposal', `mailto:${BRAND.replyTo}?subject=Accepting%20cleaning%20proposal%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
+        sender
+      );
+    }
+
+    // ── SECTOR PROPOSAL — SCHOOL ─────────────────────────────
+    if (tmpl === 'Sector Proposal — School') {
+      return _wrap('School Cleaning Proposal', T.teal,
+        _h('Safe, Consistent School Cleaning.') +
+        _sub('AskMiro — Educational Cleaning Services') +
+        _gr(f.name || 'there') +
+        _p(`Following our site visit at <strong>${_esc(f.site||'your school')}</strong>, we are pleased to present our managed cleaning proposal. We understand the importance of a safe, clean learning environment — and the safeguarding obligations that come with it.`) +
+        _sh('Your proposed service') +
+        _table([
+          ['School / Site', f.site || '—', true],
+          ['Monthly fee', f.amount ? '£' + _esc(f.amount) : '—', true, true],
+          ['Service days', f.visits ? f.visits + ' days/week' : '—', false],
+          ['Term start', f.termStart || 'To be confirmed', false],
+        ]) +
+        _sh('What\'s included') +
+        _checklist([
+          '<strong>Enhanced DBS-checked staff</strong> — all clearances verified, certificates on file',
+          '<strong>Safeguarding-aware team</strong> — staff briefed on school safeguarding policy',
+          '<strong>Term-time daily cleans + holiday deep cleans</strong> — full schedule to specification',
+          '<strong>COSHH-compliant, child-safe products</strong> — no harsh chemicals in classroom zones',
+          '<strong>Waste management and recycling</strong> — compliant with school waste policies',
+          '<strong>Supervisor quality inspections</strong> — scored audits with written reports each term',
+          '<strong>Re-clean guarantee</strong> — anything missed, we return at no charge',
+        ]) +
+        _amber(`<strong>Safeguarding note:</strong> No AskMiro staff member will be alone with pupils at any time. All staff are briefed on your safeguarding policy before first shift.`) +
+        _cta('Accept Proposal', `mailto:${BRAND.replyTo}?subject=Accepting%20school%20cleaning%20proposal%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
+        sender
+      );
+    }
+
+    // ── PRICE OBJECTION REPLY ─────────────────────────────────
+    if (tmpl === 'Price Objection Reply') {
+      const customOpening = (f.body || '').trim();
+      const openingPara = customOpening
+        ? customOpening.split(/\n{2,}/).map(b => _p(_esc(b).replace(/\n/g,'<br>'))).join('')
+        : _p(`Thank you for coming back to us on the pricing, ${_esc(f.name||'')}.${f.competitor ? ` We appreciate you sharing the alternative figure of <strong>£${_esc(f.competitor)}/mo</strong> — it helps us make sure we\'re comparing like for like.` : ''}`);
+      return _wrap('Pricing Response', T.teal,
+        _h('What You\'re Actually Paying For') +
+        _sub('AskMiro — Value of a Managed Service') +
+        _gr(f.name || 'there') +
+        openingPara +
+        _p(`Our quoted fee of <strong>£${_esc(f.amount||'—')}/mo</strong> for <strong>${_esc(f.site||'your premises')}</strong> is not just for cleaning hours — it covers the full managed service.`) +
+        _sh('What cheaper quotes typically leave out') +
+        _checklist([
+          '<strong>Staff absence cover</strong> — a direct contractor sends no one if their cleaner is sick. We always cover.',
+          '<strong>Supervisor oversight</strong> — most cheaper services are entirely unsupervised. We audit every site.',
+          '<strong>Equipment & consumables</strong> — many quotes are labour-only. All chemicals, cloths, and equipment are included in our fee.',
+          '<strong>COSHH documentation & RAMS</strong> — required for your insurance and health & safety compliance. Included.',
+          '<strong>Account manager included</strong> — one contact for everything. No call centre, no hold music.',
+          '<strong>Re-clean guarantee</strong> — anything missed, we return within 24 hours at no charge.',
+        ]) +
+        _quote('The true cost of a cheaper service is the time your team spends managing it — chasing missed cleans, restocking supplies, dealing with no-shows.') +
+        _p('We would rather show you the difference than argue about it. If you\'d like, we can arrange a trial period so you can compare directly.') +
+        _cta('Arrange a Call', `mailto:${BRAND.replyTo}?subject=Pricing%20discussion%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
+        sender
+      );
+    }
+
+    // ── COUNTER-PROPOSAL ─────────────────────────────────────
+    if (tmpl === 'Counter-Proposal') {
+      return _wrap('Revised Proposal', T.amber,
+        _h('Revised Proposal — ' + _esc(f.site || 'Your Premises')) +
+        _sub('AskMiro — Adjusted Scope') +
+        _gr(f.name || 'there') +
+        _p(`Thank you for your feedback on pricing. We've revised our proposal to bring the monthly investment closer to your budget, with a small adjustment to scope. Here's how the two options compare:`) +
+        _table([
+          ['', '<strong>Original</strong>', true],
+          ['Monthly fee', '£' + _esc(f.origAmount||'—'), false],
+          ['Scope', _esc(f.origScope||'—'), false],
+          ['', '<strong>Revised</strong>', true],
+          ['Monthly fee', '<span style="color:#0D9488;font-weight:800">£' + _esc(f.newAmount||'—') + '</span>', true, true],
+          ['Scope', _esc(f.newScope||'—'), false],
+        ]) +
+        (f.offerNote ? _info(`<strong>Included at no extra charge:</strong> ${_esc(f.offerNote)}`) : '') +
+        _amber(`The revised scope reduces hours or frequency. Please review the scope change carefully — if cleaning standards are important to you, the original proposal may represent better long-term value.`) +
+        _p('Both options include the full AskMiro managed service: account manager, quality audits, absence cover, equipment, and our re-clean guarantee.') +
+        _cta('Accept Revised Proposal', `mailto:${BRAND.replyTo}?subject=Accepting%20revised%20proposal%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
+        sender
+      );
+    }
+
+    // ── SERVICE AGREEMENT ─────────────────────────────────────
+    if (tmpl === 'Service Agreement') {
+      const scopeLines = (f.scope || '').trim().split(/\n/).map(l => _esc(l.trim())).filter(Boolean);
+      return _wrap('Service Agreement', T.teal,
+        _h('Service Agreement — ' + _esc(f.site || 'Your Premises')) +
+        _sub('AskMiro Cleaning Services — Contract Confirmation') +
+        _gr(f.name || 'there') +
+        _p('This email confirms the agreed terms for managed cleaning services at <strong>' + _esc(f.site||'') + '</strong>. Please reply to confirm your acceptance, which will constitute your instruction to proceed.') +
+        _sh('Agreed service terms') +
+        _table([
+          ['Client / Site', f.site || '—', true],
+          ['Service start date', f.startDate || '—', true],
+          ['Schedule', f.schedule || '—', false],
+          ['Monthly fee (+ VAT)', '£' + _esc(f.amount||'—') + ' + VAT', true, true],
+          ['Annual value (+ VAT)', f.amount ? '£' + (parseFloat(String(f.amount).replace(/,/g,'')) * 12).toLocaleString('en-GB') + ' + VAT' : '—', false],
+          ['Notice period', f.notice || '4 weeks', false],
+          ['Payment terms', '14 days from invoice date', false],
+        ]) +
+        _sh('Scope of service') +
+        _checklist(scopeLines.length > 0 ? scopeLines : ['Cleaning scope as agreed during site visit']) +
+        (f.tupeNote ? _amber(`<strong>TUPE notice:</strong> ${_esc(f.tupeNote)}`) : '') +
+        _sh('What\'s included as standard') +
+        _checklist([
+          'All professional cleaning equipment, chemicals, and consumables',
+          'Dedicated account manager — single point of contact',
+          'Monthly supervisor quality inspection with written report',
+          'Absence cover — schedule maintained regardless of staff absence',
+          'Re-clean guarantee — any missed items corrected within 24 hours at no charge',
+          '£10M public liability insurance — certificate available on request',
+          'COSHH risk assessments and RAMS documentation',
+        ]) +
+        _info('To confirm this agreement, simply reply to this email with "Confirmed" or call us on ' + BRAND.phone + '. We will then arrange the site induction and confirm your cleaning team.') +
+        _cta('Confirm Agreement', `mailto:${BRAND.replyTo}?subject=Confirmed%20-%20Service%20Agreement%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
         sender
       );
     }

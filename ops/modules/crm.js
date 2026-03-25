@@ -1,7 +1,7 @@
 // ============================================================
-// AskMiro Ops — CRM  (Salesforce-lite, premium edition)
+// AskMiro Ops — CRM  v2.0  (full sales journey edition)
 // ============================================================
-window. CRM = (() => {
+window.CRM = (() => {
   let _leads = [];
   let _view = 'pipeline';
   let _filter = 'all';
@@ -19,6 +19,53 @@ window. CRM = (() => {
     Lost:        { color: '#DC2626', bg: '#FEF2F2', label: 'Lost',         icon: '✕' },
   };
   const SEGMENT_ICON = { Office:'🏢', Healthcare:'🏥', School:'🏫', Gym:'💪', Industrial:'🏭', Automotive:'🚗', Residential:'🏠' };
+
+  // Qualification fields — all 4 required before stage can move to Qualified
+  const QUAL_FIELDS = [
+    { id: 'qualPremisesSize',    label: 'Premises size',               ph: 'e.g. 500m² / 2 floors / 8 offices' },
+    { id: 'qualCurrentProvider', label: 'Current cleaning provider',   ph: 'e.g. ABC Cleaning, ends March 2026 / No current provider' },
+    { id: 'qualDecisionMaker',   label: 'Decision-maker confirmed',    ph: 'e.g. Sarah Collins, Facilities Manager — budget holder' },
+    { id: 'qualStartDate',       label: 'Earliest start / TUPE?',      ph: 'e.g. 1 April 2026 / TUPE — 2 cleaners may transfer' },
+  ];
+
+  // Onboarding checklist shown on Win
+  const ONBOARDING_STEPS = [
+    'Schedule site survey within 48 hours',
+    'Induct cleaning team — brief to site spec',
+    'Collect keyholder / access details',
+    'Set cleaning schedule in Ops module',
+    'Send insurance & RAMS docs to client',
+    'Assess TUPE obligations (existing staff transfer?)',
+    'Create contract record in Contracts module',
+    'Send Welcome Onboard email via Email module',
+  ];
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function _esc(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _isOverdue(lead) {
+    if (!lead.nextActionDate) return false;
+    return new Date(lead.nextActionDate) < new Date() && lead.status !== 'Won' && lead.status !== 'Lost';
+  }
+
+  function _isQualified(lead) {
+    return QUAL_FIELDS.every(f => lead[f.id] && String(lead[f.id]).trim().length > 0);
+  }
+
+  function _activityLog(lead) {
+    try { return JSON.parse(lead.activityLog || '[]'); } catch { return []; }
+  }
+
+  function _fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
 
   // ── RENDER ────────────────────────────────────────────────
   async function render() {
@@ -47,10 +94,11 @@ window. CRM = (() => {
   function _stats() {
     const active = _leads.filter(l => !['Won','Lost'].includes(l.status));
     const won = _leads.filter(l => l.status === 'Won');
+    const overdue = _leads.filter(l => _isOverdue(l));
     const pipeline = active.reduce((s,l) => s + parseFloat(l.annualValue||0), 0);
     const wonVal = won.reduce((s,l) => s + parseFloat(l.annualValue||0), 0);
     const convRate = _leads.length > 0 ? Math.round(won.length / _leads.length * 100) : 0;
-    return { total: _leads.length, active: active.length, pipeline, wonVal, convRate, won: won.length };
+    return { total: _leads.length, active: active.length, pipeline, wonVal, convRate, won: won.length, overdue: overdue.length };
   }
 
   function _draw() {
@@ -58,15 +106,16 @@ window. CRM = (() => {
     const s = _stats();
 
     const statsBar = `
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px">
       ${[
-        { label: 'Total Leads',     val: s.total,                     sub: 'in CRM',             color: '#0D9488' },
-        { label: 'Active Pipeline', val: s.active,                    sub: 'in progress',        color: '#7C3AED' },
-        { label: 'Pipeline Value',  val: UI.fmtk(s.pipeline),         sub: 'annual est.',        color: '#0284C7' },
-        { label: 'Won Value',       val: UI.fmtk(s.wonVal),           sub: 'closed won',         color: '#059669' },
-        { label: 'Win Rate',        val: s.convRate + '%',             sub: s.won + ' won',       color: '#D97706' },
+        { label: 'Total Leads',     val: s.total,           sub: 'in CRM',          color: '#0D9488' },
+        { label: 'Active Pipeline', val: s.active,          sub: 'in progress',     color: '#7C3AED' },
+        { label: 'Pipeline Value',  val: UI.fmtk(s.pipeline), sub: 'annual est.',   color: '#0284C7' },
+        { label: 'Won Value',       val: UI.fmtk(s.wonVal), sub: 'closed won',      color: '#059669' },
+        { label: 'Win Rate',        val: s.convRate + '%',  sub: s.won + ' won',    color: '#D97706' },
+        { label: 'Overdue Actions', val: s.overdue,         sub: 'follow-ups due',  color: s.overdue > 0 ? '#DC2626' : '#94A3B8' },
       ].map(k => `
-        <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .18s ease;cursor:default"
+        <div style="background:#fff;border:1px solid ${k.label==='Overdue Actions'&&k.val>0?'#FECACA':'#E5E7EB'};border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .18s ease;cursor:default"
              onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.08)'"
              onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,.04)'">
           <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8;margin-bottom:5px">${k.label}</div>
@@ -120,7 +169,6 @@ window. CRM = (() => {
         const stageVal = items.reduce((s,l)=>s+parseFloat(l.annualValue||0),0);
         return `
         <div style="min-width:200px;max-width:220px;flex:1;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden">
-          <!-- Column header -->
           <div style="padding:12px 14px 10px;border-bottom:1px solid #E5E7EB;background:#fff">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="display:flex;align-items:center;gap:6px">
@@ -131,7 +179,6 @@ window. CRM = (() => {
             </div>
             ${stageVal > 0 ? `<div style="font-size:10.5px;color:#94A3B8;font-weight:500">${UI.fmtk(stageVal)}/yr est.</div>` : ''}
           </div>
-          <!-- Cards -->
           <div style="padding:8px;display:flex;flex-direction:column;gap:6px;min-height:80px">
             ${items.length === 0
               ? `<div style="text-align:center;padding:20px 8px;font-size:11px;color:#CBD5E1;font-style:italic">No leads here</div>`
@@ -139,7 +186,6 @@ window. CRM = (() => {
           </div>
         </div>`;
       }).join('')}
-      <!-- Lost column (collapsed) -->
       <div style="min-width:60px;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;cursor:pointer"
            onclick="CRM._setFilter('Lost');CRM._setView('list')">
         <div style="padding:14px 8px;text-align:center">
@@ -155,12 +201,14 @@ window. CRM = (() => {
     const seg = l.segment || '';
     const initials = UI.initials(l.companyName || l.contactName || '?');
     const age = l.createdAt ? Math.floor((Date.now() - new Date(l.createdAt)) / 86400000) : 0;
+    const overdue = _isOverdue(l);
+    const qualDone = _isQualified(l);
     return `
     <div onclick='CRM.openDetail(${JSON.stringify(JSON.stringify(l))})'
-      style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:11px 12px;cursor:pointer;transition:all .18s ease;position:relative"
-      onmouseenter="this.style.borderColor='#0D9488';this.style.boxShadow='0 4px 14px rgba(13,148,136,.12)';this.style.transform='translateY(-1px)'"
-      onmouseleave="this.style.borderColor='#E5E7EB';this.style.boxShadow='';this.style.transform=''">
-      <!-- Top row -->
+      style="background:#fff;border:1px solid ${overdue?'#FCA5A5':'#E5E7EB'};border-radius:10px;padding:11px 12px;cursor:pointer;transition:all .18s ease;position:relative"
+      onmouseenter="this.style.borderColor='${overdue?'#EF4444':'#0D9488'}';this.style.boxShadow='0 4px 14px rgba(13,148,136,.12)';this.style.transform='translateY(-1px)'"
+      onmouseleave="this.style.borderColor='${overdue?'#FCA5A5':'#E5E7EB'}';this.style.boxShadow='';this.style.transform=''">
+      ${overdue ? `<div style="position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%;background:#EF4444"></div>` : ''}
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
         <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#0D9488,#0284C7);display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <span style="font-size:10px;font-weight:800;color:#fff">${initials}</span>
@@ -170,16 +218,15 @@ window. CRM = (() => {
           <div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.contactName || ''}</div>
         </div>
       </div>
-      <!-- Tags row -->
       <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:6px">
         ${seg ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#F1F5F9;color:#64748B;font-weight:600">${SEGMENT_ICON[seg]||''}${seg}</span>` : ''}
-        ${l.source ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#F1F5F9;color:#64748B">${l.source}</span>` : ''}
+        ${l.status === 'Contacted' && !qualDone ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#FEF3C7;color:#92400E;font-weight:600">Qualify →</span>` : ''}
       </div>
-      <!-- Footer -->
       <div style="display:flex;align-items:center;justify-content:space-between">
         ${l.annualValue ? `<span style="font-size:11.5px;font-weight:700;color:#0D9488">${UI.fmtk(l.annualValue)}<span style="font-weight:400;color:#94A3B8">/yr</span></span>` : '<span></span>'}
-        <span style="font-size:10px;color:#CBD5E1">${age}d ago</span>
+        <span style="font-size:10px;color:${overdue?'#EF4444':'#CBD5E1'}">${overdue ? '⚠ overdue' : age + 'd ago'}</span>
       </div>
+      ${l.nextActionDate && !overdue ? `<div style="margin-top:6px;font-size:10px;color:#0D9488;font-weight:600">↗ ${_fmtDate(l.nextActionDate)}</div>` : ''}
     </div>`;
   }
 
@@ -195,19 +242,20 @@ window. CRM = (() => {
             <th style="text-align:left;padding:11px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Segment</th>
             <th style="text-align:left;padding:11px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Stage</th>
             <th style="text-align:right;padding:11px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Value/yr</th>
-            <th style="text-align:left;padding:11px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Source</th>
+            <th style="text-align:left;padding:11px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Next Action</th>
             <th style="text-align:right;padding:11px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94A3B8">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${leads.length === 0
             ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:#94A3B8;font-size:13px">No leads found</td></tr>`
-            : leads.map((l, i) => {
+            : leads.map((l) => {
               const meta = STAGE_META[l.status] || STAGE_META['New'];
               const initials = UI.initials(l.companyName || '?');
+              const overdue = _isOverdue(l);
               return `
-              <tr onclick='CRM.openDetail(${JSON.stringify(JSON.stringify(l))})' style="border-bottom:1px solid #F8FAFC;cursor:pointer;transition:background .12s"
-                onmouseenter="this.style.background='#F0FDF9'" onmouseleave="this.style.background=''">
+              <tr onclick='CRM.openDetail(${JSON.stringify(JSON.stringify(l))})' style="border-bottom:1px solid #F8FAFC;cursor:pointer;transition:background .12s;background:${overdue?'#FFF5F5':''}"
+                onmouseenter="this.style.background='#F0FDF9'" onmouseleave="this.style.background='${overdue?'#FFF5F5':''}'">
                 <td style="padding:12px 16px">
                   <div style="display:flex;align-items:center;gap:9px">
                     <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0D9488,#0284C7);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -223,7 +271,10 @@ window. CRM = (() => {
                 <td style="padding:12px"><span style="font-size:12px">${SEGMENT_ICON[l.segment]||''}</span> <span style="color:#475569">${l.segment||'—'}</span></td>
                 <td style="padding:12px"><span style="background:${meta.bg};color:${meta.color};font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">${meta.icon} ${meta.label}</span></td>
                 <td style="padding:12px;text-align:right;font-weight:700;color:#0D9488">${l.annualValue ? UI.fmtk(l.annualValue) : '—'}</td>
-                <td style="padding:12px;color:#64748B;font-size:12px">${l.source||'—'}</td>
+                <td style="padding:12px">
+                  ${l.nextActionDate ? `<span style="font-size:12px;font-weight:600;color:${overdue?'#DC2626':'#0D9488'}">${overdue?'⚠ ':''}${_fmtDate(l.nextActionDate)}</span>${l.nextActionNote?`<div style="font-size:11px;color:#94A3B8;margin-top:1px">${_esc(l.nextActionNote)}</div>`:''}`
+                  : '<span style="color:#CBD5E1;font-size:12px">—</span>'}
+                </td>
                 <td style="padding:12px 16px;text-align:right">
                   <button onclick='event.stopPropagation();CRM.openDetail(${JSON.stringify(JSON.stringify(l))})' style="background:none;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:600;color:#64748B;cursor:pointer;transition:all .12s"
                     onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
@@ -268,7 +319,6 @@ window. CRM = (() => {
             }).join('')}
         </div>
       </div>
-      <!-- Stage breakdown -->
       <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
         <div style="padding:14px 18px 10px;border-bottom:1px solid #F1F5F9">
           <div style="font-size:13px;font-weight:700;color:#1F2937">Pipeline by Stage</div>
@@ -294,22 +344,104 @@ window. CRM = (() => {
     </div>`;
   }
 
-  // ── LEAD DETAIL PANEL (Salesforce record view) ────────────
+  // ── LEAD DETAIL PANEL ─────────────────────────────────────
   function openDetail(jsonStr) {
     const l = JSON.parse(jsonStr);
     _selectedLead = l;
     const meta = STAGE_META[l.status] || STAGE_META['New'];
     const age = l.createdAt ? Math.floor((Date.now()-new Date(l.createdAt))/86400000) : 0;
+    const overdue = _isOverdue(l);
+    const qualDone = _isQualified(l);
+    const log = _activityLog(l);
 
     const stageButtons = STAGES.map(st => {
       const m = STAGE_META[st];
       const active = st === l.status;
-      return `<button onclick="CRM.moveStage('${l.id}','${st}')"
+      return `<button onclick="CRM.moveStage('${_esc(l.id)}','${st}')"
         style="flex:1;padding:6px 4px;border:1.5px solid ${active?m.color:'#E2E8F0'};border-radius:7px;background:${active?m.bg:'#fff'};color:${active?m.color:'#94A3B8'};font-size:10.5px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
         onmouseenter="if('${st}'!='${l.status}')this.style.borderColor='${m.color}';this.style.color='${m.color}'"
         onmouseleave="if('${st}'!='${l.status}')this.style.borderColor='#E2E8F0';this.style.color='#94A3B8'"
         >${m.icon} ${m.label}</button>`;
     }).join('');
+
+    // Qualification section
+    const qualSection = `
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8">Qualification</div>
+          ${qualDone
+            ? `<span style="font-size:10px;font-weight:700;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:10px">✓ Complete</span>`
+            : `<span style="font-size:10px;font-weight:700;color:#D97706;background:#FFFBEB;padding:2px 8px;border-radius:10px">⚠ Incomplete</span>`}
+        </div>
+        ${!qualDone ? `<div style="font-size:11px;color:#D97706;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5">Complete all 4 fields before moving to <strong>Qualified</strong> stage.</div>` : ''}
+        <div style="background:#F8FAFC;border:1px solid #F1F5F9;border-radius:10px;overflow:hidden">
+          ${QUAL_FIELDS.map((f, i) => {
+            const val = l[f.id] || '';
+            const filled = val.trim().length > 0;
+            return `
+            <div style="${i>0?'border-top:1px solid #F1F5F9':''}">
+              <div style="display:flex;align-items:flex-start;padding:9px 12px;gap:8px">
+                <span style="font-size:13px;margin-top:1px;flex-shrink:0">${filled?'✅':'⬜'}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:10.5px;font-weight:700;color:#64748B;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">${f.label}</div>
+                  <input id="qual-${f.id}-${_esc(l.id)}" value="${_esc(val)}" placeholder="${_esc(f.ph)}"
+                    style="width:100%;font-size:12.5px;color:#1F2937;background:transparent;border:none;outline:none;padding:0;font-family:inherit"
+                    onblur="CRM.saveQual('${_esc(l.id)}','${f.id}',this.value)">
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+
+    // Follow-up section
+    const followUpSection = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Next Action</div>
+        <div style="background:${overdue?'#FFF5F5':'#F8FAFC'};border:1px solid ${overdue?'#FCA5A5':'#F1F5F9'};border-radius:10px;padding:12px">
+          ${overdue ? `<div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:8px">⚠ Follow-up was due ${_fmtDate(l.nextActionDate)}</div>` : ''}
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:120px">
+              <div style="font-size:10px;font-weight:600;color:#94A3B8;margin-bottom:4px">DUE DATE</div>
+              <input type="date" id="fu-date-${_esc(l.id)}" value="${_esc(l.nextActionDate||'')}"
+                style="width:100%;font-size:12px;border:1px solid #E2E8F0;border-radius:7px;padding:6px 8px;background:#fff;color:#1F2937;font-family:inherit">
+            </div>
+            <div style="flex:2;min-width:140px">
+              <div style="font-size:10px;font-weight:600;color:#94A3B8;margin-bottom:4px">ACTION NOTE</div>
+              <input type="text" id="fu-note-${_esc(l.id)}" value="${_esc(l.nextActionNote||'')}" placeholder="e.g. Call to follow up on quote"
+                style="width:100%;font-size:12px;border:1px solid #E2E8F0;border-radius:7px;padding:6px 8px;background:#fff;color:#1F2937;font-family:inherit">
+            </div>
+            <button onclick="CRM.saveFollowUp('${_esc(l.id)}')"
+              style="background:#0D9488;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+              Set ↗
+            </button>
+          </div>
+        </div>
+      </div>`;
+
+    // Activity log section
+    const activitySection = `
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8">Activity Log</div>
+          <button onclick="CRM.openLogNote('${_esc(l.id)}')"
+            style="font-size:10.5px;font-weight:700;color:#0D9488;background:none;border:1px solid #0D9488;border-radius:6px;padding:3px 9px;cursor:pointer">
+            + Log Note
+          </button>
+        </div>
+        <div style="background:#F8FAFC;border:1px solid #F1F5F9;border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto">
+          ${log.length === 0
+            ? `<div style="text-align:center;padding:20px;font-size:11px;color:#CBD5E1;font-style:italic">No activity logged yet</div>`
+            : [...log].reverse().map((entry, i) => `
+              <div style="${i>0?'border-top:1px solid #F1F5F9':''}padding:9px 14px;display:flex;gap:10px;align-items:flex-start">
+                <div style="width:6px;height:6px;border-radius:50%;background:#0D9488;margin-top:5px;flex-shrink:0"></div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12px;color:#1F2937;font-weight:500;line-height:1.4">${_esc(entry.note)}</div>
+                  <div style="font-size:10px;color:#94A3B8;margin-top:2px">${_fmtDate(entry.date)} ${entry.by?'· '+_esc(entry.by):''}</div>
+                </div>
+              </div>`).join('')}
+        </div>
+      </div>`;
 
     UI.openDrawer(l.companyName || 'Lead Detail', `
       <!-- Header -->
@@ -319,8 +451,8 @@ window. CRM = (() => {
             <span style="font-size:16px;font-weight:800;color:#fff">${UI.initials(l.companyName||'?')}</span>
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px">${l.companyName||'—'}</div>
-            <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px">${l.contactName||''} ${l.email?'· '+l.email:''}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px">${_esc(l.companyName||'—')}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px">${_esc(l.contactName||'')} ${l.email?'· '+_esc(l.email):''}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
               <span style="background:${meta.bg};color:${meta.color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${meta.icon} ${meta.label}</span>
               ${l.segment?`<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:11px;padding:3px 9px;border-radius:20px">${SEGMENT_ICON[l.segment]||''} ${l.segment}</span>`:''}
@@ -346,19 +478,22 @@ window. CRM = (() => {
       </div>
 
       <!-- Quick actions -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
-        <button onclick="CRM.openEdit('${l.id}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+        <button onclick="CRM.openEdit('${_esc(l.id)}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✏️ Edit</button>
         <button onclick="Router.navigate('quotes')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📋 Quote</button>
-        <a href="mailto:${l.email||''}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
+        <button onclick="Router.navigate('email')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✉️ Email</button>
+        <a href="tel:${_esc(l.phone||'')}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
+          onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
+          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📞 Call</button>
       </div>
 
-      <!-- Details -->
+      <!-- Contact details -->
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:10px">Contact Details</div>
       <div style="background:#F8FAFC;border:1px solid #F1F5F9;border-radius:10px;overflow:hidden;margin-bottom:14px">
         ${[
@@ -366,29 +501,34 @@ window. CRM = (() => {
           ['Contact', l.contactName],
           ['Email', l.email],
           ['Phone', l.phone],
+          ['Postcode', l.postcode],
           ['Source', l.source],
           ['Lead ID', l.id],
         ].filter(r=>r[1]).map(([label, val], i, arr) => `
         <div style="display:flex;padding:9px 14px;${i<arr.length-1?'border-bottom:1px solid #F1F5F9':''}">
           <span style="font-size:12px;color:#94A3B8;width:80px;flex-shrink:0;font-weight:500">${label}</span>
-          <span style="font-size:12.5px;color:#1F2937;font-weight:600;font-family:${label==='Lead ID'?'monospace':'inherit'}">${val}</span>
+          <span style="font-size:12.5px;color:#1F2937;font-weight:600;font-family:${label==='Lead ID'?'monospace':'inherit'}">${_esc(String(val))}</span>
         </div>`).join('')}
       </div>
 
+      ${qualSection}
+      ${followUpSection}
+      ${activitySection}
+
       ${l.notes ? `
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Notes</div>
-      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;line-height:1.6;margin-bottom:14px">${l.notes}</div>` : ''}
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;line-height:1.6;margin-bottom:14px">${_esc(l.notes)}</div>` : ''}
 
       <!-- Danger zone -->
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid #F1F5F9">
-        <button onclick="CRM.confirmLost('${l.id}')" style="width:100%;border:1px solid #FECACA;border-radius:8px;padding:8px;background:#FEF2F2;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer;transition:all .15s"
+        <button onclick="CRM.confirmLost('${_esc(l.id)}')" style="width:100%;border:1px solid #FECACA;border-radius:8px;padding:8px;background:#FEF2F2;font-size:12px;font-weight:700;color:#DC2626;cursor:pointer;transition:all .15s"
           onmouseenter="this.style.background='#DC2626';this.style.color='#fff'"
           onmouseleave="this.style.background='#FEF2F2';this.style.color='#DC2626'">Mark as Lost</button>
       </div>
     `);
   }
 
-  // ── MODALS ────────────────────────────────────────────────
+  // ── NEW / EDIT MODALS ─────────────────────────────────────
   function openNewLead() {
     UI.openModal(`
     <div class="modal-hd"><h2>New Lead</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
@@ -398,21 +538,29 @@ window. CRM = (() => {
         <div class="fg"><label class="fl">Contact Name <span class="req">*</span></label><input class="fin" id="l-cx" placeholder="e.g. Sarah Collins"></div>
       </div>
       <div class="fr">
-        <div class="fg"><label class="fl">Email <span class="req">*</span></label><input class="fin" id="l-em" type="email" placeholder="sarah@company.com"></div>
+        <div class="fg"><label class="fl">Email <span class="req">*</span></label><input class="fin" id="l-em" type="email" placeholder="sarah@company.com" oninput="CRM._checkDuplicate(this.value)"></div>
         <div class="fg"><label class="fl">Phone</label><input class="fin" id="l-ph" placeholder="07700 900 123"></div>
       </div>
+      <div id="dup-warning" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;margin-bottom:8px"></div>
       <div class="fr">
+        <div class="fg"><label class="fl">Postcode</label><input class="fin" id="l-pc" placeholder="e.g. SW1A 1AA"></div>
         <div class="fg"><label class="fl">Segment</label>
           <select class="fse" id="l-sg">
             <option>Office</option><option>Healthcare</option><option>School</option>
             <option>Gym</option><option>Industrial</option><option>Automotive</option><option>Residential</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">Source</label>
-          <select class="fse" id="l-sr"><option>Referral</option><option>Website</option><option>Cold Outreach</option><option>Event</option><option>LinkedIn</option></select>
-        </div>
       </div>
-      <div class="fg"><label class="fl">Est. Annual Value (£)</label><input class="fin" id="l-vl" type="number" placeholder="60000"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Source</label>
+          <select class="fse" id="l-sr"><option>Referral</option><option>Website</option><option>Cold Outreach</option><option>Event</option><option>LinkedIn</option><option>Google</option></select>
+        </div>
+        <div class="fg"><label class="fl">Est. Annual Value (£)</label><input class="fin" id="l-vl" type="number" placeholder="60000"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Follow-up Date</label><input class="fin" id="l-fd" type="date"></div>
+        <div class="fg"><label class="fl">Next Action Note</label><input class="fin" id="l-fn" placeholder="e.g. Call to discuss requirements"></div>
+      </div>
       <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="l-nt" placeholder="Key context, budget signals, decision timeline…" style="min-height:80px"></textarea></div>
       <div class="modal-foot">
         <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
@@ -429,27 +577,45 @@ window. CRM = (() => {
     <div class="modal-hd"><h2>Edit Lead</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
     <div class="modal-body">
       <div class="fr">
-        <div class="fg"><label class="fl">Company Name</label><input class="fin" id="l-co" value="${(l.companyName||'').replace(/"/g,'&quot;')}"></div>
-        <div class="fg"><label class="fl">Contact Name</label><input class="fin" id="l-cx" value="${(l.contactName||'').replace(/"/g,'&quot;')}"></div>
+        <div class="fg"><label class="fl">Company Name</label><input class="fin" id="l-co" value="${_esc(l.companyName||'')}"></div>
+        <div class="fg"><label class="fl">Contact Name</label><input class="fin" id="l-cx" value="${_esc(l.contactName||'')}"></div>
       </div>
       <div class="fr">
-        <div class="fg"><label class="fl">Email</label><input class="fin" id="l-em" type="email" value="${l.email||''}"></div>
-        <div class="fg"><label class="fl">Phone</label><input class="fin" id="l-ph" value="${l.phone||''}"></div>
+        <div class="fg"><label class="fl">Email</label><input class="fin" id="l-em" type="email" value="${_esc(l.email||'')}"></div>
+        <div class="fg"><label class="fl">Phone</label><input class="fin" id="l-ph" value="${_esc(l.phone||'')}"></div>
       </div>
       <div class="fr">
+        <div class="fg"><label class="fl">Postcode</label><input class="fin" id="l-pc" value="${_esc(l.postcode||'')}"></div>
         <div class="fg"><label class="fl">Segment</label>
           <select class="fse" id="l-sg">
             ${['Office','Healthcare','School','Gym','Industrial','Automotive','Residential'].map(s=>`<option ${s===l.segment?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div class="fg"><label class="fl">Annual Value (£)</label><input class="fin" id="l-vl" type="number" value="${l.annualValue||''}"></div>
       </div>
-      <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="l-nt" style="min-height:80px">${l.notes||''}</textarea></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Annual Value (£)</label><input class="fin" id="l-vl" type="number" value="${_esc(String(l.annualValue||''))}"></div>
+        <div class="fg"><label class="fl">Follow-up Date</label><input class="fin" id="l-fd" type="date" value="${_esc(l.nextActionDate||'')}"></div>
+      </div>
+      <div class="fg"><label class="fl">Next Action Note</label><input class="fin" id="l-fn" value="${_esc(l.nextActionNote||'')}" placeholder="e.g. Call to follow up on quote"></div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="l-nt" style="min-height:80px">${_esc(l.notes||'')}</textarea></div>
       <div class="modal-foot">
         <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
-        <button class="btn bp" onclick="CRM.updateLead('${l.id}')">Save Changes</button>
+        <button class="btn bp" onclick="CRM.updateLead('${_esc(l.id)}')">Save Changes</button>
       </div>
     </div>`);
+  }
+
+  // ── DUPLICATE CHECK ───────────────────────────────────────
+  function _checkDuplicate(email) {
+    const w = document.getElementById('dup-warning');
+    if (!w) return;
+    const match = _leads.find(l => l.email && l.email.toLowerCase() === email.toLowerCase());
+    if (match) {
+      w.style.display = '';
+      w.innerHTML = `⚠ A lead with this email already exists: <strong>${_esc(match.companyName||match.contactName)}</strong> (${_esc(match.status)}). You can still save — check before contacting twice.`;
+    } else {
+      w.style.display = 'none';
+    }
   }
 
   // ── ACTIONS ───────────────────────────────────────────────
@@ -461,8 +627,9 @@ window. CRM = (() => {
       await API.post('lead', {
         companyName: UI.gv('l-co'), contactName: UI.gv('l-cx'),
         email: UI.gv('l-em'), phone: UI.gv('l-ph'),
-        segment: UI.gv('l-sg'), source: UI.gv('l-sr'),
-        annualValue: UI.gv('l-vl'), notes: UI.gv('l-nt')
+        postcode: UI.gv('l-pc'), segment: UI.gv('l-sg'), source: UI.gv('l-sr'),
+        annualValue: UI.gv('l-vl'), notes: UI.gv('l-nt'),
+        nextActionDate: UI.gv('l-fd'), nextActionNote: UI.gv('l-fn'),
       });
       UI.closeModal(); UI.toast('Lead created ✓');
       await render();
@@ -479,7 +646,9 @@ window. CRM = (() => {
       await API.post('lead', {
         id, companyName: UI.gv('l-co'), contactName: UI.gv('l-cx'),
         email: UI.gv('l-em'), phone: UI.gv('l-ph'),
-        segment: UI.gv('l-sg'), annualValue: UI.gv('l-vl'), notes: UI.gv('l-nt')
+        postcode: UI.gv('l-pc'), segment: UI.gv('l-sg'),
+        annualValue: UI.gv('l-vl'), notes: UI.gv('l-nt'),
+        nextActionDate: UI.gv('l-fd'), nextActionNote: UI.gv('l-fn'),
       });
       UI.closeModal(); UI.toast('Lead updated ✓');
       await render();
@@ -490,17 +659,136 @@ window. CRM = (() => {
   }
 
   async function moveStage(id, status) {
+    const lead = _leads.find(l => l.id === id);
+
+    // Qualification gate — must fill all 4 fields before Qualified
+    if (status === 'Qualified' && lead && !_isQualified(lead)) {
+      UI.toast('Complete the 4 qualification fields first (in the Qualification section)', 'a');
+      return;
+    }
+
+    // Won → show onboarding checklist
+    if (status === 'Won') {
+      _showOnboardingModal(id, lead);
+      return;
+    }
+
     try {
-      await API.post('lead.stage', { id, status });
-      UI.toast(`Moved to ${STAGE_META[status].label}`, status === 'Won' ? 'g' : status === 'Lost' ? 'r' : 'g');
+      // Append stage change to activity log
+      const log = _activityLog(lead || {});
+      log.push({ date: new Date().toISOString(), note: `Stage moved to ${STAGE_META[status].label}` });
+      await API.post('lead.stage', { id, status, activityLog: JSON.stringify(log) });
+      UI.toast(`Moved to ${STAGE_META[status].label}`, status === 'Lost' ? 'r' : 'g');
       UI.closeDrawer();
       await render();
     } catch(e) { UI.toast(e.message, 'r'); }
   }
 
+  function _showOnboardingModal(id, lead) {
+    UI.closeDrawer();
+    UI.openModal(`
+    <div class="modal-hd" style="background:linear-gradient(135deg,#064E3B,#065F46);margin:-20px -20px 20px;padding:20px 24px;border-radius:12px 12px 0 0">
+      <div>
+        <div style="font-size:22px;margin-bottom:4px">🎉</div>
+        <h2 style="color:#fff;margin:0;font-size:18px">Contract Won!</h2>
+        <p style="color:rgba(255,255,255,.65);font-size:13px;margin:4px 0 0">${_esc(lead ? lead.companyName : '')} — ${lead && lead.annualValue ? UI.fmt(lead.annualValue) + '/yr' : ''}</p>
+      </div>
+      <button class="xbtn" onclick="CRM._confirmWin('${_esc(id)}')" style="color:#fff">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#374151;margin-bottom:14px;line-height:1.6">Before you celebrate — run through the onboarding checklist to make sure delivery starts perfectly.</p>
+      <div style="background:#F0FDF9;border:1px solid #A7F3D0;border-radius:10px;overflow:hidden;margin-bottom:16px">
+        ${ONBOARDING_STEPS.map((step, i) => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;${i>0?'border-top:1px solid #D1FAE5':''}">
+          <input type="checkbox" id="ob-${i}" style="width:16px;height:16px;accent-color:#059669;flex-shrink:0">
+          <span style="font-size:13px;color:#065F46;font-weight:500">${_esc(step)}</span>
+        </label>`).join('')}
+      </div>
+      <div class="modal-foot">
+        <button class="btn bo" onclick="CRM._confirmWin('${_esc(id)}')">Skip checklist</button>
+        <button class="btn bp" style="background:#059669" onclick="CRM._confirmWin('${_esc(id)}')">Mark as Won ✓</button>
+      </div>
+    </div>`);
+  }
+
+  async function _confirmWin(id) {
+    const lead = _leads.find(l => l.id === id) || {};
+    const log = _activityLog(lead);
+    log.push({ date: new Date().toISOString(), note: 'Stage moved to Won — onboarding checklist reviewed' });
+    try {
+      await API.post('lead.stage', { id, status: 'Won', activityLog: JSON.stringify(log) });
+      UI.closeModal();
+      UI.toast('Marked as Won! 🎉', 'g');
+      await render();
+    } catch(e) { UI.toast(e.message, 'r'); }
+  }
+
+  async function saveQual(id, fieldId, value) {
+    const lead = _leads.find(l => l.id === id);
+    if (!lead) return;
+    lead[fieldId] = value; // optimistic local update
+    try {
+      await API.post('lead', { id, [fieldId]: value });
+    } catch(e) { console.warn('saveQual error:', e.message); }
+  }
+
+  async function saveFollowUp(id) {
+    const dateEl = document.getElementById('fu-date-' + id);
+    const noteEl = document.getElementById('fu-note-' + id);
+    if (!dateEl) return;
+    const date = dateEl.value;
+    const note = noteEl ? noteEl.value : '';
+    try {
+      await API.post('lead', { id, nextActionDate: date, nextActionNote: note });
+      const lead = _leads.find(l => l.id === id);
+      if (lead) { lead.nextActionDate = date; lead.nextActionNote = note; }
+      UI.toast('Follow-up set ✓');
+    } catch(e) { UI.toast(e.message, 'r'); }
+  }
+
+  function openLogNote(id) {
+    UI.openModal(`
+    <div class="modal-hd"><h2>Log Activity Note</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Note</label>
+        <textarea class="fta" id="log-note" placeholder="e.g. Called Sarah — she's reviewing with FM team. Follow up Friday." style="min-height:100px"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
+        <button class="btn bp" onclick="CRM.saveLogNote('${_esc(id)}')">Save Note</button>
+      </div>
+    </div>`);
+  }
+
+  async function saveLogNote(id) {
+    const note = UI.gv('log-note');
+    if (!note.trim()) { UI.toast('Enter a note first', 'a'); return; }
+    const lead = _leads.find(l => l.id === id) || {};
+    const log = _activityLog(lead);
+    const user = (window.Auth && Auth.getUser && Auth.getUser()) || {};
+    log.push({ date: new Date().toISOString(), note: note.trim(), by: user.name || 'You' });
+    try {
+      await API.post('lead', { id, activityLog: JSON.stringify(log) });
+      if (lead) lead.activityLog = JSON.stringify(log);
+      UI.closeModal();
+      UI.toast('Note logged ✓');
+      // Refresh drawer
+      if (_selectedLead && _selectedLead.id === id) {
+        _selectedLead.activityLog = JSON.stringify(log);
+        openDetail(JSON.stringify(_selectedLead));
+      }
+    } catch(e) { UI.toast(e.message, 'r'); }
+  }
+
   function confirmLost(id) {
     if (confirm('Mark this lead as Lost? This will move it out of the active pipeline.')) {
-      moveStage(id, 'Lost');
+      const lead = _leads.find(l => l.id === id) || {};
+      const log = _activityLog(lead);
+      log.push({ date: new Date().toISOString(), note: 'Marked as Lost' });
+      API.post('lead.stage', { id, status: 'Lost', activityLog: JSON.stringify(log) })
+        .then(() => { UI.toast('Marked as Lost', 'r'); UI.closeDrawer(); render(); })
+        .catch(e => UI.toast(e.message, 'r'));
     }
   }
 
@@ -510,6 +798,7 @@ window. CRM = (() => {
 
   return {
     render, openNewLead, openEdit, openDetail, saveLead, updateLead,
-    moveStage, confirmLost, _setView, _setFilter, _search
+    moveStage, confirmLost, saveQual, saveFollowUp, openLogNote, saveLogNote,
+    _confirmWin, _setView, _setFilter, _search, _checkDuplicate,
   };
 })();

@@ -199,41 +199,38 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
       <form name="quote-request" method="POST" data-netlify="true" id="quoteForm" novalidate>
         <input type="hidden" name="form-name" value="quote-request">
         <input type="hidden" name="form-timestamp" id="form-timestamp" value="">
-        <label for="name">Name *</label>
+        <label for="service-type">What do you need? *</label>
+        <select id="service-type" name="service-type" required>
+          <option value="">Select...</option>
+          <optgroup label="Managed Contract (ongoing)">
+            <option value="Managed Contract — Office">Office Cleaning Contract</option>
+            <option value="Managed Contract — Commercial">Commercial / Warehouse Contract</option>
+            <option value="Managed Contract — School">School / Education Contract</option>
+            <option value="Managed Contract — Healthcare">Healthcare Facility Contract</option>
+            <option value="Managed Contract — Residential Block">Residential Block Contract</option>
+            <option value="Managed Contract — Other">Other Managed Contract</option>
+          </optgroup>
+          <optgroup label="One-Off Service">
+            <option value="One-Off — Deep Clean">Deep Clean</option>
+            <option value="One-Off — End of Tenancy">End of Tenancy Clean</option>
+            <option value="One-Off — Post-Construction">Post-Construction / Builder's Clean</option>
+            <option value="One-Off — Post-Event">Post-Event Clean</option>
+            <option value="One-Off — Other">Other One-Off</option>
+          </optgroup>
+        </select>
+        <div class="err-msg" id="service-type-error">Please select a service type</div>
+        <label for="name">Your Name *</label>
         <input type="text" id="name" name="name" required placeholder="Your full name" minlength="2" maxlength="100">
         <div class="err-msg" id="name-error">Please enter your full name (at least 2 characters)</div>
         <label for="email">Email *</label>
         <input type="email" id="email" name="email" required placeholder="your.email@company.com">
         <div class="err-msg" id="email-error">Please enter a valid email address</div>
-        <label for="phone">Phone *</label>
-        <input type="tel" id="phone" name="phone" required placeholder="020 1234 5678">
-        <div class="err-msg" id="phone-error">Please enter a valid phone number</div>
-        <label for="postcode">Postcode *</label>
+        <label for="postcode">Site Postcode *</label>
         <input type="text" id="postcode" name="postcode" required placeholder="e.g. SW11, EC1, UB3" maxlength="10">
         <div class="err-msg" id="postcode-error">Please enter a valid UK postcode</div>
-        <label for="sector">Type of Premises *</label>
-        <select id="sector" name="sector" required>
-          <option value="">Select...</option>
-          <option>Office</option><option>Warehouse / Distribution Centre</option>
-          <option>School / Education Facility</option><option>Healthcare Facility</option>
-          <option>Gym / Leisure Centre</option><option>Residential Block</option>
-          <option>Automotive Dealership</option><option>Other</option>
-        </select>
-        <div class="err-msg" id="sector-error">Please select a premises type</div>
-        <label for="frequency">Cleaning Frequency *</label>
-        <select id="frequency" name="frequency" required>
-          <option value="">Select...</option>
-          <option>Daily</option><option>3x per week</option><option>2x per week</option>
-          <option>Weekly</option><option>Fortnightly</option><option>Monthly</option>
-          <option>One-off Deep Clean</option>
-        </select>
-        <div class="err-msg" id="frequency-error">Please select a cleaning frequency</div>
-        <label for="message">Tell us about your requirements *</label>
-        <textarea id="message" name="message" rows="5" required placeholder="Site size, access hours, key areas to clean, any special requirements..." minlength="20" maxlength="1000"></textarea>
-        <div class="err-msg" id="message-error">Please provide details (at least 20 characters)</div>
         <div class="mb-20"></div>
-        <button type="submit" id="submitBtn">Request Free Quote →</button>
-        <div class="form-note"><strong>What happens next?</strong> We'll contact you within 24 hours to arrange a free site visit and provide a detailed, fixed-price quote.</div>
+        <button type="submit" id="submitBtn">Get My Free Quote →</button>
+        <div class="form-note" id="form-note">⏱ <strong>Takes 30 seconds.</strong> We'll send a ballpark price by email and follow up to arrange a free site visit — no obligation.</div>
       </form>
     </div>
   </div>
@@ -243,25 +240,35 @@ footer{text-align:center;padding:28px 1.5rem;font-family:'JetBrains Mono',monosp
 (function(){
   const form=document.getElementById('quoteForm'),submitBtn=document.getElementById('submitBtn');
   let t=Date.now();document.getElementById('form-timestamp').value=t;
-  const pat={name:/^[a-zA-Z\s\-']{2,100}$/,email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,phone:/^[\d\s\+\(\)\-]{10,}$/,postcode:/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i};
-  const fields=['name','email','phone','postcode','sector','frequency','message'];
+  const pat={name:/^[a-zA-Z\s\-']{2,100}$/,email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,postcode:/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$|^[A-Z]{1,2}\d{1,2}$/i};
+  const fields=['service-type','name','email','postcode'];
+  const SUBMIT_KEY='am_quote_submitted';
+  // Dynamic note based on service type
+  const NOTE_CONTRACT='⏱ <strong>Takes 30 seconds.</strong> We\'ll send a ballpark monthly price by email and arrange a free site visit — no obligation.';
+  const NOTE_ONEOFF='⏱ <strong>Takes 30 seconds.</strong> We\'ll email you a price and confirm availability — usually within a few hours.';
+  document.getElementById('service-type').addEventListener('change',function(){
+    const isOneOff = this.value.startsWith('One-Off');
+    document.getElementById('form-note').innerHTML = isOneOff ? NOTE_ONEOFF : NOTE_CONTRACT;
+    document.getElementById('email').placeholder = isOneOff ? 'your@email.com' : 'your.email@company.com';
+  });
   fields.forEach(id=>{const f=document.getElementById(id),e=document.getElementById(id+'-error');f.addEventListener('blur',()=>vf(f,e));f.addEventListener('input',()=>{if(f.classList.contains('error'))vf(f,e)})});
   function vf(f,e){
     const v=f.value.trim();let ok=!!v;
-    if(ok){if(f.id==='name')ok=pat.name.test(v);else if(f.type==='email')ok=pat.email.test(v);else if(f.type==='tel')ok=pat.phone.test(v);else if(f.id==='postcode')ok=pat.postcode.test(v.toUpperCase());else if(f.tagName==='SELECT')ok=v!=='';else if(f.tagName==='TEXTAREA')ok=v.length>=20;}
-    f.classList.toggle('error',!ok);f.classList.toggle('success',ok);e.classList.toggle('show',!ok);return ok;
+    if(ok){if(f.id==='name')ok=pat.name.test(v);else if(f.type==='email')ok=pat.email.test(v);else if(f.id==='postcode')ok=pat.postcode.test(v.toUpperCase());else if(f.tagName==='SELECT')ok=v!=='';}
+    f.classList.toggle('error',!ok);f.classList.toggle('success',ok);if(e)e.classList.toggle('show',!ok);return ok;
   }
   form.addEventListener('submit',async function(e){
     e.preventDefault();if(Date.now()-t<3000)return;
+    if(sessionStorage.getItem(SUBMIT_KEY)){alert('You\'ve already submitted a quote request. We\'ll be in touch soon!');return;}
     let ok=true;fields.forEach(id=>{const f=document.getElementById(id);if(!vf(f,document.getElementById(id+'-error')))ok=false});
     if(!ok){const fe=form.querySelector('.error');if(fe){fe.scrollIntoView({behavior:'smooth',block:'center'});fe.focus();}return;}
-    submitBtn.disabled=true;submitBtn.textContent='Submitting…';submitBtn.style.opacity='.7';
+    submitBtn.disabled=true;submitBtn.textContent='Sending…';submitBtn.style.opacity='.7';
     const fd=new FormData(form);
     try{await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()});}catch(_){}
+    sessionStorage.setItem(SUBMIT_KEY,'1');
     window.location.href='/thank-you';
   });
   document.getElementById('postcode').addEventListener('input',function(){this.value=this.value.toUpperCase()});
-  document.getElementById('phone').addEventListener('input',function(){this.value=this.value.replace(/[^\d\s\+\(\)\-]/g,'')});
 })();
 </script>
 <script src="/get_quote_form_patch_configured.js"></script>

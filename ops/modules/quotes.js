@@ -241,7 +241,8 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     <div class="mp-bar" style="width:${Math.min(Math.max(gmPct / 60 * 100, 0), 100).toFixed(1)}%;background:${col}"></div>
   </div>
 
-  <div class="mp-row"><span class="mp-lbl">Revenue/month</span><span class="mp-val">${UI.fmt(rev)}</span></div>
+  <div class="mp-row"><span class="mp-lbl">Revenue/month (ex. VAT)</span><span class="mp-val">${UI.fmt(rev)}</span></div>
+  <div class="mp-row"><span class="mp-lbl">Revenue/month (inc. VAT)</span><span class="mp-val" style="color:#64748B">${UI.fmt(rev * 1.2)}</span></div>
   <div class="mp-row"><span class="mp-lbl">Labour cost</span><span class="mp-val">${UI.fmt(labour)}</span></div>
   <div class="mp-row"><span class="mp-lbl">Supplies + Other</span><span class="mp-val">${UI.fmt(supplies + other)}</span></div>
   <div class="mp-row"><span class="mp-lbl">Direct cost total</span><span class="mp-val">${UI.fmt(direct)}</span></div>
@@ -382,7 +383,9 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     ${blocked ? `<button class="btn bo" onclick="Quotes.openApprove('${_escHtml(q.id)}')">&#9888; Request Approval</button>` : ''}
     <div style="flex:1"></div>
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
-    ${!blocked ? `<button class="btn bp" onclick="Quotes.openSend('${_escHtml(q.id)}','${clientNameSafe}')">&#9992; Send Quote</button>` : ''}
+    ${!blocked ? `
+    <button class="btn bo" onclick="Quotes._sendProposal(${JSON.stringify(JSON.stringify(q))})" style="border-color:#0D9488;color:#0D9488">&#9993; Send Proposal</button>
+    <button class="btn bp" onclick="Quotes.openSend('${_escHtml(q.id)}','${clientNameSafe}')">&#9992; Send Quote</button>` : ''}
   </div>
 </div>`.trim());
 
@@ -442,10 +445,31 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     }
   }
 
+  // ── SEND PROPOSAL — routes to Email module with pre-filled data ───
+  function _sendProposal(jsonStr) {
+    const q = JSON.parse(jsonStr);
+    UI.closeModal();
+    // Store prefill data for Email module to pick up
+    window._emailPrefill = {
+      template: 'Proposal / Quote',
+      fields: {
+        name:   q.clientName || '',
+        site:   q.siteAddress || '',
+        amount: String(Math.round(q.revenueMonthly || 0)),
+        visits: q.visitsPerWeek || '',
+        days:   '',
+        hours:  q.hoursPerWeek || '',
+        areas:  '',
+      }
+    };
+    if (window.Router) Router.navigate('email');
+    UI.toast('Opening Email → Proposal / Quote template', 'g');
+  }
+
   return {
     render, calc, toggleMode, save, openNew,
     openView, openSend, doSend, openApprove, doApprove,
-    setFilter
+    setFilter, openViewById, _sendProposal,
   };
 })();
 

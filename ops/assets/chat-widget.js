@@ -10,10 +10,10 @@
 
   // ── Config ────────────────────────────────────────────────
   const CFG = {
-    endpoint:    '/api/chat',
-    greeting:    "Hello! I'm AskMiro's virtual assistant. How can I help you today?",
-    placeholder: 'Ask about our services, areas covered, or getting a quote…',
-    brand:       'AskMiro',
+    endpoint:    '/api/ops-chat',
+    greeting:    "Hi! I'm your Ops Assistant. Ask me how to use any part of this system — CRM, Quotes, Email, Finance, or anything else.",
+    placeholder: 'e.g. How do I qualify a lead? How do I send a proposal?',
+    brand:       'Ops Assistant',
     accent:      '#0D9488',
     accentDark:  '#0F766E',
   };
@@ -169,7 +169,7 @@
       </div>
       <div>
         <div class="am-title">${CFG.brand}</div>
-        <div class="am-sub">Virtual assistant · Usually replies instantly</div>
+        <div class="am-sub">Ops guide · Ask me anything about the system</div>
       </div>
       <button id="am-chat-close" aria-label="Close chat">&#x2715;</button>
     </div>
@@ -193,10 +193,10 @@
 
   // ── Quick replies shown on first open ─────────────────────
   const QUICK_REPLIES = [
-    'What areas do you cover?',
-    'Can I get a quote?',
-    'Do you clean offices?',
-    'Book a site visit',
+    'How do I add a new lead?',
+    'How do I qualify a lead?',
+    'How do I send a proposal?',
+    'Walk me through a full sale',
   ];
 
   // ── Helpers ───────────────────────────────────────────────
@@ -308,7 +308,7 @@
 
     } catch (err) {
       _removeTyping();
-      _addMessage('assistant', 'Sorry, I\'m having trouble connecting right now. Please call us on 020 8073 0621 or email office@askmiro.com.');
+      _addMessage('assistant', 'Having trouble connecting right now. Check your internet connection or try again in a moment.');
       console.warn('[AskMiro Chat]', err);
     }
 
@@ -333,11 +333,11 @@
 
   sendBtn.addEventListener('click', () => _send());
 
-  // ── Show badge after 8 seconds to invite engagement ───────
+  // ── Show badge after 30 seconds to invite first use ───────
   setTimeout(() => {
     if (!chatVisible && _messages.length === 0) {
       badge.style.display = 'block';
     }
-  }, 8000);
+  }, 30000);
 
 })();
