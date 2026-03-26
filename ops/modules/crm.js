@@ -854,14 +854,21 @@ window.CRM = (() => {
   }
 
   function _shareUploadLink(leadId, companyName) {
-    const base = location.origin + '/upload.html';
+    const base = 'https://askmiro.com/upload.html';
     const url  = base + '?ref=' + encodeURIComponent(leadId) + (companyName ? '&name=' + encodeURIComponent(companyName) : '');
-    navigator.clipboard.writeText(url).then(() => {
+    // Bulletproof copy: textarea trick works in all contexts
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+      document.execCommand('copy');
       UI.toast('📎 Upload link copied to clipboard');
-    }).catch(() => {
-      // Fallback: show in a prompt so user can copy manually
-      window.prompt('Copy this upload link to share with your client:', url);
-    });
+    } catch (_) {
+      window.prompt('Copy this upload link:', url);
+    }
+    document.body.removeChild(ta);
   }
 
   function _quickFollowUp(email, name, template) {
