@@ -366,7 +366,11 @@ ${_alerts(d)}
        <td style="font-size:10px;color:var(--ll)">${UI.fmtPct(totalExp>0?v/totalExp*100:0)}</td></tr>`
     ).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--ll);padding:16px;font-size:12px">No data</td></tr>`;
 
+    // ── Recurring panel ─────────────────────────────────────────
+    const recurringPanel = _recurringPanel();
+
     return `
+${recurringPanel}
 <div class="fb" style="margin-bottom:10px;gap:6px;flex-wrap:wrap">
   <select class="fin" style="width:180px;font-size:12px;padding:5px 8px" onchange="Finance._setFilter('category',this.value)">${catOpts}</select>
   <div class="sp"></div>
@@ -398,6 +402,81 @@ ${_alerts(d)}
     </div>
   </div>
 </div>`;
+  }
+
+  // ── RECURRING EXPENSES PANEL ──────────────────────────────────
+  function _recurringPanel() {
+    // Deduplicate recurring expenses: keep the most recent entry per (category+description+supplier)
+    const templates = [];
+    const seen = {};
+    const allRec = [...S.expenses].filter(e => e.recurringFlag === 'Yes')
+      .sort((a,b) => (b.expenseDate||'').localeCompare(a.expenseDate||''));
+    allRec.forEach(e => {
+      const key = `${e.category}||${(e.description||'').toLowerCase().trim()}||${(e.supplier||'').toLowerCase().trim()}`;
+      if (!seen[key]) { seen[key] = true; templates.push(e); }
+    });
+
+    const monthlyTotal = templates.reduce((s,e) => s+_n(e.amountGross), 0);
+    const targetMonth = S.filter.month || new Date().toISOString().slice(0,7);
+
+    if (!templates.length) return `
+<div class="card" style="margin-bottom:14px;border:1px dashed #e2e8f0;background:#fafafa">
+  <div class="card-body" style="padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="font-size:13px;color:var(--ll);flex:1">No recurring expenses set up yet — mark an expense as <strong>Recurring</strong> when adding it (e.g. insurance, subscriptions).</div>
+    <button class="btn bp btn-xs" onclick="Finance.openAddExpense()">+ Add Recurring</button>
+  </div>
+</div>`;
+
+    const tRows = templates.map(e => `
+      <tr>
+        <td style="font-size:12px;color:var(--ll)">${_esc(e.category||'—')}</td>
+        <td>${_esc((e.description||'').slice(0,36))}</td>
+        <td style="font-size:12px;color:var(--ll)">${_esc(e.supplier||'—')}</td>
+        <td style="text-align:right;font-weight:700;color:#7C3AED">${UI.fmt(e.amountGross||0)}</td>
+      </tr>`).join('');
+
+    return `
+<div class="card" style="margin-bottom:14px;border-left:3px solid #7C3AED">
+  <div class="card-body" style="padding:12px 16px">
+    <div class="fb" style="margin-bottom:10px;gap:8px;flex-wrap:wrap">
+      <div>
+        <span style="font-size:12px;font-weight:700;color:var(--txt)">&#9654; Recurring Monthly Expenses</span>
+        <span style="font-size:11px;color:var(--ll);margin-left:8px">${templates.length} template${templates.length!==1?'s':''} &middot; <strong style="color:#7C3AED">${UI.fmt(monthlyTotal)}/mo</strong></span>
+      </div>
+      <div class="sp"></div>
+      <button class="btn bo btn-xs" onclick="Finance.openAddExpense()" style="color:#7C3AED;border-color:#7C3AED">+ Add Template</button>
+      <button class="btn btn-xs" id="gen-rec-btn"
+        style="background:#7C3AED;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600"
+        onclick="Finance._generateRecurring('${targetMonth}')">
+        &#9654; Generate for ${_fm(targetMonth)}
+      </button>
+    </div>
+    <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+      <table class="tbl" style="font-size:13px">
+        <thead><tr><th>Category</th><th>Description</th><th>Supplier</th><th style="text-align:right">Monthly (£)</th></tr></thead>
+        <tbody>${tRows}</tbody>
+      </table>
+    </div>
+  </div>
+</div>`;
+  }
+
+  async function _generateRecurring(targetMonth) {
+    if (!targetMonth) return;
+    const btn = document.getElementById('gen-rec-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+    try {
+      const res = await API.post('finance.generateRecurring', { targetMonth });
+      if (res.generated === 0) {
+        UI.toast(`Already generated for ${_fm(targetMonth)} — ${res.skipped} skipped`, 'b');
+      } else {
+        UI.toast(`Generated ${res.generated} recurring expense${res.generated!==1?'s':''} for ${_fm(targetMonth)}`, 'g');
+        await _refresh();
+      }
+    } catch(e) {
+      UI.toast('Error: ' + e.message, 'r');
+      if (btn) { btn.disabled = false; btn.textContent = `▶ Generate for ${_fm(targetMonth)}`; }
+    }
   }
 
   // ── PROFITABILITY TAB ─────────────────────────────────────────
@@ -1017,7 +1096,7 @@ ${_alerts(d)}
     _addInvLine, _calcLineTotal, _calcInvTotal, _calcFromGross,
     _sendChat, _askSuggested,
     openCreateInvoice, openRecordPayment, openAddExpense, openAddTransaction, openSetupSheets,
-    _saveInvoice, _savePayment, _saveExpense, _saveTransaction,
+    _saveInvoice, _savePayment, _saveExpense, _saveTransaction, _generateRecurring,
     _exportTxnCSV, _exportInvCSV, _exportExpCSV, _exportSnapCSV
   };
 })();
