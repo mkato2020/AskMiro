@@ -17,7 +17,7 @@
   Router.register('ops',       Ops.render);
   Router.register('quality',   Quality.render);
   Router.register('finance',   Finance.render);
-  Router.register('labour',    Labour.render);
+  Router.register('payroll',   Payroll.render);
   Router.register('email',      Email.render);
   Router.register('cleaners', Cleaners.render);
   Router.register('admin',      Admin.render);

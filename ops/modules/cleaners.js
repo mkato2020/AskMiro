@@ -574,7 +574,7 @@ window.Cleaners = (() => {
               _fi('email',      'Email',          'e.g. maria@email.com',      v('email'), 'email'))}
       ${_frow(
         _fsel('status', 'Status', ['Active','Inactive','Trial','Archived'], v('status') || 'Active'),
-        _fsel('cleanerType', 'Cleaner Type', ['Employee','Subcontractor','Agency','Trial'], v('cleanerType') || 'Subcontractor')
+        _fsel('cleanerType', 'Cleaner Type', ['Permanent','Employee','Subcontractor','Agency','Trial'], v('cleanerType') || 'Subcontractor')
       )}
 
       ${_secLabel('Location & Coverage')}
@@ -912,7 +912,21 @@ window.Cleaners = (() => {
         style="padding:10px 16px;border-radius:8px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.04);color:${T.red};font-size:13px;font-weight:600;cursor:pointer">
         📦 Archive
       </button>
-    </div>`;
+    </div>
+    ${c.cleanerType === 'Permanent' ? `
+    <div style="padding:0 24px 24px">
+      <button onclick="Cleaners._addToPayroll('${_esc(c.id)}')"
+        style="width:100%;padding:11px;border-radius:8px;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        💰 Add to Payroll
+      </button>
+      <div style="font-size:11px;color:${T.text3};text-align:center;margin-top:6px">Permanent employee — PAYE payroll only</div>
+    </div>` : `
+    <div style="padding:0 24px 24px">
+      <div style="background:#f8fafc;border:1px solid ${T.border};border-radius:8px;padding:10px 14px;font-size:12px;color:${T.text2};text-align:center">
+        <span style="font-size:13px">🔒</span> Payroll not applicable — ${_esc(c.cleanerType||'Non-permanent')} workers are not added to PAYE payroll
+      </div>
+    </div>`}
+`;
   }
 
   // ── SERVICE TOGGLE HELPER ─────────────────────────────────
@@ -991,6 +1005,14 @@ window.Cleaners = (() => {
     return pending > 0 ? pending : null;
   }
 
+  // ── PAYROLL BRIDGE ────────────────────────────────────────
+  function _addToPayroll(cleanerId) {
+    const c = _cleaners.find(x => x.id === cleanerId);
+    if (!c) { UI.toast('Cleaner not found', 'r'); return; }
+    if (typeof Payroll === 'undefined') { UI.toast('Payroll module not loaded', 'r'); return; }
+    Payroll.openAddWorkerFromCleaner(c);
+  }
+
   // ── PUBLIC API ────────────────────────────────────────────
   return {
     render,
@@ -1011,6 +1033,7 @@ window.Cleaners = (() => {
     _exportCSV,
     _bulkArchive,
     _setupSheet,
+    _addToPayroll,
   };
 
 })();
