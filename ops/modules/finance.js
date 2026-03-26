@@ -353,6 +353,7 @@ ${insightStrip}
   <div class="sp"></div>
   <span style="font-size:12px;color:var(--ll)">In: <strong style="color:#059669">${UI.fmt(totIn)}</strong> &nbsp; Out: <strong style="color:#DC2626">${UI.fmt(totOut)}</strong> &nbsp; Net: <strong style="color:${net>=0?'#059669':'#DC2626'}">${UI.fmt(net)}</strong></span>
   <button class="btn bp btn-xs" onclick="Finance.openAddTransaction()">+ Add</button>
+  <button class="btn bo btn-xs" onclick="Finance._exportTxnPDF()">&#128438; PDF</button>
   <button class="btn bo btn-xs" onclick="Finance._exportTxnCSV()">&#8595; CSV</button>
 </div>
 <div class="card">
@@ -436,6 +437,7 @@ ${insightStrip}
   <div class="sp"></div>
   <span style="font-size:12px;color:var(--ll)">Total: <strong>${UI.fmt(totInvoiced)}</strong> &nbsp; Balance: <strong style="color:#DC2626">${UI.fmt(totBalance)}</strong></span>
   <button class="btn bp btn-xs" onclick="Finance.openCreateInvoice()">+ Create Invoice</button>
+  <button class="btn bo btn-xs" onclick="Finance._exportInvPDF()">&#128438; PDF</button>
   <button class="btn bo btn-xs" onclick="Finance._exportInvCSV()">&#8595; CSV</button>
 </div>
 <div class="card">
@@ -499,6 +501,7 @@ ${recurringPanel}
   <div class="sp"></div>
   <span style="font-size:12px;color:var(--ll)">Total: <strong style="color:#DC2626">${UI.fmt(totalExp)}</strong></span>
   <button class="btn bp btn-xs" onclick="Finance.openAddExpense()">+ Add Expense</button>
+  <button class="btn bo btn-xs" onclick="Finance._exportExpPDF()">&#128438; PDF</button>
   <button class="btn bo btn-xs" onclick="Finance._exportExpCSV()">&#8595; CSV</button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 240px;gap:16px">
@@ -671,6 +674,7 @@ ${recurringPanel}
   </select>
   <div class="sp"></div>
   <button class="btn bo btn-xs" onclick="Finance._recalc()" id="recalc-btn">&#8635; Recalculate Snapshots</button>
+  <button class="btn bo btn-xs" onclick="Finance._exportSnapPDF()">&#128438; PDF</button>
   <button class="btn bo btn-xs" onclick="Finance._exportSnapCSV()">&#8595; CSV</button>
 </div>
 <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px">
@@ -1178,70 +1182,303 @@ ${recurringPanel}
       .catch(e => UI.toast(e.message, 'r'));
   }
 
-  // ── CSV EXPORTS — export the filtered view (what you see = what you get) ─
-  function _exportTxnCSV() {
+  // ── EXPORTS — branded PDF & CSV (filtered view = what you see) ──
+
+  // ── Shared data getters ────────────────────────────────────────
+  function _filteredTxns() {
     const fm = S.filter.month, ft = S.filter.type, fc = S.filter.category;
-    let rows = fm ? S.txns.filter(t => (t.transactionDate||'').slice(0,7)===fm) : S.txns;
-    if (ft) rows = rows.filter(t => t.type === ft);
-    if (fc) rows = rows.filter(t => t.category === fc);
-    rows = [...rows].sort((a,b) => (b.transactionDate||'').localeCompare(a.transactionDate||''));
-    const suffix = [fm, ft, fc].filter(Boolean).join('_') || 'all';
-    _dlCSV(
-      [['Date','Type','Category','Description','Party','Net','VAT','Gross','Ref','Status']],
-      rows.map(t => [t.transactionDate,t.type,t.category,t.description,
-        t.supplierOrCustomer,t.amountNet,t.amountVat,t.amountGross,t.externalRef,t.status]),
-      `transactions_${suffix}.csv`
-    );
+    let r = fm ? S.txns.filter(t => (t.transactionDate||'').slice(0,7)===fm) : [...S.txns];
+    if (ft) r = r.filter(t => t.type === ft);
+    if (fc) r = r.filter(t => t.category === fc);
+    return r.sort((a,b) => (b.transactionDate||'').localeCompare(a.transactionDate||''));
   }
-  function _exportInvCSV() {
+  function _filteredInvs() {
     const fm = S.filter.month, fs = S.filter.status;
     const today = new Date().toISOString().slice(0,10);
-    let rows = fm ? S.invoices.filter(i => (i.invoiceDate||'').slice(0,7)===fm) : S.invoices;
-    rows = rows.map(i => ((i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < today)
-      ? {...i, status:'Overdue'} : i);
-    if (fs) rows = rows.filter(i => i.status === fs);
-    rows = [...rows].sort((a,b) => (b.invoiceDate||'').localeCompare(a.invoiceDate||''));
-    const suffix = [fm, fs].filter(Boolean).join('_') || 'all';
-    _dlCSV(
-      [['Invoice','Customer','Site','Date','Due','Subtotal','VAT','Total','Paid','Balance','Status']],
+    let r = fm ? S.invoices.filter(i => (i.invoiceDate||'').slice(0,7)===fm) : [...S.invoices];
+    r = r.map(i => ((i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < today) ? {...i, status:'Overdue'} : i);
+    if (fs) r = r.filter(i => i.status === fs);
+    return r.sort((a,b) => (b.invoiceDate||'').localeCompare(a.invoiceDate||''));
+  }
+  function _filteredExps() {
+    const fm = S.filter.month, fc = S.filter.category;
+    let r = fm ? S.expenses.filter(e => (e.expenseDate||'').slice(0,7)===fm) : [...S.expenses];
+    if (fc) r = r.filter(e => e.category === fc);
+    return r.sort((a,b) => (b.expenseDate||'').localeCompare(a.expenseDate||''));
+  }
+  function _filteredSnaps() {
+    const fm = S.filter.month;
+    let r = fm ? S.snaps.filter(s => s.snapshotMonth===fm) : [...S.snaps];
+    return r.sort((a,b) => (b.snapshotMonth||'').localeCompare(a.snapshotMonth||''));
+  }
+
+  // ── CSV ────────────────────────────────────────────────────────
+  function _exportTxnCSV() {
+    const rows = _filteredTxns();
+    const suffix = [S.filter.month,S.filter.type,S.filter.category].filter(Boolean).join('_')||'all';
+    _dlCSV('Transaction Ledger', [S.filter.month,S.filter.type,S.filter.category],
+      [['Date','Type','Category','Description','Party','Net (£)','VAT (£)','Gross (£)','Ref','Status']],
+      rows.map(t => [t.transactionDate,t.type,t.category,t.description,
+        t.supplierOrCustomer,t.amountNet,t.amountVat,t.amountGross,t.externalRef,t.status]),
+      `AskMiro_Transactions_${suffix}.csv`);
+  }
+  function _exportInvCSV() {
+    const rows = _filteredInvs();
+    const suffix = [S.filter.month,S.filter.status].filter(Boolean).join('_')||'all';
+    _dlCSV('Invoice Register', [S.filter.month,S.filter.status],
+      [['Invoice No.','Customer','Site','Date','Due Date','Subtotal (£)','VAT (£)','Total (£)','Paid (£)','Balance (£)','Status']],
       rows.map(i => [i.invoiceNumber,i.customerName,i.siteId,i.invoiceDate,
         i.dueDate,i.subtotal,i.vatAmount,i.totalAmount,i.amountPaid,i.balanceDue,i.status]),
-      `invoices_${suffix}.csv`
-    );
+      `AskMiro_Invoices_${suffix}.csv`);
   }
   function _exportExpCSV() {
-    const fm = S.filter.month, fc = S.filter.category;
-    let rows = fm ? S.expenses.filter(e => (e.expenseDate||'').slice(0,7)===fm) : S.expenses;
-    if (fc) rows = rows.filter(e => e.category === fc);
-    rows = [...rows].sort((a,b) => (b.expenseDate||'').localeCompare(a.expenseDate||''));
-    const suffix = [fm, fc].filter(Boolean).join('_') || 'all';
-    _dlCSV(
-      [['Date','Category','Sub','Description','Supplier','Site','Net','VAT','Gross','Receipt','Recurring']],
+    const rows = _filteredExps();
+    const suffix = [S.filter.month,S.filter.category].filter(Boolean).join('_')||'all';
+    _dlCSV('Expense Register', [S.filter.month,S.filter.category],
+      [['Date','Category','Subcategory','Description','Supplier','Site','Net (£)','VAT (£)','Gross (£)','Receipt Ref','Recurring']],
       rows.map(e => [e.expenseDate,e.category,e.subcategory,e.description,
         e.supplier,e.linkedSiteId,e.amountNet,e.amountVat,e.amountGross,e.receiptRef,e.recurringFlag]),
-      `expenses_${suffix}.csv`
-    );
+      `AskMiro_Expenses_${suffix}.csv`);
   }
   function _exportSnapCSV() {
-    const fm = S.filter.month;
-    let rows = fm ? S.snaps.filter(s => s.snapshotMonth===fm) : S.snaps;
-    rows = [...rows].sort((a,b) => (b.snapshotMonth||'').localeCompare(a.snapshotMonth||''));
-    const suffix = fm || 'all';
-    _dlCSV(
-      [['Month','Site','Contract','Revenue','Cash','Labour','Supplies','Travel','Subcontractors','Other','TotalCost','GrossProfit','Margin%','Risk']],
+    const rows = _filteredSnaps();
+    const suffix = S.filter.month||'all';
+    _dlCSV('Profitability Report', [S.filter.month],
+      [['Month','Site','Contract','Revenue (£)','Cash Received (£)','Labour (£)','Supplies (£)','Travel (£)','Subcontractors (£)','Other (£)','Total Cost (£)','Gross Profit (£)','Margin %','Risk Status']],
       rows.map(s => [s.snapshotMonth,s.siteId,s.contractId,s.invoicedRevenue,
         s.cashReceived,s.labourCost,s.suppliesCost,s.travelCost,s.subcontractorCost,
         s.otherCost,s.totalCost,s.grossProfit,s.grossMarginPct,s.riskFlag]),
-      `profitability_${suffix}.csv`
-    );
+      `AskMiro_Profitability_${suffix}.csv`);
   }
-  function _dlCSV(header, dataRows, filename) {
-    const rows = [...header, ...dataRows];
+  function _dlCSV(reportTitle, filters, header, dataRows, filename) {
+    const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    const activeFilters = filters.filter(Boolean).join(' · ') || 'All records';
+    const meta = [
+      ['AskMiro Ltd — Confidential Finance Report','','',''],
+      [`Report: ${reportTitle}`,'','',''],
+      [`Period / Filter: ${activeFilters}`,'','',''],
+      [`Generated: ${date}`,'','',''],
+      ['','','',''],
+    ];
+    const rows = [...meta, ...header, ...dataRows];
     const csv  = rows.map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
     const a    = document.createElement('a');
     a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
     a.download = filename;
     a.click();
+  }
+
+  // ── PDF ────────────────────────────────────────────────────────
+  function _exportTxnPDF() {
+    const rows = _filteredTxns();
+    const totIn  = rows.filter(t=>t.type==='payment'||t.type==='income').reduce((s,t)=>s+_n(t.amountGross),0);
+    const totOut = rows.filter(t=>t.type==='expense').reduce((s,t)=>s+_n(t.amountGross),0);
+    const filters = [S.filter.month,S.filter.type,S.filter.category].filter(Boolean).join(' · ')||'All Records';
+    const tableRows = rows.map(t => {
+      const isIn = t.type==='payment'||t.type==='income';
+      const isOut = t.type==='expense';
+      return `<tr>
+        <td>${t.transactionDate||'—'}</td>
+        <td><span class="badge badge-${t.type==='payment'||t.type==='income'?'green':t.type==='expense'?'red':'blue'}">${t.type||'—'}</span></td>
+        <td>${t.category||'—'}</td>
+        <td>${t.description||'—'}</td>
+        <td>${t.supplierOrCustomer||'—'}</td>
+        <td style="text-align:right;color:${isIn?'#166534':isOut?'#991B1B':'#334155'};font-weight:600">${isIn?'+':'isOut'?'-':''}£${Number(t.amountGross||0).toFixed(2)}</td>
+        <td><span class="badge badge-${t.status==='void'?'red':'grey'}">${t.status||'—'}</span></td>
+      </tr>`;
+    }).join('');
+    _printDoc('Transaction Ledger', filters, `
+      <div class="summary-row">
+        <div class="summary-card green"><div class="summary-label">Total In</div><div class="summary-val">£${totIn.toFixed(2)}</div></div>
+        <div class="summary-card red"><div class="summary-label">Total Out</div><div class="summary-val">£${totOut.toFixed(2)}</div></div>
+        <div class="summary-card ${totIn-totOut>=0?'green':'red'}"><div class="summary-label">Net</div><div class="summary-val">£${(totIn-totOut).toFixed(2)}</div></div>
+        <div class="summary-card blue"><div class="summary-label">Entries</div><div class="summary-val">${rows.length}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Party</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>${tableRows||'<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No transactions for this filter</td></tr>'}</tbody>
+      </table>`);
+  }
+  function _exportInvPDF() {
+    const rows = _filteredInvs();
+    const totInv  = rows.reduce((s,i)=>s+_n(i.totalAmount),0);
+    const totBal  = rows.reduce((s,i)=>s+_n(i.balanceDue||i.totalAmount),0);
+    const totPaid = rows.reduce((s,i)=>s+_n(i.amountPaid),0);
+    const filters = [S.filter.month,S.filter.status].filter(Boolean).join(' · ')||'All Invoices';
+    const tableRows = rows.map(i => `<tr>
+      <td style="font-family:monospace">${i.invoiceNumber||i.id}</td>
+      <td>${i.customerName||'—'}</td>
+      <td>${i.siteId||'—'}</td>
+      <td>${i.invoiceDate||'—'}</td>
+      <td>${i.dueDate||'—'}</td>
+      <td style="text-align:right">£${Number(i.totalAmount||0).toFixed(2)}</td>
+      <td style="text-align:right;color:#166534">£${Number(i.amountPaid||0).toFixed(2)}</td>
+      <td style="text-align:right;color:${_n(i.balanceDue)>0?'#991B1B':'#166534'};font-weight:600">£${Number(i.balanceDue||0).toFixed(2)}</td>
+      <td><span class="badge badge-${i.status==='Paid'?'green':i.status==='Overdue'?'red':i.status==='Draft'?'grey':'blue'}">${i.status}</span></td>
+    </tr>`).join('');
+    _printDoc('Invoice Register', filters, `
+      <div class="summary-row">
+        <div class="summary-card blue"><div class="summary-label">Total Invoiced</div><div class="summary-val">£${totInv.toFixed(2)}</div></div>
+        <div class="summary-card green"><div class="summary-label">Total Received</div><div class="summary-val">£${totPaid.toFixed(2)}</div></div>
+        <div class="summary-card red"><div class="summary-label">Outstanding</div><div class="summary-val">£${totBal.toFixed(2)}</div></div>
+        <div class="summary-card blue"><div class="summary-label">Invoices</div><div class="summary-val">${rows.length}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Invoice No.</th><th>Customer</th><th>Site</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody>${tableRows||'<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px">No invoices for this filter</td></tr>'}</tbody>
+      </table>`);
+  }
+  function _exportExpPDF() {
+    const rows = _filteredExps();
+    const total = rows.reduce((s,e)=>s+_n(e.amountGross),0);
+    const catMap = {};
+    rows.forEach(e => { catMap[e.category]=(catMap[e.category]||0)+_n(e.amountGross); });
+    const filters = [S.filter.month,S.filter.category].filter(Boolean).join(' · ')||'All Expenses';
+    const tableRows = rows.map(e => `<tr>
+      <td>${e.expenseDate||'—'}</td>
+      <td>${e.category||'—'}</td>
+      <td>${e.description||'—'}</td>
+      <td>${e.supplier||'—'}</td>
+      <td>${e.linkedSiteId||'—'}</td>
+      <td style="text-align:right;color:#991B1B;font-weight:600">£${Number(e.amountGross||0).toFixed(2)}</td>
+      <td>${e.recurringFlag==='Yes'?'<span class="badge badge-purple">Recurring</span>':''}</td>
+    </tr>`).join('');
+    const catBreakdown = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([c,v]) =>
+      `<tr><td>${c}</td><td style="text-align:right;color:#991B1B">£${v.toFixed(2)}</td><td style="text-align:right;color:#64748b">${(v/total*100).toFixed(1)}%</td></tr>`
+    ).join('');
+    _printDoc('Expense Report', filters, `
+      <div class="summary-row">
+        <div class="summary-card red"><div class="summary-label">Total Expenses</div><div class="summary-val">£${total.toFixed(2)}</div></div>
+        <div class="summary-card blue"><div class="summary-label">Entries</div><div class="summary-val">${rows.length}</div></div>
+        <div class="summary-card purple"><div class="summary-label">Categories</div><div class="summary-val">${Object.keys(catMap).length}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Supplier</th><th>Site</th><th>Amount</th><th></th></tr></thead>
+        <tbody>${tableRows||'<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No expenses for this filter</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="5" style="font-weight:700;text-align:right">Total</td><td style="font-weight:700;color:#991B1B;text-align:right">£${total.toFixed(2)}</td><td></td></tr></tfoot>
+      </table>
+      ${catBreakdown ? `<h3 style="margin:24px 0 10px;font-size:13px;color:#0f766e;text-transform:uppercase;letter-spacing:.06em">By Category</h3>
+      <table style="max-width:400px"><thead><tr><th>Category</th><th>Amount</th><th>%</th></tr></thead><tbody>${catBreakdown}</tbody></table>` : ''}`);
+  }
+  function _exportSnapPDF() {
+    const rows = _filteredSnaps();
+    const totRev  = rows.reduce((s,r)=>s+_n(r.invoicedRevenue),0);
+    const totProf = rows.reduce((s,r)=>s+_n(r.grossProfit),0);
+    const portMgn = totRev > 0 ? (totProf/totRev*100).toFixed(1) : '—';
+    const riskCnt = rows.filter(s=>s.riskFlag==='risk'||s.riskFlag==='loss').length;
+    const filters = S.filter.month || 'All Months';
+    const tableRows = rows.map(s => {
+      const pct = parseFloat(s.grossMarginPct||0);
+      const color = pct < 0 ? '#991B1B' : pct < 20 ? '#92400E' : '#166534';
+      return `<tr>
+        <td>${s.snapshotMonth||'—'}</td>
+        <td style="font-weight:600">${s.siteId||'—'}</td>
+        <td style="text-align:right">£${Number(s.invoicedRevenue||0).toFixed(2)}</td>
+        <td style="text-align:right;color:#991B1B">£${Number(s.totalCost||0).toFixed(2)}</td>
+        <td style="text-align:right;color:${color};font-weight:700">£${Number(s.grossProfit||0).toFixed(2)}</td>
+        <td style="text-align:right;color:${color};font-weight:700">${pct.toFixed(1)}%</td>
+        <td><span class="badge badge-${s.riskFlag==='healthy'?'green':s.riskFlag==='watch'?'yellow':s.riskFlag==='loss'||s.riskFlag==='risk'?'red':'grey'}">${s.riskFlag||'—'}</span></td>
+      </tr>`;
+    }).join('');
+    _printDoc('Profitability Report', filters, `
+      <div class="summary-row">
+        <div class="summary-card blue"><div class="summary-label">Portfolio Revenue</div><div class="summary-val">£${totRev.toFixed(2)}</div></div>
+        <div class="summary-card ${parseFloat(portMgn)>=35?'green':parseFloat(portMgn)>=20?'yellow':'red'}"><div class="summary-label">Portfolio Margin</div><div class="summary-val">${portMgn}%</div></div>
+        <div class="summary-card ${riskCnt>0?'red':'green'}"><div class="summary-label">At-Risk Contracts</div><div class="summary-val">${riskCnt}</div></div>
+        <div class="summary-card blue"><div class="summary-label">Sites</div><div class="summary-val">${rows.length}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Month</th><th>Site</th><th>Revenue</th><th>Cost</th><th>Gross Profit</th><th>Margin %</th><th>Status</th></tr></thead>
+        <tbody>${tableRows||'<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No profitability data</td></tr>'}</tbody>
+      </table>
+      <p style="margin-top:16px;font-size:11px;color:#94a3b8">Thresholds: Healthy ≥ 35% · Watch 20–34% · Risk &lt; 20% · Loss &lt; 0%</p>`);
+  }
+
+  function _printDoc(reportTitle, filterLabel, bodyHtml) {
+    const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<title>AskMiro — ${reportTitle}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#1e293b;background:#fff}
+  .page{max-width:900px;margin:0 auto;padding:32px 40px}
+  /* Header */
+  .doc-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:3px solid #0D9488;margin-bottom:24px}
+  .doc-brand{display:flex;align-items:center;gap:10px}
+  .doc-logo{width:36px;height:36px;background:#0D9488;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .doc-name{font-size:18px;font-weight:800;color:#0D9488}
+  .doc-name span{color:#0f172a}
+  .doc-meta{text-align:right;font-size:11px;color:#64748b;line-height:1.7}
+  .doc-meta strong{color:#1e293b;font-size:13px;display:block}
+  /* Summary cards */
+  .summary-row{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+  .summary-card{flex:1;min-width:140px;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0}
+  .summary-card.green{background:#f0fdf4;border-color:#bbf7d0}
+  .summary-card.red{background:#fef2f2;border-color:#fecaca}
+  .summary-card.blue{background:#eff6ff;border-color:#bfdbfe}
+  .summary-card.yellow{background:#fffbeb;border-color:#fde68a}
+  .summary-card.purple{background:#faf5ff;border-color:#e9d5ff}
+  .summary-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}
+  .summary-val{font-size:20px;font-weight:800;color:#1e293b}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f8fafc;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-bottom:2px solid #e2e8f0}
+  td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tfoot td{border-top:2px solid #e2e8f0;border-bottom:none;background:#f8fafc}
+  /* Badges */
+  .badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .badge-green{background:#dcfce7;color:#166534}
+  .badge-red{background:#fee2e2;color:#991B1B}
+  .badge-blue{background:#dbeafe;color:#1d4ed8}
+  .badge-yellow{background:#fef9c3;color:#92400e}
+  .badge-grey{background:#f1f5f9;color:#475569}
+  .badge-purple{background:#f3e8ff;color:#6b21a8}
+  /* Footer */
+  .doc-footer{margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
+  h3{font-size:12px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin:24px 0 10px}
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .page{padding:20px 28px}
+    .no-print{display:none}
+  }
+</style>
+</head><body>
+<div class="page">
+  <div class="doc-header">
+    <div class="doc-brand">
+      <div class="doc-logo">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="doc-name"><span>Ask</span>Miro</div>
+        <div style="font-size:10px;color:#64748b">AskMiro Ltd · Finance Department</div>
+      </div>
+    </div>
+    <div class="doc-meta">
+      <strong>${reportTitle}</strong>
+      Filter: ${filterLabel}<br>
+      Generated: ${date}<br>
+      <span style="color:#dc2626;font-weight:700">CONFIDENTIAL</span>
+    </div>
+  </div>
+  ${bodyHtml}
+  <div class="doc-footer">
+    <span>AskMiro Ltd — Confidential. For internal use only.</span>
+    <span>Generated ${date} · askmiro.com</span>
+  </div>
+  <div class="no-print" style="text-align:center;margin-top:28px">
+    <button onclick="window.print()" style="background:#0D9488;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">&#128438; Save as PDF</button>
+    <button onclick="window.close()" style="background:#f1f5f9;color:#475569;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;margin-left:10px">Close</button>
+  </div>
+</div>
+</body></html>`);
+    w.document.close();
+    setTimeout(() => w.focus(), 300);
   }
 
   // ── HELPERS ───────────────────────────────────────────────────
@@ -1284,6 +1521,7 @@ ${recurringPanel}
     _sendChat, _askSuggested,
     openCreateInvoice, openRecordPayment, openAddExpense, openAddTransaction, openSetupSheets,
     _saveInvoice, _savePayment, _saveExpense, _saveTransaction, _generateRecurring,
-    _exportTxnCSV, _exportInvCSV, _exportExpCSV, _exportSnapCSV
+    _exportTxnCSV, _exportInvCSV, _exportExpCSV, _exportSnapCSV,
+    _exportTxnPDF, _exportInvPDF, _exportExpPDF, _exportSnapPDF
   };
 })();
