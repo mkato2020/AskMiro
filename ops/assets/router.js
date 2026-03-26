@@ -15,6 +15,7 @@ window. Router = (() => {
     ops:       'Operations',
     quality:   'Quality & Compliance',
     finance:   'Finance & Invoicing',
+    labour:    'Labour & Payroll',
     admin:     'Admin & Settings',
     email:     'Email Centre',
     seo:       'SEO Content Generator',
@@ -24,7 +25,8 @@ window. Router = (() => {
     crm:     { label: '+ New Lead',        action: () => CRM.openNewLead()              },
     quotes:  { label: '+ New Quote',       action: () => Quotes.openNew()               },
     quality: { label: '+ Log Inspection',  action: () => Quality.openNewInspection()    },
-    finance: { label: '+ Create Invoice',  action: () => Finance.openNewInvoice()       },
+    finance: { label: '+ Create Invoice',  action: () => Finance.openCreateInvoice()    },
+    labour:  { label: '+ Log Hours',       action: () => Labour.openAddEntry()          },
     admin:   { label: '+ New User',        action: () => Admin.openNewUser()            },
     email:   { label: '+ Compose',         action: () => Email._switchTab('compose')    },
   };
