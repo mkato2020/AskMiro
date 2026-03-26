@@ -1396,89 +1396,88 @@ ${recurringPanel}
 
   function _printDoc(reportTitle, filterLabel, bodyHtml) {
     const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html><html><head>
-<meta charset="utf-8">
-<title>AskMiro — ${reportTitle}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#1e293b;background:#fff}
-  .page{max-width:900px;margin:0 auto;padding:32px 40px}
-  /* Header */
-  .doc-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:3px solid #0D9488;margin-bottom:24px}
-  .doc-brand{display:flex;align-items:center;gap:10px}
-  .doc-logo{width:36px;height:36px;background:#0D9488;border-radius:8px;display:flex;align-items:center;justify-content:center}
-  .doc-name{font-size:18px;font-weight:800;color:#0D9488}
-  .doc-name span{color:#0f172a}
-  .doc-meta{text-align:right;font-size:11px;color:#64748b;line-height:1.7}
-  .doc-meta strong{color:#1e293b;font-size:13px;display:block}
-  /* Summary cards */
-  .summary-row{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
-  .summary-card{flex:1;min-width:140px;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0}
-  .summary-card.green{background:#f0fdf4;border-color:#bbf7d0}
-  .summary-card.red{background:#fef2f2;border-color:#fecaca}
-  .summary-card.blue{background:#eff6ff;border-color:#bfdbfe}
-  .summary-card.yellow{background:#fffbeb;border-color:#fde68a}
-  .summary-card.purple{background:#faf5ff;border-color:#e9d5ff}
-  .summary-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}
-  .summary-val{font-size:20px;font-weight:800;color:#1e293b}
-  /* Table */
-  table{width:100%;border-collapse:collapse;font-size:11px}
-  th{background:#f8fafc;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-bottom:2px solid #e2e8f0}
-  td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-  tr:last-child td{border-bottom:none}
-  tfoot td{border-top:2px solid #e2e8f0;border-bottom:none;background:#f8fafc}
-  /* Badges */
-  .badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-  .badge-green{background:#dcfce7;color:#166534}
-  .badge-red{background:#fee2e2;color:#991B1B}
-  .badge-blue{background:#dbeafe;color:#1d4ed8}
-  .badge-yellow{background:#fef9c3;color:#92400e}
-  .badge-grey{background:#f1f5f9;color:#475569}
-  .badge-purple{background:#f3e8ff;color:#6b21a8}
-  /* Footer */
-  .doc-footer{margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
-  h3{font-size:12px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin:24px 0 10px}
-  @media print{
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{padding:20px 28px}
-    .no-print{display:none}
-  }
-</style>
-</head><body>
-<div class="page">
-  <div class="doc-header">
-    <div class="doc-brand">
-      <div class="doc-logo">
-        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-          <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+
+    // Remove any existing overlay
+    const existing = document.getElementById('fin-print-overlay');
+    if (existing) existing.remove();
+
+    // Inject print styles once
+    if (!document.getElementById('fin-print-styles')) {
+      const s = document.createElement('style');
+      s.id = 'fin-print-styles';
+      s.textContent = `
+        #fin-print-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:99999;overflow-y:auto;padding:32px 40px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#1e293b}
+        #fin-print-overlay .doc-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:3px solid #0D9488;margin-bottom:24px}
+        #fin-print-overlay .doc-brand{display:flex;align-items:center;gap:10px}
+        #fin-print-overlay .doc-logo{width:36px;height:36px;background:#0D9488;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        #fin-print-overlay .doc-name{font-size:18px;font-weight:800;color:#0D9488}
+        #fin-print-overlay .doc-name span{color:#0f172a}
+        #fin-print-overlay .doc-meta{text-align:right;font-size:11px;color:#64748b;line-height:1.7}
+        #fin-print-overlay .doc-meta strong{color:#1e293b;font-size:13px;display:block}
+        #fin-print-overlay .summary-row{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+        #fin-print-overlay .summary-card{flex:1;min-width:140px;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0}
+        #fin-print-overlay .summary-card.green{background:#f0fdf4;border-color:#bbf7d0}
+        #fin-print-overlay .summary-card.red{background:#fef2f2;border-color:#fecaca}
+        #fin-print-overlay .summary-card.blue{background:#eff6ff;border-color:#bfdbfe}
+        #fin-print-overlay .summary-card.yellow{background:#fffbeb;border-color:#fde68a}
+        #fin-print-overlay .summary-card.purple{background:#faf5ff;border-color:#e9d5ff}
+        #fin-print-overlay .summary-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}
+        #fin-print-overlay .summary-val{font-size:20px;font-weight:800;color:#1e293b}
+        #fin-print-overlay table{width:100%;border-collapse:collapse;font-size:11px}
+        #fin-print-overlay th{background:#f8fafc;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-bottom:2px solid #e2e8f0}
+        #fin-print-overlay td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+        #fin-print-overlay tfoot td{border-top:2px solid #e2e8f0;background:#f8fafc}
+        #fin-print-overlay .badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;text-transform:uppercase}
+        #fin-print-overlay .badge-green{background:#dcfce7;color:#166534}
+        #fin-print-overlay .badge-red{background:#fee2e2;color:#991B1B}
+        #fin-print-overlay .badge-blue{background:#dbeafe;color:#1d4ed8}
+        #fin-print-overlay .badge-yellow{background:#fef9c3;color:#92400e}
+        #fin-print-overlay .badge-grey{background:#f1f5f9;color:#475569}
+        #fin-print-overlay .badge-purple{background:#f3e8ff;color:#6b21a8}
+        #fin-print-overlay .doc-footer{margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
+        #fin-print-overlay h3{font-size:12px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin:24px 0 10px}
+        @media print{
+          body > *:not(#fin-print-overlay){display:none!important}
+          #fin-print-overlay{display:block!important;position:static!important;padding:20px 28px}
+          #fin-print-overlay .no-print{display:none!important}
+          *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+        }`;
+      document.head.appendChild(s);
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'fin-print-overlay';
+    overlay.innerHTML = `
+      <div class="doc-header">
+        <div class="doc-brand">
+          <div class="doc-logo">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+              <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="doc-name"><span>Ask</span>Miro</div>
+            <div style="font-size:10px;color:#64748b">AskMiro Ltd · Finance Department</div>
+          </div>
+        </div>
+        <div class="doc-meta">
+          <strong>${reportTitle}</strong>
+          Filter: ${filterLabel}<br>
+          Generated: ${date}<br>
+          <span style="color:#dc2626;font-weight:700">CONFIDENTIAL</span>
+        </div>
       </div>
-      <div>
-        <div class="doc-name"><span>Ask</span>Miro</div>
-        <div style="font-size:10px;color:#64748b">AskMiro Ltd · Finance Department</div>
+      ${bodyHtml}
+      <div class="doc-footer">
+        <span>AskMiro Ltd — Confidential. For internal use only.</span>
+        <span>Generated ${date} · askmiro.com</span>
       </div>
-    </div>
-    <div class="doc-meta">
-      <strong>${reportTitle}</strong>
-      Filter: ${filterLabel}<br>
-      Generated: ${date}<br>
-      <span style="color:#dc2626;font-weight:700">CONFIDENTIAL</span>
-    </div>
-  </div>
-  ${bodyHtml}
-  <div class="doc-footer">
-    <span>AskMiro Ltd — Confidential. For internal use only.</span>
-    <span>Generated ${date} · askmiro.com</span>
-  </div>
-  <div class="no-print" style="text-align:center;margin-top:28px">
-    <button onclick="window.print()" style="background:#0D9488;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">&#128438; Save as PDF</button>
-    <button onclick="window.close()" style="background:#f1f5f9;color:#475569;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;margin-left:10px">Close</button>
-  </div>
-</div>
-</body></html>`);
-    w.document.close();
-    setTimeout(() => w.focus(), 300);
+      <div class="no-print" style="text-align:center;margin-top:28px;padding-bottom:40px">
+        <button onclick="window.print()" style="background:#0D9488;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">&#128438; Save as PDF</button>
+        <button onclick="document.getElementById('fin-print-overlay').remove()" style="background:#f1f5f9;color:#475569;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;margin-left:10px">&#x2715; Close</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'block';
   }
 
   // ── HELPERS ───────────────────────────────────────────────────
