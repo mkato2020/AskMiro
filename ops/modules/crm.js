@@ -513,8 +513,8 @@ window.CRM = (() => {
         <button onclick="CRM._quickFollowUp('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}','quote_followup')" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #86EFAC;background:#fff;color:#166534;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='#166534';this.style.color='#fff'" onmouseleave="this.style.background='#fff';this.style.color='#166534'">Quote chaser</button>
       </div>
 
-      <!-- Quick actions -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+      <!-- Quick actions row 1 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
         <button onclick="CRM.openEdit('${_esc(l.id)}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✏️ Edit</button>
@@ -524,12 +524,15 @@ window.CRM = (() => {
         <button onclick="CRM._openEmail('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✉️ Email</button>
+      </div>
+      <!-- Quick actions row 2 — intentionally separate to avoid overlap -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">
         <a href="tel:${_esc(l.phone||'')}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
-          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📞 Call</button>
-        <button onclick="CRM._shareUploadLink('${_esc(l.id)}','${_esc(l.companyName||l.contactName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;grid-column:span 2"
+          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📞 Call</a>
+        <button onclick="CRM._shareUploadLink('${_esc(l.id)}','${_esc(l.companyName||l.contactName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
-          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📎 Copy Upload Link</button>
+          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📎 Upload Link</button>
       </div>
 
       <!-- Contact details -->
