@@ -486,6 +486,7 @@ window.CRM = (() => {
               ${segment?`<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:11px;padding:3px 9px;border-radius:20px">${SEGMENT_ICON[segment]||''} ${segment}</span>`:''}
             </div>
           </div>
+          <button onclick="CRM._refreshLead('${_esc(l.id)}')" title="Refresh lead data" style="background:rgba(255,255,255,.1);border:none;border-radius:7px;padding:6px 8px;cursor:pointer;color:rgba(255,255,255,.6);font-size:13px;flex-shrink:0" onmouseenter="this.style.background='rgba(255,255,255,.2)'" onmouseleave="this.style.background='rgba(255,255,255,.1)'">↻</button>
         </div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">
           <div>
@@ -565,9 +566,22 @@ window.CRM = (() => {
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Client Message</div>
       <div style="background:#F0FDF9;border:1px solid #A7F3D0;border-radius:10px;padding:12px 14px;font-size:13px;color:#065F46;line-height:1.6;margin-bottom:14px">${_esc(l.message || l.additionalRequirements)}</div>` : ''}
 
-      ${l.notes ? `
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Notes</div>
-      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;line-height:1.6;margin-bottom:14px">${_esc(l.notes)}</div>` : ''}
+      ${l.notes ? (() => {
+        // Split notes into upload entries (📎) and regular notes
+        const lines   = l.notes.split('\n');
+        const uploads = lines.filter(ln => ln.startsWith('📎'));
+        const other   = lines.filter(ln => !ln.startsWith('📎')).join('\n').trim();
+        return `
+        ${uploads.length ? `
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Client Uploads</div>
+        ${uploads.map(u => `<div style="display:flex;align-items:flex-start;gap:8px;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065F46;line-height:1.5;margin-bottom:6px">
+          <span style="font-size:15px;flex-shrink:0">📎</span>
+          <span>${_esc(u.replace(/^📎\s*/, ''))}</span>
+        </div>`).join('')}` : ''}
+        ${other ? `
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px;margin-top:${uploads.length?'12px':'0'}">Notes</div>
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;line-height:1.6;white-space:pre-wrap;margin-bottom:14px">${_esc(other)}</div>` : ''}`;
+      })() : ''}
 
       <!-- Danger zone -->
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid #F1F5F9">
@@ -854,6 +868,16 @@ window.CRM = (() => {
     if (window.Router) Router.navigate('email');
   }
 
+  async function _refreshLead(leadId) {
+    try {
+      API.invalidate('leads');
+      _leads = await API.get('leads');
+      const fresh = _leads.find(l => l.id === leadId);
+      if (fresh) openDetail(JSON.stringify(fresh));
+      UI.toast('Lead refreshed ✓');
+    } catch(e) { UI.toast('Refresh failed: ' + e.message, 'r'); }
+  }
+
   function _shareUploadLink(leadId, companyName) {
     const base = 'https://askmiro.com/upload.html';
     const url  = base + '?ref=' + encodeURIComponent(leadId) + (companyName ? '&name=' + encodeURIComponent(companyName) : '');
@@ -895,6 +919,6 @@ window.CRM = (() => {
   return {
     render, openNewLead, openEdit, openDetail, saveLead, updateLead,
     moveStage, confirmLost, saveQual, saveFollowUp, openLogNote, saveLogNote,
-    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail, _quickFollowUp, _shareUploadLink,
+    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail, _quickFollowUp, _shareUploadLink, _refreshLead,
   };
 })();
