@@ -279,133 +279,167 @@ ${docs.map(d => `
     const s = document.createElement('style');
     s.id = 'cp-styles';
     s.textContent = `
-/* ── OVERLAY ──────────────────────────────────────────── */
-#cp-overlay{display:none;position:fixed;inset:0;background:#d1d5db;z-index:99999;overflow-y:auto;padding:36px 0 72px;font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1f2937}
+/* ─── OVERLAY ─────────────────────────────────────────── */
+#cp-overlay{display:none;position:fixed;inset:0;background:#c9ced6;z-index:99999;overflow-y:auto;padding:40px 0 80px;font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1f2937}
 #cp-overlay *{box-sizing:border-box;margin:0;padding:0}
 
-/* ── DOC SHELL ────────────────────────────────────────── */
+/* ─── DOCUMENT SHELL ───────────────────────────────────── */
 .cp-doc{max-width:794px;margin:0 auto}
-.cp-page{background:#fff;margin-bottom:6px;position:relative;overflow:hidden}
+.cp-page{background:#fff;margin-bottom:5px;position:relative;overflow:hidden}
 
-/* ── PRINT BAR ────────────────────────────────────────── */
-.cp-bar{max-width:794px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+/* ─── PRINT TOOLBAR ────────────────────────────────────── */
+.cp-bar{max-width:794px;margin:0 auto 20px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.cp-bar-left{display:flex;align-items:center;gap:12px}
+.cp-bar-icon{width:28px;height:28px;background:#0D9488;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cp-bar-title{font-size:13px;font-weight:700;color:#0f172a}
-.cp-bar button{border:none;padding:9px 22px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.01em}
-.cp-bar .cp-btn-pdf{background:#0D9488;color:#fff}
-.cp-bar .cp-btn-close{background:#f1f5f9;color:#475569;padding:9px 14px;font-weight:400}
+.cp-bar-sub{font-size:11px;color:#64748b}
+.cp-bar-actions{display:flex;gap:8px}
+.cp-bar button{border:none;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.01em;padding:9px 20px}
+.cp-btn-pdf{background:#0D9488;color:#fff}
+.cp-btn-close{background:#e2e8f0;color:#475569}
 
-/* ── TEAL LEFT BORDER — inner pages ──────────────────── */
+/* ─── TEAL LEFT RULE — inner pages ─────────────────────── */
 .cp-inner-page::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;background:#0D9488}
 
-/* ── PAGE HEADER ──────────────────────────────────────── */
-.cp-ph{display:flex;align-items:center;padding:15px 56px 15px 68px;border-bottom:1px solid #e5e7eb}
-.cp-ph-brand{font-size:10px;font-weight:700;color:#0D9488;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-.cp-ph-rule{flex:1;height:1px;background:#e5e7eb;margin:0 16px}
-.cp-ph-sec{font-size:10px;color:#9ca3af;letter-spacing:.04em;white-space:nowrap}
+/* ─── PAGE HEADER ───────────────────────────────────────── */
+.cp-ph{display:flex;align-items:center;padding:11px 52px 11px 66px;border-bottom:1px solid #e5e7eb;gap:10px}
+.cp-ph-logo{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.cp-ph-logo-icon{width:18px;height:18px;background:#0D9488;display:flex;align-items:center;justify-content:center}
+.cp-ph-brand{font-size:9.5px;font-weight:700;color:#0D1C2E;letter-spacing:.02em;white-space:nowrap}
+.cp-ph-brand em{color:#0D9488;font-style:normal}
+.cp-ph-rule{flex:1;height:1px;background:#e5e7eb}
+.cp-ph-sec{font-size:9px;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 
-/* ── PAGE FOOTER ──────────────────────────────────────── */
-.cp-pf{display:flex;align-items:center;justify-content:space-between;padding:11px 56px 11px 68px;border-top:1px solid #e5e7eb}
-.cp-pf-legal{font-size:9.5px;color:#9ca3af;letter-spacing:.01em}
-.cp-pf-pg{font-size:9.5px;color:#9ca3af}
+/* ─── PAGE FOOTER ───────────────────────────────────────── */
+.cp-pf{display:flex;align-items:center;justify-content:space-between;padding:10px 52px 10px 66px;border-top:1px solid #e5e7eb}
+.cp-pf-legal{font-size:8.5px;color:#94a3b8}
+.cp-pf-pg{font-size:8.5px;color:#94a3b8;font-variant-numeric:tabular-nums}
 
-/* ── INNER CONTENT ────────────────────────────────────── */
-.cp-in{padding:46px 56px 50px 68px}
+/* ─── SECTION HEADER BAND ───────────────────────────────── */
+.cp-sh{background:#0D1C2E;padding:20px 52px 20px 66px;display:flex;align-items:center;gap:0}
+.cp-sh-num{font-size:9px;font-weight:800;color:#0D9488;letter-spacing:.18em;text-transform:uppercase;flex-shrink:0;margin-right:16px;padding-top:1px}
+.cp-sh-sep{width:1px;height:14px;background:rgba(255,255,255,.12);flex-shrink:0;margin-right:16px}
+.cp-sh-title{font-family:'Outfit',Arial,sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:-.025em;line-height:1}
 
-/* ── TYPOGRAPHY ───────────────────────────────────────── */
-.cp-eyebrow{font-size:10px;font-weight:700;color:#0D9488;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
-.cp-h{font-family:'Outfit',Arial,sans-serif;font-size:24px;font-weight:800;color:#0D1C2E;letter-spacing:-.02em;line-height:1.15;padding-bottom:15px;border-bottom:2px solid #0D1C2E;margin-bottom:30px}
-.cp-lead{font-size:14.5px;color:#0D1C2E;font-weight:600;line-height:1.65;margin-bottom:22px}
-.cp-body{font-size:13px;color:#374151;line-height:1.78}
-.cp-body p{margin-bottom:15px}
+/* ─── INNER CONTENT PAD ─────────────────────────────────── */
+.cp-in{padding:28px 52px 32px 66px}
+
+/* ─── BODY TEXT ─────────────────────────────────────────── */
+.cp-lead{font-size:13.5px;color:#0D1C2E;font-weight:600;line-height:1.72;margin-bottom:18px}
+.cp-body{font-size:12.5px;color:#374151;line-height:1.82}
+.cp-body p{margin-bottom:13px}
 .cp-body p:last-child{margin-bottom:0}
 
-/* ── FACT GRID ────────────────────────────────────────── */
-.cp-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;margin-top:34px;overflow:hidden}
-.cp-fact{background:#fff;padding:17px 20px}
-.cp-fact-lbl{font-size:9.5px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
-.cp-fact-val{font-size:13px;font-weight:700;color:#0D1C2E;line-height:1.35}
+/* ─── COMPANY FACTS ─────────────────────────────────────── */
+.cp-facts{display:grid;grid-template-columns:repeat(3,1fr);margin-top:24px;border-top:2px solid #0D1C2E}
+.cp-fact{padding:14px 16px 14px 0;border-bottom:1px solid #e5e7eb}
+.cp-fact:nth-child(3n+2){padding-left:18px;border-left:1px solid #e5e7eb}
+.cp-fact:nth-child(3n){padding-left:18px;border-left:1px solid #e5e7eb}
+.cp-fact-lbl{font-size:8.5px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+.cp-fact-val{font-size:12px;font-weight:700;color:#0D1C2E;line-height:1.35}
 
-/* ── FEATURE BLOCK (builders cleans) ─────────────────── */
-.cp-feature{background:#0D1C2E;padding:24px 28px;margin-bottom:18px}
-.cp-feature-eyebrow{font-size:9.5px;font-weight:700;color:#0D9488;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
-.cp-feature-title{font-family:'Outfit',Arial,sans-serif;font-size:17px;font-weight:800;color:#fff;margin-bottom:10px}
-.cp-feature-body{font-size:12.5px;color:rgba(255,255,255,.62);line-height:1.72;max-width:580px}
-.cp-feature-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
-.cp-feature-tag{padding:3px 11px;background:rgba(13,148,136,.14);color:#0D9488;font-size:10px;font-weight:700;letter-spacing:.04em}
+/* ─── SPECIALISM BLOCK ──────────────────────────────────── */
+.cp-spec{background:#0D1C2E;padding:24px 26px 24px 26px;margin-bottom:18px;border-left:4px solid #0D9488}
+.cp-spec-eyebrow{font-size:8.5px;font-weight:700;color:#0D9488;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
+.cp-spec-title{font-family:'Outfit',Arial,sans-serif;font-size:17px;font-weight:800;color:#fff;margin-bottom:9px;letter-spacing:-.02em}
+.cp-spec-body{font-size:12px;color:rgba(255,255,255,.58);line-height:1.78}
+.cp-spec-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.cp-spec-tag{padding:3px 10px;background:rgba(13,148,136,.15);color:#5eead4;font-size:9.5px;font-weight:700;letter-spacing:.05em}
 
-/* ── SERVICE GRID ─────────────────────────────────────── */
-.cp-svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;overflow:hidden}
-.cp-svc{background:#fff;padding:20px 22px}
-.cp-svc-num{font-size:9.5px;font-weight:700;color:#0D9488;letter-spacing:.1em;margin-bottom:9px}
-.cp-svc-name{font-size:13.5px;font-weight:700;color:#0D1C2E;margin-bottom:7px}
-.cp-svc-desc{font-size:12px;color:#6b7280;line-height:1.65}
+/* ─── SERVICE LIST ──────────────────────────────────────── */
+.cp-svcs{border-top:1px solid #e5e7eb}
+.cp-svc-row{display:grid;grid-template-columns:40px 1fr;gap:0;align-items:flex-start;padding:15px 0;border-bottom:1px solid #f1f5f9}
+.cp-svc-row:last-child{border-bottom:none;padding-bottom:0}
+.cp-svc-n{font-family:'Outfit',Arial,sans-serif;font-size:16px;font-weight:800;color:#e2e8f0;padding-top:1px;line-height:1}
+.cp-svc-name{font-size:12.5px;font-weight:700;color:#0D1C2E;margin-bottom:3px}
+.cp-svc-desc{font-size:11.5px;color:#6b7280;line-height:1.65}
 
-/* ── SECTOR CARDS ─────────────────────────────────────── */
-.cp-sectors{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.cp-sector{padding:19px 21px;background:#f8fafc;border-left:3px solid #0D9488}
-.cp-sector-name{font-family:'Outfit',Arial,sans-serif;font-size:13px;font-weight:800;color:#0D1C2E;margin-bottom:7px}
-.cp-sector-body{font-size:12px;color:#6b7280;line-height:1.65}
+/* ─── SECTOR GRID ───────────────────────────────────────── */
+.cp-sectors{display:grid;grid-template-columns:1fr 1fr;margin-top:20px;border-top:2px solid #0D1C2E}
+.cp-sector{padding:16px 20px 16px 0;border-bottom:1px solid #e5e7eb}
+.cp-sector:nth-child(even){padding-left:22px;padding-right:0;border-left:1px solid #e5e7eb}
+.cp-sector-num{font-size:8.5px;font-weight:700;color:#0D9488;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.cp-sector-name{font-family:'Outfit',Arial,sans-serif;font-size:13px;font-weight:800;color:#0D1C2E;margin-bottom:5px;letter-spacing:-.01em}
+.cp-sector-body{font-size:11px;color:#6b7280;line-height:1.68}
 
-/* ── APPROACH LIST ────────────────────────────────────── */
-.cp-approach{display:flex;flex-direction:column;gap:18px;margin-top:6px}
-.cp-ap-item{display:flex;gap:20px;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid #f3f4f6}
-.cp-ap-item:last-child{border-bottom:none;padding-bottom:0}
-.cp-ap-num{width:30px;height:30px;flex-shrink:0;background:#0D1C2E;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:#fff;font-family:monospace}
-.cp-ap-title{font-size:13px;font-weight:700;color:#0D1C2E;margin-bottom:4px}
-.cp-ap-body{font-size:12px;color:#6b7280;line-height:1.68}
+/* ─── APPROACH STEPS ────────────────────────────────────── */
+.cp-steps{border-top:2px solid #0D1C2E}
+.cp-step{display:grid;grid-template-columns:52px 1fr;align-items:flex-start;padding:16px 0;border-bottom:1px solid #f1f5f9}
+.cp-step:last-child{border-bottom:none;padding-bottom:0}
+.cp-step-num{font-family:'Outfit',Arial,sans-serif;font-size:30px;font-weight:800;color:#e2e8f0;line-height:1;padding-top:1px}
+.cp-step-title{font-size:12.5px;font-weight:700;color:#0D1C2E;margin-bottom:4px}
+.cp-step-body{font-size:11.5px;color:#6b7280;line-height:1.7}
 
-/* ── COMPLIANCE GRID ──────────────────────────────────── */
-.cp-comp{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:8px}
-.cp-comp-item{padding:17px 19px;background:#f8fafc;border-left:3px solid #0D9488}
-.cp-comp-title{font-size:10.5px;font-weight:700;color:#0D1C2E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
-.cp-comp-body{font-size:12px;color:#6b7280;line-height:1.65}
+/* ─── COMPLIANCE TABLE ──────────────────────────────────── */
+.cp-comps{border-top:2px solid #0D1C2E}
+.cp-comp-row{display:grid;grid-template-columns:130px 1fr;border-bottom:1px solid #e5e7eb}
+.cp-comp-row:last-child{border-bottom:none}
+.cp-comp-key{padding:14px 16px 14px 0;border-right:1px solid #e5e7eb}
+.cp-comp-key-label{font-size:10.5px;font-weight:700;color:#0D1C2E;letter-spacing:-.01em;margin-bottom:6px}
+.cp-comp-key-badge{display:inline-block;padding:2px 8px;background:#0D9488;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.cp-comp-val{padding:14px 0 14px 20px;font-size:11.5px;color:#374151;line-height:1.72}
 
-/* ── INSURANCE CELLS ──────────────────────────────────── */
-.cp-ins{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;margin-top:8px;overflow:hidden}
-.cp-ins-cell{background:#fff;padding:26px 28px}
-.cp-ins-cell+.cp-ins-cell{border-left:none}
-.cp-ins-lbl{font-size:9.5px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
-.cp-ins-val{font-family:'Outfit',Arial,sans-serif;font-size:26px;font-weight:800;color:#0D1C2E;letter-spacing:-.03em;margin-bottom:5px}
-.cp-ins-note{font-size:11px;color:#9ca3af;line-height:1.6}
-.cp-ins-notice{margin-top:18px;padding:15px 18px;background:#f0fdf4;border-left:3px solid #059669}
-.cp-ins-notice-body{font-size:12px;color:#065f46;line-height:1.7}
+/* ─── INSURANCE ─────────────────────────────────────────── */
+.cp-ins-row{display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #0D1C2E;border-bottom:1px solid #e5e7eb;margin-top:16px}
+.cp-ins-cell{padding:28px 0 24px 0}
+.cp-ins-cell+.cp-ins-cell{padding-left:32px;border-left:1px solid #e5e7eb}
+.cp-ins-lbl{font-size:8.5px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px}
+.cp-ins-val{font-family:'Outfit',Arial,sans-serif;font-size:38px;font-weight:800;color:#0D1C2E;letter-spacing:-.04em;line-height:1;margin-bottom:8px}
+.cp-ins-note{font-size:11px;color:#6b7280;line-height:1.68}
+.cp-ins-notice{margin-top:18px;padding:14px 18px;border-top:2px solid #059669;background:#f0fdf4}
+.cp-ins-notice-body{font-size:11.5px;color:#065f46;line-height:1.72}
 
-/* ── WHY LIST ─────────────────────────────────────────── */
-.cp-why{display:flex;flex-direction:column}
-.cp-why-item{display:flex;align-items:flex-start;gap:15px;padding:14px 0;border-bottom:1px solid #f3f4f6}
-.cp-why-item:last-child{border-bottom:none}
-.cp-why-dot{width:5px;height:5px;border-radius:50%;background:#0D9488;flex-shrink:0;margin-top:6px}
-.cp-why-text{font-size:13px;color:#1f2937;line-height:1.65}
-.cp-why-text strong{color:#0D1C2E;font-weight:700}
+/* ─── WHY GRID ──────────────────────────────────────────── */
+.cp-why-grid{display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #0D1C2E}
+.cp-why-item{padding:16px 20px 16px 0;border-bottom:1px solid #e5e7eb}
+.cp-why-item:nth-child(even){padding-left:22px;padding-right:0;border-left:1px solid #e5e7eb}
+.cp-why-n{font-family:'Outfit',Arial,sans-serif;font-size:20px;font-weight:800;color:#e2e8f0;line-height:1;margin-bottom:7px}
+.cp-why-title{font-size:12px;font-weight:700;color:#0D1C2E;line-height:1.4;margin-bottom:4px}
+.cp-why-desc{font-size:11px;color:#6b7280;line-height:1.65}
 
-/* ── COVER PAGE ───────────────────────────────────────── */
-.cp-cover{background:#0D1C2E;min-height:600px;display:flex;flex-direction:column;padding:0}
-.cp-cover-bar{height:6px;background:#0D9488;flex-shrink:0}
-.cp-cover-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 60px 44px;text-align:center}
-.cp-cover-logo{width:62px;height:62px;background:rgba(13,148,136,.14);display:flex;align-items:center;justify-content:center;margin-bottom:30px}
-.cp-cover-name{font-family:'Outfit',Arial,sans-serif;font-size:40px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.05;text-transform:uppercase;margin-bottom:10px}
-.cp-cover-trading{font-size:12px;color:rgba(255,255,255,.38);letter-spacing:.06em;text-transform:uppercase;margin-bottom:34px}
-.cp-cover-rule{width:38px;height:2px;background:#0D9488;margin:0 auto 26px}
-.cp-cover-tagline{font-size:14px;color:rgba(255,255,255,.68);letter-spacing:.1em;text-transform:uppercase}
-.cp-cover-foot{border-top:1px solid rgba(255,255,255,.08);padding:22px 56px;display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0}
-.cp-cover-foot-lbl{font-size:9.5px;font-weight:700;color:#0D9488;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
-.cp-cover-foot-val{font-size:15px;font-weight:700;color:#fff;line-height:1.3}
-.cp-cover-foot-meta{font-size:11px;color:rgba(255,255,255,.32);margin-top:3px}
+/* ─── COVER ─────────────────────────────────────────────── */
+.cp-cover{background:#0D1C2E;min-height:640px;display:flex;flex-direction:column;padding:0}
+.cp-cover-accent{height:8px;background:#0D9488;flex-shrink:0}
+.cp-cover-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 60px 36px;text-align:center}
 
-/* ── CONTACT PAGE ─────────────────────────────────────── */
-.cp-contact-page{background:#0D1C2E;padding:50px 56px 50px 68px;position:relative;overflow:hidden}
-.cp-contact-page::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;background:#0D9488}
-.cp-contact-title{font-family:'Outfit',Arial,sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
-.cp-contact-sub{font-size:12.5px;color:rgba(255,255,255,.38);margin-bottom:38px;letter-spacing:.04em}
-.cp-contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:42px}
-.cp-contact-lbl{font-size:9.5px;font-weight:700;color:#0D9488;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
-.cp-contact-val{font-size:13.5px;color:#fff;font-weight:600;line-height:1.6}
-.cp-contact-lock{display:flex;align-items:center;gap:14px;margin-bottom:38px}
-.cp-contact-lockup-name{font-family:'Outfit',Arial,sans-serif;font-size:15px;font-weight:800;color:#fff}
-.cp-contact-lockup-tag{font-size:10px;color:rgba(255,255,255,.32);margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
-.cp-contact-legal{border-top:1px solid rgba(255,255,255,.07);padding-top:22px;font-size:10px;color:rgba(255,255,255,.25);line-height:1.9}
+/* Logo mark */
+.cp-mark{display:flex;flex-direction:column;align-items:center;margin-bottom:44px}
+.cp-mark-icon-wrap{width:80px;height:80px;border:1px solid rgba(13,148,136,.3);background:rgba(13,148,136,.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.cp-mark-wordmark{font-family:'Outfit',Arial,sans-serif;font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:8px}
+.cp-mark-ask{color:rgba(255,255,255,.92)}
+.cp-mark-miro{color:#0D9488}
+.cp-mark-sub{font-size:10px;color:rgba(255,255,255,.32);letter-spacing:.26em;text-transform:uppercase}
 
-/* ── @MEDIA PRINT ─────────────────────────────────────── */
+.cp-cover-divider{width:36px;height:2px;background:#0D9488;margin:0 auto 22px}
+.cp-cover-doc-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.42);letter-spacing:.22em;text-transform:uppercase}
+
+/* Cover footer */
+.cp-cover-foot{border-top:1px solid rgba(255,255,255,.07);padding:22px 52px;display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0}
+.cp-cff-lbl{font-size:8.5px;font-weight:700;color:#0D9488;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px}
+.cp-cff-val{font-size:15px;font-weight:700;color:#fff;line-height:1.25;letter-spacing:-.01em}
+.cp-cff-meta{font-size:10px;color:rgba(255,255,255,.28);margin-top:4px}
+
+/* ─── CONTACT PAGE ──────────────────────────────────────── */
+.cp-contact-wrap{background:#0D1C2E;position:relative;overflow:hidden}
+.cp-contact-wrap::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;background:#0D9488}
+
+.cp-contact-top{padding:26px 52px 22px 66px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
+.cp-contact-mark{display:flex;align-items:center;gap:12px}
+.cp-contact-mark-icon{width:38px;height:38px;border:1px solid rgba(13,148,136,.3);background:rgba(13,148,136,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cp-contact-mark-name{font-family:'Outfit',Arial,sans-serif;font-size:17px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.cp-contact-mark-name em{color:#0D9488;font-style:normal}
+.cp-contact-mark-sub{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.cp-contact-doc-label{font-size:9px;font-weight:700;color:#0D9488;letter-spacing:.14em;text-transform:uppercase}
+
+.cp-contact-grid{display:grid;grid-template-columns:1fr 1fr;padding:0 52px 0 66px}
+.cp-contact-cell{padding:20px 20px 20px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.cp-contact-cell:nth-child(even){padding-left:28px;padding-right:0;border-left:1px solid rgba(255,255,255,.06)}
+.cp-contact-lbl{font-size:8.5px;font-weight:700;color:#0D9488;letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px}
+.cp-contact-val{font-size:13px;color:#fff;font-weight:600;line-height:1.65}
+
+.cp-contact-legal{padding:18px 52px 28px 66px;font-size:9px;color:rgba(255,255,255,.2);line-height:2;border-top:1px solid rgba(255,255,255,.06)}
+
+/* ─── PRINT ─────────────────────────────────────────────── */
 @media print{
   body>*:not(#cp-overlay){display:none!important}
   #cp-overlay{display:block!important;position:static!important;padding:0;background:#fff;overflow:visible}
@@ -427,80 +461,94 @@ ${docs.map(d => `
     const ov = document.createElement('div');
     ov.id = 'cp-overlay';
 
-    const ph = (sec) =>
-      `<div class="cp-ph"><div class="cp-ph-brand">AskMiro Cleaning Services</div><div class="cp-ph-rule"></div><div class="cp-ph-sec">${sec}</div></div>`;
-    const pf = (pg) =>
-      `<div class="cp-pf"><div class="cp-pf-legal">Miro Partners Ltd trading as AskMiro Cleaning Services &nbsp;&bull;&nbsp; Confidential</div><div class="cp-pf-pg">${pg} / 08</div></div>`;
+    const waveIcon = (sz=14) =>
+      `<svg width="${sz}" height="${sz}" viewBox="0 0 32 32" fill="none"><path d="M8 20L12 12L16 20L20 12L24 20" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    const ph = (sec) => `
+<div class="cp-ph">
+  <div class="cp-ph-logo">
+    <div class="cp-ph-logo-icon">${waveIcon(11)}</div>
+    <div class="cp-ph-brand"><em>Ask</em>Miro Cleaning Services</div>
+  </div>
+  <div class="cp-ph-rule"></div>
+  <div class="cp-ph-sec">${sec}</div>
+</div>`;
+
+    const pf = (pg) => `
+<div class="cp-pf">
+  <div class="cp-pf-legal">Miro Partners Ltd t/a AskMiro Cleaning Services &nbsp;&bull;&nbsp; Confidential &nbsp;&bull;&nbsp; Prepared for ${_esc(data.preparedFor)}</div>
+  <div class="cp-pf-pg">${pg} / 08</div>
+</div>`;
+
+    const sh = (num, title) => `
+<div class="cp-sh">
+  <div class="cp-sh-num">${num}</div>
+  <div class="cp-sh-sep"></div>
+  <div class="cp-sh-title">${title}</div>
+</div>`;
 
     ov.innerHTML = `
 
-<!-- ─── PRINT BAR ──────────────────────────────────────── -->
+<!-- ─── PRINT BAR ────────────────────────────────── -->
 <div class="cp-bar no-print">
-  <div class="cp-bar-title">Company Profile &mdash; ${_esc(data.preparedFor)}</div>
-  <div style="display:flex;gap:8px">
-    <button class="cp-btn-pdf" onclick="window.print()">Save as PDF</button>
+  <div class="cp-bar-left">
+    <div class="cp-bar-icon">${waveIcon(16)}</div>
+    <div>
+      <div class="cp-bar-title">AskMiro — Company Profile</div>
+      <div class="cp-bar-sub">Prepared for ${_esc(data.preparedFor)}</div>
+    </div>
+  </div>
+  <div class="cp-bar-actions">
+    <button class="cp-btn-pdf" onclick="window.print()">&#x2913; Save as PDF</button>
     <button class="cp-btn-close" onclick="document.getElementById('cp-overlay').remove()">&#x2715; Close</button>
   </div>
 </div>
 
 <div class="cp-doc">
 
-<!-- ═══════════════════════════════════════════════════════
-     COVER
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ COVER ════════════════ -->
 <div class="cp-page cp-cover">
-  <div class="cp-cover-bar"></div>
+  <div class="cp-cover-accent"></div>
   <div class="cp-cover-body">
-    <div class="cp-cover-logo">
-      <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
-        <path d="M8 20L12 12L16 20L20 12L24 20" stroke="#0D9488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+
+    <div class="cp-mark">
+      <div class="cp-mark-icon-wrap">
+        <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
+          <path d="M8 20L12 12L16 20L20 12L24 20" stroke="#0D9488" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="cp-mark-wordmark">
+        <span class="cp-mark-ask">Ask</span><span class="cp-mark-miro">Miro</span>
+      </div>
+      <div class="cp-mark-sub">Cleaning Services</div>
     </div>
-    <div class="cp-cover-name">AskMiro<br>Cleaning Services</div>
-    <div class="cp-cover-trading">Miro Partners Ltd &nbsp;&middot;&nbsp; London, England</div>
-    <div class="cp-cover-rule"></div>
-    <div class="cp-cover-tagline">Your Space. Our Responsibility.</div>
+
+    <div class="cp-cover-divider"></div>
+    <div class="cp-cover-doc-label">Company Profile &nbsp;&bull;&nbsp; Capability Statement</div>
   </div>
   <div class="cp-cover-foot">
     <div>
-      <div class="cp-cover-foot-lbl">Prepared For</div>
-      <div class="cp-cover-foot-val">${_esc(data.preparedFor)}</div>
-      ${data.attn ? `<div class="cp-cover-foot-meta">Att: ${_esc(data.attn)}</div>` : ''}
+      <div class="cp-cff-lbl">Prepared For</div>
+      <div class="cp-cff-val">${_esc(data.preparedFor)}</div>
+      ${data.attn ? `<div class="cp-cff-meta">Att: ${_esc(data.attn)}</div>` : ''}
     </div>
     <div style="text-align:right">
-      <div class="cp-cover-foot-lbl">Date</div>
-      <div class="cp-cover-foot-val">${_esc(data.date)}</div>
-      ${data.ref
-        ? `<div class="cp-cover-foot-meta">Ref: ${_esc(data.ref)}</div>`
-        : `<div class="cp-cover-foot-meta">Company Profile</div>`}
+      <div class="cp-cff-lbl">Date</div>
+      <div class="cp-cff-val">${_esc(data.date)}</div>
+      <div class="cp-cff-meta">${data.ref ? `Ref: ${_esc(data.ref)}` : 'Company Profile'}</div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     01 — ABOUT
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 01 — ABOUT ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('01 &mdash; About')}
+  ${sh('01','About AskMiro')}
   <div class="cp-in">
-    <div class="cp-eyebrow">01</div>
-    <div class="cp-h">About AskMiro</div>
-    <div class="cp-lead">
-      AskMiro Cleaning Services is a London-based commercial cleaning contractor delivering
-      precision-led services across construction, commercial and managed property environments.
-    </div>
+    <div class="cp-lead">AskMiro Cleaning Services is a London-based commercial cleaning contractor delivering precision-led services across construction, commercial and managed property environments.</div>
     <div class="cp-body">
-      <p>Operated under Miro Partners Ltd and director-led from inception, we combine operational
-      rigour with responsive on-site management to meet the demands of high-value projects and
-      long-term maintenance contracts. Every engagement is managed directly — with structured
-      communication, documented processes and accountability at every stage.</p>
-      <p>Our work spans all stages of construction cleaning, from first fix through to sparkle clean
-      and developer handover, as well as ongoing commercial maintenance contracts across London.
-      We understand site protocols, contractor supply chains and the standards expected at practical
-      completion.</p>
-      <p>AskMiro operates with the systems, compliance documentation and professional infrastructure
-      of a contractor built for scale. Our clients can expect consistent output, direct communication
-      and zero surprises on programme.</p>
+      <p>Operated under Miro Partners Ltd and director-led from inception, we combine operational rigour with responsive on-site management to meet the demands of high-value projects and long-term maintenance contracts. Every engagement is managed directly — with structured communication, documented processes and accountability at every stage.</p>
+      <p>Our work spans all stages of construction cleaning, from first fix through to sparkle clean and developer handover, as well as ongoing commercial maintenance contracts across London. We understand site protocols, contractor supply chains and the standards expected at practical completion.</p>
     </div>
     <div class="cp-facts">
       ${[
@@ -516,64 +564,56 @@ ${docs.map(d => `
   ${pf('01')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     02 — CORE SERVICES
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 02 — SERVICES ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('02 &mdash; Core Services')}
+  ${sh('02','Core Services')}
   <div class="cp-in">
-    <div class="cp-eyebrow">02</div>
-    <div class="cp-h">Core Services</div>
-    <div class="cp-feature">
-      <div class="cp-feature-eyebrow">Primary Specialism</div>
-      <div class="cp-feature-title">Builders Cleans</div>
-      <div class="cp-feature-body">
-        AskMiro specialises in builders cleans across all stages of construction: first fix clean,
-        sparkle clean and final handover clean. We understand site induction requirements, contractor
-        CDM protocols and the precision expected at practical completion — including window cleaning,
-        UPVC wiping, paint splash removal, dust clearance and full surface sanitisation to developer
-        specification.
-      </div>
-      <div class="cp-feature-tags">
+    <div class="cp-spec">
+      <div class="cp-spec-eyebrow">Primary Specialism</div>
+      <div class="cp-spec-title">Builders Cleans</div>
+      <div class="cp-spec-body">AskMiro specialises in builders cleans across all stages of construction: first fix, sparkle clean and final handover. We understand site induction requirements, CDM protocols and the precision expected at practical completion — including UPVC wiping, paint splash removal, dust clearance and full surface sanitisation to developer specification.</div>
+      <div class="cp-spec-tags">
         ${['First Fix Clean','Sparkle Clean','Handover Clean','UPVC &amp; Glazing','Paint &amp; Plaster Removal','Developer Spec Sign-off']
-          .map(t => `<div class="cp-feature-tag">${t}</div>`).join('')}
+          .map(t => `<span class="cp-spec-tag">${t}</span>`).join('')}
       </div>
     </div>
-    <div class="cp-svc-grid">
+    <div class="cp-svcs">
       ${[
         ['02','Commercial Cleaning','Scheduled and reactive cleaning for offices, retail units and commercial premises. Tailored programmes with documented quality checks and consistent reporting.'],
-        ['03','Communal Areas','Routine cleaning of communal spaces within residential developments, managed buildings and multi-occupancy properties, maintained to lease specification.'],
-        ['04','Deep Cleaning','Intensive deep-clean programmes for end-of-tenancy, pre-occupation and periodic resets. Full degreasing, sanitisation and surface restoration to commercial standard.'],
-        ['05','Sector-Specific Services','Specialist cleaning across automotive showrooms, educational facilities and food-safe environments, with appropriate COSHH and PPE protocols applied as standard.']
+        ['03','Communal Areas','Routine cleaning of communal spaces within residential developments and managed buildings, maintained to lease specification.'],
+        ['04','Deep Cleaning','Intensive programmes for end-of-tenancy, pre-occupation and periodic resets. Full degreasing, sanitisation and surface restoration to commercial standard.'],
+        ['05','Sector-Specific Services','Specialist cleaning across automotive showrooms, educational facilities and food-safe environments with full COSHH and PPE protocols applied as standard.']
       ].map(([n,name,desc]) => `
-      <div class="cp-svc">
-        <div class="cp-svc-num">${n}</div>
-        <div class="cp-svc-name">${name}</div>
-        <div class="cp-svc-desc">${desc}</div>
+      <div class="cp-svc-row">
+        <div class="cp-svc-n">${n}</div>
+        <div>
+          <div class="cp-svc-name">${name}</div>
+          <div class="cp-svc-desc">${desc}</div>
+        </div>
       </div>`).join('')}
     </div>
   </div>
   ${pf('02')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     03 — SECTORS
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 03 — SECTORS ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('03 &mdash; Sectors')}
+  ${sh('03','Sectors We Serve')}
   <div class="cp-in">
-    <div class="cp-eyebrow">03</div>
-    <div class="cp-h">Sectors</div>
+    <div class="cp-lead">We operate across a broad range of environments, applying the same management rigour and compliance standards to every contract regardless of sector or scale.</div>
     <div class="cp-sectors">
       ${[
-        ['Construction','Active construction sites, new-build residential and commercial developments, phased handovers, practical completion cleans and snagging-phase preparation. Full CDM compliance.'],
-        ['Commercial','Grade A offices, multi-tenanted buildings, reception areas, washrooms and back-of-house. Daily and periodic maintenance programmes structured to occupier requirements.'],
-        ['Property Management','Communal areas, lift lobbies, stairwells and car parks within residential and mixed-use developments. Maintained to lease specification and developer standard.'],
-        ['Education','Schools, academies and further education facilities. Term-time scheduled cleaning programmes and holiday deep-clean contracts.'],
-        ['Automotive','Showroom preparation, forecourt maintenance and vehicle display area cleaning to manufacturer presentation standards.'],
-        ['Industrial &amp; Logistics','Warehouses, distribution centres and light industrial units. Hard floor maintenance, high-bay cleaning and ad hoc reactive programmes.']
-      ].map(([name,body]) => `
+        ['01','Construction','Active construction sites, new-build residential and commercial developments, phased handovers, practical completion cleans and snagging-phase preparation. Full CDM compliance as standard.'],
+        ['02','Commercial','Grade A offices, multi-tenanted buildings, reception areas, washrooms and back-of-house. Daily and periodic maintenance programmes structured to occupier requirements.'],
+        ['03','Property Management','Communal areas, lift lobbies, stairwells and car parks within residential and mixed-use developments. Maintained to lease specification and developer standard.'],
+        ['04','Education','Schools, academies and further education facilities. Term-time scheduled cleaning programmes and holiday deep-clean contracts.'],
+        ['05','Automotive','Showroom preparation, forecourt maintenance and vehicle display area cleaning to manufacturer presentation standards.'],
+        ['06','Industrial &amp; Logistics','Warehouses, distribution centres and light industrial units. Hard floor maintenance, high-bay cleaning and ad hoc reactive programmes.']
+      ].map(([num,name,body]) => `
       <div class="cp-sector">
+        <div class="cp-sector-num">${num}</div>
         <div class="cp-sector-name">${name}</div>
         <div class="cp-sector-body">${body}</div>
       </div>`).join('')}
@@ -582,27 +622,24 @@ ${docs.map(d => `
   ${pf('03')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     04 — OUR APPROACH
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 04 — APPROACH ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('04 &mdash; Our Approach')}
+  ${sh('04','Our Approach')}
   <div class="cp-in">
-    <div class="cp-eyebrow">04</div>
-    <div class="cp-h">Our Approach</div>
-    <div class="cp-approach">
+    <div class="cp-steps">
       ${[
-        ['Director-Led Operations','Every contract is overseen directly by company directors. There is no layer of unmanaged subcontracted labour between our directors and the work on site. Accountability sits at the top of the organisation.'],
+        ['Director-Led Operations','Every contract is overseen directly by company directors. There is no layer of unmanaged labour between our directors and the work on site. Accountability sits at the top of the organisation.'],
         ['Precision on Site','We operate to the standard expected on high-value construction and commercial contracts. Pre-clean briefings, sign-off checklists and photographic records are standard on every contract — not an upgrade.'],
-        ['Structured Communication','Response times are defined and adhered to. Progress is communicated proactively. Issues are escalated fast. Clients do not need to chase us — reliable communication is part of what we deliver.'],
+        ['Structured Communication','Response times are defined and adhered to. Progress is communicated proactively. Issues are escalated fast. Clients do not need to chase us.'],
         ['Operational Flexibility','Construction programmes change. Handover dates move. We structure our scheduling to absorb these changes without penalty to the client or compromise to output quality.'],
-        ['Compliance by Default','RAMS, COSHH assessments and PPE protocols are prepared before mobilisation and maintained throughout the contract. We operate as a professional contractor from day one — on every contract.']
+        ['Compliance by Default','RAMS, COSHH assessments and PPE protocols are prepared before mobilisation and maintained throughout. We operate as a professional contractor from day one on every contract.']
       ].map(([title,body],i) => `
-      <div class="cp-ap-item">
-        <div class="cp-ap-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="cp-step">
+        <div class="cp-step-num">${String(i+1).padStart(2,'0')}</div>
         <div>
-          <div class="cp-ap-title">${title}</div>
-          <div class="cp-ap-body">${body}</div>
+          <div class="cp-step-title">${title}</div>
+          <div class="cp-step-body">${body}</div>
         </div>
       </div>`).join('')}
     </div>
@@ -610,148 +647,125 @@ ${docs.map(d => `
   ${pf('04')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     05 — HEALTH, SAFETY & COMPLIANCE
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 05 — H&S ════════════════ -->
 <div class="cp-page cp-inner-page">
-  ${ph('05 &mdash; H&amp;S &amp; Compliance')}
+  ${ph('05 &mdash; Health, Safety &amp; Compliance')}
+  ${sh('05','Health, Safety &amp; Compliance')}
   <div class="cp-in">
-    <div class="cp-eyebrow">05</div>
-    <div class="cp-h">Health, Safety &amp; Compliance</div>
-    <div class="cp-body" style="margin-bottom:26px">
-      <p>AskMiro operates within a full health and safety management framework appropriate for
-      construction and commercial contract environments. All operatives work under documented risk
-      controls, and all client-facing sites receive site-specific documentation prior to mobilisation.
-      Records are maintained and available for inspection by principal contractors at any time.</p>
+    <div class="cp-body" style="margin-bottom:20px">
+      <p>AskMiro operates within a full health and safety management framework appropriate for construction and commercial contract environments. All operatives work under documented risk controls. Client-facing sites receive site-specific documentation prior to mobilisation, and records are available for inspection by principal contractors at any time.</p>
     </div>
-    <div class="cp-comp">
+    <div class="cp-comps">
       ${[
-        ['RAMS','Risk Assessments and Method Statements are produced for all site operations. Site-specific RAMS are issued in advance of mobilisation and updated in response to significant scope or access changes.'],
-        ['COSHH','Full COSHH assessments are maintained for all chemicals and agents in use. Product data sheets are held on file. All operatives receive product-specific briefings before use on site.'],
-        ['PPE','Appropriate PPE is issued and enforced across all operatives relative to the site and task. Compliance is managed directly and documented within site records on every contract.'],
-        ['Site Inductions','All operatives complete site inductions as required under contractor protocols. Induction records are maintained and no operative enters a site without completing the required process.'],
-        ['Incident Reporting','A documented incident reporting procedure is in operation. Near-misses, incidents and observations are recorded, reviewed and acted upon. Records are available for inspection.'],
-        ['UK Standards','We operate in accordance with HASAWA 1974, Management Regulations 1999, CDM 2015 (where applicable) and associated ACOP guidance. ISO-aligned working practices throughout.']
-      ].map(([t,b]) => `
-      <div class="cp-comp-item">
-        <div class="cp-comp-title">${t}</div>
-        <div class="cp-comp-body">${b}</div>
+        ['RAMS','Active','Risk Assessments and Method Statements produced for all site operations. Site-specific RAMS issued in advance of mobilisation and updated in response to scope or access changes.'],
+        ['COSHH','Active','Full COSHH assessments maintained for all chemicals in use. Product data sheets held on file. All operatives receive product-specific briefings before use on site.'],
+        ['PPE','Active','Appropriate PPE issued and enforced across all operatives relative to site and task. Compliance managed directly and documented within site records on every contract.'],
+        ['Site Inductions','Active','All operatives complete site inductions as required. Induction records maintained and no operative enters site without completing the required process.'],
+        ['Incident Reporting','Active','Documented incident reporting procedure in operation. Near-misses, incidents and observations recorded, reviewed and acted upon. Records available for inspection.'],
+        ['UK Standards','Compliant','Operating in full accordance with HASAWA 1974, Management Regulations 1999, CDM 2015 (where applicable) and associated ACOP guidance throughout.']
+      ].map(([key,badge,val]) => `
+      <div class="cp-comp-row">
+        <div class="cp-comp-key">
+          <div class="cp-comp-key-label">${key}</div>
+          <div class="cp-comp-key-badge">${badge}</div>
+        </div>
+        <div class="cp-comp-val">${val}</div>
       </div>`).join('')}
     </div>
   </div>
   ${pf('05')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     06 — INSURANCE
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 06 — INSURANCE ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('06 &mdash; Insurance')}
+  ${sh('06','Insurance')}
   <div class="cp-in">
-    <div class="cp-eyebrow">06</div>
-    <div class="cp-h">Insurance</div>
-    <div class="cp-body" style="margin-bottom:22px">
-      <p>AskMiro Cleaning Services carries full commercial insurance appropriate for both construction
-      site operations and commercial contract environments. Certificates of insurance are available
-      on request and can be provided directly to principal contractors as part of supply chain
-      pre-qualification.</p>
+    <div class="cp-body" style="margin-bottom:0">
+      <p>AskMiro carries full commercial insurance appropriate for construction site operations and commercial contract environments. Certificates are available on request and provided to principal contractors as part of supply chain pre-qualification.</p>
     </div>
-    <div class="cp-ins">
+    <div class="cp-ins-row">
       <div class="cp-ins-cell">
-        <div class="cp-ins-lbl">Employers' Liability</div>
+        <div class="cp-ins-lbl">Employers&rsquo; Liability Insurance</div>
         <div class="cp-ins-val">£10,000,000</div>
-        <div class="cp-ins-note">Per occurrence. As required under the Employers' Liability (Compulsory Insurance) Act 1969.</div>
+        <div class="cp-ins-note">Per occurrence. As required under the Employers' Liability (Compulsory Insurance) Act 1969. Covers all employed operatives across all active sites.</div>
       </div>
-      <div class="cp-ins-cell" style="border-left:1px solid #e5e7eb">
-        <div class="cp-ins-lbl">Public Liability</div>
+      <div class="cp-ins-cell">
+        <div class="cp-ins-lbl">Public Liability Insurance</div>
         <div class="cp-ins-val">£1,000,000</div>
-        <div class="cp-ins-note">Per occurrence. Scalable to contract requirements — contact us to discuss specific project needs.</div>
+        <div class="cp-ins-note">Per occurrence. Scalable to specific contract requirements. Contact us to discuss project insurance requirements prior to contract award.</div>
       </div>
     </div>
     <div class="cp-ins-notice">
-      <div class="cp-ins-notice-body">
-        <strong>Documentation available on request.</strong> Insurance certificates can be provided to principal contractors
-        as part of supply chain pre-qualification or tender submission. Contact
-        <strong>info@askmiro.com</strong> with specific requirements.
-      </div>
+      <div class="cp-ins-notice-body"><strong>Certificates available on request</strong> — provided directly to principal contractors for supply chain pre-qualification or tender submission. Contact <strong>info@askmiro.com</strong>.</div>
     </div>
   </div>
   ${pf('06')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     07 — WHY ASKMIRO
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 07 — WHY ASKMIRO ════════════════ -->
 <div class="cp-page cp-inner-page">
   ${ph('07 &mdash; Why AskMiro')}
+  ${sh('07','Why AskMiro')}
   <div class="cp-in">
-    <div class="cp-eyebrow">07</div>
-    <div class="cp-h">Why AskMiro</div>
-    <div class="cp-why">
+    <div class="cp-why-grid">
       ${[
-        ['Director involvement on every contract','No account management layers. The person responsible for quality is present, contactable and accountable for the duration of the contract.'],
-        ['Built for construction environments','We understand site protocols, CDM obligations, induction requirements and contractor supply chain expectations. We operate on site — not just around it.'],
-        ['Rapid London mobilisation','London-based operations enable fast deployment across the capital and surrounding areas. We respond to programme changes without delay or additional cost.'],
-        ['Documentation prepared before mobilisation','RAMS, COSHH assessments, insurance certificates and method statements are in place before the contract starts — not after the first issue arises.'],
-        ['Transparent reporting and communication','Communication is structured and on schedule. Progress is logged, sign-offs are documented and concerns are escalated immediately.'],
-        ['Consistent standard across multi-site programmes','The same management, the same processes and the same standard are applied whether we are cleaning one unit or twenty.'],
-        ['Technology-enabled operations','Contract management, scheduling and compliance records are managed through our proprietary operations platform, providing clients with visibility and our team with operational clarity.']
-      ].map(([t,b]) => `
+        ['Director involvement on every contract','No account management layers. The person responsible for quality is present, contactable and accountable throughout.'],
+        ['Built for construction environments','We understand CDM obligations, site protocols, induction requirements and contractor supply chain expectations.'],
+        ['Rapid London mobilisation','London-based operations enable fast deployment across the capital and surrounding areas without delay or additional cost.'],
+        ['Documentation before mobilisation','RAMS, COSHH assessments, insurance certificates and method statements in place before the contract starts — not after issues arise.'],
+        ['Transparent reporting','Communication is structured and on schedule. Progress is logged, sign-offs documented and concerns escalated immediately.'],
+        ['Consistent multi-site standard','The same management, the same processes and the same standard applied whether cleaning one unit or twenty.'],
+        ['Technology-enabled operations','Contract management, scheduling and compliance managed through our proprietary platform — full visibility for clients and team.'],
+        ['Zero management overhead','Briefed once, we manage our team, programme and compliance independently. No hand-holding required.']
+      ].map(([t,b],i) => `
       <div class="cp-why-item">
-        <div class="cp-why-dot"></div>
-        <div class="cp-why-text"><strong>${t}</strong> &mdash; ${b}</div>
+        <div class="cp-why-n">${String(i+1).padStart(2,'0')}</div>
+        <div class="cp-why-title">${t}</div>
+        <div class="cp-why-desc">${b}</div>
       </div>`).join('')}
     </div>
   </div>
   ${pf('07')}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     08 — CONTACT
-═══════════════════════════════════════════════════════ -->
+<!-- ════════════════ 08 — CONTACT ════════════════ -->
 <div class="cp-page">
-  <div class="cp-contact-page">
-    <div class="cp-eyebrow" style="color:#0D9488;margin-bottom:8px">08</div>
-    <div class="cp-contact-title">Get In Touch</div>
-    <div class="cp-contact-sub">Direct contact. No call centres, no delays.</div>
-
+  <div class="cp-contact-wrap">
+    ${sh('08','Get In Touch')}
+    <div class="cp-contact-top">
+      <div class="cp-contact-mark">
+        <div class="cp-contact-mark-icon">${waveIcon(20)}</div>
+        <div>
+          <div class="cp-contact-mark-name"><em>Ask</em>Miro Cleaning Services</div>
+          <div class="cp-contact-mark-sub">Your Space. Our Responsibility.</div>
+        </div>
+      </div>
+      <div class="cp-contact-doc-label">Company Profile</div>
+    </div>
     <div class="cp-contact-grid">
-      <div>
+      <div class="cp-contact-cell">
         <div class="cp-contact-lbl">Website</div>
         <div class="cp-contact-val">www.askmiro.com</div>
       </div>
-      <div>
+      <div class="cp-contact-cell">
         <div class="cp-contact-lbl">Email</div>
         <div class="cp-contact-val">info@askmiro.com</div>
       </div>
-      <div>
+      <div class="cp-contact-cell">
         <div class="cp-contact-lbl">Registered Address</div>
-        <div class="cp-contact-val" style="font-size:13px">34 Haldane Place<br>London, SW18 4UH<br>England</div>
+        <div class="cp-contact-val">34 Haldane Place<br>London, SW18 4UH<br>England</div>
       </div>
-      <div>
+      <div class="cp-contact-cell">
         <div class="cp-contact-lbl">Legal Entity</div>
-        <div class="cp-contact-val" style="font-size:13px">Miro Partners Ltd<br>Private Limited Company<br>Incorporated 14 March 2025</div>
+        <div class="cp-contact-val">Miro Partners Ltd<br>Private Limited Company<br>Incorporated 14 March 2025</div>
       </div>
     </div>
-
-    <div class="cp-contact-lock">
-      <div style="width:44px;height:44px;background:rgba(13,148,136,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
-          <path d="M8 20L12 12L16 20L20 12L24 20" stroke="#0D9488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div>
-        <div class="cp-contact-lockup-name">AskMiro Cleaning Services</div>
-        <div class="cp-contact-lockup-tag">Your Space. Our Responsibility.</div>
-      </div>
-    </div>
-
     <div class="cp-contact-legal">
       AskMiro Cleaning Services is a trading name of Miro Partners Ltd. Registered in England and Wales.
       Registered Office: 34 Haldane Place, London, England, SW18 4UH.
       SIC 81100 &mdash; Combined facilities support activities &nbsp;&bull;&nbsp; SIC 81210 &mdash; General cleaning of buildings.<br>
-      This document is confidential and intended solely for the use of ${_esc(data.preparedFor)}.
-      Prepared: ${_esc(data.date)}.
+      This document is confidential and prepared solely for the use of ${_esc(data.preparedFor)}.${data.date ? ` Date: ${_esc(data.date)}.` : ''}
     </div>
   </div>
 </div>
