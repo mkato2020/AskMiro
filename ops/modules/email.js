@@ -1453,8 +1453,14 @@ Thanks again and nice to meet you.`;
           }),
         });
         if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText || `HTTP ${res.status}`);
+          let errMsg = `HTTP ${res.status}`;
+          try {
+            const errJson = await res.json();
+            errMsg = errJson.error || errMsg;
+          } catch (_) {
+            try { errMsg = await res.text() || errMsg; } catch (_) {}
+          }
+          throw new Error(errMsg);
         }
         _attachments = [];
       } else {
