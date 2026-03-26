@@ -514,7 +514,7 @@ window.CRM = (() => {
       </div>
 
       <!-- Quick actions -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
         <button onclick="CRM.openEdit('${_esc(l.id)}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✏️ Edit</button>
@@ -524,9 +524,14 @@ window.CRM = (() => {
         <button onclick="CRM._openEmail('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✉️ Email</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">
         <a href="tel:${_esc(l.phone||'')}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📞 Call</button>
+        <button onclick="CRM._shareUploadLink('${_esc(l.id)}','${_esc(l.companyName||l.contactName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
+          onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
+          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📎 Upload Link</button>
       </div>
 
       <!-- Contact details -->
@@ -848,6 +853,17 @@ window.CRM = (() => {
     if (window.Router) Router.navigate('email');
   }
 
+  function _shareUploadLink(leadId, companyName) {
+    const base = location.origin + '/upload.html';
+    const url  = base + '?ref=' + encodeURIComponent(leadId) + (companyName ? '&name=' + encodeURIComponent(companyName) : '');
+    navigator.clipboard.writeText(url).then(() => {
+      UI.toast('📎 Upload link copied to clipboard');
+    }).catch(() => {
+      // Fallback: show in a prompt so user can copy manually
+      window.prompt('Copy this upload link to share with your client:', url);
+    });
+  }
+
   function _quickFollowUp(email, name, template) {
     const templateMap = {
       followup3:     'Follow-up',
@@ -871,6 +887,6 @@ window.CRM = (() => {
   return {
     render, openNewLead, openEdit, openDetail, saveLead, updateLead,
     moveStage, confirmLost, saveQual, saveFollowUp, openLogNote, saveLogNote,
-    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail, _quickFollowUp,
+    _confirmWin, _setView, _setFilter, _search, _checkDuplicate, _openEmail, _quickFollowUp, _shareUploadLink,
   };
 })();

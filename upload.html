@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Upload Photos — AskMiro</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal:#0A9688;--teal-mid:#0DBDAD;--teal-light:#14D4C2;
+      --teal-wash:rgba(13,189,173,.07);--teal-wash2:rgba(13,189,173,.13);
+      --border-teal:rgba(13,189,173,.25);
+      --bg:#0F1117;--surface:#161B25;--raised:#1C2333;
+      --text1:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+      --border:rgba(255,255,255,.07);
+      --shadow-teal:0 4px 20px rgba(10,150,136,.22);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--text1);min-height:100vh;display:flex;flex-direction:column}
+
+    /* ── Header ── */
+    header{padding:20px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+    .logo-icon{width:34px;height:34px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(10,150,136,.4)}
+    .logo-icon svg{width:20px;height:20px;fill:#fff}
+    .logo-name{font-size:1.125rem;font-weight:700;color:var(--text1)}
+    .logo-name span{color:var(--teal-light)}
+    .logo-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-left:auto}
+
+    /* ── Main ── */
+    main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:48px 16px 64px}
+    .card{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .card-head{padding:28px 28px 0}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal-wash2);border:1px solid var(--border-teal);border-radius:20px;padding:4px 12px;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:16px}
+    .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal-mid);animation:pulse 2.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .card-head h1{font-size:1.5rem;font-weight:800;line-height:1.2;margin-bottom:8px}
+    .card-head h1 em{font-style:normal;color:var(--teal-light)}
+    .card-head p{font-size:.9rem;color:var(--text2);line-height:1.6;padding-bottom:24px;border-bottom:1px solid var(--border)}
+    .ref-bar{margin:20px 28px 0;background:var(--raised);border:1px solid var(--border-teal);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+    .ref-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+    .ref-val{font-size:.85rem;font-weight:700;color:var(--teal-mid)}
+
+    /* ── Form ── */
+    form{padding:24px 28px 28px;display:flex;flex-direction:column;gap:18px}
+    label.fl{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:6px}
+    input[type=text],input[type=email],textarea{width:100%;background:var(--raised);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:11px 14px;color:var(--text1);font-family:inherit;font-size:.9375rem;outline:none;transition:border-color .15s}
+    input[type=text]:focus,input[type=email]:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,189,173,.12)}
+    textarea{resize:vertical;min-height:80px}
+
+    /* ── Drop zone ── */
+    .drop{border:2px dashed rgba(255,255,255,.12);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--raised)}
+    .drop:hover,.drop.drag-over{border-color:var(--teal-mid);background:var(--teal-wash)}
+    .drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .drop-icon{font-size:2rem;margin-bottom:10px;line-height:1}
+    .drop-primary{font-size:.9375rem;font-weight:600;color:var(--text1);margin-bottom:4px}
+    .drop-hint{font-size:.8rem;color:var(--text3)}
+    .drop-hint span{color:var(--teal-mid)}
+
+    /* ── File list ── */
+    #file-list{display:flex;flex-direction:column;gap:6px}
+    .file-item{display:flex;align-items:center;gap:10px;background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:9px 12px}
+    .file-icon{font-size:1.1rem;flex-shrink:0}
+    .file-name{font-size:.85rem;font-weight:600;color:var(--text1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-size{font-size:.75rem;color:var(--text3);flex-shrink:0}
+    .file-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}
+    .file-del:hover{color:#F87171}
+
+    /* ── Submit ── */
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;background:linear-gradient(135deg,var(--teal-mid),var(--teal));border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;box-shadow:var(--shadow-teal)}
+    .btn:hover:not(:disabled){opacity:.92}
+    .btn:active:not(:disabled){transform:scale(.99)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Status ── */
+    #status{display:none;border-radius:10px;padding:14px 16px;font-size:.875rem;font-weight:500}
+    #status.ok{background:rgba(20,212,194,.1);border:1px solid rgba(20,212,194,.3);color:#5EEAD4}
+    #status.err{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#F87171}
+
+    /* ── Footer ── */
+    footer{padding:20px 24px;text-align:center;border-top:1px solid var(--border)}
+    footer p{font-size:.75rem;color:var(--text3)}
+    footer a{color:var(--teal-mid);text-decoration:none}
+
+    @media(max-width:500px){
+      .card-head,.ref-bar{padding-left:18px;padding-right:18px}
+      form{padding:18px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+  </div>
+  <span class="logo-name">Ask<span>Miro</span></span>
+  <span class="logo-tag">Client Upload Portal</span>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-head">
+      <div class="badge">Secure Upload</div>
+      <h1>Share your <em>photos &amp; files</em></h1>
+      <p>Upload any photos, floor plans, or documents that will help us prepare your cleaning quote accurately. All files go directly to our team.</p>
+    </div>
+
+    <div id="ref-bar" class="ref-bar" style="display:none">
+      <span class="ref-label">Ref</span>
+      <span class="ref-val" id="ref-display"></span>
+    </div>
+
+    <form id="upload-form" novalidate>
+      <div>
+        <label class="fl" for="client-name">Your Name</label>
+        <input type="text" id="client-name" placeholder="e.g. Sarah Johnson" autocomplete="name">
+      </div>
+      <div>
+        <label class="fl" for="client-email">Email Address</label>
+        <input type="email" id="client-email" placeholder="e.g. sarah@company.com" autocomplete="email">
+      </div>
+      <div>
+        <label class="fl" for="client-note">Notes (optional)</label>
+        <textarea id="client-note" placeholder="Anything useful for us to know — e.g. 'photos from ground floor only'"></textarea>
+      </div>
+      <div>
+        <label class="fl">Photos &amp; Documents</label>
+        <div class="drop" id="drop-zone">
+          <input type="file" id="file-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+          <div class="drop-icon">📎</div>
+          <div class="drop-primary">Drop files here or <span style="color:var(--teal-mid)">browse</span></div>
+          <div class="drop-hint">Images, PDFs, Word docs — up to <span>10 MB each</span></div>
+        </div>
+        <div id="file-list" style="margin-top:8px"></div>
+      </div>
+
+      <div id="status"></div>
+
+      <button class="btn" type="submit" id="submit-btn">
+        <span id="btn-label">Send to AskMiro Team</span>
+      </button>
+    </form>
+  </div>
+</main>
+
+<footer>
+  <p>Your files are sent securely to AskMiro. <a href="/">askmiro.com</a></p>
+</footer>
+
+<script>
+  // ── Read URL params ───────────────────────────────────────────
+  const params  = new URLSearchParams(location.search);
+  const refId   = params.get('ref')  || '';
+  const refName = params.get('name') || '';
+
+  if (refId) {
+    document.getElementById('ref-bar').style.display = 'flex';
+    document.getElementById('ref-display').textContent = refId + (refName ? ' — ' + refName : '');
+  }
+  if (refName) {
+    document.getElementById('client-name').value = refName;
+  }
+
+  // ── File handling ─────────────────────────────────────────────
+  const MAX_SIZE = 10 * 1024 * 1024;
+  let files = [];
+
+  function fileIcon(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (['jpg','jpeg','png','gif','webp','heic'].includes(ext)) return '🖼️';
+    if (ext === 'pdf') return '📄';
+    if (['doc','docx'].includes(ext)) return '📝';
+    if (['xls','xlsx'].includes(ext)) return '📊';
+    return '📎';
+  }
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    return (b/1024/1024).toFixed(1) + ' MB';
+  }
+  function renderFiles() {
+    const el = document.getElementById('file-list');
+    el.innerHTML = files.map((f,i) => `
+      <div class="file-item">
+        <span class="file-icon">${fileIcon(f.name)}</span>
+        <span class="file-name">${f.name}</span>
+        <span class="file-size">${fmtSize(f.size)}</span>
+        <button class="file-del" type="button" onclick="removeFile(${i})" title="Remove">✕</button>
+      </div>`).join('');
+  }
+  function addFiles(newFiles) {
+    for (const f of newFiles) {
+      if (f.size > MAX_SIZE) { showStatus('err', `"${f.name}" is over 10 MB — please compress it first.`); continue; }
+      if (!files.find(x => x.name === f.name && x.size === f.size)) files.push(f);
+    }
+    renderFiles();
+  }
+  window.removeFile = function(i) { files.splice(i,1); renderFiles(); };
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    addFiles(e.target.files); e.target.value = '';
+  });
+
+  const drop = document.getElementById('drop-zone');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); addFiles(e.dataTransfer.files); });
+
+  // ── Status helper ─────────────────────────────────────────────
+  function showStatus(type, msg) {
+    const el = document.getElementById('status');
+    el.className = type; el.textContent = msg; el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── Submit ────────────────────────────────────────────────────
+  document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name  = document.getElementById('client-name').value.trim();
+    const email = document.getElementById('client-email').value.trim();
+    const note  = document.getElementById('client-note').value.trim();
+
+    if (!name)  { showStatus('err', 'Please enter your name.'); return; }
+    if (!email || !email.includes('@')) { showStatus('err', 'Please enter a valid email address.'); return; }
+    if (!files.length) { showStatus('err', 'Please attach at least one file.'); return; }
+
+    const btn   = document.getElementById('submit-btn');
+    const label = document.getElementById('btn-label');
+    btn.disabled = true;
+    label.textContent = 'Uploading…';
+    btn.insertAdjacentHTML('afterbegin', '<span class="btn-spinner" id="spinner"></span>');
+    document.getElementById('status').style.display = 'none';
+
+    try {
+      // Base64-encode all files
+      const encoded = await Promise.all(files.map(f => new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload  = () => res({ name: f.name, mimeType: f.type, data: r.result.split(',')[1] });
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      })));
+
+      const resp = await fetch('/api/client-upload', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, note, refId, refName, files: encoded }),
+      });
+
+      const json = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) throw new Error(json.error || `Error ${resp.status}`);
+
+      // Success
+      document.getElementById('upload-form').innerHTML = `
+        <div style="text-align:center;padding:20px 0 8px">
+          <div style="font-size:3rem;margin-bottom:16px">✅</div>
+          <div style="font-size:1.25rem;font-weight:800;color:var(--teal-light);margin-bottom:8px">Files received — thank you!</div>
+          <div style="font-size:.9rem;color:var(--text2);line-height:1.6">Our team will review your uploads and be in touch shortly.<br>
+          <strong style="color:var(--text1)">${json.count || files.length} file${files.length !== 1 ? 's' : ''}</strong> sent successfully.</div>
+        </div>`;
+
+    } catch (err) {
+      showStatus('err', err.message || 'Upload failed. Please try again or email us at info@askmiro.com.');
+      btn.disabled = false; label.textContent = 'Send to AskMiro Team';
+      const sp = document.getElementById('spinner'); if (sp) sp.remove();
+    }
+  });
+</script>
+</body>
+</html>
