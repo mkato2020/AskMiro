@@ -1178,38 +1178,61 @@ ${recurringPanel}
       .catch(e => UI.toast(e.message, 'r'));
   }
 
-  // ── CSV EXPORTS ───────────────────────────────────────────────
+  // ── CSV EXPORTS — export the filtered view (what you see = what you get) ─
   function _exportTxnCSV() {
+    const fm = S.filter.month, ft = S.filter.type, fc = S.filter.category;
+    let rows = fm ? S.txns.filter(t => (t.transactionDate||'').slice(0,7)===fm) : S.txns;
+    if (ft) rows = rows.filter(t => t.type === ft);
+    if (fc) rows = rows.filter(t => t.category === fc);
+    rows = [...rows].sort((a,b) => (b.transactionDate||'').localeCompare(a.transactionDate||''));
+    const suffix = [fm, ft, fc].filter(Boolean).join('_') || 'all';
     _dlCSV(
       [['Date','Type','Category','Description','Party','Net','VAT','Gross','Ref','Status']],
-      S.txns.map(t => [t.transactionDate,t.type,t.category,t.description,
+      rows.map(t => [t.transactionDate,t.type,t.category,t.description,
         t.supplierOrCustomer,t.amountNet,t.amountVat,t.amountGross,t.externalRef,t.status]),
-      'transactions.csv'
+      `transactions_${suffix}.csv`
     );
   }
   function _exportInvCSV() {
+    const fm = S.filter.month, fs = S.filter.status;
+    const today = new Date().toISOString().slice(0,10);
+    let rows = fm ? S.invoices.filter(i => (i.invoiceDate||'').slice(0,7)===fm) : S.invoices;
+    rows = rows.map(i => ((i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < today)
+      ? {...i, status:'Overdue'} : i);
+    if (fs) rows = rows.filter(i => i.status === fs);
+    rows = [...rows].sort((a,b) => (b.invoiceDate||'').localeCompare(a.invoiceDate||''));
+    const suffix = [fm, fs].filter(Boolean).join('_') || 'all';
     _dlCSV(
       [['Invoice','Customer','Site','Date','Due','Subtotal','VAT','Total','Paid','Balance','Status']],
-      S.invoices.map(i => [i.invoiceNumber,i.customerName,i.siteId,i.invoiceDate,
+      rows.map(i => [i.invoiceNumber,i.customerName,i.siteId,i.invoiceDate,
         i.dueDate,i.subtotal,i.vatAmount,i.totalAmount,i.amountPaid,i.balanceDue,i.status]),
-      'invoices.csv'
+      `invoices_${suffix}.csv`
     );
   }
   function _exportExpCSV() {
+    const fm = S.filter.month, fc = S.filter.category;
+    let rows = fm ? S.expenses.filter(e => (e.expenseDate||'').slice(0,7)===fm) : S.expenses;
+    if (fc) rows = rows.filter(e => e.category === fc);
+    rows = [...rows].sort((a,b) => (b.expenseDate||'').localeCompare(a.expenseDate||''));
+    const suffix = [fm, fc].filter(Boolean).join('_') || 'all';
     _dlCSV(
-      [['Date','Category','Sub','Description','Supplier','Site','Net','VAT','Gross','Receipt']],
-      S.expenses.map(e => [e.expenseDate,e.category,e.subcategory,e.description,
-        e.supplier,e.linkedSiteId,e.amountNet,e.amountVat,e.amountGross,e.receiptRef]),
-      'expenses.csv'
+      [['Date','Category','Sub','Description','Supplier','Site','Net','VAT','Gross','Receipt','Recurring']],
+      rows.map(e => [e.expenseDate,e.category,e.subcategory,e.description,
+        e.supplier,e.linkedSiteId,e.amountNet,e.amountVat,e.amountGross,e.receiptRef,e.recurringFlag]),
+      `expenses_${suffix}.csv`
     );
   }
   function _exportSnapCSV() {
+    const fm = S.filter.month;
+    let rows = fm ? S.snaps.filter(s => s.snapshotMonth===fm) : S.snaps;
+    rows = [...rows].sort((a,b) => (b.snapshotMonth||'').localeCompare(a.snapshotMonth||''));
+    const suffix = fm || 'all';
     _dlCSV(
       [['Month','Site','Contract','Revenue','Cash','Labour','Supplies','Travel','Subcontractors','Other','TotalCost','GrossProfit','Margin%','Risk']],
-      S.snaps.map(s => [s.snapshotMonth,s.siteId,s.contractId,s.invoicedRevenue,
+      rows.map(s => [s.snapshotMonth,s.siteId,s.contractId,s.invoicedRevenue,
         s.cashReceived,s.labourCost,s.suppliesCost,s.travelCost,s.subcontractorCost,
         s.otherCost,s.totalCost,s.grossProfit,s.grossMarginPct,s.riskFlag]),
-      'profitability.csv'
+      `profitability_${suffix}.csv`
     );
   }
   function _dlCSV(header, dataRows, filename) {
