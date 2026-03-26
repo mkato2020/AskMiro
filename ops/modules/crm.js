@@ -574,10 +574,18 @@ window.CRM = (() => {
         return `
         ${uploads.length ? `
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Client Uploads</div>
-        ${uploads.map(u => `<div style="display:flex;align-items:flex-start;gap:8px;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065F46;line-height:1.5;margin-bottom:6px">
-          <span style="font-size:15px;flex-shrink:0">📎</span>
-          <span>${_esc(u.replace(/^📎\s*/, ''))}</span>
-        </div>`).join('')}` : ''}
+        ${uploads.map(u => {
+          const txt = u.replace(/^📎\s*/, '');
+          // Check for URL pattern: "filename → https://..."
+          const arrowMatch = txt.match(/^(.+?)\s*→\s*(https?:\/\/\S+)$/);
+          const inner = arrowMatch
+            ? `<a href="${arrowMatch[2]}" target="_blank" rel="noopener" style="color:#065F46;font-weight:700;text-decoration:underline">${_esc(arrowMatch[1])}</a>`
+            : _esc(txt);
+          return `<div style="display:flex;align-items:flex-start;gap:8px;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065F46;line-height:1.5;margin-bottom:6px">
+            <span style="font-size:15px;flex-shrink:0">📎</span>
+            <span>${inner}</span>
+          </div>`;
+        }).join('')}` : ''}
         ${other ? `
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px;margin-top:${uploads.length?'12px':'0'}">Notes</div>
         <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;line-height:1.6;white-space:pre-wrap;margin-bottom:14px">${_esc(other)}</div>` : ''}`;

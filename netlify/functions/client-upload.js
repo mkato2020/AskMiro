@@ -1,14 +1,17 @@
 // ============================================================
 // AskMiro — netlify/functions/client-upload.js
 // Receives client file uploads from /upload.html
+// Stores files in Netlify Blobs (persistent, downloadable URLs)
 // Sends notification email to info@askmiro.com via Resend
-// and pings GAS to log the upload against the lead reference.
+// and pings GAS to log the upload + file URLs against the lead.
 //
 // Env vars:
-//   RESEND_API_KEY         — required
-//   RESEND_DOMAIN_VERIFIED — must be "true" to send
+//   RESEND_API_KEY         — required for email
+//   RESEND_DOMAIN_VERIFIED — must be "true" to send email
 //   GAS_API_URL            — GAS deployment URL
 // ============================================================
+
+import { getStore } from '@netlify/blobs';
 
 const FROM_NAME = 'AskMiro Client Portal';
 const FROM_ADDR = 'office@askmiro.com';
@@ -56,8 +59,30 @@ export default async (req) => {
   const gasUrl = process.env.GAS_API_URL ||
     'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
 
+  // ── Store files in Netlify Blobs — generates permanent URLs ─
+  const storedFiles = [];
+  try {
+    const store = getStore('uploads');
+    for (const f of files) {
+      const key    = `${refId || 'general'}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const buffer = Buffer.from(f.data, 'base64');
+      await store.set(key, buffer, {
+        metadata: { fileName: f.name, mimeType: f.mimeType || 'application/octet-stream', refId: refId || '', uploadedBy: name }
+      });
+      storedFiles.push({ name: f.name, key, url: `https://www.askmiro.com/api/files/${encodeURIComponent(key)}` });
+      console.log('[client-upload] stored:', f.name, 'key:', key);
+    }
+  } catch (e) {
+    console.error('[CLIENT_UPLOAD] blob storage error:', e.message);
+    // Continue without blob URLs — still log to GAS
+  }
+
   // ── Build notification email ────────────────────────────────
   const subject = `📎 Client Upload${refId ? ` — ${refId}` : ''}: ${name}`;
+  const fileLinksHtml = storedFiles.length
+    ? storedFiles.map(f => `<a href="${f.url}" style="display:block;padding:8px 12px;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:6px;color:#0A9688;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:6px">📎 ${f.name}</a>`).join('')
+    : files.map(f => `<div style="padding:8px 12px;background:#F8FAFC;border-radius:6px;font-size:13px;color:#475569;margin-bottom:6px">📎 ${f.name}</div>`).join('');
+
   const html = `
 <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">
   <div style="background:linear-gradient(135deg,#0DBDAD,#0A9688);padding:24px 28px">
@@ -65,27 +90,21 @@ export default async (req) => {
     <div style="font-size:22px;font-weight:800;color:#fff">New File Upload</div>
   </div>
   <div style="padding:24px 28px">
-    <table style="width:100%;border-collapse:collapse">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
       ${[
-        ['Name',      name],
-        ['Email',     email],
-        refId ? ['Lead Ref', refId] : null,
-        refName ? ['Company', refName] : null,
-        files.length ? ['Files', files.map(f => f.name).join(', ')] : null,
-        note ? ['Notes', note] : null,
+        ['Name',    name],
+        ['Email',   email],
+        refId   ? ['Lead Ref', refId]   : null,
+        refName ? ['Company',  refName] : null,
+        note    ? ['Note',     note]    : null,
       ].filter(Boolean).map(([k,v]) => `
         <tr>
           <td style="padding:8px 0;font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;width:80px">${k}</td>
           <td style="padding:8px 0 8px 16px;font-size:14px;color:#1E293B">${v}</td>
         </tr>`).join('')}
     </table>
-    ${note ? `<div style="margin-top:16px;padding:14px;background:#F8FAFC;border-radius:8px;border-left:3px solid #0DBDAD">
-      <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Client Note</div>
-      <div style="font-size:14px;color:#334155">${note}</div>
-    </div>` : ''}
-    <div style="margin-top:20px;padding:12px 16px;background:#F0FDF9;border-radius:8px;font-size:13px;color:#0A9688;font-weight:600">
-      ${files.length} file${files.length !== 1 ? 's' : ''} attached to this email.
-    </div>
+    <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Files (${files.length})</div>
+    ${fileLinksHtml}
   </div>
   <div style="padding:16px 28px;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8">
     Uploaded via askmiro.com/upload.html${refId ? ` · Ref: ${refId}` : ''}
@@ -103,32 +122,25 @@ export default async (req) => {
         html,
         attachments: files.map(f => ({ filename: f.name, content: f.data })),
       };
-
-      const res = await fetch('https://api.resend.com/emails', {
+      const res     = await fetch('https://api.resend.com/emails', {
         method:  'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
       });
-
       const rawText = await res.text();
-      if (!res.ok) {
-        console.error('[CLIENT_UPLOAD] Resend error:', res.status, rawText);
-        // Fall through to GAS-only log below
-      } else {
+      if (!res.ok) { console.error('[CLIENT_UPLOAD] Resend error:', res.status, rawText); }
+      else {
         let result = {};
         try { result = JSON.parse(rawText); } catch (_) {}
-        console.log('[client-upload] ✓ email sent | id:', result.id, '| files:', files.length, '| ref:', refId || 'none');
+        console.log('[client-upload] ✓ email sent | id:', result.id, '| files:', files.length);
       }
-    } catch (e) {
-      console.error('[CLIENT_UPLOAD] email send error:', e.message);
-    }
-  } else {
-    console.warn('[CLIENT_UPLOAD] Email not sent — domain not verified or API key missing. Files received from:', name, email);
+    } catch (e) { console.error('[CLIENT_UPLOAD] email error:', e.message); }
   }
 
-  // ── Ping GAS to log the upload ─────────────────────────────
+  // ── Ping GAS — include file URLs so they appear in CRM ─────
   if (gasUrl) {
     try {
+      const fileLinks = storedFiles.map(f => `${f.name}::${f.url}`).join('|||');
       const gasParams = new URLSearchParams({
         action:      'webhook.upload',
         refId:       refId    || '',
@@ -136,15 +148,14 @@ export default async (req) => {
         clientEmail: email,
         fileCount:   String(files.length),
         fileNames:   files.map(f => f.name).join(', '),
+        fileLinks,
         note:        note || '',
       });
       await fetch(`${gasUrl}?${gasParams.toString()}`);
-    } catch (e) {
-      console.warn('[CLIENT_UPLOAD] GAS ping failed:', e.message);
-    }
+    } catch (e) { console.warn('[CLIENT_UPLOAD] GAS ping failed:', e.message); }
   }
 
-  return new Response(JSON.stringify({ ok: true, count: files.length }), { status: 200, headers });
+  return new Response(JSON.stringify({ ok: true, count: files.length, stored: storedFiles.length }), { status: 200, headers });
 };
 
 export const config = { path: '/api/client-upload' };
