@@ -13,6 +13,7 @@ window.Email = (() => {
   let _thread     = null;
   let _activeTmpl = '';
   let _inboxSearch = '';
+  let _attachments = []; // [{ name, mimeType, data (base64), size }]
 
   // ── BRAND ─────────────────────────────────────────────────
  const BRAND = {
@@ -69,6 +70,49 @@ window.Email = (() => {
       email: BRAND.from,
       role:  BRAND.senderRole,
     };
+  }
+
+  // ── ATTACHMENTS ───────────────────────────────────────────
+  const MAX_FILE_BYTES  = 5  * 1024 * 1024; // 5 MB per file
+  const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB total
+
+  function _handleAttachment(input) {
+    Array.from(input.files || []).forEach(file => {
+      const totalSize = _attachments.reduce((s, a) => s + a.size, 0) + file.size;
+      if (file.size > MAX_FILE_BYTES) {
+        if (window.UI) UI.toast(`${file.name} exceeds 5 MB limit`, 'r'); return;
+      }
+      if (totalSize > MAX_TOTAL_BYTES) {
+        if (window.UI) UI.toast('Total attachments exceed 10 MB', 'r'); return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const base64 = e.target.result.split(',')[1];
+        _attachments.push({ name: file.name, mimeType: file.type || 'application/octet-stream', data: base64, size: file.size });
+        _renderAttachmentList();
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
+  }
+
+  function _removeAttachment(idx) {
+    _attachments.splice(idx, 1);
+    _renderAttachmentList();
+  }
+
+  function _renderAttachmentList() {
+    const el = document.getElementById('em-attachments');
+    if (!el) return;
+    if (!_attachments.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    el.innerHTML = _attachments.map((a, i) => `
+      <div style="display:inline-flex;align-items:center;gap:6px;background:${T.offWhite};border:1px solid ${T.border};border-radius:8px;padding:5px 10px;font-size:12px;color:${T.body}">
+        <span style="color:${T.teal}">&#128206;</span>
+        <span style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(a.name)}">${_esc(a.name)}</span>
+        <span style="color:${T.slate}">(${(a.size/1024).toFixed(0)} KB)</span>
+        <button onclick="Email._removeAttachment(${i})" style="background:none;border:none;cursor:pointer;color:${T.slate};padding:0 2px;font-size:16px;line-height:1" title="Remove">&#215;</button>
+      </div>`).join('');
   }
 
   // ── LOGO ──────────────────────────────────────────────────
@@ -1393,20 +1437,42 @@ Thanks again and nice to meet you.`;
     try {
       if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
-      const isBulk = BULK_TEMPLATES.has(tmpl);
-      await API.post('email.send', {
-        to,
-        subject:  resolvedSubject,
-        template: tmpl || 'Custom',
-        fields:   JSON.stringify(fields),
-        replyTo:  BRAND.replyTo,    // explicit Reply-To header for GAS
-        fromName: BRAND.company,    // display name instead of personal Gmail
-        // List-Unsubscribe only on bulk/outreach emails — not on 1:1 operational mail
-        ...(isBulk && {
-          listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,
-          listUnsubscribePost: 'List-Unsubscribe=One-Click',
-        }),
-      });
+      if (_attachments.length) {
+        // ── ATTACHMENT PATH — POST to Netlify → Resend ─────────
+        const htmlBody = tmpl ? _buildEmailTemplate(tmpl, fields, resolvedSubject) : `<p>${_esc(fields.notes || '')}</p>`;
+        const res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to,
+            subject:     resolvedSubject,
+            htmlBody,
+            replyTo:     BRAND.replyTo,
+            fromName:    BRAND.company,
+            attachments: _attachments.map(a => ({ name: a.name, mimeType: a.mimeType, data: a.data })),
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || `HTTP ${res.status}`);
+        }
+        _attachments = [];
+      } else {
+        // ── NO-ATTACHMENT PATH — JSONP to GAS ─────────────────
+        const isBulk = BULK_TEMPLATES.has(tmpl);
+        await API.post('email.send', {
+          to,
+          subject:  resolvedSubject,
+          template: tmpl || 'Custom',
+          fields:   JSON.stringify(fields),
+          replyTo:  BRAND.replyTo,
+          fromName: BRAND.company,
+          ...(isBulk && {
+            listUnsubscribe:     `<mailto:${BRAND.replyTo}?subject=unsubscribe>`,
+            listUnsubscribePost: 'List-Unsubscribe=One-Click',
+          }),
+        });
+      }
 
       if (window.UI) UI.toast('✓ Email sent to ' + to, 'g');
       _emails.unshift({ id: 'EM-' + Date.now(), to, subject: resolvedSubject, template: tmpl || 'Custom', sentAt: new Date().toLocaleString('en-GB') });
@@ -1498,6 +1564,17 @@ Thanks again and nice to meet you.`;
         <div id="em-prev-wrap" style="display:none;margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll);margin-bottom:6px">Live Preview</div>
           <iframe id="em-prev" style="width:100%;height:520px;border:1px solid var(--bd);border-radius:12px;background:#fff"></iframe>
+        </div>
+
+        <!-- Attachments -->
+        <div class="fg">
+          <label class="fl">Attachments <span style="font-weight:400;color:var(--ll)">(optional)</span></label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--of);border:1.5px dashed var(--bd);border-radius:10px;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:var(--sl);box-sizing:border-box;width:100%">
+            <span style="font-size:20px">&#128206;</span>
+            <span>Click to attach files <span style="color:var(--ll);font-size:11px">PDF, Word, images — max 5 MB each, 10 MB total</span></span>
+            <input type="file" id="em-file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.zip" onchange="Email._handleAttachment(this)" style="display:none">
+          </label>
+          <div id="em-attachments" style="display:none;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
         </div>
 
         <!-- Send button -->
@@ -1823,6 +1900,8 @@ Thanks again and nice to meet you.`;
     _useTmpl,
     _prevModal,
     _send,
+    _handleAttachment,
+    _removeAttachment,
     _searchInbox,
     _openThread,
     _closeThread,
