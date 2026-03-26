@@ -569,20 +569,20 @@ window.CRM = (() => {
       ${l.notes ? (() => {
         // Split notes into upload entries (📎) and regular notes
         const lines   = l.notes.split('\n');
-        const uploads = lines.filter(ln => ln.startsWith('📎'));
-        const other   = lines.filter(ln => !ln.startsWith('📎')).join('\n').trim();
+        const uploads = lines.filter(ln => ln.startsWith('[FILE]') || ln.startsWith('\uD83D\uDCCE'));
+        const other   = lines.filter(ln => !ln.startsWith('[FILE]') && !ln.startsWith('\uD83D\uDCCE')).join('\n').trim();
         return `
         ${uploads.length ? `
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">Client Uploads</div>
         ${uploads.map(u => {
-          const txt = u.replace(/^📎\s*/, '');
-          // Check for URL pattern: "filename → https://..."
-          const arrowMatch = txt.match(/^(.+?)\s*→\s*(https?:\/\/\S+)$/);
+          const txt = u.replace(/^\[FILE\]\s*|\uD83D\uDCCE\s*/g, '');
+          // Check for URL pattern: "date: filename -> https://..."
+          const arrowMatch = txt.match(/^(.+?)\s*->\s*(https?:\/\/\S+)$/);
           const inner = arrowMatch
             ? `<a href="${arrowMatch[2]}" target="_blank" rel="noopener" style="color:#065F46;font-weight:700;text-decoration:underline">${_esc(arrowMatch[1])}</a>`
             : _esc(txt);
           return `<div style="display:flex;align-items:flex-start;gap:8px;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#065F46;line-height:1.5;margin-bottom:6px">
-            <span style="font-size:15px;flex-shrink:0">📎</span>
+            <span style="font-size:13px;font-weight:700;flex-shrink:0;color:#0D9488">&#128206;</span>
             <span>${inner}</span>
           </div>`;
         }).join('')}` : ''}
