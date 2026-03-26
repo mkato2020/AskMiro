@@ -188,6 +188,14 @@ ${UI.secHd('Admin & Settings','System configuration, users and company documents
         tag:'Via Payroll',
         tagCls:'pt',
         action:"Router.navigate('payroll')"
+      },
+      {
+        icon:'&#128196;',
+        title:'Contractor Compliance Pack',
+        sub:'15-document H&amp;S and compliance pack — RAMS, COSHH, Method Statement, H&amp;S Policy and more.',
+        tag:'Client-facing · 16 pages',
+        tagCls:'pg',
+        action:"Documents.openPackModal()"
       }
     ];
     return `

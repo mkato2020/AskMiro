@@ -11,8 +11,10 @@ window.Labour = (() => {
     filter: { month: '', workerId: '', status: '', siteId: '' }
   };
 
-  const ROLES   = ['Cleaner','Supervisor','Team Leader','Driver','Office'];
-  const STATUSES = ['pending','approved','paid'];
+  const ROLES        = ['Cleaner','Supervisor','Team Leader','Driver','Office'];
+  const STATUSES     = ['pending','approved','paid'];
+  const ENTRY_TYPES  = ['Basic Hours','Overtime x1.5','Overtime x2','Night Shift','Holiday Pay','Training','Other'];
+  const PAY_METHODS  = ['BACS','Cash','Cheque'];
 
   // ── ENTRY POINT ───────────────────────────────────────────────
   async function render() {
@@ -112,17 +114,17 @@ ${UI.secHd('Labour & Payroll','Track worker hours, approve payroll and generate 
 
     const eRows = sorted.map(e => {
       const stCls = e.status==='paid'?'pg':e.status==='approved'?'pt':'pa';
+      const etColor = e.entry_type==='Overtime x1.5'||e.entry_type==='Overtime x2'?'#7C3AED':e.entry_type==='Night Shift'?'#0369A1':'#0D9488';
       return `<tr>
         <td style="white-space:nowrap;font-size:12px">${e.date||'—'}</td>
         <td style="font-weight:600">${_esc(e.worker_name||'—')}</td>
-        <td style="font-size:11px;color:var(--ll)">${_esc(e.role||'—')}</td>
+        <td style="font-size:11px;color:${etColor};font-weight:600">${_esc(e.entry_type||'Basic Hours')}</td>
         <td style="font-size:12px;color:var(--ll)">${_esc(e.site_id||'—')}</td>
-        <td style="font-size:12px;color:var(--ll)">${_esc(e.contract_id||'—')}</td>
         <td style="text-align:right;font-weight:700">${_n(e.hours_worked).toFixed(2)}</td>
         <td style="text-align:right;font-size:12px;color:var(--ll)">${UI.fmt(e.hourly_rate||0)}/h</td>
         <td style="text-align:right;font-weight:700;color:#0D9488">${UI.fmt(e.total_pay||0)}</td>
         <td><span class="pl ${stCls}" style="font-size:10px">${e.status||'—'}</span></td>
-        <td style="font-size:11px;color:var(--ll);max-width:120px;overflow:hidden;text-overflow:ellipsis">${_esc(e.notes||'')}</td>
+        <td style="font-size:11px;color:var(--ll);max-width:100px;overflow:hidden;text-overflow:ellipsis">${_esc(e.notes||'')}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="10" style="padding:0"><div style="padding:8px 0">${_emptyCard({
       icon:'⏱',
@@ -147,7 +149,7 @@ ${UI.secHd('Labour & Payroll','Track worker hours, approve payroll and generate 
 <div class="card">
   <div class="card-body" style="padding-top:8px">
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Date</th><th>Worker</th><th>Role</th><th>Site</th><th>Contract</th><th style="text-align:right">Hours</th><th style="text-align:right">Rate</th><th style="text-align:right">Gross Pay</th><th>Status</th><th>Notes</th></tr></thead>
+      <thead><tr><th>Date</th><th>Worker</th><th>Type</th><th>Site</th><th style="text-align:right">Hours</th><th style="text-align:right">Rate</th><th style="text-align:right">Gross Pay</th><th>Status</th><th>Notes</th></tr></thead>
       <tbody>${eRows}</tbody>
     </table></div>
   </div>
@@ -400,7 +402,8 @@ ${cards}`;
     });
   }
 
-  function _printPayslip({ payRef, workerName, role, period, generated, totalHours, avgRate, grossPay, entryRows, phone, email }) {
+  function _printPayslip({ payRef, workerName, role, address, niNumber, taxCode, paymentMethod, payrollType,
+                            period, generated, totalHours, grossPay, earningsRows, entryRows }) {
     const existing = document.getElementById('lab-print-overlay');
     if (existing) existing.remove();
 
@@ -408,104 +411,214 @@ ${cards}`;
       const s = document.createElement('style');
       s.id = 'lab-print-styles';
       s.textContent = `
-        #lab-print-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:99999;overflow-y:auto;padding:32px 40px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1e293b}
-        #lab-print-overlay .ps-header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:20px;border-bottom:3px solid #0D9488;margin-bottom:28px}
-        #lab-print-overlay .ps-brand{display:flex;align-items:center;gap:10px}
-        #lab-print-overlay .ps-logo{width:44px;height:44px;background:#0D9488;border-radius:10px;display:flex;align-items:center;justify-content:center}
-        #lab-print-overlay .ps-co-name{font-size:20px;font-weight:800;color:#0D9488}
-        #lab-print-overlay .ps-co-name span{color:#0f172a}
-        #lab-print-overlay .ps-co-sub{font-size:11px;color:#64748b;margin-top:2px}
-        #lab-print-overlay .ps-title{text-align:right}
-        #lab-print-overlay .ps-title h2{font-size:22px;font-weight:800;color:#1e293b;margin:0 0 4px}
-        #lab-print-overlay .ps-title p{font-size:12px;color:#64748b;margin:0}
-        #lab-print-overlay .ps-body{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
-        #lab-print-overlay .ps-section{background:#f8fafc;border-radius:10px;padding:16px 18px;border:1px solid #e2e8f0}
-        #lab-print-overlay .ps-section h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 12px}
-        #lab-print-overlay .ps-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
-        #lab-print-overlay .ps-row:last-child{border-bottom:none}
-        #lab-print-overlay .ps-row.total{font-weight:800;font-size:15px;border-top:2px solid #0D9488;border-bottom:none;padding-top:10px;margin-top:4px;color:#0D9488}
-        #lab-print-overlay table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}
-        #lab-print-overlay th{background:#f8fafc;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-bottom:2px solid #e2e8f0}
-        #lab-print-overlay td{padding:7px 10px;border-bottom:1px solid #f1f5f9}
-        #lab-print-overlay .ps-notice{background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;padding:12px 14px;font-size:11px;color:#0f766e;margin-bottom:20px}
-        #lab-print-overlay .ps-footer{margin-top:24px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
+        #lab-print-overlay{display:none;position:fixed;inset:0;background:#f0f4f8;z-index:99999;overflow-y:auto;padding:32px 40px;font-family:Arial,'Helvetica Neue',sans-serif;font-size:12px;color:#1e293b}
+        #lab-print-overlay *{box-sizing:border-box}
+        .ps-doc{max-width:820px;margin:0 auto;background:#fff;box-shadow:0 4px 32px rgba(0,0,0,.12)}
+        .ps-top-bar{background:#0D9488;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+        .ps-top-bar .brand{display:flex;align-items:center;gap:10px}
+        .ps-top-bar .brand-logo{width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:7px;display:flex;align-items:center;justify-content:center}
+        .ps-top-bar .brand-name{font-size:17px;font-weight:800;color:#fff}
+        .ps-top-bar .brand-sub{font-size:10px;color:rgba(255,255,255,.75);margin-top:1px}
+        .ps-top-bar .confidential{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px}
+        .ps-address-bar{display:grid;grid-template-columns:1fr auto;gap:0;background:#f8fafc;border-bottom:2px solid #e2e8f0}
+        .ps-addr{padding:16px 24px;font-size:12px;color:#1e293b;line-height:1.7;border-right:1px solid #e2e8f0}
+        .ps-addr .addr-name{font-size:13px;font-weight:700;color:#0f172a}
+        .ps-emp-meta{padding:16px 24px;text-align:right;font-size:11px;color:#64748b;line-height:1.7}
+        .ps-emp-meta .emp-ref{font-size:18px;font-weight:800;color:#1e293b;font-family:monospace}
+        .ps-id-bar{display:grid;grid-template-columns:auto 1fr auto;background:#1e293b;color:#fff;padding:10px 24px;align-items:center;gap:0}
+        .ps-id-bar .emp-num{font-size:13px;font-weight:700;font-family:monospace;color:#94a3b8;border-right:1px solid rgba(255,255,255,.1);padding-right:20px}
+        .ps-id-bar .emp-name{font-size:15px;font-weight:800;text-align:center;letter-spacing:.02em}
+        .ps-id-bar .pay-day{text-align:right;font-size:12px;color:#94a3b8;border-left:1px solid rgba(255,255,255,.1);padding-left:20px}
+        .ps-id-bar .pay-day strong{display:block;color:#fff;font-size:13px}
+        .ps-company-bar{display:grid;grid-template-columns:1fr 1fr 1fr;background:#f0fdf4;border-bottom:2px solid #bbf7d0}
+        .ps-company-bar > div{padding:8px 16px;font-size:11px;color:#64748b;border-right:1px solid #bbf7d0}
+        .ps-company-bar > div:last-child{border-right:none;text-align:right}
+        .ps-company-bar strong{display:block;font-size:12px;color:#0f766e;font-weight:700;margin-top:1px}
+        .ps-main{display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #e2e8f0}
+        .ps-col{padding:0}
+        .ps-col:first-child{border-right:2px solid #e2e8f0}
+        .ps-col-hd{background:#1e293b;color:#fff;padding:7px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:grid;grid-template-columns:1fr auto auto auto}
+        .ps-col-hd span{text-align:right}
+        .ps-line{display:grid;padding:6px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center}
+        .ps-line.earn{grid-template-columns:1fr 52px 60px 60px}
+        .ps-line.ded{grid-template-columns:1fr 70px}
+        .ps-line span{text-align:right}
+        .ps-line .desc{text-align:left;color:#334155}
+        .ps-total-row{display:grid;background:#f8fafc;border-top:2px solid #1e293b;padding:8px 14px;font-size:12px;font-weight:700;color:#1e293b}
+        .ps-total-row.earn{grid-template-columns:1fr 52px 60px 60px}
+        .ps-total-row.ded{grid-template-columns:1fr 70px}
+        .ps-total-row span{text-align:right}
+        .ps-bottom{display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #e2e8f0}
+        .ps-running{padding:14px 16px;border-right:2px solid #e2e8f0}
+        .ps-running h4,.ps-paid h4{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}
+        .ps-running table,.ps-paid table{width:100%;font-size:11px;border-collapse:collapse}
+        .ps-running td,.ps-paid td{padding:3px 0;color:#475569}
+        .ps-running td:last-child,.ps-paid td:last-child{text-align:right;font-weight:600;color:#1e293b}
+        .ps-paid{padding:14px 16px}
+        .ps-net-row td{font-size:13px;font-weight:800;color:#0D9488;padding-top:6px!important;border-top:2px solid #0D9488}
+        .ps-footer-bar{display:grid;grid-template-columns:1fr 1fr 1fr;background:#1e293b;padding:10px 24px;gap:0}
+        .ps-footer-bar > div{font-size:11px;color:rgba(255,255,255,.5);padding:0 8px}
+        .ps-footer-bar > div:nth-child(2){text-align:center;border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)}
+        .ps-footer-bar > div:last-child{text-align:right}
+        .ps-footer-bar strong{display:block;font-size:12px;color:#fff;margin-bottom:1px}
+        .ps-amount-paid{background:#0D9488;color:#fff;padding:10px 24px;display:flex;justify-content:space-between;align-items:center}
+        .ps-amount-paid .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.75)}
+        .ps-amount-paid .value{font-size:22px;font-weight:900;letter-spacing:-.5px}
         @media print{
-          body > *:not(#lab-print-overlay){display:none!important}
-          #lab-print-overlay{display:block!important;position:static!important;padding:20px 28px}
+          body>*:not(#lab-print-overlay){display:none!important}
+          #lab-print-overlay{display:block!important;position:static!important;padding:0;background:#fff}
           #lab-print-overlay .no-print{display:none!important}
+          .ps-doc{box-shadow:none}
           *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
         }`;
       document.head.appendChild(s);
     }
 
+    // Tax & NI estimates (basic — for display only)
+    const tCode    = taxCode || '1257L';
+    const allowance = parseInt(tCode) * 10 || 12570;
+    const monthly   = allowance / 12;
+    // Very rough estimates — clearly marked as indicative
+    const taxEst    = Math.max(0, (grossPay - monthly/4.33) * 0.20);
+    const niEst     = Math.max(0, (grossPay - 242) * 0.12);
+    const totalDed  = taxEst + niEst;
+    const netPay    = grossPay - totalDed;
+
+    // YTD — if worker has stored values use them, else estimate from this period
+    const ytdGross = grossPay;
+    const ytdTax   = taxEst;
+    const ytdNI    = niEst;
+
     const overlay = document.createElement('div');
     overlay.id = 'lab-print-overlay';
     overlay.innerHTML = `
-      <div class="ps-header">
-        <div class="ps-brand">
-          <div class="ps-logo">
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-              <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ps-co-name"><span>Ask</span>Miro</div>
-            <div class="ps-co-sub">AskMiro Cleaning Services Ltd</div>
-            <div class="ps-co-sub">info@askmiro.com &middot; askmiro.com</div>
-          </div>
-        </div>
-        <div class="ps-title">
-          <h2>Payslip</h2>
-          <p>Ref: ${payRef}</p>
-          <p>Pay Period: ${_fm(period)}</p>
-          <p>Issued: ${generated}</p>
-        </div>
-      </div>
+<div class="ps-doc">
 
-      <div class="ps-body">
-        <div class="ps-section">
-          <h4>Employee Details</h4>
-          <div class="ps-row"><span>Name</span><strong>${_esc(workerName)}</strong></div>
-          <div class="ps-row"><span>Role</span><span>${_esc(role)}</span></div>
-          ${phone ? `<div class="ps-row"><span>Phone</span><span>${_esc(phone)}</span></div>` : ''}
-          ${email ? `<div class="ps-row"><span>Email</span><span>${_esc(email)}</span></div>` : ''}
-        </div>
-        <div class="ps-section">
-          <h4>Pay Summary</h4>
-          <div class="ps-row"><span>Pay Period</span><span>${_fm(period)}</span></div>
-          <div class="ps-row"><span>Total Hours</span><strong>${totalHours.toFixed(2)}</strong></div>
-          <div class="ps-row"><span>Average Rate</span><span>£${avgRate.toFixed(2)}/hr</span></div>
-          <div class="ps-row"><span>Gross Pay</span><strong>£${grossPay.toFixed(2)}</strong></div>
-          <div class="ps-row"><span>Deductions (PAYE)</span><span style="color:#94a3b8">N/A — v1</span></div>
-          <div class="ps-row total"><span>Net Pay</span><span>£${grossPay.toFixed(2)}</span></div>
-        </div>
+  <!-- Top teal bar -->
+  <div class="ps-top-bar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
+      <div>
+        <div class="brand-name">AskMiro</div>
+        <div class="brand-sub">AskMiro Cleaning Services Ltd</div>
+      </div>
+    </div>
+    <div class="confidential">Private &amp; Confidential</div>
+  </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--ll,#64748b);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Hours Breakdown</div>
+  <!-- Address + emp ref -->
+  <div class="ps-address-bar">
+    <div class="ps-addr">
+      <div class="addr-name">Mr/Ms ${_esc(workerName)}</div>
+      ${address ? address.split(',').map(l => `<div>${_esc(l.trim())}</div>`).join('') : '<div style="color:#94a3b8;font-size:11px">No address on file</div>'}
+    </div>
+    <div class="ps-emp-meta">
+      <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Employee Ref</div>
+      <div class="emp-ref">${payRef}</div>
+      <div style="margin-top:4px">Post to Home Address.</div>
+      <div style="color:#0D9488;font-weight:600">AskMiro Cleaning Services</div>
+    </div>
+  </div>
+
+  <!-- ID bar -->
+  <div class="ps-id-bar">
+    <div class="emp-num">${payRef}</div>
+    <div class="emp-name">${_esc(workerName.toUpperCase())}</div>
+    <div class="pay-day"><span>Pay Day</span><strong>${generated}</strong></div>
+  </div>
+
+  <!-- Company / period bar -->
+  <div class="ps-company-bar">
+    <div><span>Employer</span><strong>AskMiro Cleaning Services Ltd</strong></div>
+    <div><span>Pay Period</span><strong>${_fm(period)}</strong></div>
+    <div><span>Pay Type</span><strong>Hourly · ${_esc(payrollType||'PAYE')}</strong></div>
+  </div>
+
+  <!-- Main earnings / deductions -->
+  <div class="ps-main">
+    <!-- Earnings -->
+    <div class="ps-col">
+      <div class="ps-col-hd">
+        <div>Earnings</div><span>Units</span><span>Rate</span><span>Amount</span>
+      </div>
+      ${earningsRows}
+      <div class="ps-total-row earn">
+        <div>Total</div>
+        <span style="font-size:11px;font-weight:600">Hrs ${totalHours.toFixed(2)}</span>
+        <span></span>
+        <span style="color:#0D9488">£${grossPay.toFixed(2)}</span>
+      </div>
+    </div>
+    <!-- Deductions -->
+    <div class="ps-col">
+      <div class="ps-col-hd" style="grid-template-columns:1fr auto">
+        <div>Deductions</div><span>Amount</span>
+      </div>
+      <div class="ps-line ded">
+        <div class="desc">Tax (Code ${_esc(tCode)})</div>
+        <span>${taxEst > 0 ? '£'+taxEst.toFixed(2) : '—'}</span>
+      </div>
+      <div class="ps-line ded">
+        <div class="desc">NI (Category A)</div>
+        <span>${niEst > 0 ? '£'+niEst.toFixed(2) : '—'}</span>
+      </div>
+      <div class="ps-total-row ded" style="grid-template-columns:1fr auto">
+        <div>Total Deductions</div>
+        <span style="color:#dc2626">£${totalDed.toFixed(2)}</span>
+      </div>
+      <div style="padding:10px 14px;font-size:10px;color:#94a3b8;line-height:1.5;border-top:1px solid #f1f5f9">
+        &#9432; Tax &amp; NI figures are indicative estimates only. Confirm with your payroll accountant before payment.
+      </div>
+    </div>
+  </div>
+
+  <!-- Running Totals + Amount Paid -->
+  <div class="ps-bottom">
+    <div class="ps-running">
+      <h4>Running Totals — Tax Year to Date</h4>
       <table>
-        <thead><tr><th>Date</th><th>Site</th><th style="text-align:right">Hours</th><th style="text-align:right">Rate</th><th style="text-align:right">Pay</th></tr></thead>
-        <tbody>${entryRows}</tbody>
-        <tfoot><tr>
-          <td colspan="2" style="font-weight:700;text-align:right">Total</td>
-          <td style="font-weight:700;text-align:right">${totalHours.toFixed(2)}</td>
-          <td></td>
-          <td style="font-weight:800;color:#0D9488;text-align:right">£${grossPay.toFixed(2)}</td>
-        </tr></tfoot>
+        <tr><td colspan="2" style="font-size:10px;font-weight:700;color:#64748b;padding-bottom:4px">This Employment</td></tr>
+        <tr><td>Gross Pay</td><td>£${ytdGross.toFixed(2)}</td></tr>
+        <tr><td>Taxable Pay</td><td>£${ytdGross.toFixed(2)}</td></tr>
+        <tr><td>Tax</td><td>£${ytdTax.toFixed(2)}</td></tr>
+        <tr><td>Employee's NI</td><td>£${ytdNI.toFixed(2)}</td></tr>
+        <tr><td>Total Hours YTD</td><td>${totalHours.toFixed(2)}</td></tr>
       </table>
+    </div>
+    <div class="ps-paid">
+      <h4>Amount Paid</h4>
+      <table>
+        <tr><td>Earnings</td><td>£${grossPay.toFixed(2)}</td></tr>
+        <tr><td>Deductions</td><td>£${totalDed.toFixed(2)}</td></tr>
+        <tr class="ps-net-row"><td><strong>Net Pay</strong></td><td><strong>£${netPay.toFixed(2)}</strong></td></tr>
+        <tr><td style="padding-top:8px">Payment Method</td><td>${_esc(paymentMethod||'BACS')}</td></tr>
+      </table>
+    </div>
+  </div>
 
-      <div class="ps-notice">
-        &#9432; This payslip is for internal reference only. PAYE tax and National Insurance calculations are not included in this version. Please consult your accountant for official payroll submissions.
-      </div>
+  <!-- Footer bar -->
+  <div class="ps-footer-bar">
+    <div><strong>NI Number</strong>${niNumber ? _esc(niNumber) : 'Not on file'}</div>
+    <div><strong>Tax Code</strong>${_esc(tCode)}</div>
+    <div><strong>Employer's NI Contribution</strong>£${(grossPay * 0.138).toFixed(2)} (est.)</div>
+  </div>
 
-      <div class="ps-footer">
-        <span>AskMiro Cleaning Services Ltd — Confidential. For payee use only.</span>
-        <span>Generated ${generated} · askmiro.com</span>
-      </div>
+  <!-- Amount paid green bar -->
+  <div class="ps-amount-paid">
+    <div class="label">Amount Paid</div>
+    <div class="value">£${netPay.toFixed(2)}</div>
+  </div>
 
-      <div class="no-print" style="text-align:center;margin-top:28px;padding-bottom:40px">
-        <button onclick="window.print()" style="background:#0D9488;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">&#128438; Save as PDF</button>
-        <button onclick="document.getElementById('lab-print-overlay').remove()" style="background:#f1f5f9;color:#475569;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;margin-left:10px">&#x2715; Close</button>
-      </div>`;
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:24px;padding-bottom:48px">
+  <button onclick="window.print()" style="background:#0D9488;color:#fff;border:none;padding:11px 32px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-right:10px">&#128438; Save as PDF</button>
+  <button onclick="document.getElementById('lab-print-overlay').remove()" style="background:#f1f5f9;color:#475569;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer">&#x2715; Close</button>
+</div>`;
     document.body.appendChild(overlay);
     overlay.style.display = 'block';
   }
@@ -545,6 +658,7 @@ ${cards}`;
     const wOpts = S.workers.filter(w => w.status !== 'inactive').map(w =>
       `<option value="${w.worker_id}" data-rate="${w.default_hourly_rate||0}">${_esc(w.name)} — ${UI.fmt(w.default_hourly_rate||0)}/h</option>`
     ).join('');
+    const etOpts = ENTRY_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
 
     UI.openModal(`
 <div class="modal-hd"><h2>Log Labour Hours</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
@@ -559,9 +673,12 @@ ${cards}`;
   </div>
   ${!wOpts ? `<div style="padding:8px 0;font-size:12px;color:#D97706">&#9432; No active workers. <a style="color:#0D9488;cursor:pointer" onclick="UI.closeModal();Labour._tab('workers');Labour.openAddWorker()">Add a worker first →</a></div>` : ''}
   <div class="fr">
+    <div class="fg"><label class="fl">Entry Type <span class="req">*</span></label>
+      <select class="fin" id="le-type" onchange="Labour._applyEntryType()">${etOpts}</select></div>
     <div class="fg"><label class="fl">Hours Worked <span class="req">*</span></label><input class="fin" id="le-hours" type="number" step="0.5" min="0" max="24" placeholder="e.g. 8" oninput="Labour._calcPay()"></div>
-    <div class="fg"><label class="fl">Hourly Rate (£) <span class="req">*</span></label><input class="fin" id="le-rate" type="number" step="0.01" min="0" placeholder="0.00" oninput="Labour._calcPay()"></div>
   </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Hourly Rate (£) <span class="req">*</span></label><input class="fin" id="le-rate" type="number" step="0.01" min="0" placeholder="0.00" oninput="Labour._calcPay()"></div>
   <div class="fr">
     <div class="fg"><label class="fl">Gross Pay (£)</label>
       <input class="fin" id="le-pay" type="number" step="0.01" placeholder="Auto-calculated" style="background:#f8fafc" readonly></div>
@@ -589,6 +706,19 @@ ${cards}`;
     if (rateEl && rate) { rateEl.value = rate.toFixed(2); _calcPay(); }
   }
 
+  function _applyEntryType() {
+    const type    = document.getElementById('le-type')?.value || 'Basic Hours';
+    const sel     = document.getElementById('le-worker');
+    const opt     = sel?.options[sel.selectedIndex];
+    const baseRate = opt ? parseFloat(opt.dataset.rate||0) : 0;
+    if (!baseRate) return;
+    const rateEl = document.getElementById('le-rate');
+    if (!rateEl) return;
+    const multiplier = type === 'Overtime x1.5' ? 1.5 : type === 'Overtime x2' ? 2 : type === 'Night Shift' ? 1.3 : 1;
+    rateEl.value = (baseRate * multiplier).toFixed(2);
+    _calcPay();
+  }
+
   function _calcPay() {
     const hours = _n(document.getElementById('le-hours')?.value);
     const rate  = _n(document.getElementById('le-rate')?.value);
@@ -608,6 +738,7 @@ ${cards}`;
         workerName:  worker?.name || '',
         role:        worker?.role || '',
         date:        UI.gv('le-date'),
+        entryType:   UI.gv('le-type') || 'Basic Hours',
         hoursWorked: UI.gv('le-hours'),
         hourlyRate:  UI.gv('le-rate'),
         totalPay:    UI.gv('le-pay'),
@@ -634,28 +765,49 @@ ${cards}`;
   }
 
   function _workerModal(w = null) {
-    const editing = !!w;
+    const editing  = !!w;
     const roleOpts = ROLES.map(r => `<option value="${r}"${w?.role===r?' selected':''}>${r}</option>`).join('');
+    const pmOpts   = PAY_METHODS.map(m => `<option value="${m}"${(w?.payment_method||'BACS')===m?' selected':''}>${m}</option>`).join('');
     UI.openModal(`
 <div class="modal-hd"><h2>${editing?'Edit Worker':'Add Worker'}</h2><button class="xbtn" onclick="UI.closeModal()">&#x2715;</button></div>
 <div class="modal-body">
+  <div style="font-size:11px;font-weight:700;color:var(--ll);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Personal Details</div>
   <div class="fr">
-    <div class="fg"><label class="fl">Full Name <span class="req">*</span></label><input class="fin" id="wk-name" value="${_esc(w?.name||'')}" placeholder="Worker name"></div>
-    <div class="fg"><label class="fl">Role <span class="req">*</span></label>
-      <select class="fin" id="wk-role">${roleOpts}</select></div>
+    <div class="fg"><label class="fl">Full Name <span class="req">*</span></label><input class="fin" id="wk-name" value="${_esc(w?.name||'')}" placeholder="First and last name"></div>
+    <div class="fg"><label class="fl">Role <span class="req">*</span></label><select class="fin" id="wk-role">${roleOpts}</select></div>
   </div>
   <div class="fr">
-    <div class="fg"><label class="fl">Default Hourly Rate (£) <span class="req">*</span></label><input class="fin" id="wk-rate" type="number" step="0.01" value="${w?.default_hourly_rate||''}" placeholder="e.g. 12.50"></div>
+    <div class="fg"><label class="fl">Phone</label><input class="fin" id="wk-phone" value="${_esc(w?.phone||'')}" placeholder="07xxx xxxxxx"></div>
+    <div class="fg"><label class="fl">Email</label><input class="fin" id="wk-email" value="${_esc(w?.email||'')}" placeholder="worker@email.com"></div>
+  </div>
+  <div class="fg"><label class="fl">Address</label><input class="fin" id="wk-addr" value="${_esc(w?.address||'')}" placeholder="e.g. 52 Wallis Close, London, SW11 2BA"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Date of Birth</label><input class="fin" id="wk-dob" type="date" value="${w?.date_of_birth||''}"></div>
+    <div class="fg"><label class="fl">Start Date</label><input class="fin" id="wk-start" type="date" value="${w?.start_date||''}"></div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:var(--ll);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Payroll Details</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">NI Number</label><input class="fin" id="wk-ni" value="${_esc(w?.ni_number||'')}" placeholder="e.g. TK 47 82 28 A" style="font-family:monospace"></div>
+    <div class="fg"><label class="fl">Tax Code</label><input class="fin" id="wk-tax" value="${_esc(w?.tax_code||'1257L')}" placeholder="e.g. 1257L" style="font-family:monospace"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Default Hourly Rate (£) <span class="req">*</span></label><input class="fin" id="wk-rate" type="number" step="0.01" value="${w?.default_hourly_rate||''}" placeholder="e.g. 15.30"></div>
+    <div class="fg"><label class="fl">Payment Method</label><select class="fin" id="wk-pm">${pmOpts}</select></div>
+  </div>
+  <div class="fr">
     <div class="fg"><label class="fl">Status</label>
       <select class="fin" id="wk-status">
         <option value="active"${(!w||w.status==='active')?' selected':''}>Active</option>
         <option value="inactive"${w?.status==='inactive'?' selected':''}>Inactive</option>
       </select>
     </div>
-  </div>
-  <div class="fr">
-    <div class="fg"><label class="fl">Phone</label><input class="fin" id="wk-phone" value="${_esc(w?.phone||'')}" placeholder="07xxx xxxxxx"></div>
-    <div class="fg"><label class="fl">Email</label><input class="fin" id="wk-email" value="${_esc(w?.email||'')}" placeholder="worker@email.com"></div>
+    <div class="fg"><label class="fl">Payroll Type</label>
+      <select class="fin" id="wk-ptype">
+        <option value="PAYE"${(w?.payroll_type||'PAYE')==='PAYE'?' selected':''}>PAYE</option>
+        <option value="Self-employed"${w?.payroll_type==='Self-employed'?' selected':''}>Self-employed</option>
+        <option value="Agency"${w?.payroll_type==='Agency'?' selected':''}>Agency</option>
+      </select>
+    </div>
   </div>
   <div class="modal-foot">
     <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
@@ -677,6 +829,13 @@ ${cards}`;
         defaultHourlyRate: UI.gv('wk-rate'),
         phone:             UI.gv('wk-phone'),
         email:             UI.gv('wk-email'),
+        address:           UI.gv('wk-addr'),
+        dateOfBirth:       UI.gv('wk-dob'),
+        startDate:         UI.gv('wk-start'),
+        niNumber:          UI.gv('wk-ni'),
+        taxCode:           UI.gv('wk-tax') || '1257L',
+        paymentMethod:     UI.gv('wk-pm')  || 'BACS',
+        payrollType:       UI.gv('wk-ptype') || 'PAYE',
         status:            UI.gv('wk-status')
       });
       UI.closeModal(); UI.toast(workerId ? 'Worker updated' : 'Worker added ✓', 'g');
