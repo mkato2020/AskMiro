@@ -53,7 +53,8 @@ export default async (req) => {
 
   const apiKey         = process.env.RESEND_API_KEY;
   const domainVerified = process.env.RESEND_DOMAIN_VERIFIED === 'true';
-  const gasUrl         = process.env.GAS_API_URL || '';
+  const gasUrl = process.env.GAS_API_URL ||
+    'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
 
   // ── Build notification email ────────────────────────────────
   const subject = `📎 Client Upload${refId ? ` — ${refId}` : ''}: ${name}`;
