@@ -148,6 +148,24 @@ ${UI.secHd('Finance','Revenue, Costs & Invoicing')}
     const recent5Exp = [...fExps].sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
     const today      = new Date().toISOString().slice(0,10);
 
+    const overdueInvs = fInvs.filter(i =>
+      (i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < today
+    ).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+    const dueIn30 = fInvs.filter(i => {
+      if (i.status==='Paid'||i.status==='Void') return false;
+      if (!i.dueDate) return false;
+      const days = Math.round((new Date(i.dueDate)-new Date(today))/86400000);
+      return days >= 0 && days <= 30;
+    });
+    const expectedCash = dueIn30.reduce((s,i) => s+_n(i.balanceDue||i.totalAmount), 0);
+
+    // Strongest / weakest from profitability snapshots
+    const withData = S.snaps.filter(s => _n(s.invoicedRevenue) > 0);
+    const sorted30 = [...withData].sort((a,b) => _n(b.grossMarginPct)-_n(a.grossMarginPct));
+    const strongest = sorted30[0];
+    const weakest   = sorted30[sorted30.length-1];
+
     const invRows = recent5Inv.map(i => {
       const overdue = (i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < today;
       const st = overdue ? 'Overdue' : i.status;
@@ -156,8 +174,16 @@ ${UI.secHd('Finance','Revenue, Costs & Invoicing')}
         <td>${_esc(i.customerName||'')}</td>
         <td style="font-weight:600">${UI.fmt(i.totalAmount||0)}</td>
         <td>${UI.statusPill(st)}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          ${st==='Overdue'||st==='Issued'?`<button class="btn bo btn-xs" style="border-color:#059669;color:#059669;font-size:10px;padding:2px 7px" onclick="Finance.openRecordPayment('${i.id}','${i.balanceDue||i.totalAmount||0}','${i.customerName||''}')">&#10003; Pay</button>`:''}
+        </td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ll);padding:20px;font-size:13px">No invoices yet</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="padding:0"><div style="padding:20px 16px">${_emptyCard({
+      icon:'📄', title:'No invoices yet',
+      body:'Create your first invoice to start tracking revenue. Link it to a contract to see profitability per site.',
+      ctas:[{ label:'+ Create First Invoice', action:"Finance.openCreateInvoice()" }],
+      hint:'Invoices flow through: Draft → Issued → Paid. Each step writes to your transaction ledger.'
+    })}</div></td></tr>`;
 
     const expRows = recent5Exp.map(e =>
       `<tr>
@@ -166,11 +192,81 @@ ${UI.secHd('Finance','Revenue, Costs & Invoicing')}
         <td>${_esc((e.description||'').slice(0,30))}</td>
         <td style="font-weight:600;color:#DC2626">${UI.fmt(e.amountGross||0)}</td>
       </tr>`
-    ).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ll);padding:20px;font-size:13px">No expenses yet</td></tr>`;
+    ).join('') || `<tr><td colspan="4" style="padding:0"><div style="padding:20px 16px">${_emptyCard({
+      icon:'🧾', title:'No expenses yet',
+      body:'Log your costs here. Link expenses to sites and contracts to see where you are making or losing margin.',
+      ctas:[{ label:'+ Add First Expense', action:"Finance.openAddExpense()" }],
+      hint:'Recurring expenses (insurance, subscriptions) can be auto-generated each month.'
+    })}</div></td></tr>`;
+
+    // Overdue action queue
+    const overdueBlock = overdueInvs.length ? `
+<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;margin-bottom:12px">
+  <div class="fb" style="margin-bottom:8px">
+    <span style="font-size:12px;font-weight:700;color:#991B1B">&#9888; ${overdueInvs.length} overdue invoice${overdueInvs.length>1?'s':''} — ${UI.fmt(overdueInvs.reduce((s,i)=>s+_n(i.balanceDue||i.totalAmount),0))} outstanding</span>
+    <button class="btn btn-xs" style="font-size:10px;background:#DC2626;color:#fff;border:none" onclick="Finance._tab('invoices');Finance._setFilter('status','Overdue')">View all</button>
+  </div>
+  ${overdueInvs.slice(0,3).map(i => {
+    const days = Math.round((new Date(today)-new Date(i.dueDate))/86400000);
+    return `<div class="fb" style="font-size:12px;color:#7F1D1D;padding:4px 0;border-top:1px solid #FECACA">
+      <span>${_esc(i.customerName||i.invoiceNumber||i.id)} <span style="opacity:.7">${days}d overdue</span></span>
+      <span style="font-weight:700">${UI.fmt(i.balanceDue||i.totalAmount||0)}
+        <button class="btn bo btn-xs" style="border-color:#DC2626;color:#DC2626;font-size:10px;padding:1px 6px;margin-left:6px" onclick="Finance.openRecordPayment('${i.id}','${i.balanceDue||i.totalAmount||0}','${i.customerName||''}')">Pay</button>
+      </span>
+    </div>`;
+  }).join('')}
+</div>` : '';
+
+    // Expected cash + contract insight strip
+    const insightStrip = (expectedCash > 0 || strongest) ? `
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px">
+  ${expectedCash > 0 ? `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 14px">
+    <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.06em">Expected Cash (30d)</div>
+    <div style="font-size:20px;font-weight:800;color:#166534;margin-top:4px">${UI.fmt(expectedCash)}</div>
+    <div style="font-size:11px;color:#4ADE80;margin-top:2px">${dueIn30.length} invoice${dueIn30.length!==1?'s':''} due within 30 days</div>
+  </div>` : ''}
+  ${strongest ? `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 14px">
+    <div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.06em">&#9650; Strongest Contract</div>
+    <div style="font-size:15px;font-weight:700;color:#166534;margin-top:4px">${_esc(strongest.siteId||'—')}</div>
+    <div style="font-size:12px;color:#4ADE80;margin-top:2px">${UI.fmtPct(strongest.grossMarginPct)} margin · ${UI.fmt(strongest.invoicedRevenue)}</div>
+  </div>` : ''}
+  ${weakest && weakest !== strongest ? `<div style="background:${_n(weakest.grossMarginPct)<0?'#FEF2F2':'#FFFBEB'};border:1px solid ${_n(weakest.grossMarginPct)<0?'#FECACA':'#FDE68A'};border-radius:8px;padding:12px 14px">
+    <div style="font-size:11px;font-weight:700;color:${_n(weakest.grossMarginPct)<0?'#991B1B':'#92400E'};text-transform:uppercase;letter-spacing:.06em">&#9660; Weakest Contract</div>
+    <div style="font-size:15px;font-weight:700;color:${_n(weakest.grossMarginPct)<0?'#DC2626':'#D97706'};margin-top:4px">${_esc(weakest.siteId||'—')}</div>
+    <div style="font-size:12px;color:${_n(weakest.grossMarginPct)<0?'#DC2626':'#D97706'};margin-top:2px">${UI.fmtPct(weakest.grossMarginPct)} margin · ${UI.fmt(weakest.invoicedRevenue)}</div>
+  </div>` : ''}
+</div>` : '';
+
+    // Full "get started" panel when there's truly no data at all
+    const noDataYet = !S.invoices.length && !S.expenses.length && !S.txns.length;
+    const getStarted = noDataYet ? `
+<div style="background:linear-gradient(135deg,#f0fdfa,#fff);border:1px solid #99f6e4;border-radius:12px;padding:24px 28px;margin-bottom:16px">
+  <div style="font-size:15px;font-weight:700;color:#0f766e;margin-bottom:6px">&#128200; Your Finance OS is ready — here's how it works</div>
+  <div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap;margin-top:16px">
+    ${[
+      ['1','Create Invoice','Bill a client and link to their contract.','Finance.openCreateInvoice()'],
+      ['2','Mark Sent','Change status from Draft → Issued.','Finance._tab(\'invoices\')'],
+      ['3','Record Payment','Log cash received → status → Paid.','Finance.openRecordPayment()'],
+      ['4','Add Expenses','Log costs linked to sites.','Finance.openAddExpense()'],
+      ['5','View P&L','See margin per contract after recalculating.','Finance._tab(\'profitability\')'],
+    ].map(([n, title, desc, action], i, arr) => `
+      <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:130px;position:relative">
+        ${i < arr.length-1 ? `<div style="position:absolute;top:16px;left:26px;right:-10px;height:2px;background:#99f6e4;z-index:0"></div>` : ''}
+        <button onclick="${action}" style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#0D9488;color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;position:relative;z-index:1">${n}</button>
+        <div style="padding-top:6px">
+          <div style="font-size:12px;font-weight:700;color:#0f766e">${title}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:1px">${desc}</div>
+        </div>
+      </div>`).join('')}
+  </div>
+</div>` : '';
 
     return `
 ${_kpiBar(d)}
 ${_alerts(d)}
+${getStarted}
+${overdueBlock}
+${insightStrip}
 <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
   <button class="btn bp btn-xs" onclick="Finance.openCreateInvoice()">+ Create Invoice</button>
   <button class="btn bo btn-xs" onclick="Finance.openAddExpense()">+ Add Expense</button>
@@ -184,7 +280,7 @@ ${_alerts(d)}
         <button class="btn bo btn-xs" onclick="Finance._tab('invoices')">View all</button>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Number</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+        <thead><tr><th>Number</th><th>Customer</th><th>Amount</th><th>Status</th><th></th></tr></thead>
         <tbody>${invRows}</tbody>
       </table></div>
     </div>
@@ -239,7 +335,16 @@ ${_alerts(d)}
         <td style="font-size:11px;color:var(--ll)">${_esc(t.externalRef||'')}</td>
         <td>${!voided?`<button class="btn bo btn-xs" style="font-size:10px;padding:2px 6px" onclick="Finance._voidTxn('${t.id}')">Void</button>`:''}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No transactions yet</td></tr>`;
+    }).join('') || `<tr><td colspan="8" style="padding:0"><div style="padding:8px 0">${_emptyCard({
+      icon:'📒',
+      title:'No transactions yet',
+      body:'Transactions are written automatically — every invoice, payment, and expense creates a ledger entry. No manual entry needed.',
+      ctas:[
+        { label:'+ Create Invoice', action:"Finance.openCreateInvoice()" },
+        { label:'+ Add Expense', action:"Finance.openAddExpense()", style:'bo' }
+      ],
+      hint:'This is your audit trail. Filter by type or category to see exactly where money moved.'
+    })}</div></td></tr>`;
 
     return `
 <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
@@ -311,7 +416,16 @@ ${_alerts(d)}
           ${i.status!=='Paid'&&i.status!=='Void' ? `<button class="btn bo btn-xs" style="border-color:#059669;color:#059669;margin-left:4px" onclick="Finance.openRecordPayment('${i.id}','${i.balanceDue||i.totalAmount||0}','${i.customerName||''}')">&#10003; Pay</button>` : ''}
         </td>
       </tr>`;
-    }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--ll);padding:24px">No invoices found</td></tr>`;
+    }).join('') || `<tr><td colspan="9" style="padding:0"><div style="padding:8px 0">${_emptyCard({
+      icon:'📄',
+      title: fs ? `No ${fs.toLowerCase()} invoices` : 'No invoices yet',
+      body: fs ? `No invoices with status "${fs}" found. Try a different filter or create a new invoice.`
+               : 'Invoices track what you\'ve billed. Create one, link it to a contract, then record payment when cash arrives.',
+      ctas: fs
+        ? [{ label:'Clear filter', action:"Finance._setFilter('status','')", style:'bo' }, { label:'+ Create Invoice', action:"Finance.openCreateInvoice()" }]
+        : [{ label:'+ Create First Invoice', action:"Finance.openCreateInvoice()" }],
+      hint: fs ? '' : 'Invoice lifecycle: Draft → Mark Sent → Record Payment → appears in P&L'
+    })}</div></td></tr>`;
 
     const totInvoiced  = sorted.reduce((s,i) => s+_n(i.totalAmount),0);
     const totBalance   = sorted.reduce((s,i) => s+_n(i.balanceDue||i.totalAmount),0);
@@ -358,7 +472,16 @@ ${_alerts(d)}
       <td style="font-size:11px;color:var(--ll)">${_esc(e.linkedSiteId||'')}</td>
       <td style="text-align:right;font-weight:700;color:#DC2626">${UI.fmt(e.amountGross||0)}</td>
       <td style="font-size:11px">${e.recurringFlag==='Yes'?'<span style="color:#7C3AED;font-size:10px;font-weight:700">&#9654; Recurring</span>':''}</td>
-    </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">No expenses yet</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" style="padding:0"><div style="padding:8px 0">${_emptyCard({
+      icon:'🧾',
+      title: fc ? `No "${fc}" expenses` : 'No expenses yet',
+      body: fc ? `No expenses in this category. Try a different filter or log a new expense.`
+               : 'Track all your costs here — labour, supplies, software, insurance. Link to a site to see margin per contract.',
+      ctas: fc
+        ? [{ label:'Clear filter', action:"Finance._setFilter('category','')", style:'bo' }, { label:'+ Add Expense', action:"Finance.openAddExpense()" }]
+        : [{ label:'+ Add First Expense', action:"Finance.openAddExpense()" }],
+      hint: fc ? '' : 'Mark fixed costs as Recurring — generate all of them in one click each month.'
+    })}</div></td></tr>`;
 
     const catRows = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([c,v]) =>
       `<tr><td style="font-size:12px">${_esc(c)}</td>
@@ -512,9 +635,19 @@ ${recurringPanel}
         <td>${UI.pill(lbl, cls)}</td>
         <td style="font-size:11px;color:var(--ll);max-width:200px">${s.recommendation ? `<span title="${_esc(s.recommendation)}">&#9432;</span> ${_esc(s.recommendation.slice(0,50))}${s.recommendation.length>50?'…':''}` : ''}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:32px">
-      No profitability data${fm?' for '+_fm(fm):''} — create invoices and expenses, then click Recalculate.
-    </td></tr>`;
+    }).join('') || `<tr><td colspan="8" style="padding:0"><div style="padding:8px 0">${_emptyCard({
+      icon:'📊',
+      title: fm ? `No data for ${_fm(fm)}` : 'No profitability snapshots yet',
+      body: fm
+        ? `No invoices or expenses are linked to a site for ${_fm(fm)}. Make sure your invoices have a Site ID, then click Recalculate.`
+        : 'Profitability is calculated per site. Create invoices with a Site ID, log expenses linked to those sites, then hit Recalculate.',
+      ctas: [
+        { label:'&#8635; Recalculate Now', action:"Finance._recalc()" },
+        { label:'Go to Invoices', action:"Finance._tab('invoices')", style:'bo' },
+        { label:'Add Expenses', action:"Finance._tab('expenses')", style:'bo' }
+      ],
+      hint: 'Healthy ≥ ' + healthy + '% · Watch ' + watch + '–' + (healthy-1) + '% · Risk < ' + watch + '% · Loss < 0%'
+    })}</div></td></tr>`;
 
     const totRevenue   = snaps.reduce((s,r)=>s+_n(r.invoicedRevenue),0);
     const totCost      = snaps.reduce((s,r)=>s+_n(r.totalCost),0);
@@ -556,11 +689,14 @@ ${recurringPanel}
 
   // ── ASSISTANT TAB ─────────────────────────────────────────────
   const SUGGESTED = [
-    'What is my revenue this month?',
-    'Which invoices are overdue?',
-    'What are my biggest costs?',
-    'Which contracts have the lowest margin?',
-    'What is my cash position this month?'
+    'What is my profit this month?',
+    'Which invoices are unpaid?',
+    'Which contract is losing money?',
+    'What are my biggest expenses?',
+    'How much cash is overdue?',
+    'What is my gross margin?',
+    'Which site has the best margin?',
+    'How much have I billed this month?'
   ];
 
   function _assistantShell() {
@@ -598,11 +734,25 @@ ${recurringPanel}
       </div>
     </div>
     <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff">
-      ${msgs || `<div style="text-align:center;padding:40px 16px;color:#94a3b8">
-        <div style="font-size:32px;margin-bottom:8px">&#128200;</div>
-        <div style="font-size:14px;font-weight:600;color:#475569">Ask me about your finances</div>
-        <div style="font-size:12px;margin-top:4px">I answer from your real data — no guessing.</div>
-      </div>`}
+      ${msgs || (() => {
+        const invoiceCount  = S.invoices.length;
+        const overdueAmt    = S.invoices.filter(i => {
+          const t = new Date().toISOString().slice(0,10);
+          return (i.status==='Issued'||i.status==='Sent') && i.dueDate && i.dueDate < t;
+        }).reduce((s,i)=>s+_n(i.balanceDue||i.totalAmount),0);
+        const expenseCount  = S.expenses.length;
+        const snapCount     = S.snaps.length;
+        const hasData = invoiceCount > 0 || expenseCount > 0;
+        const contextLine = hasData
+          ? `I can see <strong>${invoiceCount} invoice${invoiceCount!==1?'s':''}</strong>${overdueAmt>0?`, <strong style="color:#DC2626">${UI.fmt(overdueAmt)} overdue</strong>`:''}${expenseCount>0?`, <strong>${expenseCount} expense${expenseCount!==1?'s':''}</strong>`:''}${snapCount>0?`, <strong>${snapCount} profitability snapshot${snapCount!==1?'s':''}</strong>`:''}.`
+          : `No finance data yet. Add some invoices and expenses first, then ask me anything.`;
+        return `<div style="text-align:center;padding:28px 16px 16px;color:#94a3b8">
+          <div style="font-size:28px;margin-bottom:10px">📊</div>
+          <div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:6px">Finance Assistant</div>
+          <div style="font-size:12px;color:#64748b;max-width:380px;margin:0 auto;line-height:1.6">${contextLine}</div>
+          ${hasData ? '' : `<div style="margin-top:14px"><button class="btn bp btn-xs" onclick="Finance.openCreateInvoice()">+ Create First Invoice</button></div>`}
+        </div>`;
+      })()}
     </div>
     ${sugg}
     <div style="padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:8px;background:#fff">
@@ -1074,6 +1224,20 @@ ${recurringPanel}
   // ── HELPERS ───────────────────────────────────────────────────
   function _n(v)   { return parseFloat(v) || 0; }
   function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Guided empty state card — used across all tabs
+  function _emptyCard({ icon, title, body, ctas = [], hint = '' }) {
+    const btns = ctas.map(c =>
+      `<button class="btn ${c.style||'bp'} btn-xs" onclick="${c.action}">${c.label}</button>`
+    ).join('');
+    return `<div style="text-align:center;padding:40px 24px 36px;background:#fafbfc;border-radius:10px;border:1px dashed #e2e8f0">
+      <div style="font-size:36px;margin-bottom:12px;line-height:1">${icon}</div>
+      <div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:6px">${title}</div>
+      <div style="font-size:13px;color:#64748b;max-width:420px;margin:0 auto 18px;line-height:1.6">${body}</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">${btns}</div>
+      ${hint ? `<div style="font-size:11px;color:#94a3b8;margin-top:14px">&#9432; ${hint}</div>` : ''}
+    </div>`;
+  }
   function _fm(m)  {
     if (!m) return '—';
     const d = new Date(m.length === 7 ? m+'-01' : m);
