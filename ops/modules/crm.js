@@ -514,7 +514,7 @@ window.CRM = (() => {
       </div>
 
       <!-- Quick actions -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
         <button onclick="CRM.openEdit('${_esc(l.id)}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✏️ Edit</button>
@@ -524,14 +524,12 @@ window.CRM = (() => {
         <button onclick="CRM._openEmail('${_esc(l.email||'')}','${_esc(l.contactName||l.companyName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">✉️ Email</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">
         <a href="tel:${_esc(l.phone||'')}" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;display:block"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
           onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📞 Call</button>
-        <button onclick="CRM._shareUploadLink('${_esc(l.id)}','${_esc(l.companyName||l.contactName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s"
+        <button onclick="CRM._shareUploadLink('${_esc(l.id)}','${_esc(l.companyName||l.contactName||'')}')" style="border:1px solid #E2E8F0;border-radius:8px;padding:8px 6px;background:#fff;font-size:11px;font-weight:700;color:#475569;cursor:pointer;text-align:center;transition:all .15s;grid-column:span 2"
           onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
-          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📎 Upload Link</button>
+          onmouseleave="this.style.borderColor='#E2E8F0';this.style.color='#475569'">📎 Copy Upload Link</button>
       </div>
 
       <!-- Contact details -->
