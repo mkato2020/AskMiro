@@ -486,32 +486,56 @@ ${_alerts(d)}
 
   function _assistantShell() {
     const msgs = S.chat.map(m => _chatBubble(m)).join('');
-    const sugg = !S.chat.length ? `<div style="padding:0 16px 12px">
-      <div style="font-size:11px;font-weight:700;color:var(--ll);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Suggested questions</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${SUGGESTED.map(q => `<button class="btn bo btn-xs" onclick="Finance._askSuggested('${q.replace(/'/g,'\\\'')}')">${q}</button>`).join('')}
-      </div>
-    </div>` : '';
+    const sugg = !S.chat.length ? `
+      <div style="padding:0 14px 12px;display:flex;flex-wrap:wrap;gap:6px">
+        ${SUGGESTED.map(q => `<button class="am-qr" onclick="Finance._askSuggested('${q.replace(/'/g,'\\\'')}')">${q}</button>`).join('')}
+      </div>` : '';
 
     return `
+<style>
+.am-msg{max-width:82%;padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.6;word-break:break-word}
+.am-bot{background:#f1f5f9;color:#1e293b;align-self:flex-start;border-bottom-left-radius:3px}
+.am-user{background:#0D9488;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.am-typing{background:#f1f5f9;align-self:flex-start;display:flex;align-items:center;gap:4px;padding:12px 14px;border-radius:12px;border-bottom-left-radius:3px}
+.am-dot{width:6px;height:6px;background:#94a3b8;border-radius:50%;animation:am-bounce .9s infinite}
+.am-dot:nth-child(2){animation-delay:.15s}
+.am-dot:nth-child(3){animation-delay:.3s}
+.am-qr{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid #0D9488;color:#0D9488;background:#f0fdfa;cursor:pointer;transition:background .15s}
+.am-qr:hover{background:#ccfbf1}
+#fin-chat-send{width:34px;height:34px;border-radius:50%;background:#0D9488;border:none;color:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#fin-chat-send:hover{background:#0f766e}
+#fin-chat-send:disabled{background:#94a3b8;cursor:default}
+@keyframes am-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+</style>
 <div style="display:flex;gap:16px;height:calc(100vh - 260px);min-height:400px">
-  <div style="flex:1;display:flex;flex-direction:column;border:1px solid var(--brd);border-radius:12px;overflow:hidden;background:#fff">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--brd);background:#F8FAFC">
-      <div style="font-size:13px;font-weight:700;color:var(--txt)">Finance Assistant</div>
-      <div style="font-size:11px;color:var(--ll)">Grounded answers from your actual finance data</div>
+  <div style="flex:1;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)">
+    <div style="padding:16px 18px;background:linear-gradient(135deg,#0DBDAD,#0D9488);display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M8 20L12 12L16 20L20 12L24 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#fff;line-height:1.2">Finance Assistant</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:1px">Grounded answers from your actual finance data</div>
+      </div>
     </div>
-    <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
-      ${msgs || `<div style="text-align:center;padding:32px 16px;color:var(--ll)">
+    <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff">
+      ${msgs || `<div style="text-align:center;padding:40px 16px;color:#94a3b8">
         <div style="font-size:32px;margin-bottom:8px">&#128200;</div>
-        <div style="font-size:14px;font-weight:600">Ask me about your finances</div>
+        <div style="font-size:14px;font-weight:600;color:#475569">Ask me about your finances</div>
         <div style="font-size:12px;margin-top:4px">I answer from your real data — no guessing.</div>
       </div>`}
     </div>
     ${sugg}
-    <div style="padding:12px 14px;border-top:1px solid var(--brd);display:flex;gap:8px">
-      <input class="fin" id="chat-input" placeholder="e.g. What is my margin this month?" style="flex:1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Finance._sendChat();}">
-      <button class="btn bp" onclick="Finance._sendChat()" style="padding:8px 16px;white-space:nowrap">Send &#9658;</button>
+    <div style="padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:8px;background:#fff">
+      <textarea id="chat-input" rows="1" placeholder="e.g. What is my margin this month?"
+        style="flex:1;resize:none;border:1px solid #e2e8f0;border-radius:20px;padding:8px 14px;font-size:13px;font-family:inherit;outline:none;line-height:1.5;max-height:100px;overflow-y:auto"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Finance._sendChat();}"
+        oninput="document.getElementById('fin-chat-send').disabled=!this.value.trim();this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <button id="fin-chat-send" disabled onclick="Finance._sendChat()" aria-label="Send">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
     </div>
   </div>
 </div>`;
@@ -519,14 +543,13 @@ ${_alerts(d)}
 
   function _chatBubble(m) {
     if (m.role === 'user') {
-      return `<div style="align-self:flex-end;background:var(--brand);color:#fff;padding:10px 14px;border-radius:12px 12px 2px 12px;max-width:70%;font-size:13px">${_esc(m.text)}</div>`;
+      return `<div class="am-msg am-user">${_esc(m.text)}</div>`;
     }
     if (m.role === 'loading') {
-      return `<div id="chat-loading" style="align-self:flex-start;padding:10px 14px;border-radius:12px 12px 12px 2px;background:#F1F5F9;max-width:80%;font-size:13px;color:var(--ll)">
-        <div class="spinner" style="width:16px;height:16px;margin:0"></div></div>`;
+      return `<div class="am-typing" id="chat-loading"><div class="am-dot"></div><div class="am-dot"></div><div class="am-dot"></div></div>`;
     }
     const lines = m.text.split('\n').map(l => `<div>${_esc(l)||'&nbsp;'}</div>`).join('');
-    return `<div style="align-self:flex-start;padding:10px 14px;border-radius:12px 12px 12px 2px;background:#F1F5F9;max-width:80%;font-size:13px;line-height:1.6">${lines}</div>`;
+    return `<div class="am-msg am-bot">${lines}</div>`;
   }
 
   function _chatScroll() {
@@ -539,6 +562,9 @@ ${_alerts(d)}
     if (!inp || !inp.value.trim()) return;
     const q = inp.value.trim();
     inp.value = '';
+    inp.style.height = 'auto';
+    const btn = document.getElementById('fin-chat-send');
+    if (btn) btn.disabled = true;
     S.chat.push({ role:'user', text:q });
     S.chat.push({ role:'loading' });
     _renderTab();
@@ -554,8 +580,18 @@ ${_alerts(d)}
   }
 
   function _askSuggested(q) {
-    const inp = document.getElementById('chat-input');
-    if (inp) { inp.value = q; _sendChat(); }
+    S.chat.push({ role:'user', text:q });
+    S.chat.push({ role:'loading' });
+    _renderTab();
+    API.post('finance.assistant', { question: q }).then(res => {
+      S.chat = S.chat.filter(m => m.role !== 'loading');
+      S.chat.push({ role:'assistant', text: res.answer || 'No response' });
+      _renderTab();
+    }).catch(e => {
+      S.chat = S.chat.filter(m => m.role !== 'loading');
+      S.chat.push({ role:'assistant', text: 'Error: ' + e.message });
+      _renderTab();
+    });
   }
 
   // ── REPORTS (under profitability) ─────────────────────────────
