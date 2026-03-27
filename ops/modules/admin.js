@@ -311,7 +311,7 @@ ${docs.map(d => `
 /* left panel */
 .cp-lp{width:158px;background:#0D1C2E;flex-shrink:0;position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:22px 18px 24px 24px;overflow:hidden}
 .cp-lp::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;background:#0D9488}
-.cp-lp-ghost{font-family:'Outfit',Arial,sans-serif;font-size:96px;font-weight:800;color:rgba(255,255,255,.045);line-height:1;letter-spacing:-.05em;position:absolute;top:10px;left:14px;pointer-events:none;user-select:none}
+.cp-lp-ghost{font-family:'Outfit',Arial,sans-serif;font-size:96px;font-weight:800;color:rgba(255,255,255,.07);line-height:1;letter-spacing:-.05em;position:absolute;top:10px;left:14px;pointer-events:none;user-select:none}
 .cp-lp-bot{position:relative}
 .cp-lp-cat{font-size:7.5px;font-weight:700;color:#0D9488;letter-spacing:.2em;text-transform:uppercase;margin-bottom:5px}
 .cp-lp-title{font-family:'Outfit',Arial,sans-serif;font-size:12px;font-weight:800;color:#fff;line-height:1.4;letter-spacing:-.01em}
@@ -442,15 +442,20 @@ ${docs.map(d => `
 .cp-clegal{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);font-size:8px;color:rgba(255,255,255,.18);line-height:2}
 
 /* === PRINT =============================================== */
+@page{size:A4 portrait;margin:0}
 @media print{
   body>*:not(#cp-overlay){display:none!important}
-  #cp-overlay{display:block!important;position:static!important;padding:0;background:#fff;overflow:visible}
+  #cp-overlay{display:block!important;position:static!important;padding:0;background:transparent;overflow:visible}
   #cp-overlay .no-print{display:none!important}
-  .cp-doc{max-width:100%}
-  .cp-page{page-break-before:always;page-break-after:auto;margin-bottom:0;overflow:visible}
-  .cp-cover{page-break-before:auto}
-  .cp-ip{min-height:0}
-  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .cp-doc{max-width:100%;margin:0}
+  .cp-page{margin:0;overflow:hidden;break-after:page}
+  /* Full A4 height so flex children stretch correctly */
+  .cp-cover{min-height:0;height:297mm}
+  .cp-ip{min-height:0;height:297mm}
+  /* Let body row fill remaining height between header and footer bars */
+  .cp-ip-body{min-height:0;flex:1}
+  /* Force all backgrounds to print — covers left panel, spec blocks, dark pages */
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
 }`;
     document.head.appendChild(s);
   }
