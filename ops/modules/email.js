@@ -1481,7 +1481,8 @@ Thanks again and nice to meet you.`;
       }
 
       if (window.UI) UI.toast('✓ Email sent to ' + to, 'g');
-      _emails.unshift({ id: 'EM-' + Date.now(), to, subject: resolvedSubject, template: tmpl || 'Custom', sentAt: new Date().toLocaleString('en-GB') });
+      const _fuDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+      _emails.unshift({ id: 'EM-' + Date.now(), to, subject: resolvedSubject, template: tmpl || 'Custom', sentAt: new Date().toLocaleString('en-GB'), followUpAt: _fuDate.toISOString(), followedUp: false });
       _tab = 'log';
       _activeTmpl = '';
       _draw();
@@ -1523,6 +1524,91 @@ Thanks again and nice to meet you.`;
         <td style="font-size:12px;color:var(--ll)">${_fmtDate(e.sentAt || e.ts || '')}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
+  }
+
+  // ── FOLLOW-UPS ────────────────────────────────────────────
+  function _markFollowUpDone(id) {
+    const e = _emails.find(x => x.id === id);
+    if (e) { e.followedUp = true; e.followedUpAt = new Date().toLocaleString('en-GB'); }
+    _draw();
+  }
+
+  function _snoozeFollowUp(id, days) {
+    const e = _emails.find(x => x.id === id);
+    if (e) e.followUpAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    if (window.UI) UI.toast('Snoozed for ' + days + ' day' + (days > 1 ? 's' : ''), 'i');
+    _draw();
+  }
+
+  function _followupsHTML() {
+    const now = new Date();
+    const pending = _emails.filter(e => !e.followedUp && e.followUpAt);
+    const due     = pending.filter(e => new Date(e.followUpAt) <= now).sort((a,b) => new Date(a.followUpAt) - new Date(b.followUpAt));
+    const upcoming = pending.filter(e => new Date(e.followUpAt) > now).sort((a,b) => new Date(a.followUpAt) - new Date(b.followUpAt));
+    const done    = _emails.filter(e => e.followedUp).slice(0, 10);
+
+    if (!_emails.length) return `<div style="text-align:center;padding:72px 20px">
+      <div style="font-size:3rem;margin-bottom:14px">📬</div>
+      <div style="font-weight:700;color:var(--dk);font-size:15px;margin-bottom:6px">No sent emails yet</div>
+      <div style="font-size:13px;color:var(--ll)">Follow-up reminders will appear here after you send emails</div>
+    </div>`;
+
+    const _fuCard = (e, isDue) => {
+      const fuDate = new Date(e.followUpAt);
+      const diffMs = fuDate - now;
+      const diffH  = Math.round(diffMs / 36e5);
+      const diffD  = Math.ceil(diffMs / 864e5);
+      const ageLabel = isDue
+        ? `<span style="color:#EF4444;font-weight:700;font-size:11px">⚠ Overdue by ${Math.abs(diffH)} hr${Math.abs(diffH)!==1?'s':''}</span>`
+        : `<span style="color:var(--ll);font-size:11px">Due in ${diffD} day${diffD!==1?'s':''} — ${fuDate.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})}</span>`;
+      return `<div style="background:${isDue ? 'linear-gradient(135deg,#FEF2F2,#FFF5F5)' : 'var(--of)'};border:1.5px solid ${isDue ? '#FECACA' : 'var(--bd)'};border-radius:12px;padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px;color:var(--dk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.subject || '(no subject)')}</div>
+            <div style="font-size:11.5px;color:var(--sl);margin-top:2px">To: ${_esc(e.to || '')} &nbsp;·&nbsp; ${_esc(e.template || 'Custom')} &nbsp;·&nbsp; Sent ${_fmtDate(e.sentAt)}</div>
+            <div style="margin-top:6px">${ageLabel}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button class="btn bp" style="font-size:11px;padding:5px 12px" onclick="Email._markFollowUpDone('${_esc(e.id)}')">✓ Done</button>
+            <button class="btn bo" style="font-size:11px;padding:5px 12px" onclick="Email._snoozeFollowUp('${_esc(e.id)}',2)">+2 days</button>
+          </div>
+        </div>
+      </div>`;
+    };
+
+    let html = '';
+
+    if (due.length) {
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#EF4444;flex-shrink:0"></div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#EF4444">Overdue — Follow Up Now (${due.length})</span>
+      </div>`;
+      html += due.map(e => _fuCard(e, true)).join('');
+    }
+
+    if (upcoming.length) {
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;${due.length ? 'margin-top:22px' : ''}">
+        <div style="width:8px;height:8px;border-radius:50%;background:#0D9488;flex-shrink:0"></div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--sl)">Upcoming (${upcoming.length})</span>
+      </div>`;
+      html += upcoming.map(e => _fuCard(e, false)).join('');
+    }
+
+    if (done.length) {
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;margin-top:22px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--ll);flex-shrink:0"></div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ll)">Recently Completed</span>
+      </div>`;
+      html += done.map(e => `<div style="opacity:.55;background:var(--of);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px">✅</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:600;color:var(--dk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.subject || '(no subject)')}</div>
+          <div style="font-size:11px;color:var(--ll)">To: ${_esc(e.to || '')} &nbsp;·&nbsp; Followed up ${_esc(e.followedUpAt || '')}</div>
+        </div>
+      </div>`).join('');
+    }
+
+    return `<div style="max-width:680px">${html}</div>`;
   }
 
   // ── COMPOSE ───────────────────────────────────────────────
@@ -1747,12 +1833,14 @@ Thanks again and nice to meet you.`;
   // ── MAIN DRAW ─────────────────────────────────────────────
   function _draw() {
     const s     = _sender();
-    const tabs  = [['inbox', 'Inbox'], ['log', 'Sent'], ['compose', 'Compose'], ['templates', 'Templates']];
+    const tabs  = [['inbox', 'Inbox'], ['log', 'Sent'], ['followups', 'Follow-ups'], ['compose', 'Compose'], ['templates', 'Templates']];
     const unreadCount = _inbox.filter(t => t.unread).length;
+    const dueCount = _emails.filter(e => !e.followedUp && e.followUpAt && new Date(e.followUpAt) <= new Date()).length;
 
     let bodyContent;
     if      (_tab === 'inbox')     bodyContent = _inboxHTML();
     else if (_tab === 'log')       bodyContent = _sentHTML();
+    else if (_tab === 'followups') bodyContent = _followupsHTML();
     else if (_tab === 'compose')   bodyContent = _composeHTML();
     else                           bodyContent = _galHTML();
 
@@ -1770,6 +1858,11 @@ Thanks again and nice to meet you.`;
               badge = `<span style="margin-left:auto;background:${T.teal};color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700">${unreadCount}</span>`;
             } else if (k === 'log') {
               badge = `<span style="margin-left:auto;font-size:11px;color:var(--ll)">${_emails.length}</span>`;
+            } else if (k === 'followups' && dueCount > 0) {
+              badge = `<span style="margin-left:auto;background:#EF4444;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700">${dueCount}</span>`;
+            } else if (k === 'followups') {
+              const totalPending = _emails.filter(e => !e.followedUp && e.followUpAt).length;
+              if (totalPending > 0) badge = `<span style="margin-left:auto;font-size:11px;color:var(--ll)">${totalPending}</span>`;
             }
             return `<div class="el-tab ${_tab === k ? 'active' : ''}" onclick="Email._switchTab('${k}')">${lbl}${badge}</div>`;
           }).join('')}
@@ -1914,6 +2007,8 @@ Thanks again and nice to meet you.`;
     _sendReply,
     _replyCompose,
     _refreshInbox,
+    _markFollowUpDone,
+    _snoozeFollowUp,
   };
 
 })();
