@@ -89,7 +89,7 @@ Return ONLY a JSON array, no markdown, no explanation:
           'x-api-key': apiKey,
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-haiku-3-5-20241022',
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -163,7 +163,7 @@ Rules:
           'x-api-key': apiKey,
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-4-5-20251022',
           max_tokens: 8000,
           messages: [{ role: 'user', content: prompt }],
         }),
