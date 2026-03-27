@@ -4,6 +4,9 @@
 .env.local
 *.env
 
+# Quote form patch — contains GAS deployment URL, keep local only
+get_quote_form_patch_configured.js
+
 # OS
 .DS_Store
 Thumbs.db
@@ -11,3 +14,6 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# Local Netlify folder
+.netlify
