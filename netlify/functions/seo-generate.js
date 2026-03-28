@@ -110,49 +110,10 @@ Return ONLY a JSON array, no markdown, no explanation:
     const today = new Date().toISOString().split('T')[0];
     const year = new Date().getFullYear();
 
-    const prompt = `You are an SEO content expert writing for AskMiro Cleaning Services, a professional B2B commercial cleaning company in London.
+    const prompt = `SEO article for AskMiro Cleaning Services (London B2B commercial cleaning). Keyword: "${keyword}". Year: ${year}. Date: ${today}.
 
-${ASKMIRO_CONTEXT}
-
-Write a comprehensive, genuinely helpful SEO article targeting the keyword: "${keyword}"
-
-Return ONLY a valid JSON object (no markdown fences, no explanation — raw JSON only):
-{
-  "title": "Full SEO page title with year ${year} | AskMiro",
-  "metaDescription": "Compelling 150–160 char meta description naturally including the keyword",
-  "metaKeywords": "6–8 comma-separated keyword variations",
-  "slug": "url-slug-no-slashes-no-special-chars",
-  "ogTitle": "Shorter Open Graph title",
-  "schemaHeadline": "Article schema headline",
-  "eyebrow": "Short category label · London · ${year} Guide",
-  "h1Html": "H1 text — wrap the key phrase in <span class='accent'>...</span>",
-  "heroIntro": "2–3 sentence compelling hero intro. No HTML tags. British English.",
-  "readTime": "X min read",
-  "datePublished": "${today}",
-  "trustItems": ["trust point 1", "trust point 2", "trust point 3", "trust point 4", "trust point 5"],
-  "sections": [
-    {
-      "h2": "Section heading",
-      "html": "Full HTML for this section. Use <p>, <h3>, <ul><li>, <strong>. For tips: <div class='tip-box'><div class='tip-label'>Pro Tip</div><p>tip text</p></div>. For warnings: <div class='warn-box'><div class='warn-label'>Important</div><p>warning text</p></div>. Aim 150–300 words."
-    }
-  ],
-  "faqItems": [
-    { "question": "FAQ question?", "answer": "2–3 sentence answer. British English." }
-  ],
-  "ctaTitle": "CTA section headline",
-  "ctaText": "1–2 sentence CTA body",
-  "relatedPages": [
-    { "title": "Related article title", "href": "/existing-slug" }
-  ]
-}
-
-Rules:
-- 5–7 detailed sections with genuinely useful content (not fluff)
-- 5–7 FAQ items covering real questions people ask
-- British English throughout
-- Never quote specific prices — direct to free quote instead
-- relatedPages: pick 3–4 from: /office-cleaning-cost-london, /deep-cleaning-service-london, /end-of-tenancy-cleaning-checklist-london, /commercial-cleaning-london, /warehouse-cleaning-london, /school-cleaning-standards, /medical-facility-cleaning-standards, /office-cleaning-checklist-london
-- Establish AskMiro as the authority; weave in brand naturally but not aggressively`;
+Return ONLY raw JSON (no markdown):
+{"title":"Page title | AskMiro ${year}","metaDescription":"150 char meta","metaKeywords":"kw1,kw2,kw3","slug":"url-slug","ogTitle":"OG title","schemaHeadline":"Schema headline","eyebrow":"Category · London · ${year}","h1Html":"H1 with <span class='accent'>keyword</span>","heroIntro":"2 sentence intro. British English.","readTime":"5 min read","datePublished":"${today}","trustItems":["point1","point2","point3"],"sections":[{"h2":"Section 1","html":"<p>80 word paragraph.</p>"},{"h2":"Section 2","html":"<ul><li>point</li><li>point</li><li>point</li></ul>"},{"h2":"Section 3","html":"<p>80 word paragraph.</p>"}],"faqItems":[{"question":"Q1?","answer":"Short answer."},{"question":"Q2?","answer":"Short answer."},{"question":"Q3?","answer":"Short answer."}],"ctaTitle":"Get a Free Quote","ctaText":"Contact AskMiro for a free no-obligation cleaning quote.","relatedPages":[{"title":"Office Cleaning Cost","href":"/office-cleaning-cost-london"},{"title":"Commercial Cleaning","href":"/commercial-cleaning-london"}]}`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -164,7 +125,7 @@ Rules:
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 4000,
+          max_tokens: 2000,
           messages: [{ role: 'user', content: prompt }],
         }),
       });
