@@ -159,6 +159,44 @@ window.SEO = (() => {
       </div>`;
   }
 
+  // ── GAS POST (long timeout — bypasses Netlify 10s limit) ──
+  function _gasPost(action, body, timeoutMs) {
+    return new Promise(function(resolve, reject) {
+      const cb  = '_seoCb' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const tok = sessionStorage.getItem(CFG.TOKEN_KEY) || localStorage.getItem(CFG.TOKEN_KEY) || '';
+      const url = new URL(CFG.API_BASE);
+      url.searchParams.set('action', action);
+      url.searchParams.set('_token', tok);
+      url.searchParams.set('_method', 'POST');
+      url.searchParams.set('_body', JSON.stringify(body));
+      url.searchParams.set('callback', cb);
+
+      const timer = setTimeout(function() {
+        cleanup();
+        reject(new Error('Generation timed out after ' + Math.round(timeoutMs / 1000) + 's — please try again'));
+      }, timeoutMs || 90000);
+
+      function cleanup() {
+        clearTimeout(timer);
+        delete window[cb];
+        const s = document.getElementById(cb);
+        if (s) s.remove();
+      }
+
+      window[cb] = function(data) {
+        cleanup();
+        if (data && data.error) reject(new Error(data.error));
+        else resolve(data);
+      };
+
+      const script = document.createElement('script');
+      script.id  = cb;
+      script.src = url.toString();
+      script.onerror = function() { cleanup(); reject(new Error('Network error')); };
+      document.head.appendChild(script);
+    });
+  }
+
   // ── GENERATE ARTICLE ────────────────────────────────────
   async function generate(keyword) {
     keyword = (keyword || '').trim();
@@ -172,19 +210,14 @@ window.SEO = (() => {
       <div class="card" style="padding:28px;text-align:center">
         <div class="spinner" style="width:28px;height:28px;margin:0 auto 14px"></div>
         <div style="font-weight:700;font-size:14px;color:var(--ch);margin-bottom:4px">Generating article…</div>
-        <div style="font-size:12px;color:var(--ll)">Writing a full SEO article for "<strong>${_esc(keyword)}</strong>" — usually takes 15–25 seconds</div>
+        <div style="font-size:12px;color:var(--ll)">Writing a full SEO article for "<strong>${_esc(keyword)}</strong>" — Claude writes 1,200+ words, allow up to 60 seconds</div>
       </div>`;
 
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
-      // Step 1 — generate article
-      const genRes = await fetch('/api/seo-generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'generate', keyword }),
-      });
-      const data = await genRes.json();
+      // Step 1 — generate article via GAS (no 10s timeout limit)
+      const data = await _gasPost('seo.generate', { keyword }, 90000);
       if (data.error) throw new Error(data.error);
 
       _generated = data;
