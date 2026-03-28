@@ -504,7 +504,7 @@ ${cards}`;
       </div>
       <div>
         <div class="brand-name">AskMiro</div>
-        <div class="brand-sub">AskMiro Cleaning Services Ltd</div>
+        <div class="brand-sub">Miro Partners Ltd t/a AskMiro Cleaning Services</div>
       </div>
     </div>
     <div class="confidential">Private &amp; Confidential</div>
@@ -520,7 +520,7 @@ ${cards}`;
       <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Employee Ref</div>
       <div class="emp-ref">${payRef}</div>
       <div style="margin-top:4px">Post to Home Address.</div>
-      <div style="color:#0D9488;font-weight:600">AskMiro Cleaning Services</div>
+      <div style="color:#0D9488;font-weight:600">Miro Partners Ltd</div>
     </div>
   </div>
 
@@ -533,7 +533,7 @@ ${cards}`;
 
   <!-- Company / period bar -->
   <div class="ps-company-bar">
-    <div><span>Employer</span><strong>AskMiro Cleaning Services Ltd</strong></div>
+    <div><span>Employer</span><strong>Miro Partners Ltd</strong></div>
     <div><span>Pay Period</span><strong>${_fm(period)}</strong></div>
     <div><span>Pay Type</span><strong>Hourly · ${_esc(payrollType||'PAYE')}</strong></div>
   </div>

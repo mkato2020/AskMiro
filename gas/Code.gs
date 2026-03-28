@@ -97,6 +97,7 @@ function routeGet(action, params, auth) {
     case 'finance.categories':   return getFinanceCategories(params, auth);
     case 'labour.entries':       return getLabourEntries(params, auth);
     case 'labour.workers':       return getLabourWorkers(params, auth);
+    case 'cache.invalidate':     invalidateCache(params.tab); return { ok: true };
     case 'settings':     return getSettings(auth);
     case 'sites':        return getSites(auth);
     case 'emails':       return getEmailLog(params, auth);
@@ -260,7 +261,7 @@ function getTableRows(tabName) {
       headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]).trim() : ''; });
       return obj;
     })
-    .filter(r => r.id && r.id !== '');
+    .filter(r => { const k = headers[0]; return r[k] && r[k] !== ''; });
   _memCache[tabName] = rows;
   // Write to L2 with gzip — handles sheets > 90KB (old plain-JSON limit)
   try {
