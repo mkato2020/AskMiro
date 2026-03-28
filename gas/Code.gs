@@ -2111,6 +2111,85 @@ function setupCleanersSheet() {
 }
 // ── SEED SHEET (optional, run once for testing) ───────────────
 // Run from GAS editor: Run → seedCleanersSheet()
+// ── Run once from GAS editor: adds Mike Kato + Romel as Employee cleaners + payroll workers ──
+function addMikeAndRomel() {
+  var auth = { userId: 'system', role: 'Owner' };
+  var today = new Date().toISOString().split('T')[0];
+
+  var people = [
+    {
+      firstName: 'Mike', lastName: 'Kato', fullName: 'Mike Kato',
+      email: 'info@askmiro.com', phone: '020 8073 0621',
+      status: 'Active', cleanerType: 'Employee',
+      homePostcode: '', borough: '', city: 'London',
+      availabilityType: 'Full-time', availableDays: 'Mon–Fri',
+      availableStartTime: '06:00', availableEndTime: '22:00',
+      servicesOffered: 'Office Cleaning|Commercial|Deep Clean|Management',
+      commercialExperience: 'Yes', domesticExperience: 'Yes',
+      dbsStatus: 'Enhanced', rightToWorkChecked: 'Yes', referencesChecked: 'Yes',
+      complianceStatus: 'Ready', currentlyAvailable: 'Yes', emergencyCover: 'Yes',
+      hourlyRate: '15.00', payrollType: 'PAYE', invoiceRequired: 'No',
+      trainingCompleted: 'Yes', source: 'Director', notes: 'Director / Owner',
+      tags: 'management|director|owner', startDate: today,
+      niNumber: '', taxCode: '1257L'
+    },
+    {
+      firstName: 'Romel', lastName: '', fullName: 'Romel',
+      email: '', phone: '',
+      status: 'Active', cleanerType: 'Employee',
+      homePostcode: '', borough: '', city: 'London',
+      availabilityType: 'Full-time', availableDays: 'Mon–Fri',
+      availableStartTime: '06:00', availableEndTime: '22:00',
+      servicesOffered: 'Office Cleaning|Commercial|Deep Clean',
+      commercialExperience: 'Yes', domesticExperience: 'Yes',
+      dbsStatus: 'Enhanced', rightToWorkChecked: 'Yes', referencesChecked: 'Yes',
+      complianceStatus: 'Ready', currentlyAvailable: 'Yes', emergencyCover: 'Yes',
+      hourlyRate: '13.85', payrollType: 'PAYE', invoiceRequired: 'No',
+      trainingCompleted: 'Yes', source: 'Direct', notes: 'Full-time employee',
+      tags: 'full-time|employee', startDate: today,
+      niNumber: '', taxCode: '1257L'
+    }
+  ];
+
+  var results = [];
+
+  people.forEach(function(p) {
+    // 1 — Add to Cleaners sheet
+    var cleanerResult = createCleaner({
+      firstName: p.firstName, lastName: p.lastName, fullName: p.fullName,
+      email: p.email, phone: p.phone, status: p.status, cleanerType: p.cleanerType,
+      city: p.city, homePostcode: p.homePostcode, borough: p.borough,
+      availabilityType: p.availabilityType, availableDays: p.availableDays,
+      availableStartTime: p.availableStartTime, availableEndTime: p.availableEndTime,
+      servicesOffered: p.servicesOffered,
+      commercialExperience: p.commercialExperience, domesticExperience: p.domesticExperience,
+      dbsStatus: p.dbsStatus, rightToWorkChecked: p.rightToWorkChecked,
+      referencesChecked: p.referencesChecked, complianceStatus: p.complianceStatus,
+      currentlyAvailable: p.currentlyAvailable, emergencyCover: p.emergencyCover,
+      hourlyRate: p.hourlyRate, payrollType: p.payrollType, invoiceRequired: p.invoiceRequired,
+      trainingCompleted: p.trainingCompleted, source: p.source,
+      notes: p.notes, tags: p.tags
+    }, auth);
+
+    // 2 — Add to Labour_Workers sheet
+    var workerResult = createLabourWorker({
+      name: p.fullName,
+      role: p.firstName === 'Mike' ? 'Director' : 'Cleaner',
+      defaultHourlyRate: p.hourlyRate,
+      phone: p.phone, email: p.email,
+      status: 'active',
+      niNumber: p.niNumber, taxCode: p.taxCode,
+      startDate: p.startDate,
+      paymentMethod: 'BACS', payrollType: p.payrollType
+    }, auth);
+
+    results.push({ name: p.fullName, cleanerId: cleanerResult.id, workerId: workerResult.worker_id });
+  });
+
+  Logger.log('✅ Added: ' + JSON.stringify(results));
+  return { ok: true, added: results };
+}
+
 // seedCleanersSheet() removed — was accidentally populating live DB with fake data.
 // Run removeSeedCleaners() once from GAS editor to clean up any rows it added.
 

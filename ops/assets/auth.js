@@ -31,8 +31,8 @@ window.Auth = (() => {
 
   // ── TOKEN VALIDATION ──────────────────────────────────────
   function _validateTokenFormat(token) {
-    // Tokens must start with miro_ and be 20–120 chars, alphanumeric + underscore/dash
-    return /^miro_[A-Za-z0-9_\-]{8,100}$/.test(token);
+    // Tokens: 6–120 chars, alphanumeric + underscore/dash
+    return /^[A-Za-z0-9_\-]{6,120}$/.test(token);
   }
 
   // ── LOGIN ─────────────────────────────────────────────────
@@ -51,7 +51,7 @@ window.Auth = (() => {
     if (!token) { showErr('Please enter your access token'); return; }
 
     if (!_validateTokenFormat(token)) {
-      showErr('Invalid token format. Tokens start with miro_');
+      showErr('Invalid token — must be 6–120 alphanumeric characters');
       return;
     }
 
