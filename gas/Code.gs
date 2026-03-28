@@ -1296,7 +1296,7 @@ function _notifyOwnerVoiceLead(call, settings) {
 // ── SHEET SETUP ──────────────────────────────────────────────
 // Run once manually: setupVoiceCallsSheet()
 function setupVoiceCallsSheet() {
-  var ss      = SpreadsheetApp.getActiveSpreadsheet();
+  var ss      = SpreadsheetApp.openById(CFG.SHEET_ID);
   var existing = ss.getSheetByName('VoiceCalls');
   if (existing) { Logger.log('VoiceCalls sheet already exists'); return; }
   var sheet = ss.insertSheet('VoiceCalls');
@@ -1334,7 +1334,7 @@ function getLabourWorkers(params, auth) {
 
 // ── POST: Create Labour Entry ───────────────────────────────
 function createLabourEntry(body, auth) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = SpreadsheetApp.openById(CFG.SHEET_ID);
   var sheet = ss.getSheetByName('Labour_Entries');
   if (!sheet) throw new Error('Labour_Entries sheet not found. Run setupLabourSheets first.');
 
@@ -1364,7 +1364,7 @@ function createLabourEntry(body, auth) {
 
 // ── POST: Update Labour Entry ───────────────────────────────
 function updateLabourEntry(body, auth) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Labour_Entries');
+  var sheet = SpreadsheetApp.openById(CFG.SHEET_ID).getSheetByName('Labour_Entries');
   if (!sheet) throw new Error('Labour_Entries sheet not found.');
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var data    = sheet.getDataRange().getValues();
@@ -1393,7 +1393,7 @@ function approveLabourPayroll(body, auth) {
   var workerName  = body.workerName  || '';
   var grossPay    = parseFloat(body.grossPay) || 0;
 
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Labour_Entries');
+  var sheet = SpreadsheetApp.openById(CFG.SHEET_ID).getSheetByName('Labour_Entries');
   if (!sheet) throw new Error('Labour_Entries sheet not found.');
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var data    = sheet.getDataRange().getValues();
@@ -1411,7 +1411,7 @@ function approveLabourPayroll(body, auth) {
   }
 
   // Write Labour expense to Finance_Transactions
-  var txSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Finance_Transactions');
+  var txSheet = SpreadsheetApp.openById(CFG.SHEET_ID).getSheetByName('Finance_Transactions');
   if (txSheet) {
     var txId  = 'TX-' + new Date().getTime();
     var txNow = new Date().toISOString();
@@ -1447,7 +1447,7 @@ function markLabourPaid(body, auth) {
   var workerId = body.workerId;
   var period   = body.period;
 
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Labour_Entries');
+  var sheet = SpreadsheetApp.openById(CFG.SHEET_ID).getSheetByName('Labour_Entries');
   if (!sheet) throw new Error('Labour_Entries sheet not found.');
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var data    = sheet.getDataRange().getValues();
@@ -1467,7 +1467,7 @@ function markLabourPaid(body, auth) {
 
 // ── POST: Create Worker ────────────────────────────────────
 function createLabourWorker(body, auth) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = SpreadsheetApp.openById(CFG.SHEET_ID);
   var sheet = ss.getSheetByName('Labour_Workers');
   if (!sheet) throw new Error('Labour_Workers sheet not found. Run setupLabourSheets first.');
 
@@ -1497,7 +1497,7 @@ function createLabourWorker(body, auth) {
 
 // ── POST: Update Worker ────────────────────────────────────
 function updateLabourWorker(body, auth) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Labour_Workers');
+  var sheet = SpreadsheetApp.openById(CFG.SHEET_ID).getSheetByName('Labour_Workers');
   if (!sheet) throw new Error('Labour_Workers sheet not found.');
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var data    = sheet.getDataRange().getValues();
@@ -1528,7 +1528,7 @@ function updateLabourWorker(body, auth) {
 // ── Setup Labour Sheets ────────────────────────────────────
 function setupLabourSheets(body, auth) {
   if (auth) requireRole(auth, 'Owner');
-  var ss   = SpreadsheetApp.getActiveSpreadsheet();
+  var ss   = SpreadsheetApp.openById(CFG.SHEET_ID);
   var defs = {
     'Labour_Entries':  ['labour_id','worker_id','worker_name','date','contract_id','site_id','hours_worked','hourly_rate','total_pay','status','role','notes','entry_type','created_at'],
     'Labour_Workers':  ['worker_id','name','role','default_hourly_rate','phone','email','status','ni_number','tax_code','address','date_of_birth','start_date','payment_method','payroll_type','created_at']

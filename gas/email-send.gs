@@ -96,7 +96,7 @@ function handleEmailSend(params, rawBody) {
 // ── LOG HELPER ────────────────────────────────────────────────
 function _logSentEmail(to, subject, template) {
   try {
-    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const ss    = SpreadsheetApp.openById(CFG.SHEET_ID);
     const sheet = ss.getSheetByName('SentEmails');
     if (!sheet) return; // sheet doesn't exist — skip silently
     sheet.appendRow([
