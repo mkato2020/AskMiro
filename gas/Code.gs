@@ -2111,7 +2111,45 @@ function setupCleanersSheet() {
 }
 // ── SEED SHEET (optional, run once for testing) ───────────────
 // Run from GAS editor: Run → seedCleanersSheet()
-function seedCleanersSheet() {
+// seedCleanersSheet() removed — was accidentally populating live DB with fake data.
+// Run removeSeedCleaners() once from GAS editor to clean up any rows it added.
+
+function removeSeedCleaners() {
+  var SEED_EMAILS = [
+    'maria.santos@email.com',
+    'james.okafor@email.com',
+    'ana.lima@email.com',
+    'tomasz.k@email.com',
+    'blessing.osei@email.com',
+    'iryna.p@email.com',
+    'david.mensah@email.com',
+    'fatima.alr@email.com',
+    'patrick.ob@email.com',
+    'grace.nkomo@email.com',
+    'aleksander.w@email.com',
+    'sandra.oduya@email.com'
+  ];
+  var ss    = SpreadsheetApp.openById(CFG.SHEET_ID);
+  var tab   = ss.getSheetByName('Cleaners');
+  if (!tab) { Logger.log('No Cleaners sheet found.'); return { removed: 0 }; }
+  var data  = tab.getDataRange().getValues();
+  var hdrs  = data[0];
+  var emailCol = hdrs.indexOf('email');
+  if (emailCol < 0) { Logger.log('No email column found.'); return { removed: 0 }; }
+  var removed = 0;
+  // Delete bottom-up so row indices stay valid
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (SEED_EMAILS.indexOf(data[i][emailCol]) !== -1) {
+      tab.deleteRow(i + 1);
+      removed++;
+    }
+  }
+  invalidateCache('Cleaners');
+  Logger.log('✅ Removed ' + removed + ' seed cleaners.');
+  return { ok: true, removed: removed };
+}
+
+function _DELETED_seedCleanersSheet() {
   var auth = { userId: 'system', role: 'Admin' };
   var seed = [
     { firstName:'Maria',     lastName:'Santos',      phone:'07911 234561', email:'maria.santos@email.com',      status:'Active',   cleanerType:'Subcontractor', homePostcode:'SW18 2QA', borough:'Wandsworth',    city:'London', maxTravelDistanceMiles:'8',  areasCovered:'SW London|Wandsworth|Clapham',               willingToTravel:'Yes', servicesOffered:'Office Cleaning|Residential|Deep Clean',          yearsExperience:'6',  commercialExperience:'Yes', domesticExperience:'Yes', medicalCleaningExperience:'No',  educationSectorExperience:'No',  dealershipCleaningExperience:'No',  communalCleaningExperience:'Yes', dbsStatus:'Enhanced', rightToWorkChecked:'Yes', referencesChecked:'Yes', hasInsurance:'No',  complianceStatus:'Ready',   availabilityType:'Full-time',  availableDays:'Mon–Fri',          availableStartTime:'06:00', availableEndTime:'18:00', emergencyCover:'Yes', startDateAvailable:'',         currentlyAvailable:'Yes', transportMode:'Public Transport', hasDrivingLicence:'No',  hasOwnVehicle:'No',  hourlyRate:'13.50', preferredMinimumShiftHours:'3', payrollType:'Self-employed', invoiceRequired:'No',  uniformSize:'M',  trainingCompleted:'Yes', notes:'Highly reliable. Office contracts in SW London.',            tags:'reliable|sw-london|office',            performanceRating:'5', reliabilityRating:'5', source:'Referral',            lastWorkedDate:'2026-03-10' },
