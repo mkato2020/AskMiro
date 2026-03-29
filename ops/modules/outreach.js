@@ -711,8 +711,6 @@ window.Outreach = (() => {
   }
 
   function _renderQualityPanel(sc) {
-    const likC = sc.replyLikelihood >= 25 ? '#059669' : sc.replyLikelihood >= 15 ? '#D97706' : '#DC2626';
-    const tips = (sc.tips || []).slice(0, 3);
     return `
     <div id="quality-panel" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -722,6 +720,14 @@ window.Outreach = (() => {
           ✨ AI Assist
         </button>
       </div>
+      <div id="quality-scores">${_renderQualityScores(sc)}</div>
+    </div>`;
+  }
+
+  function _renderQualityScores(sc) {
+    const likC = sc.replyLikelihood >= 25 ? '#059669' : sc.replyLikelihood >= 15 ? '#D97706' : '#DC2626';
+    const tips = (sc.tips || []).slice(0, 3);
+    return `
       <div style="display:flex;gap:16px;align-items:center;margin-bottom:${tips.length ? '10px' : '0'}">
         <div style="text-align:center">
           ${_scoreGauge(sc.subjectScore)}
@@ -740,8 +746,7 @@ window.Outreach = (() => {
         ${tips.map(t => `<div style="display:flex;align-items:flex-start;gap:6px;font-size:11.5px;color:#92400E;background:#FFFBEB;padding:5px 8px;border-radius:6px">
           <span style="flex-shrink:0;margin-top:1px">⚠</span><span>${_esc(t)}</span>
         </div>`).join('')}
-      </div>` : `<div style="font-size:12px;color:#059669;font-weight:600">✓ Email quality looks good</div>`}
-    </div>`;
+      </div>` : `<div style="font-size:12px;color:#059669;font-weight:600">✓ Email quality looks good</div>`}`;
   }
 
   function openSendModal(leadId) {
@@ -778,17 +783,33 @@ window.Outreach = (() => {
         </div>
 
         <div style="margin-bottom:12px">
-          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">SUBJECT</label>
-          <div id="tmpl-subject" style="padding:9px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;color:#374151">
-            ${_esc(previewSubj)}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="font-size:12px;font-weight:600;color:#475569">SUBJECT</label>
+            <span style="font-size:11px;color:#94A3B8">Editable</span>
           </div>
+          <input id="tmpl-subject" type="text" value="${_esc(previewSubj)}"
+            oninput="Outreach._liveRescore('${leadId}')"
+            style="width:100%;padding:9px 12px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#0F172A;box-sizing:border-box;
+                   transition:border-color .15s"
+            onfocus="this.style.borderColor='#6366F1'"
+            onblur="this.style.borderColor='#E2E8F0'">
         </div>
 
         <div style="margin-bottom:20px">
-          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">BODY PREVIEW</label>
-          <div id="tmpl-body" style="padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:12.5px;color:#374151;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto">
-            ${_esc(previewBody)}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="font-size:12px;font-weight:600;color:#475569">BODY</label>
+            <span id="body-wordcount" style="font-size:11px;color:#94A3B8">
+              ${(previewBody.trim().split(/\s+/).filter(Boolean).length)} words
+            </span>
           </div>
+          <textarea id="tmpl-body"
+            oninput="Outreach._liveRescore('${leadId}'); document.getElementById('body-wordcount').textContent = this.value.trim().split(/\\s+/).filter(Boolean).length + ' words'"
+            style="width:100%;padding:12px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12.5px;color:#0F172A;
+                   line-height:1.7;resize:vertical;height:200px;box-sizing:border-box;font-family:inherit;
+                   transition:border-color .15s"
+            onfocus="this.style.borderColor='#6366F1'"
+            onblur="this.style.borderColor='#E2E8F0'"
+          >${_esc(previewBody)}</textarea>
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -803,10 +824,15 @@ window.Outreach = (() => {
   }
 
   // Called when "AI Assist" button clicked from send modal
+  // Always captures the CURRENT edited values from the live fields
   function _openAssistFromModal() {
     const ctx = window._outreachModalCtx || {};
     if (!ctx.leadId) return;
-    openAssistModal(ctx.leadId, ctx.lead, ctx.previewSubj, ctx.previewBody);
+    const subEl  = document.getElementById('tmpl-subject');
+    const bodyEl = document.getElementById('tmpl-body');
+    const liveSubject = subEl  ? subEl.value  : ctx.previewSubj;
+    const liveBody    = bodyEl ? bodyEl.value : ctx.previewBody;
+    openAssistModal(ctx.leadId, ctx.lead, liveSubject, liveBody);
   }
 
   function _mergePreview(str, lead) {
@@ -822,8 +848,26 @@ window.Outreach = (() => {
     if (!lead || !tmpl) return;
     const subEl  = document.getElementById('tmpl-subject');
     const bodyEl = document.getElementById('tmpl-body');
-    if (subEl)  subEl.textContent  = _mergePreview(tmpl.subject, lead);
-    if (bodyEl) bodyEl.textContent = _mergePreview(tmpl.body, lead);
+    if (subEl)  subEl.value = _mergePreview(tmpl.subject, lead);
+    if (bodyEl) bodyEl.value = _mergePreview(tmpl.body, lead);
+    // Update word count
+    if (bodyEl) {
+      const wc = document.getElementById('body-wordcount');
+      if (wc) wc.textContent = bodyEl.value.trim().split(/\s+/).filter(Boolean).length + ' words';
+    }
+    _liveRescore(leadId);
+  }
+
+  // Re-score quality panel in real-time as user types — updates only the scores div
+  function _liveRescore(leadId) {
+    const lead    = _queue.find(r => r.id === leadId);
+    if (!lead) return;
+    const subEl   = document.getElementById('tmpl-subject');
+    const bodyEl  = document.getElementById('tmpl-body');
+    const scoreEl = document.getElementById('quality-scores');
+    if (!subEl || !bodyEl || !scoreEl) return;
+    const sc = _scoreEmailLocal(subEl.value, bodyEl.value, lead);
+    scoreEl.innerHTML = _renderQualityScores(sc);
   }
 
   async function _doSend(leadId) {
@@ -835,9 +879,19 @@ window.Outreach = (() => {
 
     const selectEl  = document.getElementById('tmpl-select');
     const template  = selectEl ? selectEl.value : null;
+    // Read edited subject + body from the now-editable fields
+    const subjectEl = document.getElementById('tmpl-subject');
+    const bodyEl    = document.getElementById('tmpl-body');
+    const editedSubject = subjectEl ? subjectEl.value.trim() : null;
+    const editedBody    = bodyEl    ? bodyEl.value.trim()    : null;
 
     try {
-      const result = await API.post('outreach.send', { leadId, template });
+      const result = await API.post('outreach.send', {
+        leadId,
+        template,
+        subjectOverride: editedSubject || undefined,
+        bodyOverride:    editedBody    || undefined,
+      });
       if (result.error) throw new Error(result.error);
 
       UI.closeModal();

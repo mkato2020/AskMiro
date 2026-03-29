@@ -999,7 +999,18 @@ function sendOutreachEmail(body, auth) {
     if (lead.outreachStatus === OS.UNSUBSCRIBED) return { error: 'Lead has unsubscribed' };
 
     const phase = body.phase || 'initial';
-    const { subject, textBody, htmlBody } = _buildEmail(lead, phase);
+    let { subject, textBody, htmlBody } = _buildEmail(lead, phase);
+
+    // Apply user edits from the Send Modal (subjectOverride / bodyOverride)
+    if (body.subjectOverride && body.subjectOverride.trim()) {
+      subject = body.subjectOverride.trim();
+    }
+    if (body.bodyOverride && body.bodyOverride.trim()) {
+      textBody = body.bodyOverride.trim();
+      // Re-wrap edited body in branded HTML template
+      const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
+      htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach');
+    }
 
     GmailApp.sendEmail(lead.email, subject, textBody, {
       name:     'Mike Kato — AskMiro',
