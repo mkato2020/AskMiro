@@ -136,6 +136,13 @@ window.Outreach = (() => {
           oninput="Outreach._search(this.value)"
           style="width:100%;padding-left:30px;background:#fff;border:1px solid #E2E8F0;border-radius:9px;font-size:13px">
       </div>
+      <button onclick="Outreach.openAddLead()"
+        style="background:#fff;color:#6366F1;border:1.5px solid #6366F1;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;
+               display:flex;align-items:center;gap:6px;transition:all .15s"
+        onmouseenter="this.style.background='#EEF2FF'"
+        onmouseleave="this.style.background='#fff'">
+        + Add Lead
+      </button>
       <button onclick="Outreach.sendBatch()"
         style="background:#6366F1;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;
                display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(99,102,241,.3);transition:all .15s"
@@ -166,7 +173,11 @@ window.Outreach = (() => {
       return `<div style="text-align:center;padding:80px 20px;color:#94A3B8">
         <div style="font-size:40px;margin-bottom:12px">📭</div>
         <div style="font-size:15px;font-weight:600;color:#64748B">Queue is empty</div>
-        <div style="font-size:13px;margin-top:6px">Outbound leads from Lead Intelligence will appear here</div>
+        <div style="font-size:13px;margin-top:6px;margin-bottom:20px">Add outbound leads manually or via API handoff</div>
+        <button onclick="Outreach.openAddLead()"
+          style="background:#6366F1;color:#fff;border:none;border-radius:9px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,.3)">
+          + Add Your First Lead
+        </button>
       </div>`;
     }
 
@@ -331,6 +342,134 @@ window.Outreach = (() => {
         </div>`;
       }).join('')}
     </div>`;
+  }
+
+  // ── ADD LEAD MODAL ─────────────────────────────────────────
+  function openAddLead() {
+    const segments    = ['Office','Healthcare','School','Gym','Industrial','Residential','Automotive'];
+    const templateOpts = _templates.map(t =>
+      `<option value="${_esc(t.key)}">${_esc(t.label)}</option>`
+    ).join('');
+
+    UI.openModal(`
+      <div style="padding:24px 28px;min-width:460px">
+        <h2 style="margin:0 0 4px;font-size:18px;font-weight:700;color:#0F172A">Add Outbound Lead</h2>
+        <p style="margin:0 0 20px;font-size:13px;color:#64748B">Lead will be added to the outreach queue ready to send</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">COMPANY NAME *</label>
+            <input id="al-company" type="text" placeholder="e.g. Acme Ltd"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">CONTACT NAME *</label>
+            <input id="al-contact" type="text" placeholder="e.g. Sarah Collins"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">EMAIL ADDRESS *</label>
+            <input id="al-email" type="email" placeholder="e.g. sarah@acme.com"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">PHONE</label>
+            <input id="al-phone" type="text" placeholder="e.g. 07700 900000"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">SERVICE TYPE</label>
+            <input id="al-service" type="text" placeholder="e.g. Office cleaning"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">SEGMENT</label>
+            <select id="al-segment" style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;background:#fff;box-sizing:border-box">
+              <option value="">— select —</option>
+              ${segments.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">LEAD SCORE (1–10)</label>
+            <input id="al-score" type="number" min="1" max="10" placeholder="e.g. 7"
+              style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px">OUTREACH TEMPLATE</label>
+            <select id="al-template" style="width:100%;padding:9px 11px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;background:#fff;box-sizing:border-box">
+              ${templateOpts}
+            </select>
+          </div>
+        </div>
+
+        <div id="al-err" style="display:none;padding:8px 12px;background:#FEF2F2;color:#DC2626;border-radius:7px;font-size:12.5px;margin-bottom:14px"></div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="UI.closeModal()" style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+          <button id="al-submit" onclick="Outreach._doAddLead()"
+            style="background:#6366F1;color:#fff;border:none;border-radius:9px;padding:9px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,.3)">
+            Add to Queue →
+          </button>
+        </div>
+      </div>
+    `);
+
+    // Focus first field
+    setTimeout(() => { const el = document.getElementById('al-company'); if (el) el.focus(); }, 80);
+  }
+
+  async function _doAddLead() {
+    const btn     = document.getElementById('al-submit');
+    const errEl   = document.getElementById('al-err');
+    const company = (document.getElementById('al-company')  || {}).value || '';
+    const contact = (document.getElementById('al-contact')  || {}).value || '';
+    const email   = (document.getElementById('al-email')    || {}).value || '';
+    const phone   = (document.getElementById('al-phone')    || {}).value || '';
+    const service = (document.getElementById('al-service')  || {}).value || '';
+    const segment = (document.getElementById('al-segment')  || {}).value || '';
+    const score   = (document.getElementById('al-score')    || {}).value || '';
+    const template= (document.getElementById('al-template') || {}).value || '';
+
+    // Validate
+    if (!company.trim()) { _alErr('Company name is required'); return; }
+    if (!contact.trim()) { _alErr('Contact name is required'); return; }
+    if (!email.trim() || !email.includes('@')) { _alErr('Valid email address is required'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+      const result = await API.post('outreach.handoff', {
+        companyName:      company.trim(),
+        contactName:      contact.trim(),
+        email:            email.trim().toLowerCase(),
+        phone:            phone.trim(),
+        serviceType:      service.trim(),
+        segment:          segment,
+        leadScore:        score,
+        outreachTemplate: template,
+      });
+
+      if (result.error) throw new Error(result.error);
+
+      UI.closeModal();
+
+      if (result.duplicate) {
+        UI.toast('Lead already exists in CRM — score updated if improved', 'w');
+      } else {
+        UI.toast('✓ ' + company.trim() + ' added to outreach queue', 's');
+        // Reload queue
+        await render();
+      }
+    } catch(e) {
+      _alErr(e.message || 'Failed to add lead');
+      if (btn) { btn.disabled = false; btn.textContent = 'Add to Queue →'; }
+    }
+  }
+
+  function _alErr(msg) {
+    const el = document.getElementById('al-err');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
   }
 
   // ── SEND MODAL ─────────────────────────────────────────────
@@ -503,6 +642,8 @@ window.Outreach = (() => {
 
   return {
     render,
+    openAddLead,
+    _doAddLead,
     openSendModal,
     sendBatch,
     _setView,

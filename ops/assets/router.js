@@ -24,7 +24,7 @@ window. Router = (() => {
 
   const PAGE_CTA = {
     crm:      { label: '+ New Lead',        action: () => CRM.openNewLead()              },
-    outreach: { label: '⚡ Send All Queued', action: () => Outreach.sendBatch()           },
+    outreach: { label: '+ Add Lead',         action: () => Outreach.openAddLead()         },
     quotes:  { label: '+ New Quote',       action: () => Quotes.openNew()               },
     quality: { label: '+ Log Inspection',  action: () => Quality.openNewInspection()    },
     finance: { label: '+ Create Invoice',  action: () => Finance.openCreateInvoice()    },
