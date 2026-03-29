@@ -423,6 +423,43 @@ function _autoSendFinal(lead) {
 }
 
 
+// ── CLEAN PYTHON-GENERATED EMAIL BODY ────────────────────────
+// Strips artefacts that Python cold_email injects into the raw text:
+//   1. "SUBJECT: ..." header line — extracted separately as subject
+//   2. Plain-text signature block ("Best regards, / AskMiro..." etc.)
+//   3. Generic "Hi," → personalised "Hi [name],"
+// Returns { cleanedBody, extractedSubject }
+function _cleanBody(rawText, lead) {
+  var text = (rawText || '').trim();
+
+  // 1. Extract & strip leading SUBJECT line
+  var extractedSubject = '';
+  var subjMatch = text.match(/^SUBJECT:\s*(.+?)(?:\r?\n)/i);
+  if (subjMatch) {
+    extractedSubject = subjMatch[1].trim();
+    // Remove the SUBJECT line + any blank lines immediately after it
+    text = text.replace(/^SUBJECT:[^\r\n]*[\r\n]+/i, '').replace(/^[\r\n]+/, '');
+  }
+
+  // 2. Strip plain-text signature block from the bottom
+  //    Catches: "Best regards,", "Kind regards,", "Best,", "Regards,"
+  //    followed by name / company / phone / website lines
+  text = text.replace(
+    /\n{1,3}(Best regards?|Kind regards?|Regards|Best)[,\s][\s\S]*$/i,
+    ''
+  ).trim();
+
+  // 3. Personalise greeting — "Hi," → "Hi [First Name],"
+  var firstName = ((lead.contactName || lead.businessName || '').split(/[\s,]/)[0] || '').trim();
+  if (firstName) {
+    // Replace "Hi," or "Hi ," at start of a line
+    text = text.replace(/^(Hi)[,\s]*$/im, '$1 ' + firstName + ',');
+  }
+
+  return { cleanedBody: text, extractedSubject: extractedSubject };
+}
+
+
 // ── BUILD EMAIL (AI body first, template fallback) ─────────────
 function _buildEmail(lead, phase) {
   let textBody;
@@ -431,18 +468,25 @@ function _buildEmail(lead, phase) {
 
   if (phase === 'initial') {
     // Use Python's pre-generated AI body if available (zero extra cost)
-    textBody    = (lead.outreachEmailBody || '').trim();
-    templateKey = lead.outreachTemplate || (
+    const raw       = (lead.outreachEmailBody || '').trim();
+    templateKey     = lead.outreachTemplate || (
       (lead.segment || '').toLowerCase() === 'residential'
         ? 'intro_residential'
         : 'intro_commercial'
     );
-    const tmpl = OUTREACH_TEMPLATES[templateKey] || OUTREACH_TEMPLATES.intro_commercial;
-    subject    = _merge(tmpl.subject, lead);
-    if (!textBody) textBody = _merge(tmpl.body, lead);
+    const tmpl      = OUTREACH_TEMPLATES[templateKey] || OUTREACH_TEMPLATES.intro_commercial;
+    subject         = _merge(tmpl.subject, lead);
+
+    if (raw) {
+      const cleaned     = _cleanBody(raw, lead);
+      textBody          = cleaned.cleanedBody;
+      // Prefer subject extracted from Python body over template subject
+      if (cleaned.extractedSubject) subject = cleaned.extractedSubject;
+    } else {
+      textBody = _merge(tmpl.body, lead);
+    }
 
   } else if (phase === 'final') {
-    textBody    = '';
     templateKey = 'final_follow_up';
     const tmpl  = OUTREACH_TEMPLATES.final_follow_up;
     subject     = _merge(tmpl.subject, lead);
@@ -450,12 +494,19 @@ function _buildEmail(lead, phase) {
 
   } else {
     // follow-up: use Python's follow_up body if available
-    textBody    = (lead.followUpEmailBody || '').trim();
+    const raw   = (lead.followUpEmailBody || '').trim();
     const n     = Number(lead.followUpCount || 0);
     templateKey = n === 0 ? 'follow_up_1' : 'follow_up_2';
     const tmpl  = OUTREACH_TEMPLATES[templateKey];
     subject     = _merge(tmpl.subject, lead);
-    if (!textBody) textBody = _merge(tmpl.body, lead);
+
+    if (raw) {
+      const cleaned = _cleanBody(raw, lead);
+      textBody      = cleaned.cleanedBody;
+      if (cleaned.extractedSubject) subject = cleaned.extractedSubject;
+    } else {
+      textBody = _merge(tmpl.body, lead);
+    }
   }
 
   const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
