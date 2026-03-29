@@ -7,17 +7,16 @@ window.Auth = (() => {
   let _loginTries = 0;
   let _lockUntil  = 0;
 
-  // ── TOKEN: sessionStorage (cleared on tab close) ──────────
-  // Falls back to localStorage only if user explicitly chose "remember"
+  // ── TOKEN: always persisted to localStorage so hard refresh keeps session
   function getToken() {
-    return sessionStorage.getItem(CFG.TOKEN_KEY)
-        || localStorage.getItem(CFG.TOKEN_KEY)
+    return localStorage.getItem(CFG.TOKEN_KEY)
+        || sessionStorage.getItem(CFG.TOKEN_KEY)
         || '';
   }
 
-  function _saveToken(token, remember = false) {
+  function _saveToken(token) {
+    localStorage.setItem(CFG.TOKEN_KEY, token);
     sessionStorage.setItem(CFG.TOKEN_KEY, token);
-    if (remember) localStorage.setItem(CFG.TOKEN_KEY, token);
   }
 
   function _clearToken() {
@@ -68,7 +67,9 @@ window.Auth = (() => {
         role:  user.role  || '',
         id:    user.id    || '',
       };
+      // Persist to both so hard refresh doesn't drop session
       sessionStorage.setItem(CFG.USER_KEY, JSON.stringify(safeUser));
+      localStorage.setItem(CFG.USER_KEY, JSON.stringify(safeUser));
       _loginTries = 0;
       showApp(safeUser);
       // Prefetch dashboard data while login animates
@@ -120,9 +121,9 @@ window.Auth = (() => {
         API.get('me', {}, { forceRefresh: true })
           .then(user => {
             _user = user;
-            sessionStorage.setItem(CFG.USER_KEY, JSON.stringify({
-              name: user.name, email: user.email, role: user.role, id: user.id
-            }));
+            const u = { name: user.name, email: user.email, role: user.role, id: user.id };
+            sessionStorage.setItem(CFG.USER_KEY, JSON.stringify(u));
+            localStorage.setItem(CFG.USER_KEY, JSON.stringify(u));
             // Update display name if changed
             document.getElementById('user-name').textContent = user.name || user.email;
           })

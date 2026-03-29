@@ -11,7 +11,7 @@ window.Outreach = (() => {
   let _humanQueue  = [];   // leads needing human action
   let _autorun     = {};   // autopilot status (sent today, cap remaining)
   let _perf        = {};   // performance dashboard data (Part 5)
-  let _view        = 'queue';   // queue | sent | replies | human | perf
+  let _view = (() => { try { return localStorage.getItem('outreach_view') || 'queue'; } catch(e) { return 'queue'; } })();
   let _q           = '';
   let _sending     = new Set(); // lead IDs currently being sent
 
@@ -704,6 +704,126 @@ window.Outreach = (() => {
     return { subjectScore, bodyScore, replyLikelihood, tips };
   }
 
+  // ── EMAIL HTML PREVIEW — mirrors GAS _buildHtml exactly ──────
+  function _buildEmailHtml(text, label) {
+    label = label || 'Outreach';
+    const F = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+    const T = { navy:'#0A1628',charcoal:'#111827',body:'#1F2937',slate:'#4B5563',
+      border:'#E5E7EB',teal:'#0D9488',tealMid:'#14B8A6',tealLight:'#CCFBF1',tealGhost:'#F0FDFA' };
+    const LOGO    = '<img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px">';
+    const LOGO_SM = '<img src="https://www.askmiro.com/favicon-32x32.png" width="30" height="30" alt="AskMiro" style="display:block;border:0;border-radius:6px">';
+
+    const paras = (text || '').split('\n\n').map(p =>
+      `<p style="margin:0 0 18px;font-family:${F};font-size:15px;color:${T.body};line-height:1.8">${(p||'').trim().replace(/\n/g,'<br>')}</p>`
+    ).join('');
+
+    const sig = `<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:40px"><tr>
+      <td style="padding-top:28px;border-top:1px solid ${T.border}">
+        <table cellpadding="0" cellspacing="0" width="100%"><tr>
+          <td style="vertical-align:middle;padding-right:14px;width:34px">${LOGO_SM}</td>
+          <td style="vertical-align:middle">
+            <div style="font-family:${F};font-size:15px;font-weight:700;color:${T.charcoal};line-height:1.2">Mike Kato</div>
+            <div style="font-family:${F};font-size:12px;color:${T.teal};font-weight:600;margin-top:2px">Co-founder — AskMiro Cleaning Services</div>
+          </td></tr></table>
+        <table cellpadding="0" cellspacing="0" style="margin-top:14px"><tr>
+          <td style="padding-right:22px"><a href="tel:02080730621" style="font-family:${F};font-size:12px;color:${T.slate};text-decoration:none"><span style="color:${T.teal};margin-right:4px">&#9742;</span>020 8073 0621</a></td>
+          <td style="padding-right:22px"><a href="mailto:info@askmiro.com" style="font-family:${F};font-size:12px;color:${T.slate};text-decoration:none"><span style="color:${T.teal};margin-right:4px">&#9993;</span>info@askmiro.com</a></td>
+          <td><a href="https://www.askmiro.com" style="font-family:${F};font-size:12px;color:${T.teal};font-weight:600;text-decoration:none">www.askmiro.com</a></td>
+        </tr></table>
+        <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:16px"><tr>
+          <td style="padding:10px 16px;background:${T.tealGhost};border:1px solid ${T.tealLight};border-radius:8px">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; Fully Insured</td>
+              <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; COSHH Compliant</td>
+              <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; ISO Standards</td>
+              <td style="font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; London &amp; UK</td>
+            </tr></table>
+          </td></tr></table>
+      </td></tr></table>`;
+
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1.0">
+      <title>AskMiro Cleaning Services</title></head>
+      <body style="margin:0;padding:0;background:#F1F5F9">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+          <tr><td style="height:4px;background:linear-gradient(90deg,${T.teal},${T.tealMid});border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>
+          <tr><td style="background:${T.navy};padding:26px 36px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr>
+                <td style="padding-right:14px;vertical-align:middle">${LOGO}</td>
+                <td style="vertical-align:middle">
+                  <div style="font-family:${F};font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>
+                  <div style="font-family:${F};font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>
+                </td></tr></table></td>
+              <td align="right" style="vertical-align:middle">
+                <div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">
+                  <span style="font-family:${F};font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">${_esc(label)}</span>
+                </div></td></tr></table></td></tr>
+          <tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ${T.border};border-right:1px solid ${T.border}">
+            ${paras}${sig}
+          </td></tr>
+          <tr><td style="background:${T.charcoal};border-radius:0 0 12px 12px;padding:22px 36px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td><div style="font-family:${F};font-size:13px;font-weight:700;color:rgba(255,255,255,0.75)">AskMiro Cleaning Services</div>
+                <div style="font-family:${F};font-size:11px;color:rgba(255,255,255,0.28);margin-top:3px">A trading name of Miro Partners Ltd &bull; London &amp; UK</div></td>
+              <td align="right" style="vertical-align:top"><a href="https://www.askmiro.com" style="font-family:${F};font-size:12px;color:${T.tealMid};text-decoration:none;font-weight:700">www.askmiro.com</a></td>
+            </tr><tr><td colspan="2" style="padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">
+              <table cellpadding="0" cellspacing="0"><tr>
+                <td style="padding-right:18px;font-family:${F};font-size:11px;color:rgba(255,255,255,0.28)">&#10003; Fully Insured</td>
+                <td style="padding-right:18px;font-family:${F};font-size:11px;color:rgba(255,255,255,0.28)">&#10003; COSHH Compliant</td>
+                <td style="font-family:${F};font-size:11px;color:rgba(255,255,255,0.28)">&#10003; Residential &amp; Commercial</td>
+              </tr></table>
+              <p style="font-family:${F};font-size:10px;color:rgba(255,255,255,0.18);margin:14px 0 0;line-height:1.7">
+                Sent by Mike Kato on behalf of AskMiro Cleaning Services. Reply to: info@askmiro.com.<br>
+                We will never share your details with third parties.
+                &nbsp;&nbsp;<a href="mailto:info@askmiro.com?subject=Unsubscribe" style="color:rgba(255,255,255,0.28);text-decoration:underline">Unsubscribe</a>
+              </p></td></tr></table></td></tr>
+        </table></td></tr></table>
+      </body></html>`;
+  }
+
+  function _toggleEmailPreview(leadId) {
+    const subEl     = document.getElementById('tmpl-subject');
+    const bodyEl    = document.getElementById('tmpl-body');
+    const editArea  = document.getElementById('body-edit-area');
+    const toggleBtn = document.getElementById('preview-toggle-btn');
+    if (!subEl || !bodyEl || !editArea) return;
+
+    let previewEl = document.getElementById('email-preview-frame');
+    const isPreview = editArea.style.display === 'none';
+
+    if (isPreview) {
+      // Back to edit
+      editArea.style.display = '';
+      if (previewEl) previewEl.style.display = 'none';
+      toggleBtn.innerHTML = '👁 Preview';
+      toggleBtn.style.background = '#F0FDFA';
+      toggleBtn.style.color = '#0D9488';
+      toggleBtn.style.borderColor = '#99F6E4';
+    } else {
+      // Build & show preview
+      const label = 'Introduction';
+      const html  = _buildEmailHtml(bodyEl.value, label);
+      if (!previewEl) {
+        previewEl = document.createElement('iframe');
+        previewEl.id = 'email-preview-frame';
+        previewEl.setAttribute('sandbox', 'allow-same-origin');
+        previewEl.style.cssText = 'width:100%;height:360px;border:1.5px solid #0D9488;border-radius:8px;display:block;background:#F1F5F9;box-sizing:border-box';
+        editArea.parentNode.insertBefore(previewEl, editArea.nextSibling);
+      } else {
+        previewEl.style.display = 'block';
+      }
+      const doc = previewEl.contentDocument || previewEl.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      editArea.style.display = 'none';
+      toggleBtn.innerHTML = '✏️ Edit';
+      toggleBtn.style.background = '#EEF2FF';
+      toggleBtn.style.color = '#6366F1';
+      toggleBtn.style.borderColor = '#C7D2FE';
+    }
+  }
+
   function _scoreGauge(score) {
     const c = score >= 8 ? '#059669' : score >= 6 ? '#D97706' : '#DC2626';
     const bg = score >= 8 ? '#ECFDF5' : score >= 6 ? '#FFFBEB' : '#FEF2F2';
@@ -798,18 +918,26 @@ window.Outreach = (() => {
         <div style="margin-bottom:20px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <label style="font-size:12px;font-weight:600;color:#475569">BODY</label>
-            <span id="body-wordcount" style="font-size:11px;color:#94A3B8">
-              ${(previewBody.trim().split(/\s+/).filter(Boolean).length)} words
-            </span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span id="body-wordcount" style="font-size:11px;color:#94A3B8">
+                ${(previewBody.trim().split(/\s+/).filter(Boolean).length)} words
+              </span>
+              <button id="preview-toggle-btn" onclick="Outreach._toggleEmailPreview('${leadId}')"
+                style="background:#F0FDFA;color:#0D9488;border:1px solid #99F6E4;border-radius:6px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s">
+                👁 Preview
+              </button>
+            </div>
           </div>
-          <textarea id="tmpl-body"
-            oninput="Outreach._liveRescore('${leadId}'); document.getElementById('body-wordcount').textContent = this.value.trim().split(/\\s+/).filter(Boolean).length + ' words'"
-            style="width:100%;padding:12px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12.5px;color:#0F172A;
-                   line-height:1.7;resize:vertical;height:200px;box-sizing:border-box;font-family:inherit;
-                   transition:border-color .15s"
-            onfocus="this.style.borderColor='#6366F1'"
-            onblur="this.style.borderColor='#E2E8F0'"
-          >${_esc(previewBody)}</textarea>
+          <div id="body-edit-area">
+            <textarea id="tmpl-body"
+              oninput="Outreach._liveRescore('${leadId}'); document.getElementById('body-wordcount').textContent = this.value.trim().split(/\\s+/).filter(Boolean).length + ' words'"
+              style="width:100%;padding:12px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12.5px;color:#0F172A;
+                     line-height:1.7;resize:vertical;height:200px;box-sizing:border-box;font-family:inherit;
+                     transition:border-color .15s"
+              onfocus="this.style.borderColor='#6366F1'"
+              onblur="this.style.borderColor='#E2E8F0'"
+            >${_esc(previewBody)}</textarea>
+          </div>
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1300,156 +1428,336 @@ window.Outreach = (() => {
   }
 
 
-  // ── PART 6: AI ASSISTANT MODAL ───────────────────────────────
+  // ── PART 6: AI ASSISTANT — full copilot rebuild ─────────────
+  // One-click Apply, context-aware loading, quick-actions,
+  // performance-aware prompts, scoring on suggested subjects.
+
+  const _ASSIST_ACTIONS = [
+    // [task,        icon, label,              desc,                      color]
+    ['subject',   '💡', 'Subject Ideas',    '3 scored alternatives',    '#6366F1'],
+    ['rewrite',   '✍️', 'Rewrite Email',    'Higher reply rate version', '#0D9488'],
+    ['followup',  '📩', 'Write Follow-up', 'New-angle follow-up copy',  '#0284C7'],
+    ['analyse',   '🔍', 'Analyse',          'Score + fix weaknesses',    '#D97706'],
+    ['direct',    '⚡', 'More Direct',      'Tighter, sharper copy',     '#7C3AED'],
+    ['urgent',    '🔥', 'Add Urgency',      'Create genuine time hook',  '#DC2626'],
+    ['conversational','💬','Conversational', 'Warmer, less corporate',   '#059669'],
+    ['boost',     '📈', '↑ Reply Rate',     'Max reply optimisation',    '#0F172A'],
+  ];
+
+  const _LOADING_MSGS = {
+    subject:       (lead) => `Generating subject lines for ${lead.companyName || 'this lead'}…`,
+    rewrite:       (lead) => `Rewriting email for ${lead.segment || lead.serviceType || 'B2B outreach'}…`,
+    followup:      (lead) => `Writing follow-up for ${lead.companyName || 'this lead'}…`,
+    analyse:       (lead) => `Analysing your email to ${lead.companyName || 'this lead'}…`,
+    direct:        ()      => 'Making copy more direct and punchy…',
+    urgent:        ()      => 'Adding genuine urgency hook…',
+    conversational:()      => 'Rewriting in warmer, conversational tone…',
+    boost:         (lead)  => `Optimising for maximum reply rate (${lead.segment || 'B2B'})…`,
+  };
+
   function openAssistModal(leadId, lead, subject, body) {
-    lead = lead || _queue.find(r => r.id === leadId) || {};
+    lead    = lead    || _queue.find(r => r.id === leadId) || {};
     subject = subject || '';
     body    = body    || '';
 
+    // Attach context for callbacks
+    window._assistCtx = { leadId, lead, subject, body };
+
     UI.openModal(`
-      <div style="padding:24px 28px;min-width:540px;max-width:640px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-          <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>
+      <div style="padding:24px 28px;min-width:560px;max-width:660px">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:12px;
+                      display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✨</div>
           <div>
-            <h2 style="margin:0;font-size:18px;font-weight:700;color:#0F172A">AI Email Assistant</h2>
-            <p style="margin:0;font-size:12px;color:#64748B">${_esc(lead.companyName || 'Lead')}</p>
+            <h2 style="margin:0;font-size:18px;font-weight:800;color:#0F172A;letter-spacing:-.3px">AI Copilot</h2>
+            <p style="margin:0;font-size:12px;color:#64748B">
+              ${_esc(lead.companyName || 'Lead')}
+              ${lead.segment ? ` · <span style="color:#6366F1;font-weight:600">${_esc(lead.segment)}</span>` : ''}
+              ${lead.serviceType ? ` · ${_esc(lead.serviceType)}` : ''}
+            </p>
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-          ${[
-            ['subject',  '💡 Subject Ideas',   'Suggest 3 better subject lines'],
-            ['rewrite',  '✍️ Rewrite Email',    'Rewrite body for higher reply rate'],
-            ['followup', '📩 Write Follow-up', 'Generate follow-up email copy'],
-            ['analyse',  '🔍 Analyse Email',    'Find weaknesses & scoring'],
-          ].map(([task, label, desc]) => `
-          <button onclick="Outreach._runAssist('${leadId}','${task}')"
-            style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:14px;text-align:left;cursor:pointer;transition:all .15s"
-            onmouseenter="this.style.borderColor='#6366F1';this.style.background='#EEF2FF'"
+        <!-- Action buttons — 4 cols on wide, 2 on narrow -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+          ${_ASSIST_ACTIONS.map(([task, icon, label, desc, color]) => `
+          <button id="assist-btn-${task}" onclick="Outreach._runAssist('${leadId}','${task}')"
+            style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 10px;
+                   text-align:center;cursor:pointer;transition:all .15s;position:relative"
+            onmouseenter="this.style.borderColor='${color}';this.style.background='#FAFAFA'"
             onmouseleave="this.style.borderColor='#E2E8F0';this.style.background='#F8FAFC'">
-            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">${label}</div>
-            <div style="font-size:12px;color:#64748B">${desc}</div>
+            <div style="font-size:20px;margin-bottom:5px">${icon}</div>
+            <div style="font-size:11.5px;font-weight:700;color:#0F172A;margin-bottom:2px">${label}</div>
+            <div style="font-size:10.5px;color:#94A3B8;line-height:1.3">${desc}</div>
           </button>`).join('')}
         </div>
 
-        <div id="assist-result" style="display:none;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;color:#166534;line-height:1.7">
+        <!-- Loading state -->
+        <div id="assist-loading" style="display:none;padding:20px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="spinner" style="flex-shrink:0"></div>
+            <div id="assist-loading-msg" style="font-size:13px;color:#475569;font-weight:500">Working…</div>
+          </div>
+          <div style="margin-top:10px;height:3px;background:#E2E8F0;border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:linear-gradient(90deg,#6366F1,#8B5CF6);border-radius:3px;
+                        animation:progress-bar 2s ease-in-out infinite"></div>
+          </div>
         </div>
 
-        <div id="assist-loading" style="display:none;text-align:center;padding:30px;color:#64748B">
-          <div class="spinner" style="margin:0 auto 10px"></div>
-          Thinking…
-        </div>
+        <!-- Result area -->
+        <div id="assist-result" style="display:none;border-radius:10px;margin-bottom:12px;overflow:hidden"></div>
 
         <div style="display:flex;justify-content:flex-end">
-          <button onclick="UI.closeModal()" style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer">Close</button>
+          <button onclick="UI.closeModal()" style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;
+                  border-radius:9px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer">Close</button>
         </div>
       </div>
+      <style>
+        @keyframes progress-bar {
+          0%   { transform: translateX(-100%); }
+          50%  { transform: translateX(0%); }
+          100% { transform: translateX(100%); }
+        }
+      </style>
     `);
+  }
 
-    // Store context for _runAssist
-    window._assistCtx = { leadId, lead, subject, body };
+  // One-click apply functions — write directly into the send modal fields
+  function _applySubject(subject) {
+    const el = document.getElementById('tmpl-subject');
+    if (el) {
+      el.value = subject;
+      el.dispatchEvent(new Event('input'));
+      el.style.borderColor = '#059669';
+      setTimeout(() => { el.style.borderColor = '#E2E8F0'; }, 1500);
+    }
+    UI.toast('✓ Subject applied — review and send', 's');
+  }
+
+  function _applyBody(body, subject) {
+    const bodyEl = document.getElementById('tmpl-body');
+    if (bodyEl) {
+      bodyEl.value = body;
+      bodyEl.dispatchEvent(new Event('input'));
+    }
+    if (subject) _applySubject(subject);
+    else UI.toast('✓ Email body applied', 's');
   }
 
   async function _runAssist(leadId, task) {
-    const ctx = window._assistCtx || {};
+    const ctx  = window._assistCtx || {};
     const lead = ctx.lead || {};
 
     const loadEl   = document.getElementById('assist-loading');
+    const loadMsg  = document.getElementById('assist-loading-msg');
     const resultEl = document.getElementById('assist-result');
-    if (loadEl)   { loadEl.style.display = 'block'; }
-    if (resultEl) { resultEl.style.display = 'none'; }
+
+    // Highlight active button
+    _ASSIST_ACTIONS.forEach(([t]) => {
+      const btn = document.getElementById('assist-btn-' + t);
+      if (btn) btn.style.opacity = t === task ? '1' : '0.45';
+    });
+
+    if (loadEl) {
+      loadEl.style.display = 'block';
+      if (loadMsg) loadMsg.textContent = (_LOADING_MSGS[task] || (() => 'Working…'))(lead);
+    }
+    if (resultEl) resultEl.style.display = 'none';
 
     try {
+      // Pass performance context so AI biases toward what works
+      const perfCtx = {
+        bestTemplate: (_perf.bestTemplate || {}).key || '',
+        bestSector:   (_perf.bestSector   || {}).key || '',
+        overallReplyRate: _perf.overallReplyRate || 0,
+      };
+
       const res = await API.post('outreach.assist', {
         task,
         subject:     ctx.subject || '',
         body:        ctx.body    || '',
         company:     lead.companyName  || '',
         service:     lead.serviceType  || '',
+        sector:      lead.segment      || '',
         context:     lead.outreachEmailBody || '',
         followUpN:   lead.followUpCount || 1,
+        perfContext: JSON.stringify(perfCtx),
       });
 
       if (loadEl) loadEl.style.display = 'none';
+      // Restore button opacity
+      _ASSIST_ACTIONS.forEach(([t]) => {
+        const btn = document.getElementById('assist-btn-' + t);
+        if (btn) btn.style.opacity = '1';
+      });
 
-      if (res.error) {
-        if (resultEl) {
-          resultEl.style.display = 'block';
-          resultEl.style.background = '#FEF2F2';
-          resultEl.style.borderColor = '#FECACA';
-          resultEl.style.color = '#991B1B';
-          resultEl.innerHTML = '⚠ ' + _esc(res.error);
-        }
-        return;
-      }
+      const r    = res.result || {};
+      const err  = res.error;
+      let html   = '';
+      let bgCol  = '#F0FDF4';
+      let bdCol  = '#86EFAC';
 
-      const r = res.result || {};
-      let html = '';
+      if (err) {
+        bgCol = '#FEF2F2'; bdCol = '#FECACA';
+        html = `<div style="padding:14px 16px;font-size:13px;color:#991B1B">⚠ ${_esc(err)}</div>`;
 
-      if (task === 'subject' && r.options) {
-        html = `<div style="font-weight:700;margin-bottom:10px">Suggested Subject Lines:</div>
-          ${(r.options || []).map((o, i) => `
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border:1px solid #86EFAC;border-radius:7px;margin-bottom:6px;cursor:pointer"
-               onclick="navigator.clipboard.writeText('${o.replace(/'/g, "\\'")}').then(() => UI.toast('Copied!','s'))"
-               title="Click to copy">
-            <span style="font-size:12px;color:#94A3B8;font-weight:700">${i+1}</span>
-            <span style="flex:1;font-weight:600;color:#0F172A">${_esc(o)}</span>
-            <span style="font-size:11px;color:#059669">Copy</span>
-          </div>`).join('')}
-          ${r.reasoning ? `<div style="margin-top:8px;font-size:12px;color:#64748B">${_esc(r.reasoning)}</div>` : ''}`;
+      } else if (task === 'subject') {
+        const opts = r.options || [];
+        html = `
+        <div style="padding:14px 16px 8px;border-bottom:1px solid #BBF7D0">
+          <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            💡 ${opts.length} Subject Options — click to apply
+          </div>
+          ${opts.map((o, i) => {
+            const sc = _scoreEmailLocal(o, ctx.body || '', lead);
+            const sColor = sc.subjectScore >= 8 ? '#059669' : sc.subjectScore >= 6 ? '#D97706' : '#DC2626';
+            return `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;
+                        border:1.5px solid #D1FAE5;border-radius:8px;margin-bottom:7px;cursor:pointer;
+                        transition:border-color .12s"
+                 onmouseenter="this.style.borderColor='#059669'"
+                 onmouseleave="this.style.borderColor='#D1FAE5'"
+                 onclick="Outreach._applySubject(${JSON.stringify(o)})">
+              <span style="width:20px;height:20px;background:#ECFDF5;border-radius:50%;display:flex;align-items:center;
+                           justify-content:center;font-size:11px;font-weight:800;color:#059669;flex-shrink:0">${i+1}</span>
+              <span style="flex:1;font-size:13px;font-weight:600;color:#0F172A">${_esc(o)}</span>
+              <span style="font-size:11px;font-weight:800;color:${sColor};flex-shrink:0">${sc.subjectScore}/10</span>
+              <span style="background:#059669;color:#fff;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:5px;flex-shrink:0">← Apply</span>
+            </div>`;
+          }).join('')}
+          ${r.reasoning ? `<div style="font-size:11.5px;color:#64748B;padding:4px 2px">${_esc(r.reasoning)}</div>` : ''}
+        </div>`;
 
-      } else if (task === 'rewrite' && r.body) {
-        html = `<div style="font-weight:700;margin-bottom:6px">Rewritten Email:</div>
-          ${r.improvedSubject || r.subject ? `<div style="background:#EEF2FF;padding:8px 10px;border-radius:6px;font-weight:600;color:#4338CA;margin-bottom:8px;font-size:12.5px">Subject: ${_esc(r.improvedSubject || r.subject)}</div>` : ''}
-          <div style="background:#fff;padding:10px 12px;border-radius:7px;border:1px solid #86EFAC;white-space:pre-wrap;font-size:12.5px;color:#166534;line-height:1.7;max-height:200px;overflow-y:auto">${_esc(r.body)}</div>
-          ${(r.changes || []).length ? `<div style="margin-top:8px;font-size:12px;color:#64748B"><strong>Changes:</strong> ${r.changes.join(' · ')}</div>` : ''}`;
+      } else if (task === 'rewrite') {
+        const subj = r.subject || r.improvedSubject || '';
+        const body = r.body || '';
+        html = `
+        <div style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            ✍️ Rewritten Email
+          </div>
+          ${subj ? `<div style="padding:8px 12px;background:#EEF2FF;border-radius:7px;margin-bottom:8px;font-size:12.5px;color:#4338CA;font-weight:600">
+            Subject: ${_esc(subj)}
+          </div>` : ''}
+          <div style="padding:12px;background:#fff;border:1px solid #D1FAE5;border-radius:8px;white-space:pre-wrap;font-size:12.5px;
+                      color:#064E3B;line-height:1.75;max-height:180px;overflow-y:auto;margin-bottom:10px">${_esc(body)}</div>
+          ${(r.changes||[]).length ? `<div style="font-size:11.5px;color:#64748B;margin-bottom:10px">Changes: ${r.changes.join(' · ')}</div>` : ''}
+          <button onclick="Outreach._applyBody(${JSON.stringify(body)}, ${JSON.stringify(subj)})"
+            style="background:#0D9488;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+            Replace Email with This Version ↗
+          </button>
+        </div>`;
 
-      } else if (task === 'followup' && r.body) {
-        html = `<div style="font-weight:700;margin-bottom:6px">Follow-up Email:</div>
-          <div style="background:#EEF2FF;padding:8px 10px;border-radius:6px;font-weight:600;color:#4338CA;margin-bottom:8px;font-size:12.5px">Subject: ${_esc(r.subject || '')}</div>
-          <div style="background:#fff;padding:10px 12px;border-radius:7px;border:1px solid #86EFAC;white-space:pre-wrap;font-size:12.5px;color:#166534;line-height:1.7;max-height:180px;overflow-y:auto">${_esc(r.body)}</div>`;
+      } else if (task === 'followup') {
+        const fBody = r.body || '';
+        const fSubj = r.subject || '';
+        html = `
+        <div style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            📩 Follow-up Email
+          </div>
+          <div style="padding:8px 12px;background:#EEF2FF;border-radius:7px;margin-bottom:8px;font-size:12.5px;color:#4338CA;font-weight:600">
+            Subject: ${_esc(fSubj)}
+          </div>
+          <div style="padding:12px;background:#fff;border:1px solid #D1FAE5;border-radius:8px;white-space:pre-wrap;font-size:12.5px;
+                      color:#064E3B;line-height:1.75;max-height:160px;overflow-y:auto;margin-bottom:10px">${_esc(fBody)}</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="Outreach._applyBody(${JSON.stringify(fBody)}, ${JSON.stringify(fSubj)})"
+              style="flex:1;background:#0284C7;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">
+              Use as Email Body ↗
+            </button>
+            <button onclick="navigator.clipboard.writeText(${JSON.stringify(fSubj + '\n\n' + fBody)}).then(()=>UI.toast('Copied','s'))"
+              style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer">
+              Copy
+            </button>
+          </div>
+        </div>`;
 
       } else if (task === 'analyse') {
-        const scoreC = (r.score || 5) >= 7 ? '#059669' : (r.score || 5) >= 5 ? '#D97706' : '#DC2626';
-        html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-          <div style="font-family:'Outfit',sans-serif;font-size:36px;font-weight:800;color:${scoreC}">${r.score || '—'}<span style="font-size:16px;color:#94A3B8">/10</span></div>
-          <div style="font-size:13px;color:#374151">${_esc(r.summary || '')}</div>
-        </div>
-        ${(r.hurts||[]).length ? `<div style="margin-bottom:8px"><div style="font-weight:700;font-size:12px;color:#DC2626;margin-bottom:5px">⚠ Hurting your reply rate:</div>${r.hurts.map(h => `<div style="font-size:12.5px;padding:4px 0;border-bottom:1px solid #FEE2E2;color:#7F1D1D">• ${_esc(h)}</div>`).join('')}</div>` : ''}
-        ${(r.improvements||[]).length ? `<div><div style="font-weight:700;font-size:12px;color:#059669;margin-bottom:5px">✓ Fix immediately:</div>${r.improvements.map(i => `<div style="font-size:12.5px;padding:4px 0;border-bottom:1px solid #D1FAE5;color:#064E3B">→ ${_esc(i)}</div>`).join('')}</div>` : ''}`;
+        const sc = r.score || 5;
+        const scC = sc >= 7 ? '#059669' : sc >= 5 ? '#D97706' : '#DC2626';
+        html = `
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #D1FAE5">
+            <div style="font-family:'Outfit',sans-serif;font-size:44px;font-weight:800;color:${scC};letter-spacing:-2px;line-height:1">
+              ${sc}<span style="font-size:18px;color:#94A3B8;font-weight:400">/10</span>
+            </div>
+            <div style="font-size:13.5px;color:#374151;line-height:1.5">${_esc(r.summary || '')}</div>
+          </div>
+          ${(r.hurts||[]).length ? `
+          <div style="margin-bottom:12px">
+            <div style="font-size:11.5px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">⚠ Hurting reply rate</div>
+            ${r.hurts.map(h => `
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:#FEF2F2;border-radius:6px;margin-bottom:5px;font-size:12.5px;color:#7F1D1D">
+              <span style="flex-shrink:0">•</span><span>${_esc(h)}</span>
+            </div>`).join('')}
+          </div>` : ''}
+          ${(r.improvements||[]).length ? `
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">✓ Fix now</div>
+            ${r.improvements.map((fix, i) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#F0FDF4;border-radius:6px;margin-bottom:5px">
+              <span style="font-size:12.5px;color:#064E3B;flex:1">→ ${_esc(fix)}</span>
+              <button onclick="Outreach._runAssist('${leadId}','boost')"
+                style="background:#059669;color:#fff;border:none;border-radius:5px;padding:3px 9px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">
+                Fix it ↗
+              </button>
+            </div>`).join('')}
+          </div>` : ''}
+        </div>`;
 
       } else {
-        // Generic improvement suggestion
-        html = `${r.suggestion ? `<div style="font-weight:700;margin-bottom:6px">Top suggestion:</div><div style="background:#fff;padding:10px 12px;border-radius:7px;border:1px solid #86EFAC;font-size:13px;color:#166534;line-height:1.7;margin-bottom:10px">${_esc(r.suggestion)}</div>` : ''}
-          ${r.why ? `<div style="font-size:12px;color:#64748B"><strong>Why:</strong> ${_esc(r.why)}</div>` : ''}
-          ${r.improvedSubject ? `<div style="margin-top:8px;font-size:12.5px;background:#EEF2FF;padding:8px 10px;border-radius:6px;color:#4338CA;font-weight:600">Better subject: ${_esc(r.improvedSubject)}</div>` : ''}
-          ${r.improvedOpening ? `<div style="margin-top:6px;font-size:12.5px;color:#166534"><strong>Better opening:</strong> ${_esc(r.improvedOpening)}</div>` : ''}`;
+        // direct / urgent / conversational / boost — returns rewritten body
+        const rBody = r.body || r.rewritten || '';
+        const rSubj = r.subject || r.improvedSubject || '';
+        html = `
+        <div style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            ${task === 'direct' ? '⚡ Sharper Version' : task === 'urgent' ? '🔥 With Urgency' : task === 'conversational' ? '💬 Warmer Version' : '📈 Optimised Version'}
+          </div>
+          ${rSubj ? `<div style="padding:8px 12px;background:#EEF2FF;border-radius:7px;margin-bottom:8px;font-size:12.5px;color:#4338CA;font-weight:600">Subject: ${_esc(rSubj)}</div>` : ''}
+          <div style="padding:12px;background:#fff;border:1px solid #D1FAE5;border-radius:8px;white-space:pre-wrap;font-size:12.5px;
+                      color:#064E3B;line-height:1.75;max-height:180px;overflow-y:auto;margin-bottom:10px">${_esc(rBody || r.suggestion || '')}</div>
+          ${r.why ? `<div style="font-size:11.5px;color:#64748B;margin-bottom:10px">${_esc(r.why)}</div>` : ''}
+          ${rBody ? `<button onclick="Outreach._applyBody(${JSON.stringify(rBody)}, ${JSON.stringify(rSubj)})"
+            style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+            Replace Email with This Version ↗
+          </button>` : ''}
+        </div>`;
       }
 
       if (resultEl) {
         resultEl.style.display = 'block';
-        resultEl.style.background = '#F0FDF4';
-        resultEl.style.borderColor = '#86EFAC';
-        resultEl.style.color = '#166534';
+        resultEl.style.background = bgCol;
+        resultEl.style.border = '1px solid ' + bdCol;
         resultEl.innerHTML = html;
       }
 
     } catch(e) {
-      if (loadEl)   loadEl.style.display = 'none';
+      if (loadEl) loadEl.style.display = 'none';
+      _ASSIST_ACTIONS.forEach(([t]) => {
+        const btn = document.getElementById('assist-btn-' + t);
+        if (btn) btn.style.opacity = '1';
+      });
       if (resultEl) {
         resultEl.style.display = 'block';
         resultEl.style.background = '#FEF2F2';
-        resultEl.style.borderColor = '#FECACA';
-        resultEl.style.color = '#991B1B';
-        resultEl.innerHTML = '⚠ Request failed: ' + _esc(e.message);
+        resultEl.style.border = '1px solid #FECACA';
+        resultEl.innerHTML = `<div style="padding:14px 16px;font-size:13px;color:#991B1B">⚠ Request failed: ${_esc(e.message)}</div>`;
       }
     }
   }
 
 
-  // ── STATE SETTERS ──────────────────────────────────────────
-  function _setView(v) { _view = v; _draw(); }
-  function _search(q)  { _q = q; _draw(); }
+  // ── STATE SETTERS — persist view across hard refreshes ──────
+  function _setView(v) {
+    _view = v;
+    try { localStorage.setItem('outreach_view', v); } catch(e) {}
+    _draw();
+  }
+  function _search(q) { _q = q; _draw(); }
 
   return {
     render,
@@ -1460,6 +1768,7 @@ window.Outreach = (() => {
     _setView,
     _search,
     _previewTemplate,
+    _toggleEmailPreview,
     _doSend,
     _doBatch,
     _markOptOut,
