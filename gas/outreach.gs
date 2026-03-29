@@ -1716,6 +1716,90 @@ Identify:
 Reply with JSON only: {"score": 7, "hurts": ["reason1","reason2","reason3"], "improvements": ["fix1","fix2","fix3"], "summary": "one-sentence verdict"}`;
         break;
 
+      case 'direct':
+        prompt = `You are a B2B copywriter. Rewrite this cold email to be sharper and more direct.
+Company: ${company} | Service: ${service || 'commercial cleaning'}
+
+Subject: "${subject}"
+Body:
+"""
+${emailBody.substring(0, 1200)}
+"""
+
+Rules:
+- Cut all filler words and vague claims
+- Every sentence must earn its place — no fluff
+- Lead with the strongest value statement immediately
+- CTA must be a single crisp question
+- Under 120 words
+- British English
+
+Reply with JSON only: {"subject": "sharper subject", "body": "rewritten body", "why": "one-line reason this version converts better"}`;
+        break;
+
+      case 'urgent':
+        prompt = `You are a B2B copywriter. Add genuine urgency to this cold outreach email without being pushy or fake.
+Company: ${company} | Service: ${service || 'commercial cleaning'}
+
+Subject: "${subject}"
+Body:
+"""
+${emailBody.substring(0, 1200)}
+"""
+
+Rules:
+- Use a real, believable time hook (e.g. limited slots, seasonal demand, pricing review)
+- Do NOT use fake scarcity or countdown language
+- Urgency should feel natural, not salesy
+- Keep under 160 words
+- British English
+
+Reply with JSON only: {"subject": "urgent subject line", "body": "email with urgency added", "why": "what urgency hook was used and why it works"}`;
+        break;
+
+      case 'conversational':
+        prompt = `You are a B2B copywriter. Rewrite this cold email to sound warmer and more human — like a message from a real person, not a marketing template.
+Company: ${company} | Service: ${service || 'commercial cleaning'}
+
+Subject: "${subject}"
+Body:
+"""
+${emailBody.substring(0, 1200)}
+"""
+
+Rules:
+- Write as Mike Kato speaking directly to a peer
+- Short sentences, natural rhythm — how you'd actually talk
+- Remove all corporate/formal phrases ("I trust this finds you well", "leverage", "synergy")
+- Still professional — just human
+- Under 150 words, British English
+
+Reply with JSON only: {"subject": "conversational subject", "body": "warmer email body", "why": "what made it feel more human"}`;
+        break;
+
+      case 'boost':
+        prompt = `You are an expert cold email optimiser. Rewrite this outreach email to maximise reply rate using every proven technique.
+Company: ${company} | Service: ${service || 'commercial cleaning'}
+${body.perfContext ? 'Performance context: ' + body.perfContext : ''}
+
+Subject: "${subject}"
+Body:
+"""
+${emailBody.substring(0, 1200)}
+"""
+
+Optimisation checklist:
+- Subject: personalised, curiosity-driven, under 9 words
+- Opening: reference something specific about the company (not generic)
+- Value prop: one sharp sentence — what problem we solve, not what we do
+- Social proof: one credibility signal (insured, COSHH, etc.)
+- CTA: single low-friction question that's easy to reply "yes" or "no" to
+- Length: 90–150 words
+- British English
+
+Reply with JSON only: {"subject": "optimised subject", "body": "maximised body", "changes": ["change1","change2","change3"], "why": "key conversion improvement"}`;
+        break;
+
       default:  // improve — general suggestions
         prompt = `Review this B2B cold outreach email for AskMiro Cleaning Services (London) and suggest the single most impactful improvement.
 

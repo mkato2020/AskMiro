@@ -869,17 +869,22 @@ window.Outreach = (() => {
       </div>` : `<div style="font-size:12px;color:#059669;font-weight:600">✓ Email quality looks good</div>`}`;
   }
 
-  function openSendModal(leadId) {
+  function openSendModal(leadId, overrides) {
     const lead = _queue.find(r => r.id === leadId);
     if (!lead) return;
 
     const currentTmpl = _templates.find(t => t.key === lead.outreachTemplate) || _templates[0] || {};
-    const previewSubj = lead.outreachEmailBody
-      ? (lead.outreachEmailBody.match(/^SUBJECT:\s*(.+?)(?:\r?\n)/i) || [])[1] || _mergePreview(currentTmpl.subject || '', lead)
-      : _mergePreview(currentTmpl.subject || '', lead);
-    const previewBody = lead.outreachEmailBody
-      ? lead.outreachEmailBody.replace(/^SUBJECT:[^\r\n]*[\r\n]+/i, '').replace(/^[\r\n]+/, '').replace(/\n{1,3}(Best regards?|Kind regards?|Regards|Best)[,\s][\s\S]*$/i, '').trim()
-      : _mergePreview(currentTmpl.body || '', lead);
+    // Overrides let the AI Assist "Apply" button reopen the modal with new content
+    const previewSubj = (overrides && overrides.subject != null)
+      ? overrides.subject
+      : lead.outreachEmailBody
+        ? (lead.outreachEmailBody.match(/^SUBJECT:\s*(.+?)(?:\r?\n)/i) || [])[1] || _mergePreview(currentTmpl.subject || '', lead)
+        : _mergePreview(currentTmpl.subject || '', lead);
+    const previewBody = (overrides && overrides.body != null)
+      ? overrides.body
+      : lead.outreachEmailBody
+        ? lead.outreachEmailBody.replace(/^SUBJECT:[^\r\n]*[\r\n]+/i, '').replace(/^[\r\n]+/, '').replace(/\n{1,3}(Best regards?|Kind regards?|Regards|Best)[,\s][\s\S]*$/i, '').trim()
+        : _mergePreview(currentTmpl.body || '', lead);
 
     // Score inline (instant, no API)
     const scoreData = _scoreEmailLocal(previewSubj, previewBody, lead);
@@ -1524,26 +1529,56 @@ window.Outreach = (() => {
     `);
   }
 
-  // One-click apply functions — write directly into the send modal fields
+  // One-click apply functions — inject into send modal fields.
+  // If the send modal has been replaced by the assist modal (single modal slot),
+  // close the assist modal and reopen the send modal pre-filled with the new content.
   function _applySubject(subject) {
     const el = document.getElementById('tmpl-subject');
     if (el) {
+      // Send modal is still open (e.g. called from an inline panel)
       el.value = subject;
       el.dispatchEvent(new Event('input'));
       el.style.borderColor = '#059669';
       setTimeout(() => { el.style.borderColor = '#E2E8F0'; }, 1500);
+      UI.toast('✓ Subject applied — review and send', 's');
+      return;
     }
-    UI.toast('✓ Subject applied — review and send', 's');
+    // Assist modal has replaced the send modal — reopen it with the applied subject
+    const ctx = window._assistCtx || {};
+    if (ctx.leadId) {
+      const currentBody = ctx.body || (window._outreachModalCtx || {}).previewBody || '';
+      UI.closeModal();
+      openSendModal(ctx.leadId, { subject, body: currentBody });
+      UI.toast('✓ Subject applied — review and send', 's');
+    }
   }
 
   function _applyBody(body, subject) {
     const bodyEl = document.getElementById('tmpl-body');
     if (bodyEl) {
+      // Send modal is still open
       bodyEl.value = body;
       bodyEl.dispatchEvent(new Event('input'));
+      if (subject) {
+        const subEl = document.getElementById('tmpl-subject');
+        if (subEl) {
+          subEl.value = subject;
+          subEl.dispatchEvent(new Event('input'));
+          subEl.style.borderColor = '#059669';
+          setTimeout(() => { subEl.style.borderColor = '#E2E8F0'; }, 1500);
+        }
+      }
+      UI.toast('✓ Email applied — review and send', 's');
+      return;
     }
-    if (subject) _applySubject(subject);
-    else UI.toast('✓ Email body applied', 's');
+    // Assist modal has replaced the send modal — reopen it with applied content
+    const ctx = window._assistCtx || {};
+    if (ctx.leadId) {
+      const newSubject = subject || ctx.subject || (window._outreachModalCtx || {}).previewSubj || '';
+      UI.closeModal();
+      openSendModal(ctx.leadId, { subject: newSubject, body });
+      UI.toast('✓ Email applied — review and send', 's');
+    }
   }
 
   async function _runAssist(leadId, task) {
