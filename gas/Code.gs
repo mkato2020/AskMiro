@@ -113,6 +113,9 @@ function routeGet(action, params, auth) {
     case 'outreach.templates':    return getOutreachTemplates(params, auth);
     case 'outreach.human-queue':  return getHumanActionQueue(params, auth);
     case 'outreach.autorun':      return getAutorunStatus(params, auth);
+    case 'outreach.sequence':     return getSequenceForLead(params, auth);
+    case 'outreach.performance':  return getOutreachPerformance(params, auth);
+    case 'outreach.score':        return scoreEmail(params, auth);
     default:             return { error: 'Unknown action: ' + action };
   }
 }
@@ -170,6 +173,8 @@ function routePost(action, body, auth) {
     case 'outreach.send':                  return sendOutreachEmail(body, auth);
     case 'outreach.status':                return updateOutreachStatus(body, auth);
     case 'outreach.resolve-action':        return resolveHumanAction(body, auth);
+    case 'outreach.sequence.update':       return updateLeadSequence(body, auth);
+    case 'outreach.assist':                return outreachAssistant(body, auth);
     default:                               return { error: 'Unknown action: ' + action };
   }
 }

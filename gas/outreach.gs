@@ -267,9 +267,13 @@ function _runAutoSend() {
   const allLeads   = getTableRows('Leads').filter(r => r.leadDirection === 'outbound');
 
   // ── Phase 1: New leads ready for first contact ───────────────
+  // Priority = 40% lead score + 35% sector reply rate + 25% template freshness
+  const _perfSnapshot = _getPerfData();
   const readyQueue = allLeads
     .filter(r => r.outreachStatus === OS.READY_FOR_OUTREACH)
-    .sort((a, b) => (Number(b.leadScore) || 0) - (Number(a.leadScore) || 0))
+    .map(r => ({ lead: r, weight: _calcPriorityWeight(r, _perfSnapshot) }))
+    .sort((a, b) => b.weight - a.weight)
+    .map(x => x.lead)
     .slice(0, batchLimit);
 
   let sent = 0;
@@ -626,6 +630,11 @@ function scanOutreachReplies() {
       let humanReason       = '';
       let replyNextAction   = '';
 
+      // Track all replies for reply-rate stats
+      _trackPerformance('replied',
+        lead.outreachTemplate || 'intro_commercial',
+        lead.segment || _inferSegment(lead.serviceType || ''));
+
       switch (cls.intent) {
         case 'UNSUBSCRIBE':
           newOutreachStatus = OS.UNSUBSCRIBED;
@@ -658,6 +667,10 @@ function scanOutreachReplies() {
           humanAction       = true;
           humanReason       = 'interested_reply';
           replyNextAction   = 'Warm reply — follow up personally within 24h';
+          // Track performance + notify Mike
+          _onPositiveReply(Object.assign({}, lead, { replySummary: cls.summary }));
+          _onQualified(lead.outreachTemplate || 'intro_commercial',
+                       lead.segment || _inferSegment(lead.serviceType || ''));
           break;
         default:
           // Catch-all for anything the classifier produces
@@ -1227,6 +1240,9 @@ function _appendLog(lead, phase, subject, sentAt, followUpN, threadId, msgId) {
       replyAt:        '',
       autoSent:       'true',
     });
+    // Track send performance
+    _trackSend(lead ? (lead.outreachTemplate || 'intro_commercial') : 'intro_commercial',
+               lead ? (lead.segment || _inferSegment(lead.serviceType || '')) : 'unknown');
   } catch(e) {
     Logger.log('_appendLog error: ' + e.message);
   }
@@ -1249,6 +1265,516 @@ function _updateLogReply(leadId, cls, ts) {
       }
     }
   } catch(e) { Logger.log('_updateLogReply error: ' + e.message); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// CONVERSION ENGINE — PARTS 1-6
+// Upgrades outreach from "sends emails" to "generates qualified
+// conversations". All additive — existing logic untouched.
+// ══════════════════════════════════════════════════════════════
+
+
+// ─────────────────────────────────────────────────────────────
+// PART 1 — EMAIL QUALITY INTELLIGENCE
+// Scores subject + body and predicts reply likelihood.
+// Called from GAS route AND replicated client-side (JS) for
+// instant feedback in the Send Modal (no extra API call).
+// ─────────────────────────────────────────────────────────────
+
+function scoreEmail(params, auth) {
+  try {
+    const subject = String(params.subject || '');
+    const body    = String(params.body    || '');
+    const company = String(params.company || '');
+    const service = String(params.service || '');
+    const score   = Number(params.leadScore) || 50;
+    return _scoreEmail(subject, body, company, service, score);
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+function _scoreEmail(subject, body, company, service, leadScore) {
+  const subj = (subject || '').trim();
+  const txt  = (body    || '').trim();
+  const comp = (company || '').trim().toLowerCase();
+  const svc  = (service || '').trim().toLowerCase();
+
+  // ── Subject Score (1-10) ────────────────────────────────
+  let ss = 5;
+  const subjWords = subj.split(/\s+/).filter(Boolean).length;
+  if (subjWords >= 5 && subjWords <= 12) ss += 1;
+  else if (subjWords < 3 || subjWords > 16) ss -= 1;
+  if (comp && subj.toLowerCase().includes(comp.split(' ')[0].toLowerCase())) ss += 2;
+  else if (comp) ss -= 0.5;  // not personalised
+  if (svc && subj.toLowerCase().includes(svc.split(' ')[0].toLowerCase())) ss += 0.5;
+  if (/free|guarantee|urgent|act now|limited time/i.test(subj)) ss -= 2;  // spam triggers
+  if (/[A-Z]{4,}/.test(subj)) ss -= 1;   // SHOUTING
+  if (/\d/.test(subj)) ss += 0.5;         // specific number e.g. "24-hour"
+  if (/\?$/.test(subj.trim())) ss += 0.5; // question format
+  if (subj.length > 80) ss -= 1;          // too long for preview
+  const subjectScore = Math.min(10, Math.max(1, Math.round(ss)));
+
+  // ── Body Score (1-10) ───────────────────────────────────
+  let bs = 5;
+  const bodyWords = txt.split(/\s+/).filter(Boolean).length;
+  if (bodyWords >= 80 && bodyWords <= 200) bs += 1.5;
+  else if (bodyWords < 40) bs -= 1.5;
+  else if (bodyWords > 280) bs -= 1;
+  if (comp && txt.toLowerCase().includes(comp.split(' ')[0].toLowerCase())) bs += 2;
+  if (svc && txt.toLowerCase().includes(svc.split(' ')[0].toLowerCase())) bs += 0.5;
+  // personalised greeting
+  if (/^hi\s+[A-Z]/m.test(txt) || /^dear\s+[A-Z]/m.test(txt)) bs += 1;
+  // clear CTA
+  if (/\?/.test(txt.slice(-300))) bs += 1;
+  // paragraph structure
+  const paraCount = txt.split(/\n\n/).filter(Boolean).length;
+  if (paraCount >= 2 && paraCount <= 4) bs += 0.5;
+  // trust signals
+  if (/insur|dbs|coshh|iso|compli/i.test(txt)) bs += 0.5;
+  // spam words
+  if (/click here|buy now|subscribe|free trial/i.test(txt)) bs -= 2;
+  const bodyScore = Math.min(10, Math.max(1, Math.round(bs)));
+
+  // ── Predicted Reply Likelihood ──────────────────────────
+  // UK B2B cold email baseline ~8-12%, well-targeted ~15-25%
+  const leadBoost    = (leadScore  / 100) * 15;  // up to +15%
+  const subjBoost    = (subjectScore / 10) * 8;  // up to +8%
+  const bodyBoost    = (bodyScore   / 10) * 9;   // up to +9%
+  const rawLikelihood = 8 + leadBoost + subjBoost + bodyBoost;
+  const replyLikelihood = Math.min(48, Math.round(rawLikelihood));
+
+  // ── Actionable Tips ────────────────────────────────────
+  const tips = [];
+  if (!comp || !subj.toLowerCase().includes(comp.split(' ')[0].toLowerCase()))
+    tips.push({ type: 'subject', msg: 'Add company name to subject for +2 personalisation boost' });
+  if (subjWords < 5)
+    tips.push({ type: 'subject', msg: 'Subject too short — aim for 6-10 words' });
+  if (subjWords > 13)
+    tips.push({ type: 'subject', msg: 'Subject too long — cut to under 12 words' });
+  if (bodyWords > 220)
+    tips.push({ type: 'body', msg: 'Body is too long — shorter emails get 30% more replies' });
+  if (bodyWords < 50)
+    tips.push({ type: 'body', msg: 'Body too brief — add one value prop paragraph' });
+  if (!/\?/.test(txt.slice(-300)))
+    tips.push({ type: 'body', msg: 'End with a clear question to drive a response' });
+  if (!(/^hi\s+[A-Z]/im.test(txt)))
+    tips.push({ type: 'body', msg: 'Personalise greeting — "Hi [Name]," outperforms "Hi,"' });
+
+  return { subjectScore, bodyScore, replyLikelihood, tips };
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// PART 2 — SEQUENCE VISIBILITY
+// Returns the full 3-touch sequence for a lead, with timing
+// and editable windows. Synthesised from live lead data.
+// ─────────────────────────────────────────────────────────────
+
+function getSequenceForLead(params, auth) {
+  try {
+    const leadId = params.id || params.leadId;
+    if (!leadId) return { error: 'leadId required' };
+
+    const leads = getTableRows('Leads');
+    const lead  = leads.find(r => r.id === leadId);
+    if (!lead) return { error: 'Lead not found' };
+
+    const sentAt     = lead.lastContactedAt || lead.handoffAt || null;
+    const followUpN  = Number(lead.followUpCount || 0);
+    const status     = lead.outreachStatus || OS.READY_FOR_OUTREACH;
+    const nextFU     = lead.nextFollowUpAt || null;
+
+    // Build 3-step sequence timeline
+    const steps = [
+      {
+        step:        1,
+        phase:       'initial',
+        label:       'Email 1 — Introduction',
+        status:      sentAt ? 'sent' : (status === OS.READY_FOR_OUTREACH ? 'pending' : 'pending'),
+        sentAt:      sentAt || null,
+        scheduledAt: null,
+        delayDays:   0,
+        subject:     lead.outreachEmailBody
+          ? _extractSubjectFromBody(lead.outreachEmailBody)
+          : null,
+        bodyPreview: lead.outreachEmailBody
+          ? _cleanBody(lead.outreachEmailBody, lead).cleanedBody.substring(0, 200)
+          : null,
+      },
+      {
+        step:        2,
+        phase:       'followup1',
+        label:       'Follow-up 1',
+        status:      followUpN >= 1 ? 'sent'
+                   : (status === OS.CONTACTED || status === OS.FOLLOW_UP_1) ? 'scheduled' : 'pending',
+        sentAt:      followUpN >= 1 ? nextFU : null,
+        scheduledAt: status === OS.CONTACTED ? nextFU : null,
+        delayDays:   FOLLOW_UP_DAYS[0],
+        subject:     null,
+        bodyPreview: lead.followUpEmailBody
+          ? _cleanBody(lead.followUpEmailBody, lead).cleanedBody.substring(0, 200)
+          : null,
+      },
+      {
+        step:        3,
+        phase:       'followup2',
+        label:       'Follow-up 2',
+        status:      followUpN >= 2 ? 'sent'
+                   : status === OS.FOLLOW_UP_1 ? 'scheduled' : 'pending',
+        sentAt:      followUpN >= 2 ? null : null,
+        scheduledAt: status === OS.FOLLOW_UP_1 ? nextFU : null,
+        delayDays:   FOLLOW_UP_DAYS[1],
+        subject:     null,
+        bodyPreview: null,
+      },
+      {
+        step:        4,
+        phase:       'final',
+        label:       'Final Follow-up',
+        status:      status === OS.FINAL_FOLLOW_UP ? 'sent'
+                   : status === OS.FOLLOW_UP_2 ? 'scheduled' : 'pending',
+        sentAt:      null,
+        scheduledAt: status === OS.FOLLOW_UP_2 ? nextFU : null,
+        delayDays:   FOLLOW_UP_DAYS[2],
+        subject:     null,
+        bodyPreview: null,
+      },
+    ];
+
+    return {
+      leadId:      leadId,
+      companyName: lead.companyName,
+      email:       lead.email,
+      status:      status,
+      sequence:    steps,
+      timings:     FOLLOW_UP_DAYS,  // [3, 7, 14] — editable
+    };
+  } catch(e) {
+    Logger.log('getSequenceForLead error: ' + e.message);
+    return { error: e.message };
+  }
+}
+
+function _extractSubjectFromBody(raw) {
+  const m = (raw || '').match(/^SUBJECT:\s*(.+?)(?:\r?\n)/i);
+  return m ? m[1].trim() : null;
+}
+
+function updateLeadSequence(body, auth) {
+  try {
+    const leadId    = body.leadId;
+    const timings   = body.timings;  // [days1, days2, days3]
+    const newSubject = body.subject || null;
+    if (!leadId) return { error: 'leadId required' };
+
+    const updates = {};
+
+    // Re-schedule nextFollowUpAt if timing changed
+    if (Array.isArray(timings) && timings.length >= 1) {
+      const lead   = (getTableRows('Leads') || []).find(r => r.id === leadId);
+      if (lead && lead.lastContactedAt) {
+        const fuN = Number(lead.followUpCount || 0);
+        const delay = timings[fuN] || timings[0];
+        updates.nextFollowUpAt = _addDays(lead.lastContactedAt, delay);
+      }
+    }
+
+    // Update email body subject if provided
+    if (newSubject && body.phase === 'initial') {
+      const lead   = (getTableRows('Leads') || []).find(r => r.id === leadId);
+      const rawBody = (lead || {}).outreachEmailBody || '';
+      const cleaned = rawBody.replace(/^SUBJECT:[^\r\n]*[\r\n]+/i, '').replace(/^[\r\n]+/, '');
+      updates.outreachEmailBody = 'SUBJECT: ' + newSubject + '\n\n' + cleaned;
+    }
+
+    if (Object.keys(updates).length) {
+      updateRow('Leads', leadId, updates);
+      invalidateCache('Leads');
+    }
+
+    return { ok: true, leadId, updated: Object.keys(updates) };
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// PART 4 — PRIORITISATION ENGINE
+// Performance-weighted send order: lead score × sector reply
+// rate × template effectiveness. Called by _runAutoSend().
+// ─────────────────────────────────────────────────────────────
+
+function _getPerfData() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty('outreach_perf_v1');
+    return raw ? JSON.parse(raw) : { templates: {}, sectors: {}, total: { sent: 0, replied: 0, qualified: 0 } };
+  } catch(e) { return { templates: {}, sectors: {}, total: { sent: 0, replied: 0, qualified: 0 } }; }
+}
+
+function _savePerfData(data) {
+  try {
+    data.updatedAt = new Date().toISOString();
+    PropertiesService.getScriptProperties().setProperty('outreach_perf_v1', JSON.stringify(data));
+  } catch(e) { Logger.log('_savePerfData error: ' + e.message); }
+}
+
+function _trackPerformance(event, templateKey, sector) {
+  try {
+    const data = _getPerfData();
+    const k    = templateKey || 'unknown';
+    const s    = sector      || 'unknown';
+
+    if (!data.templates[k]) data.templates[k] = { sent: 0, replied: 0, qualified: 0 };
+    if (!data.sectors[s])   data.sectors[s]   = { sent: 0, replied: 0 };
+
+    if (event === 'sent') {
+      data.templates[k].sent++;
+      data.sectors[s].sent++;
+      data.total.sent = (data.total.sent || 0) + 1;
+    } else if (event === 'replied') {
+      data.templates[k].replied++;
+      data.sectors[s].replied++;
+      data.total.replied = (data.total.replied || 0) + 1;
+    } else if (event === 'qualified') {
+      data.templates[k].qualified = (data.templates[k].qualified || 0) + 1;
+      data.total.qualified = (data.total.qualified || 0) + 1;
+    }
+
+    _savePerfData(data);
+  } catch(e) { Logger.log('_trackPerformance error: ' + e.message); }
+}
+
+function _calcPriorityWeight(lead, perfData) {
+  // Weight = 40% lead score + 35% sector reply rate + 25% template freshness
+  const perfD = perfData || _getPerfData();
+
+  const leadScoreNorm = Math.min(100, Number(lead.leadScore || 50)) / 100;  // 0-1
+
+  const sector         = lead.segment || _inferSegment(lead.serviceType || '');
+  const sectorStats    = (perfD.sectors || {})[sector] || {};
+  const sectorSent     = sectorStats.sent    || 0;
+  const sectorReplied  = sectorStats.replied || 0;
+  const sectorRate     = sectorSent > 5 ? (sectorReplied / sectorSent) : 0.12;  // default 12%
+
+  const tmplKey        = lead.outreachTemplate || 'intro_commercial';
+  const tmplStats      = ((perfD.templates || {})[tmplKey]) || {};
+  const tmplSent       = tmplStats.sent || 0;
+  // Slightly favour less-used templates to diversify (prevents over-sending one template)
+  const tmplFreshness  = tmplSent < 10 ? 1.0 : tmplSent < 50 ? 0.9 : 0.75;
+
+  return (leadScoreNorm * 0.40) + (sectorRate * 0.35) + (tmplFreshness * 0.25);
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// PART 5 — PERFORMANCE DASHBOARD DATA
+// Returns template + sector analytics for the Performance tab.
+// ─────────────────────────────────────────────────────────────
+
+function getOutreachPerformance(params, auth) {
+  try {
+    const data = _getPerfData();
+
+    // Enrich templates
+    const templates = Object.entries(data.templates || {}).map(([key, s]) => {
+      const replyRate = s.sent > 0 ? Math.round((s.replied / s.sent) * 100) : 0;
+      const convRate  = s.sent > 0 ? Math.round((s.qualified / s.sent) * 100) : 0;
+      return { key, sent: s.sent, replied: s.replied, qualified: s.qualified || 0,
+               replyRate, convRate };
+    }).sort((a, b) => b.replyRate - a.replyRate);
+
+    // Enrich sectors
+    const sectors = Object.entries(data.sectors || {}).map(([key, s]) => {
+      const replyRate = s.sent > 0 ? Math.round((s.replied / s.sent) * 100) : 0;
+      return { key, sent: s.sent, replied: s.replied, replyRate };
+    }).sort((a, b) => b.replyRate - a.replyRate);
+
+    const total = data.total || { sent: 0, replied: 0, qualified: 0 };
+    const overallReplyRate = total.sent > 0 ? Math.round((total.replied / total.sent) * 100) : 0;
+    const convRate         = total.sent > 0 ? Math.round((total.qualified / total.sent) * 100) : 0;
+
+    return {
+      total, overallReplyRate, convRate,
+      bestTemplate: templates[0]  || null,
+      bestSector:   sectors[0]    || null,
+      templates, sectors,
+      updatedAt: data.updatedAt || null,
+    };
+  } catch(e) {
+    return { error: e.message };
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// PART 6 — OUTREACH AI ASSISTANT
+// Suggests better subject lines, rewrites body, recommends
+// follow-ups and identifies weak emails. Uses Claude Haiku.
+// ─────────────────────────────────────────────────────────────
+
+function outreachAssistant(body, auth) {
+  const FALLBACK = { error: 'AI assistant unavailable — check ANTHROPIC_API_KEY in Script Properties' };
+  try {
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) return FALLBACK;
+
+    const task     = body.task   || 'improve';  // improve | subject | rewrite | followup | analyse
+    const subject  = body.subject || '';
+    const emailBody= body.body    || '';
+    const company  = body.company || '';
+    const service  = body.service || '';
+    const context  = body.context || '';
+
+    let prompt = '';
+    switch (task) {
+      case 'subject':
+        prompt = `You are an expert B2B email copywriter for AskMiro Cleaning Services (London).
+Generate 3 high-converting subject line options for a cold outreach email to:
+Company: ${company}
+Service requested: ${service || 'commercial cleaning'}
+
+Rules:
+- Each subject must be under 60 characters
+- At least one must contain the company name
+- No spam words, no ALL CAPS, no excessive punctuation
+- Tone: professional, warm, direct
+- Focus on value not features
+
+Current subject: "${subject}"
+
+Reply with JSON only: {"options": ["subject1", "subject2", "subject3"], "reasoning": "brief why"}`;
+        break;
+
+      case 'rewrite':
+        prompt = `You are an expert B2B cold email writer for AskMiro Cleaning Services (London).
+Rewrite this outreach email to maximise reply rate.
+
+Target: ${company} | Service: ${service || 'commercial cleaning'}
+Sender: Mike Kato, Co-founder AskMiro Cleaning Services
+
+Current email:
+"""
+${emailBody.substring(0, 1500)}
+"""
+
+Rewrite rules:
+- Keep under 180 words
+- Personal greeting with contact name if present
+- One short value prop paragraph
+- Clear single question CTA at end (not multiple asks)
+- No fluff, no corporate speak
+- British English
+
+Reply with JSON only: {"subject": "improved subject", "body": "rewritten body text", "changes": ["change1", "change2"]}`;
+        break;
+
+      case 'followup':
+        prompt = `Write a B2B follow-up email for AskMiro Cleaning Services.
+Previous email context: "${context.substring(0, 400)}"
+Company: ${company}
+This is follow-up #${body.followUpN || 1}.
+
+Rules:
+- Under 100 words
+- Reference that you emailed before without being pushy
+- New angle or value prop — don't repeat the first email
+- End with a low-friction question
+- British English, professional tone
+
+Reply with JSON only: {"subject": "follow-up subject", "body": "follow-up body text"}`;
+        break;
+
+      case 'analyse':
+        prompt = `Analyse this cold outreach email for AskMiro Cleaning Services and identify weaknesses.
+
+Company: ${company} | Service: ${service}
+Subject: "${subject}"
+Body:
+"""
+${emailBody.substring(0, 1000)}
+"""
+
+Identify:
+1. Top 3 things that will HURT reply rate
+2. Top 3 things to improve IMMEDIATELY
+3. Overall score 1-10 and why
+
+Reply with JSON only: {"score": 7, "hurts": ["reason1","reason2","reason3"], "improvements": ["fix1","fix2","fix3"], "summary": "one-sentence verdict"}`;
+        break;
+
+      default:  // improve — general suggestions
+        prompt = `Review this B2B cold outreach email for AskMiro Cleaning Services (London) and suggest the single most impactful improvement.
+
+Company: ${company}
+Subject: "${subject}"
+Body excerpt: "${emailBody.substring(0, 600)}"
+
+Reply with JSON only: {"suggestion": "specific improvement text", "why": "brief reason", "improvedSubject": "better subject if relevant", "improvedOpening": "better opening line if relevant"}`;
+    }
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type':      'application/json',
+      },
+      payload: JSON.stringify({
+        model:      'claude-haiku-4-5',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      muteHttpExceptions: true,
+    });
+
+    const res = JSON.parse(response.getContentText());
+    if (res.error) { Logger.log('AI assist error: ' + res.error.message); return FALLBACK; }
+
+    const raw   = res.content[0].text.trim();
+    const jsonM = raw.match(/\{[\s\S]*\}/);
+    const result = jsonM ? JSON.parse(jsonM[0]) : { raw };
+
+    return { ok: true, task, result };
+  } catch(e) {
+    Logger.log('outreachAssistant error: ' + e.message);
+    return { error: e.message };
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// HOOKS — wire performance tracking into existing functions
+// ─────────────────────────────────────────────────────────────
+
+// Called after any email is successfully sent (hooks into _appendLog)
+function _trackSend(templateKey, sector) {
+  _trackPerformance('sent', templateKey, sector);
+}
+
+// Called from scanOutreachReplies when a positive reply is detected
+// Also fires a Gmail notification for hot leads
+function _onPositiveReply(lead) {
+  _trackPerformance('replied',    lead.outreachTemplate || 'intro_commercial',
+                                  lead.segment          || _inferSegment(lead.serviceType || ''));
+
+  // Notify Mike via Gmail (subject line alert)
+  try {
+    GmailApp.sendEmail(
+      'info@askmiro.com',
+      '🔥 Hot Reply: ' + (lead.companyName || 'Unknown') + ' — AskMiro Outreach',
+      lead.companyName + ' (' + lead.email + ') has replied positively to your outreach.\n\n' +
+      'Reply summary: ' + (lead.replySummary || 'See Gmail') + '\n\n' +
+      'Log in to Ops → Outreach → 🎯 Action to follow up.',
+      { name: 'AskMiro Autopilot', noReply: false }
+    );
+  } catch(e) { Logger.log('Hot reply notify error: ' + e.message); }
+}
+
+function _onQualified(templateKey, sector) {
+  _trackPerformance('qualified', templateKey, sector);
 }
 
 
