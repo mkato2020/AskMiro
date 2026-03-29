@@ -458,7 +458,8 @@ function _buildEmail(lead, phase) {
     if (!textBody) textBody = _merge(tmpl.body, lead);
   }
 
-  const htmlBody = _buildHtml(textBody);
+  const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
+  const htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach');
   return { subject, textBody, htmlBody, templateKey };
 }
 
@@ -1014,21 +1015,113 @@ function _merge(str, lead) {
     .replace(/\{\{email\}\}/g,        lead.email        || '');
 }
 
-function _buildHtml(text) {
-  const paras = (text || '').split('\n\n').map(p =>
-    '<p style="margin:0 0 16px;line-height:1.75">' +
-    (p || '').trim().replace(/\n/g, '<br>') + '</p>'
-  ).join('');
-  return `<!DOCTYPE html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1F2937;font-size:15px;max-width:560px;margin:0 auto;padding:28px 20px">
-${paras}
-<hr style="border:none;border-top:1px solid #E5E7EB;margin:28px 0">
-<p style="font-size:11px;color:#9CA3AF;margin:0;line-height:1.6">
-  You received this email because your business was identified as potentially needing professional cleaning services in London.<br>
-  To stop receiving messages, reply with <em>unsubscribe</em> or email
-  <a href="mailto:info@askmiro.com" style="color:#9CA3AF">info@askmiro.com</a>.
-</p>
-</body></html>`;
+// ── BRANDED HTML EMAIL — mirrors email.js Tesla × Fluent design ──────────────
+var _T = {
+  navy:       '#0A1628',
+  charcoal:   '#111827',
+  body:       '#1F2937',
+  slate:      '#4B5563',
+  border:     '#E5E7EB',
+  offWhite:   '#F9FAFB',
+  teal:       '#0D9488',
+  tealDark:   '#0F766E',
+  tealMid:    '#14B8A6',
+  tealLight:  '#CCFBF1',
+  tealGhost:  '#F0FDFA',
+};
+var _FONT    = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+var _LOGO    = '<img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0">';
+var _LOGO_SM = '<img src="https://www.askmiro.com/favicon-32x32.png" width="30" height="30" alt="AskMiro" style="display:block;border:0;border-radius:6px" border="0">';
+
+function _buildHtml(text, label) {
+  label = label || 'Outreach';
+
+  // Plain text → HTML paragraphs
+  var paras = (text || '').split('\n\n').map(function(p) {
+    return '<p style="margin:0 0 18px;font-family:' + _FONT + ';font-size:15px;color:' + _T.body + ';line-height:1.8">'
+      + (p || '').trim().replace(/\n/g, '<br>')
+      + '</p>';
+  }).join('');
+
+  // Branded signature — matches email.js _sig()
+  var sig = '<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:40px">'
+    + '<tr><td style="padding-top:28px;border-top:1px solid ' + _T.border + '">'
+    + '<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+    + '<td style="vertical-align:middle;padding-right:14px;width:34px">' + _LOGO_SM + '</td>'
+    + '<td style="vertical-align:middle">'
+    + '<div style="font-family:' + _FONT + ';font-size:15px;font-weight:700;color:' + _T.charcoal + ';line-height:1.2">Mike Kato</div>'
+    + '<div style="font-family:' + _FONT + ';font-size:12px;color:' + _T.teal + ';font-weight:600;margin-top:2px">Co-founder — AskMiro Cleaning Services</div>'
+    + '</td></tr></table>'
+    + '<table cellpadding="0" cellspacing="0" style="margin-top:14px"><tr>'
+    + '<td style="padding-right:22px"><a href="tel:02080730621" style="font-family:' + _FONT + ';font-size:12px;color:' + _T.slate + ';text-decoration:none"><span style="color:' + _T.teal + ';margin-right:4px">&#9742;</span>020 8073 0621</a></td>'
+    + '<td style="padding-right:22px"><a href="mailto:info@askmiro.com" style="font-family:' + _FONT + ';font-size:12px;color:' + _T.slate + ';text-decoration:none"><span style="color:' + _T.teal + ';margin-right:4px">&#9993;</span>info@askmiro.com</a></td>'
+    + '<td><a href="https://www.askmiro.com" style="font-family:' + _FONT + ';font-size:12px;color:' + _T.teal + ';font-weight:600;text-decoration:none">www.askmiro.com</a></td>'
+    + '</tr></table>'
+    + '<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:16px"><tr>'
+    + '<td style="padding:10px 16px;background:' + _T.tealGhost + ';border:1px solid ' + _T.tealLight + ';border-radius:8px">'
+    + '<table cellpadding="0" cellspacing="0"><tr>'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; Fully Insured</td>'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; COSHH Compliant</td>'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; ISO Standards</td>'
+    + '<td style="font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; London &amp; UK</td>'
+    + '</tr></table></td></tr></table>'
+    + '</td></tr></table>';
+
+  // Full email shell — matches email.js _wrap()
+  return '<!DOCTYPE html>\n'
+    + '<html lang="en"><head>\n'
+    + '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
+    + '<meta name="x-apple-disable-message-reformatting"><meta name="format-detection" content="telephone=no">\n'
+    + '<title>AskMiro Cleaning Services</title>\n'
+    + '<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->\n'
+    + '</head>\n'
+    + '<body style="margin:0;padding:0;background:#F1F5F9;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">\n'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center">\n'
+    + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">\n'
+
+    // Teal accent bar
+    + '<tr><td style="height:4px;background:linear-gradient(90deg,' + _T.teal + ',' + _T.tealMid + ');border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>\n'
+
+    // Navy header with logo
+    + '<tr><td style="background:' + _T.navy + ';padding:26px 36px">\n'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>\n'
+    + '<td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr>\n'
+    + '<td style="padding-right:14px;vertical-align:middle">' + _LOGO + '</td>\n'
+    + '<td style="vertical-align:middle">\n'
+    + '<div style="font-family:' + _FONT + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>\n'
+    + '<div style="font-family:' + _FONT + ';font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>\n'
+    + '</td></tr></table></td>\n'
+    + '<td align="right" style="vertical-align:middle">\n'
+    + '<div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">\n'
+    + '<span style="font-family:' + _FONT + ';font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">' + label + '</span>\n'
+    + '</div></td></tr></table></td></tr>\n'
+
+    // White body
+    + '<tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ' + _T.border + ';border-right:1px solid ' + _T.border + '">\n'
+    + paras + '\n'
+    + sig + '\n'
+    + '</td></tr>\n'
+
+    // Dark footer
+    + '<tr><td style="background:' + _T.charcoal + ';border-radius:0 0 12px 12px;padding:22px 36px">\n'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>\n'
+    + '<td><div style="font-family:' + _FONT + ';font-size:13px;font-weight:700;color:rgba(255,255,255,0.75)">AskMiro Cleaning Services</div>\n'
+    + '<div style="font-family:' + _FONT + ';font-size:11px;color:rgba(255,255,255,0.28);margin-top:3px">A trading name of Miro Partners Ltd &nbsp;&bull;&nbsp; London &amp; UK</div></td>\n'
+    + '<td align="right" style="vertical-align:top"><a href="https://www.askmiro.com" style="font-family:' + _FONT + ';font-size:12px;color:' + _T.tealMid + ';text-decoration:none;font-weight:700">www.askmiro.com</a></td>\n'
+    + '</tr><tr><td colspan="2" style="padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">\n'
+    + '<table cellpadding="0" cellspacing="0"><tr>\n'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:rgba(255,255,255,0.28)">&#10003; Fully Insured</td>\n'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:rgba(255,255,255,0.28)">&#10003; COSHH Compliant</td>\n'
+    + '<td style="font-family:' + _FONT + ';font-size:11px;color:rgba(255,255,255,0.28)">&#10003; Residential &amp; Commercial</td>\n'
+    + '</tr></table>\n'
+    + '<p style="font-family:' + _FONT + ';font-size:10px;color:rgba(255,255,255,0.18);margin:14px 0 0;line-height:1.7">\n'
+    + 'Sent by Mike Kato on behalf of AskMiro Cleaning Services. Reply to: info@askmiro.com.<br>\n'
+    + 'We will never share your details with third parties.\n'
+    + '&nbsp;&nbsp;<a href="mailto:info@askmiro.com?subject=Unsubscribe" style="color:rgba(255,255,255,0.28);text-decoration:underline">Unsubscribe</a>\n'
+    + '</p></td></tr></table></td></tr>\n'
+
+    + '</table></td></tr></table>\n'
+    + '</body></html>';
 }
 
 function _unsubHeaders() {
