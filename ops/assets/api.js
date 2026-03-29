@@ -159,16 +159,21 @@ window.API = (() => {
     const data = await _withRetry(function() { return _jsonp(url, 20000); });
 
     const invalidateMap = {
-      'quote':          ['quotes', 'dashboard'],
-      'quote.send':     ['quotes'],
-      'quote.approve':  ['quotes', 'dashboard'],
-      'lead':           ['crm', 'dashboard'],
-      'lead.stage':     ['crm', 'dashboard'],
-      'email.send':     ['emails'],
-      'invoice':        ['finance', 'dashboard'],
-      'invoice.generate': ['finance', 'dashboard'],
-      'inspection':     ['quality', 'dashboard'],
-      'payment':        ['finance', 'dashboard'],
+      'quote':                    ['quotes', 'dashboard'],
+      'quote.send':               ['quotes'],
+      'quote.approve':            ['quotes', 'dashboard'],
+      'lead':                     ['crm', 'dashboard'],
+      'lead.stage':               ['crm', 'dashboard'],
+      'email.send':               ['emails'],
+      'invoice':                  ['finance', 'dashboard'],
+      'invoice.generate':         ['finance', 'dashboard'],
+      'inspection':               ['quality', 'dashboard'],
+      'payment':                  ['finance', 'dashboard'],
+      // Outreach automation
+      'outreach.handoff':         ['outreach.queue', 'outreach.stats', 'crm'],
+      'outreach.send':            ['outreach.queue', 'outreach.stats', 'outreach.log'],
+      'outreach.status':          ['outreach.queue', 'outreach.stats'],
+      'outreach.resolve-action':  ['outreach.human-queue', 'outreach.stats'],
     };
     (invalidateMap[action] || []).forEach(function(prefix) { invalidate(prefix); });
 

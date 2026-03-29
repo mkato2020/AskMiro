@@ -4,13 +4,15 @@
 // ============================================================
 window.Outreach = (() => {
 
-  let _queue     = [];
-  let _log       = [];
-  let _stats     = {};
-  let _templates = [];
-  let _view      = 'queue';   // queue | sent | replies
-  let _q         = '';
-  let _sending   = new Set(); // lead IDs currently being sent
+  let _queue       = [];
+  let _log         = [];
+  let _stats       = {};
+  let _templates   = [];
+  let _humanQueue  = [];   // leads needing human action
+  let _autorun     = {};   // autopilot status (sent today, cap remaining)
+  let _view        = 'queue';   // queue | sent | replies | human
+  let _q           = '';
+  let _sending     = new Set(); // lead IDs currently being sent
 
   // ── HELPERS ────────────────────────────────────────────────
   function _esc(s) {
@@ -47,21 +49,44 @@ window.Outreach = (() => {
   };
 
   const INTENT_META = {
-    positive:     { color: '#059669', bg: '#ECFDF5', label: 'Interested'    },
-    negative:     { color: '#DC2626', bg: '#FEF2F2', label: 'Not interested' },
-    unsubscribe:  { color: '#7C3AED', bg: '#EDE9FE', label: 'Opt-out'       },
-    info_request: { color: '#0284C7', bg: '#E0F2FE', label: 'Wants info'    },
-    auto_reply:   { color: '#64748B', bg: '#F1F5F9', label: 'Auto-reply'    },
+    POSITIVE:      { color: '#059669', bg: '#ECFDF5', label: 'Interested'    },
+    positive:      { color: '#059669', bg: '#ECFDF5', label: 'Interested'    },
+    INTERESTED:    { color: '#059669', bg: '#ECFDF5', label: 'Interested'    },
+    NOT_INTERESTED:{ color: '#DC2626', bg: '#FEF2F2', label: 'Not interested' },
+    negative:      { color: '#DC2626', bg: '#FEF2F2', label: 'Not interested' },
+    UNSUBSCRIBE:   { color: '#7C3AED', bg: '#EDE9FE', label: 'Opt-out'       },
+    unsubscribe:   { color: '#7C3AED', bg: '#EDE9FE', label: 'Opt-out'       },
+    INFO_REQUEST:  { color: '#0284C7', bg: '#E0F2FE', label: 'Wants info'    },
+    info_request:  { color: '#0284C7', bg: '#E0F2FE', label: 'Wants info'    },
+    OUT_OF_OFFICE: { color: '#64748B', bg: '#F1F5F9', label: 'Out of office' },
+    auto_reply:    { color: '#64748B', bg: '#F1F5F9', label: 'Auto-reply'    },
+    WRONG_CONTACT: { color: '#F59E0B', bg: '#FFFBEB', label: 'Wrong contact' },
+    REPLIED:       { color: '#0284C7', bg: '#E0F2FE', label: 'Replied'       },
   };
 
   const STATUS_META = {
-    queued:      { color: '#6366F1', label: 'Queued'      },
-    sent:        { color: '#0284C7', label: 'Sent'        },
-    replied:     { color: '#059669', label: 'Replied'     },
-    opted_out:   { color: '#DC2626', label: 'Opted out'   },
-    exhausted:   { color: '#94A3B8', label: 'Exhausted'   },
-    converted:   { color: '#0D9488', label: 'Converted'   },
-    follow_up_due: { color: '#D97706', label: 'Follow-up due' },
+    // New automation statuses
+    READY_FOR_OUTREACH:  { color: '#6366F1', label: 'Ready to send'    },
+    LOCKED_FOR_OUTREACH: { color: '#7C3AED', label: 'Sending…'         },
+    CONTACTED:           { color: '#0284C7', label: 'Contacted'        },
+    FOLLOW_UP_1:         { color: '#0891B2', label: 'Follow-up 1'      },
+    FOLLOW_UP_2:         { color: '#0369A1', label: 'Follow-up 2'      },
+    FINAL_FOLLOW_UP:     { color: '#94A3B8', label: 'Final follow-up'  },
+    REPLIED:             { color: '#059669', label: 'Replied'           },
+    QUALIFIED:           { color: '#0D9488', label: 'Qualified ✓'      },
+    NOT_INTERESTED:      { color: '#DC2626', label: 'Not interested'    },
+    UNSUBSCRIBED:        { color: '#7C3AED', label: 'Unsubscribed'      },
+    PAUSED:              { color: '#F59E0B', label: 'Paused'            },
+    STOPPED:             { color: '#94A3B8', label: 'Stopped'           },
+    DISQUALIFIED:        { color: '#DC2626', label: 'Disqualified'      },
+    // Legacy statuses (v1 compat)
+    queued:              { color: '#6366F1', label: 'Queued'            },
+    sent:                { color: '#0284C7', label: 'Sent'              },
+    replied:             { color: '#059669', label: 'Replied'           },
+    opted_out:           { color: '#DC2626', label: 'Opted out'         },
+    exhausted:           { color: '#94A3B8', label: 'Exhausted'         },
+    converted:           { color: '#0D9488', label: 'Converted'         },
+    follow_up_due:       { color: '#D97706', label: 'Follow-up due'     },
   };
 
   // ── RENDER ─────────────────────────────────────────────────
@@ -71,17 +96,20 @@ window.Outreach = (() => {
       <div class="spinner" style="margin:0 auto 12px"></div>Loading Outreach Queue…</div>`;
 
     try {
-      [_queue, _stats, _log, _templates] = await Promise.all([
+      const [queueRes, statsRes, logRes, tmplRes, humanRes, autorunRes] = await Promise.all([
         API.get('outreach.queue'),
         API.get('outreach.stats'),
         API.get('outreach.log'),
         API.get('outreach.templates'),
+        API.get('outreach.human-queue').catch(() => ({ queue: [] })),
+        API.get('outreach.autorun').catch(() => ({})),
       ]);
-      // Normalise — API returns { queue:[...] } etc.
-      if (_queue && _queue.queue) _queue = _queue.queue;
-      if (_stats && _stats.ok)   _stats = _stats;
-      if (_log   && _log.log)    _log   = _log.log;
-      if (_templates && _templates.templates) _templates = _templates.templates;
+      _queue      = (queueRes  && queueRes.queue)       ? queueRes.queue      : [];
+      _stats      = statsRes   || {};
+      _log        = (logRes    && logRes.log)            ? logRes.log          : [];
+      _templates  = (tmplRes   && tmplRes.templates)     ? tmplRes.templates   : [];
+      _humanQueue = (humanRes  && humanRes.queue)        ? humanRes.queue      : [];
+      _autorun    = autorunRes || {};
     } catch(e) {
       mc.innerHTML = `<div style="padding:40px;color:#DC2626">Failed to load: ${_esc(e.message)}</div>`;
       return;
@@ -92,19 +120,150 @@ window.Outreach = (() => {
 
   function _draw() {
     const mc = document.getElementById('main-content');
-    mc.innerHTML = _renderStats() + _renderToolbar() + _renderBody();
+    mc.innerHTML = _renderAutopilot() + _renderHumanQueue() + _renderStats() + _renderToolbar() + _renderBody();
+  }
+
+  // ── AUTOPILOT STATUS BAR ──────────────────────────────────
+  function _renderAutopilot() {
+    const a   = _autorun || {};
+    const s   = _stats   || {};
+    const cap = a.dailyCap || 50;
+    const rem = typeof a.capRemaining === 'number' ? a.capRemaining : (cap - (a.sentToday || 0));
+    const sent= a.sentToday || s.sentToday || 0;
+    const pct = Math.round((sent / cap) * 100);
+    const capColor = rem < 10 ? '#DC2626' : rem < 20 ? '#D97706' : '#059669';
+
+    return `
+    <div style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div style="width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.25);animation:pulse-dot 2s infinite"></div>
+        <span style="color:#fff;font-weight:700;font-size:13.5px">Autopilot</span>
+        <span style="color:#64748B;font-size:12px;margin-left:2px">Running</span>
+      </div>
+
+      <div style="display:flex;gap:24px;flex:1;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="color:#94A3B8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Sends Today</span>
+          <span style="color:#fff;font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px">${sent}<span style="font-size:12px;color:#64748B;font-weight:500;letter-spacing:0"> / ${cap}</span></span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="color:#94A3B8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Cap Remaining</span>
+          <span style="color:${capColor};font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px">${rem}</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:120px">
+          <span style="color:#94A3B8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Daily Capacity</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <div style="flex:1;height:5px;background:#1E293B;border-radius:3px;overflow:hidden;border:1px solid #334155">
+              <div style="height:100%;width:${pct}%;background:${pct>80?'#DC2626':pct>50?'#D97706':'#22C55E'};border-radius:3px;transition:width .4s ease"></div>
+            </div>
+            <span style="color:#64748B;font-size:11px">${pct}%</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="color:#94A3B8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">In Sequence</span>
+          <span style="color:#fff;font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px">
+            ${(s.contacted||0) + (s.followUp1||0) + (s.followUp2||0)}
+          </span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="color:#94A3B8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Qualified</span>
+          <span style="color:#0D9488;font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px">${s.qualified||0}</span>
+        </div>
+      </div>
+
+      <div style="flex-shrink:0;display:flex;gap:8px;align-items:center">
+        <div style="font-size:11px;color:#475569;text-align:right;line-height:1.5">
+          Sends every 4h · Reply scan every 2h<br>
+          <span style="color:#22C55E">●</span> Fully automated
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── HUMAN ACTION QUEUE ────────────────────────────────────
+  function _renderHumanQueue() {
+    if (!_humanQueue || !_humanQueue.length) return '';
+
+    const ACTION_META = {
+      interested_reply:   { icon: '🔥', color: '#059669', bg: '#ECFDF5', label: 'Hot Reply',       cta: 'Follow Up Now →' },
+      wrong_contact:      { icon: '↪️', color: '#D97706', bg: '#FFFBEB', label: 'Wrong Contact',   cta: 'Find Contact' },
+      unclassified_reply: { icon: '❓', color: '#6366F1', bg: '#EEF2FF', label: 'Review Reply',    cta: 'Review' },
+      send_error:         { icon: '⚠️', color: '#DC2626', bg: '#FEF2F2', label: 'Send Error',      cta: 'Retry' },
+      followup_error:     { icon: '⚠️', color: '#DC2626', bg: '#FEF2F2', label: 'Follow-up Error', cta: 'Retry' },
+    };
+
+    const hotCount = _humanQueue.filter(r =>
+      (r.humanActionReason || '').includes('interested')
+    ).length;
+
+    return `
+    <div style="background:#fff;border:1.5px solid #F59E0B;border-radius:14px;padding:16px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(245,158,11,.12)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#FEF3C7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🎯</div>
+          <div>
+            <div style="font-weight:700;color:#0F172A;font-size:14px">
+              Needs Your Attention
+              <span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">${_humanQueue.length}</span>
+              ${hotCount ? `<span style="background:#059669;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:4px">${hotCount} hot 🔥</span>` : ''}
+            </div>
+            <div style="font-size:12px;color:#94A3B8;margin-top:1px">These leads need a human touch — everything else runs automatically</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:10px">
+        ${_humanQueue.slice(0, 10).map(r => {
+          const reason = r.humanActionReason || 'review';
+          const meta   = ACTION_META[reason] || ACTION_META.unclassified_reply;
+          const intM   = INTENT_META[r.replyStatus] || null;
+          return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${meta.bg};border-radius:10px;border:1px solid ${meta.color}30">
+            <div style="font-size:18px;flex-shrink:0">${meta.icon}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;color:#0F172A;font-size:13px">${_esc(r.companyName)}</div>
+              <div style="font-size:11.5px;color:#64748B;margin-top:1px">${_esc(r.contactName)} · ${_esc(r.email)}</div>
+              ${r.replySummary ? `<div style="margin-top:5px;font-size:12px;color:#374151;font-style:italic">"${_esc(r.replySummary.substring(0,100))}"</div>` : ''}
+              ${r.replyNextAction ? `<div style="margin-top:4px;font-size:11.5px;color:${meta.color};font-weight:600">→ ${_esc(r.replyNextAction)}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              <span style="background:${meta.color};color:#fff;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px">${meta.label}</span>
+              ${intM ? `<span style="background:${intM.bg};color:${intM.color};font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:4px">${intM.label}</span>` : ''}
+              <div style="display:flex;gap:6px;margin-top:2px">
+                ${(reason === 'interested_reply' || reason === 'unclassified_reply') ? `
+                <button onclick="Outreach._convertToCRM('${_esc(r.id)}')"
+                  style="background:#0D9488;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer">
+                  ${meta.cta}
+                </button>` : ''}
+                <button onclick="Outreach._resolveAction('${_esc(r.id)}')"
+                  style="background:#fff;color:#94A3B8;border:1px solid #E5E7EB;border-radius:7px;padding:5px 10px;font-size:11px;cursor:pointer"
+                  title="Mark as resolved">
+                  ✓ Done
+                </button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      ${_humanQueue.length > 10 ? `<div style="text-align:center;margin-top:10px;font-size:12px;color:#94A3B8">+${_humanQueue.length-10} more — switch to <button onclick="Outreach._setView('human')" style="background:none;border:none;color:#6366F1;font-weight:600;cursor:pointer;font-size:12px">Human Queue view</button></div>` : ''}
+    </div>`;
   }
 
   // ── STATS BAR ─────────────────────────────────────────────
   function _renderStats() {
     const s = _stats || {};
+    const totalActive = (s.readyForOutreach||0) + (s.contacted||0) + (s.followUp1||0) + (s.followUp2||0);
     const cards = [
-      { label: 'In Queue',       val: s.queued        || 0, sub: 'awaiting contact',  color: '#6366F1' },
-      { label: 'Sent',           val: s.sent          || 0, sub: 'contacted',          color: '#0284C7' },
-      { label: 'Replied',        val: s.replied       || 0, sub: 'responded',          color: '#059669' },
-      { label: 'Positive',       val: s.positiveReplies|| 0, sub: 'interested',        color: '#0D9488' },
+      { label: 'Ready to Send',  val: s.readyForOutreach || s.queued || 0, sub: 'awaiting auto-send', color: '#6366F1' },
+      { label: 'In Sequence',    val: totalActive,                           sub: 'contacted + follow-ups', color: '#0284C7' },
+      { label: 'Qualified',      val: s.qualified      || 0, sub: 'hot leads',          color: '#0D9488' },
+      { label: 'Replied',        val: (s.replied||0) + (s.qualified||0), sub: 'responded', color: '#059669' },
       { label: 'Reply Rate',     val: (s.replyRatePct || 0) + '%', sub: 'of contacted', color: '#D97706' },
-      { label: 'Sent Today',     val: s.sentToday     || 0, sub: 'today\'s sends',     color: '#7C3AED' },
+      { label: 'Needs Action',   val: s.needsHumanAction || _humanQueue.length || 0, sub: 'human required', color: '#F59E0B' },
     ];
     return `
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px">
@@ -124,10 +283,10 @@ window.Outreach = (() => {
     return `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <div style="display:flex;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:9px;padding:3px;gap:2px">
-        ${[['queue','Queue'],['sent','Sent'],['replies','Replies']].map(([v,l]) => `
+        ${[['queue','Queue'],['sent','Sent'],['replies','Replies'],['human','🎯 Action' + (_humanQueue.length ? ` (${_humanQueue.length})` : '')]].map(([v,l]) => `
           <button onclick="Outreach._setView('${v}')"
             style="font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;border:none;transition:all .15s ease;
-                   background:${_view===v?'#fff':'transparent'};color:${_view===v?'#6366F1':'#64748B'};
+                   background:${_view===v?'#fff':'transparent'};color:${_view===v?(v==='human'?'#F59E0B':'#6366F1'):'#64748B'};
                    box-shadow:${_view===v?'0 1px 4px rgba(0,0,0,.08)':'none'}">${l}</button>`).join('')}
       </div>
       <div style="position:relative;flex:1;min-width:180px">
@@ -158,6 +317,7 @@ window.Outreach = (() => {
     if (_view === 'queue')   return _renderQueue();
     if (_view === 'sent')    return _renderSent();
     if (_view === 'replies') return _renderReplies();
+    if (_view === 'human')   return _renderFullHumanQueue();
     return '';
   }
 
@@ -173,10 +333,10 @@ window.Outreach = (() => {
       return `<div style="text-align:center;padding:80px 20px;color:#94A3B8">
         <div style="font-size:40px;margin-bottom:12px">📭</div>
         <div style="font-size:15px;font-weight:600;color:#64748B">Queue is empty</div>
-        <div style="font-size:13px;margin-top:6px;margin-bottom:20px">Add outbound leads manually or via API handoff</div>
+        <div style="font-size:13px;margin-top:6px;margin-bottom:20px">Leads flow in automatically from Lead Intelligence — or add manually</div>
         <button onclick="Outreach.openAddLead()"
           style="background:#6366F1;color:#fff;border:none;border-radius:9px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,.3)">
-          + Add Your First Lead
+          + Add Lead Manually
         </button>
       </div>`;
     }
@@ -613,13 +773,101 @@ window.Outreach = (() => {
     await render();
   }
 
+  // ── FULL HUMAN ACTION QUEUE VIEW ─────────────────────────
+  function _renderFullHumanQueue() {
+    if (!_humanQueue.length) {
+      return `<div style="text-align:center;padding:80px 20px;color:#94A3B8">
+        <div style="font-size:40px;margin-bottom:12px">✅</div>
+        <div style="font-size:15px;font-weight:600;color:#64748B">All clear — no action needed</div>
+        <div style="font-size:13px;margin-top:6px">The automation is handling everything. You'll be notified when a lead needs your attention.</div>
+      </div>`;
+    }
+
+    const ACTION_META = {
+      interested_reply:   { icon: '🔥', color: '#059669', bg: '#ECFDF5', label: 'Hot Reply',       priority: 1 },
+      wrong_contact:      { icon: '↪️', color: '#D97706', bg: '#FFFBEB', label: 'Wrong Contact',   priority: 2 },
+      unclassified_reply: { icon: '❓', color: '#6366F1', bg: '#EEF2FF', label: 'Needs Review',    priority: 3 },
+      send_error:         { icon: '⚠️', color: '#DC2626', bg: '#FEF2F2', label: 'Send Error',      priority: 4 },
+      followup_error:     { icon: '⚠️', color: '#DC2626', bg: '#FEF2F2', label: 'Follow-up Error', priority: 4 },
+    };
+
+    return `
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#FFFBEB;border-bottom:2px solid #FDE68A">
+            <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#92400E">Priority / Company</th>
+            <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#92400E">Reply</th>
+            <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#92400E">Next Action</th>
+            <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#92400E">Last Contact</th>
+            <th style="padding:12px 16px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#92400E">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${_humanQueue.map(r => {
+            const reason = r.humanActionReason || 'unclassified_reply';
+            const meta   = ACTION_META[reason] || ACTION_META.unclassified_reply;
+            const intM   = INTENT_META[r.replyStatus] || null;
+            return `
+            <tr style="border-bottom:1px solid #FEF3C7;transition:background .12s" onmouseenter="this.style.background='#FFFBEB'" onmouseleave="this.style.background=''">
+              <td style="padding:12px 16px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:16px">${meta.icon}</span>
+                  <div>
+                    <div style="font-weight:600;color:#0F172A">${_esc(r.companyName)}</div>
+                    <div style="font-size:12px;color:#64748B">${_esc(r.contactName)} · ${_esc(r.email)}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding:12px 16px">
+                ${intM ? `<span style="background:${intM.bg};color:${intM.color};font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px">${intM.label}</span>` : '<span style="color:#94A3B8">—</span>'}
+                ${r.replySummary ? `<div style="font-size:11.5px;color:#64748B;margin-top:4px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(r.replySummary)}">"${_esc(r.replySummary.substring(0,80))}"</div>` : ''}
+              </td>
+              <td style="padding:12px 16px">
+                ${r.replyNextAction
+                  ? `<div style="font-size:12.5px;color:${meta.color};font-weight:600">${_esc(r.replyNextAction)}</div>`
+                  : `<span style="background:${meta.bg};color:${meta.color};font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px">${meta.label}</span>`}
+              </td>
+              <td style="padding:12px 16px;font-size:12px;color:#94A3B8">${_timeAgo(r.lastContactedAt)}</td>
+              <td style="padding:12px 16px;text-align:center">
+                <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+                  ${reason === 'interested_reply' ? `
+                  <button onclick="Outreach._convertToCRM('${_esc(r.id)}')"
+                    style="background:#0D9488;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer">
+                    Qualify →
+                  </button>` : ''}
+                  <button onclick="Outreach._resolveAction('${_esc(r.id)}')"
+                    style="background:#F1F5F9;color:#475569;border:1px solid #E5E7EB;border-radius:7px;padding:5px 10px;font-size:11px;cursor:pointer">
+                    ✓ Done
+                  </button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:#94A3B8;margin-top:10px;padding:0 4px">${_humanQueue.length} item${_humanQueue.length===1?'':'s'} need attention</div>`;
+  }
+
   // ── MARK OPT OUT ───────────────────────────────────────────
   async function _markOptOut(leadId) {
     if (!confirm('Mark this lead as opted out? They won\'t be contacted again.')) return;
     try {
-      await API.post('outreach.status', { leadId, status: 'opted_out' });
+      await API.post('outreach.status', { leadId, status: 'UNSUBSCRIBED' });
       _queue = _queue.filter(r => r.id !== leadId);
-      UI.toast('Lead marked as opted out', 'w');
+      UI.toast('Lead marked as unsubscribed', 'w');
+      _draw();
+    } catch(e) { UI.toast('Error: ' + e.message, 'a'); }
+  }
+
+  // ── RESOLVE HUMAN ACTION ───────────────────────────────────
+  async function _resolveAction(leadId) {
+    try {
+      await API.post('outreach.resolve-action', { leadId });
+      _humanQueue = _humanQueue.filter(r => r.id !== leadId);
+      if (_stats) _stats.needsHumanAction = Math.max(0, (_stats.needsHumanAction || 1) - 1);
+      UI.toast('✓ Resolved — lead returned to automation', 's');
       _draw();
     } catch(e) { UI.toast('Error: ' + e.message, 'a'); }
   }
@@ -627,12 +875,15 @@ window.Outreach = (() => {
   // ── CONVERT TO CRM PIPELINE ────────────────────────────────
   async function _convertToCRM(leadId) {
     try {
-      await API.post('outreach.status', { leadId, status: 'converted' });
-      // Also update the CRM stage to Qualified (they replied positively)
-      await API.post('lead.stage', { id: leadId, status: 'Qualified' });
-      UI.toast('Lead moved to CRM pipeline as Qualified', 's');
-      // Navigate to CRM
-      setTimeout(() => Router.navigate('crm'), 800);
+      // Mark as QUALIFIED in outreach, clear human action flag
+      await API.post('outreach.status', { leadId, status: 'QUALIFIED' });
+      await API.post('outreach.resolve-action', { leadId, outreachStatus: 'QUALIFIED', leadStatus: 'Qualified' });
+      // Update CRM stage
+      await API.post('lead.stage', { id: leadId, status: 'Qualified' }).catch(() => {});
+      // Remove from human queue
+      _humanQueue = _humanQueue.filter(r => r.id !== leadId);
+      UI.toast('🔥 Lead qualified — moved to CRM pipeline', 's');
+      setTimeout(() => Router.navigate('crm'), 1000);
     } catch(e) { UI.toast('Error: ' + e.message, 'a'); }
   }
 
@@ -653,5 +904,6 @@ window.Outreach = (() => {
     _doBatch,
     _markOptOut,
     _convertToCRM,
+    _resolveAction,
   };
 })();
