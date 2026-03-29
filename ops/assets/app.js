@@ -12,6 +12,7 @@
   // ── REGISTER ROUTES ───────────────────────────────────────
   Router.register('dashboard', Dashboard.render);
   Router.register('crm',       CRM.render);
+  Router.register('outreach',  Outreach.render);
   Router.register('quotes',    Quotes.render);
   Router.register('contracts', Contracts.render);
   Router.register('ops',       Ops.render);

@@ -8,8 +8,9 @@ window.CRM = (() => {
   let _q = '';
   let _selectedLead = null;
 
-  const STAGES = ['New','Contacted','Qualified','QuoteSent','Negotiating','Won','Lost'];
+  const STAGES = ['OutreachQueued','New','Contacted','Qualified','QuoteSent','Negotiating','Won','Lost'];
   const STAGE_META = {
+    OutreachQueued: { color: '#6366F1', bg: '#EEF2FF', label: 'Outreach Queue', icon: '⟳' },
     New:         { color: '#64748B', bg: '#F1F5F9', label: 'New',          icon: '◎' },
     Contacted:   { color: '#0284C7', bg: '#E0F2FE', label: 'Contacted',    icon: '◉' },
     Qualified:   { color: '#7C3AED', bg: '#EDE9FE', label: 'Qualified',    icon: '◈' },

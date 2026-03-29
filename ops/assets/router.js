@@ -10,6 +10,7 @@ window. Router = (() => {
   const PAGE_TITLES = {
     dashboard: 'Executive Dashboard',
     crm:       'CRM — Leads & Accounts',
+    outreach:  'Outreach Queue',
     quotes:    'Quote Builder',
     contracts: 'Contracts',
     ops:       'Operations',
@@ -22,7 +23,8 @@ window. Router = (() => {
   };
 
   const PAGE_CTA = {
-    crm:     { label: '+ New Lead',        action: () => CRM.openNewLead()              },
+    crm:      { label: '+ New Lead',        action: () => CRM.openNewLead()              },
+    outreach: { label: '⚡ Send All Queued', action: () => Outreach.sendBatch()           },
     quotes:  { label: '+ New Quote',       action: () => Quotes.openNew()               },
     quality: { label: '+ Log Inspection',  action: () => Quality.openNewInspection()    },
     finance: { label: '+ Create Invoice',  action: () => Finance.openCreateInvoice()    },
@@ -34,7 +36,8 @@ window. Router = (() => {
   // Routes that should prefetch their neighbours on hover
   const PREFETCH_MAP = {
     dashboard: ['crm', 'finance', 'quality'],
-    crm:       ['quotes'],
+    crm:       ['quotes', 'outreach'],
+    outreach:  ['crm'],
     quotes:    ['contracts'],
   };
 
@@ -96,6 +99,7 @@ window. Router = (() => {
       // Just warm the API cache — don't render
       const prefetchActions = {
         crm:      () => API.prefetch('crm'),
+        outreach: () => API.prefetch('outreach.queue'),
         quotes:   () => API.prefetch('quotes'),
         finance:  () => API.prefetch('finance'),
         quality:  () => API.prefetch('quality'),

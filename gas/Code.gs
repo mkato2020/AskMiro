@@ -107,6 +107,10 @@ function routeGet(action, params, auth) {
     case 'voice.call':   return getVoiceCall(params.id, auth);
     case 'cleaners': return getCleaners(params, auth);
     case 'cleaner':  return getCleaner(params.id, auth);
+    case 'outreach.queue':     return getOutreachQueue(params, auth);
+    case 'outreach.stats':     return getOutreachStats(params, auth);
+    case 'outreach.log':       return getOutreachLog(params, auth);
+    case 'outreach.templates': return getOutreachTemplates(params, auth);
     default:             return { error: 'Unknown action: ' + action };
   }
 }
@@ -160,6 +164,9 @@ function routePost(action, body, auth) {
     case 'labour.updateWorker':            return updateLabourWorker(body, auth);
     case 'labour.setupSheets':             return setupLabourSheets(body, auth);
     case 'seo.generate':                   return seoGenerate(body, auth);
+    case 'outreach.handoff':               return handoffLead(body, auth);
+    case 'outreach.send':                  return sendOutreachEmail(body, auth);
+    case 'outreach.status':                return updateOutreachStatus(body, auth);
     default:                               return { error: 'Unknown action: ' + action };
   }
 }
