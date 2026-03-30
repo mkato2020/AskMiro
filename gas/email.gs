@@ -412,6 +412,30 @@ function webhookLead(params) {
     try {
       sendInboxAutoReply(email, lead.contactName, 'Your cleaning enquiry');
     } catch(arErr) { Logger.log('Auto-reply failed: ' + arErr.message); }
+    // ── Mirror lead to AskMiro OS (Lead Intelligence) — fire & forget ──
+    try {
+      const settings = getSettingsObj();
+      const osUrl = settings.OS_WEBHOOK_URL || '';
+      if (osUrl) {
+        UrlFetchApp.fetchAll([{
+          url: osUrl + '/api/webhook/lead',
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify({
+            name:        lead.contactName,
+            email:       lead.email,
+            phone:       lead.phone,
+            business:    lead.companyName,
+            address:     lead.postcode,
+            message:     lead.notes,
+            source:      'website',
+            sector:      lead.serviceType,
+            gas_lead_id: lead.id
+          }),
+          muteHttpExceptions: true
+        }]);
+      }
+    } catch(osErr) { Logger.log('OS mirror failed (non-blocking): ' + osErr.message); }
     return { ok: true, id, message: 'Lead created successfully' };
   } catch(err) { logError(err); return { ok: false, error: err.message }; }
 }
