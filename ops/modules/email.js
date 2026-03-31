@@ -1960,6 +1960,20 @@ Thanks again and nice to meet you.`;
     // If coming from CRM/Quotes with a prefill, go straight to compose
     _tab = prefill ? 'compose' : 'inbox';
 
+    // ── OS redirect banner (injected after draw) ───────────────
+    // Cold outreach is now managed in Lead Intelligence OS
+    // This tab handles: client emails, quotes, follow-ups from CRM
+    setTimeout(() => {
+      const wrap = document.getElementById('email-module-root') || document.querySelector('[data-module="email"]') || document.getElementById('main-content');
+      if (!wrap || wrap.querySelector('#os-email-banner')) return;
+      const banner = document.createElement('div');
+      banner.id = 'os-email-banner';
+      banner.style.cssText = 'display:flex;align-items:center;gap:12px;background:#0D9488;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;border-radius:10px;margin:0 0 16px;flex-wrap:wrap;';
+      banner.innerHTML = `<span style="font-size:16px">🧠</span><span style="flex:1">Cold outreach & autopilot moved to <strong>Lead Intelligence OS</strong></span><a href="http://localhost:5174" target="_blank" style="background:#fff;color:#0D9488;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:800;text-decoration:none;flex-shrink:0">Open OS ↗</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0">×</button>`;
+      wrap.insertBefore(banner, wrap.firstChild);
+    }, 200);
+
+
     try { await _loadEmails(); } catch(e) { _emails = []; }
     _draw();
     // Load Gmail inbox in background (skip if going to compose)
