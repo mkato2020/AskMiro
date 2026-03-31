@@ -559,6 +559,17 @@ window.CRM = (() => {
         </div>`).join('')}
       </div>
 
+      <!-- 🧠 Intelligence Panel (fetched async from Python OS) -->
+      <div id="intel-panel-${_esc(l.id)}" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8">🧠 Intelligence</div>
+          <span style="font-size:10px;color:#CBD5E1" id="intel-status-${_esc(l.id)}">Loading…</span>
+        </div>
+        <div id="intel-body-${_esc(l.id)}" style="background:#F8FAFC;border:1px solid #F1F5F9;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#64748B;min-height:48px;display:flex;align-items:center;justify-content:center">
+          <span style="font-size:11px;color:#CBD5E1">Connecting to Intelligence OS…</span>
+        </div>
+      </div>
+
       ${qualSection}
       ${followUpSection}
       ${activitySection}
@@ -602,6 +613,8 @@ window.CRM = (() => {
           onmouseleave="this.style.background='#FEF2F2';this.style.color='#DC2626'">Mark as Lost</button>
       </div>
     `);
+    // Load intelligence panel async after drawer renders
+    _afterDrawerOpen(l.id, l.sourceLeadId || l.place_id || null);
   }
 
   // ── NEW / EDIT MODALS ─────────────────────────────────────
@@ -875,6 +888,52 @@ window.CRM = (() => {
   function _setFilter(f) { _filter = f; _draw(); }
   function _search(q) { _q = q; _draw(); }
 
+  // ── Intelligence OS panel (non-blocking, gracefully degrades if OS offline) ──
+  const _OS_URL = 'http://localhost:8000';
+  const SIGNAL_LABELS = {
+    move_signal:'🏠 Moving',expansion_signal:'📈 Expanding',refurb_signal:'🔨 Refurb',
+    hiring_signal:'👥 Hiring',compliance_signal:'⚠️ Compliance',review_signal:'⭐ Review issue',
+    multi_site_signal:'🏢 Multi-site',
+  };
+  async function _loadIntelPanel(leadId, sourceLeadId) {
+    const panelEl = document.getElementById('intel-body-' + leadId);
+    const statusEl = document.getElementById('intel-status-' + leadId);
+    if (!panelEl) return;
+    try {
+      // Try to find by sourceLeadId (GAS ID) or fall back to companyName search
+      const url = sourceLeadId
+        ? `${_OS_URL}/api/leads/${encodeURIComponent(sourceLeadId)}`
+        : null;
+      if (!url) { panelEl.innerHTML = '<span style="font-size:11px;color:#CBD5E1">No OS link yet — lead not yet synced</span>'; if(statusEl) statusEl.textContent=''; return; }
+
+      const res = await fetch(url, {signal: AbortSignal.timeout(4000)});
+      if (!res.ok) throw new Error('not found');
+      const d = await res.json();
+      if(statusEl) statusEl.textContent = '✓ Live';
+
+      const score = d.total_score || d.priority_score || 0;
+      const scoreColor = score>=80?'#059669':score>=60?'#D97706':'#DC2626';
+      const signals = Object.entries(SIGNAL_LABELS)
+        .filter(([k])=>d[k])
+        .map(([,v])=>`<span style="font-size:10px;background:#F1F5F9;border-radius:6px;padding:2px 7px;color:#475569;font-weight:600">${v}</span>`)
+        .join(' ');
+
+      panelEl.style.display = 'block';
+      panelEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:${signals||d.next_best_action?'10px':'0'}">
+          <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:${scoreColor};letter-spacing:-1px">${score}</div>
+          <div style="font-size:10px;color:#94A3B8;line-height:1.4">OS Score<br><span style="color:${scoreColor};font-weight:700">${score>=80?'High Value':score>=60?'Qualified':'Monitor'}</span></div>
+          ${d.timing_urgency?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${d.timing_urgency==='high'?'#FEF2F2':'#FFFBEB'};color:${d.timing_urgency==='high'?'#DC2626':'#D97706'}">${d.timing_urgency==='high'?'🔥 High urgency':'⏱ Medium urgency'}</span>`:''}
+        </div>
+        ${signals?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${d.next_best_action?'10px':'0'}">${signals}</div>`:''}
+        ${d.next_best_action?`<div style="font-size:11.5px;color:#0D9488;font-weight:600;background:#F0FDF9;border:1px solid #A7F3D0;border-radius:7px;padding:7px 10px">→ ${d.next_best_action}</div>`:''}
+      `;
+    } catch(e) {
+      if(statusEl) statusEl.textContent = 'OS offline';
+      panelEl.innerHTML = '<span style="font-size:11px;color:#CBD5E1">Intelligence OS not running — start with python api.py</span>';
+    }
+  }
+
   function _openEmail(email, name) {
     window._emailPrefill = { to: email, name: name };
     if (window.Router) Router.navigate('email');
@@ -888,6 +947,11 @@ window.CRM = (() => {
       if (fresh) openDetail(JSON.stringify(fresh));
       UI.toast('Lead refreshed ✓');
     } catch(e) { UI.toast('Refresh failed: ' + e.message, 'r'); }
+  }
+
+  function _afterDrawerOpen(leadId, sourceLeadId) {
+    // Fire async — doesn't block drawer render
+    setTimeout(() => _loadIntelPanel(leadId, sourceLeadId), 150);
   }
 
   function _shareUploadLink(leadId, companyName) {
