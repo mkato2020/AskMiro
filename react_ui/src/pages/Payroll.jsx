@@ -97,118 +97,264 @@ const inputStyle={width:'100%',padding:'8px 12px',fontSize:'0.85rem',background:
 const selectStyle={...inputStyle,appearance:'auto'}
 
 /* ─── payslip print ─── */
-function openPayslip(group,entries){
-  const w=window.open('','_blank','width=800,height=1000')
+function openPayslip(group,entries,workers){
+  const w=window.open('','_blank','width=850,height=1100')
   if(!w)return
   const workerEntries=(entries||[]).filter(e=>e.worker_id===group.worker_id&&e.status!=='void')
+  const worker=(workers||[]).find(wk=>wk.id===group.worker_id)||{}
   const grossPay=group.gross_pay||0
-  const taxable=Math.max(0,grossPay-(1048/12))
+  const totalHours=group.total_hours||0
+
+  // 2025-26 UK tax thresholds (monthly)
+  const personalAllowance=12570/12 // £1,047.50/mo
+  const taxable=Math.max(0,grossPay-personalAllowance)
   const tax=Math.round(taxable*0.2*100)/100
-  const niThreshold=797/12
-  const niable=Math.max(0,grossPay-niThreshold)
-  const ni=Math.round(niable*0.12*100)/100
-  const netPay=Math.round((grossPay-tax-ni)*100)/100
+
+  // NI thresholds 2025-26 (monthly)
+  const niPT=1048/12 // Primary Threshold ~£87.33/week
+  const niable=Math.max(0,grossPay-niPT)
+  const employeeNI=Math.round(niable*0.08*100)/100 // 8% from Apr 2024
+  const employerNI=Math.round(niable*0.138*100)/100 // 13.8% employer
+
+  const totalDeductions=Math.round((tax+employeeNI)*100)/100
+  const netPay=Math.round((grossPay-totalDeductions)*100)/100
 
   const byType={}
   workerEntries.forEach(e=>{
     const k=e.entry_type||'basic'
-    if(!byType[k])byType[k]={hours:0,gross:0}
+    if(!byType[k])byType[k]={hours:0,rate:0,gross:0,count:0}
     byType[k].hours+=(e.hours_worked||0)
     byType[k].gross+=(e.total_pay||0)
+    byType[k].rate=(e.hourly_rate||0)
+    byType[k].count++
   })
-
   const typeLabel=t=>ENTRY_TYPES.find(x=>x.value===t)?.label||t
+  const taxCode=worker.tax_code||'1257L'
+  const niNumber=worker.ni_number||'Not on file'
+  const payMethod=worker.payment_method||group.payment_method||'BACS'
+  const payType=worker.payroll_type||'PAYE'
+  const empRef=`PAY-${(group.period||'').replace(/\s/g,'-').slice(0,7)}-WKR${group.worker_id||1}`
+  const payDate=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})
+  const periodLabel=group.period||'Current Period'
 
-  w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${group.worker_name}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${group.worker_name} - ${periodLabel}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;padding:40px}
-.slip{max-width:700px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
-.header{background:#1a1a2e;color:#fff;padding:28px 32px;position:relative}
-.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#0DBDAD,#0A9688)}
-.header h1{font-size:1.3rem;font-weight:800;letter-spacing:-.01em}
-.header p{font-size:0.8rem;opacity:0.7;margin-top:4px}
-.body{padding:28px 32px}
-.row{display:flex;gap:32px;margin-bottom:20px}
-.col{flex:1}
-.label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:2px}
-.val{font-size:0.88rem;font-weight:600;color:#222}
-table{width:100%;border-collapse:collapse;margin:16px 0}
-th{text-align:left;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#888;padding:8px 12px;border-bottom:2px solid #eee}
-th.r,td.r{text-align:right}
-td{padding:8px 12px;font-size:0.85rem;color:#333;border-bottom:1px solid #f0f0f0}
-.total-row td{font-weight:700;border-top:2px solid #ddd;border-bottom:none}
-.net{background:#f0fdf4;padding:16px 20px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin:20px 0}
-.net-label{font-size:0.85rem;font-weight:700;color:#333}
-.net-val{font-size:1.6rem;font-weight:800;color:#059669}
-.footer{text-align:center;padding:16px;font-size:0.7rem;color:#aaa;border-top:1px solid #eee}
-.print-btn{display:block;margin:20px auto;padding:10px 32px;font-size:0.85rem;font-weight:600;background:#0DBDAD;color:#fff;border:none;border-radius:6px;cursor:pointer}
-@media print{.print-btn{display:none !important}body{padding:0;background:#fff}.slip{box-shadow:none}}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#e5e7eb;padding:30px}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+.slip{max-width:780px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.1)}
+
+/* Header */
+.header{background:#111827;color:#fff;padding:24px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+.logo-block{display:flex;align-items:center;gap:12px}
+.logo-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#14b8a6,#059669);display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:20px;height:14px}
+.brand{font-size:1.15rem;font-weight:800;letter-spacing:-0.02em}
+.brand span{color:#14b8a6}
+.brand-sub{font-size:0.72rem;color:#9ca3af;margin-top:2px}
+.title-block{text-align:right}
+.title-block h1{font-size:1.4rem;font-weight:800;letter-spacing:0.03em}
+.title-block .period{font-size:0.82rem;color:#14b8a6;font-weight:600;margin-top:2px}
+.confidential{display:inline-block;margin-top:8px;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:3px 12px;border:1px solid #374151;border-radius:4px;color:#9ca3af}
+
+/* Employee section */
+.emp-section{display:flex;padding:24px 32px;gap:0;border-bottom:1px solid #e5e7eb}
+.emp-col{flex:1;padding:0 8px}
+.emp-col:first-child{padding-left:0}
+.emp-col:last-child{padding-right:0}
+.lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#14b8a6;margin-bottom:4px}
+.emp-name{font-size:1.1rem;font-weight:800;color:#111827}
+.emp-role{font-size:0.82rem;color:#6b7280;margin-top:2px}
+.emp-addr{font-size:0.78rem;color:#9ca3af;font-style:italic;margin-top:4px}
+.emp-val{font-size:0.88rem;font-weight:700;color:#111827}
+.emp-sub{font-size:0.78rem;color:#6b7280;margin-top:2px}
+.emp-sub-lbl{font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-top:8px;margin-bottom:2px}
+
+/* Employer bar */
+.employer-bar{display:flex;background:#f9fafb;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb}
+.employer-bar .cell{flex:1;padding:12px 20px}
+.employer-bar .cell-lbl{font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#14b8a6;margin-bottom:3px}
+.employer-bar .cell-val{font-size:0.85rem;font-weight:700;color:#111827}
+
+/* Two-column earnings/deductions */
+.two-col{display:flex;padding:20px 32px;gap:32px}
+.two-col .col-half{flex:1}
+.col-half h3{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#14b8a6;margin-bottom:8px}
+.earn-table{width:100%;font-size:0.82rem}
+.earn-table td{padding:6px 0;color:#374151}
+.earn-table td.r{text-align:right;font-weight:500}
+.earn-table .total-line{border-top:2px solid #e5e7eb;padding-top:10px;margin-top:4px}
+.earn-table .total-line td{font-weight:800;font-size:0.88rem}
+.earn-table .total-line td.amount{color:#14b8a6}
+.ded-table{width:100%;font-size:0.82rem}
+.ded-table td{padding:6px 0;color:#374151}
+.ded-table td.r{text-align:right;font-weight:500}
+.ded-table .ded-sub{font-size:0.72rem;color:#9ca3af;font-weight:400}
+.ded-table .total-line{border-top:2px solid #e5e7eb;padding-top:10px;margin-top:4px}
+.ded-table .total-line td{font-weight:800;font-size:0.88rem}
+.ded-table .total-line td.amount{color:#ef4444}
+.disclaimer{font-size:0.68rem;color:#9ca3af;margin-top:12px;line-height:1.4;display:flex;gap:6px;align-items:flex-start}
+.disclaimer .info-icon{flex-shrink:0;width:14px;height:14px;border-radius:50%;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:700;color:#9ca3af;margin-top:1px}
+
+/* YTD + Pay Breakdown */
+.ytd-section{display:flex;padding:20px 32px;gap:32px;border-top:1px solid #e5e7eb}
+.ytd-col{flex:1}
+.ytd-col h3{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:8px}
+.ytd-row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.82rem}
+.ytd-row .k{color:#6b7280}
+.ytd-row .v{font-weight:600;color:#111827}
+.net-pay-row .k{font-weight:800;color:#059669;font-size:0.9rem}
+.net-pay-row .v{font-weight:800;color:#059669;font-size:1.05rem}
+
+/* Net Pay Footer */
+.net-footer{background:#111827;padding:20px 32px;display:flex;justify-content:space-between;align-items:center}
+.net-footer-left{color:#fff}
+.net-footer-left .nf-title{font-size:0.82rem;font-weight:700}
+.net-footer-left .nf-sub{font-size:0.72rem;color:#9ca3af;margin-top:2px}
+.net-footer-right{display:flex;align-items:center;gap:14px}
+.net-footer-amount{font-size:2rem;font-weight:800;color:#fff}
+.net-footer-amount sup{font-size:0.9rem;font-weight:600;vertical-align:super}
+.paye-badge{background:#14b8a6;color:#fff;font-size:0.65rem;font-weight:800;letter-spacing:0.06em;padding:4px 10px;border-radius:4px}
+
+/* Bottom info */
+.bottom-info{display:flex;padding:14px 32px;gap:0;border-top:1px solid #e5e7eb}
+.bottom-info .bi-col{flex:1}
+.bottom-info .bi-lbl{font-size:0.58rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:2px}
+.bottom-info .bi-val{font-size:0.82rem;font-weight:700;color:#374151}
+
+/* Legal footer */
+.legal-footer{text-align:center;padding:14px 32px;border-top:1px solid #e5e7eb;font-size:0.65rem;color:#9ca3af;line-height:1.5}
+
+.print-btn{display:block;margin:20px auto;padding:10px 32px;font-size:0.85rem;font-weight:600;background:#14b8a6;color:#fff;border:none;border-radius:6px;cursor:pointer}
+.print-btn:hover{background:#0d9488}
+@media print{.print-btn{display:none !important}body{padding:0;background:#fff}.slip{box-shadow:none;border-radius:0}}
 </style></head><body>
 <div class="slip">
+  <!-- Header -->
   <div class="header">
-    <h1>AskMiro Cleaning Services</h1>
-    <p>Payslip &mdash; ${group.period||'Current Period'}</p>
-  </div>
-  <div class="body">
-    <div class="row">
-      <div class="col">
-        <div class="label">Employee</div>
-        <div class="val">${group.worker_name||'—'}</div>
-        <div style="font-size:0.78rem;color:#666;margin-top:2px">${group.role||'—'}</div>
+    <div class="logo-block">
+      <div class="logo-icon">
+        <svg viewBox="0 0 18 14" fill="none"><path d="M1 13L4.5 5L8 9L11.5 5L15 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="col">
-        <div class="label">NI Number</div>
-        <div class="val" style="font-family:monospace">AB 12 34 56 C</div>
-      </div>
-      <div class="col">
-        <div class="label">Tax Code</div>
-        <div class="val">1257L</div>
+      <div>
+        <div class="brand">Ask<span>Miro</span></div>
+        <div class="brand-sub">Miro Partners Ltd &middot; t/a AskMiro Cleaning Services</div>
       </div>
     </div>
-    <div class="row">
-      <div class="col">
-        <div class="label">Employer</div>
-        <div class="val">Miro Partners Ltd</div>
-        <div style="font-size:0.78rem;color:#666;margin-top:2px">t/a AskMiro Cleaning Services</div>
-      </div>
-      <div class="col">
-        <div class="label">Period</div>
-        <div class="val">${group.period||'—'}</div>
-      </div>
-      <div class="col">
-        <div class="label">Pay Date</div>
-        <div class="val">${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-      </div>
-    </div>
-
-    <h3 style="font-size:0.85rem;font-weight:700;margin-top:24px;margin-bottom:4px">Earnings</h3>
-    <table>
-      <thead><tr><th>Type</th><th class="r">Hours</th><th class="r">Amount</th></tr></thead>
-      <tbody>
-        ${Object.entries(byType).map(([k,v])=>`<tr><td>${typeLabel(k)}</td><td class="r">${v.hours.toFixed(1)}</td><td class="r">&pound;${v.gross.toFixed(2)}</td></tr>`).join('')}
-        <tr class="total-row"><td>Total Gross</td><td class="r">${(group.total_hours||0).toFixed(1)}</td><td class="r">&pound;${grossPay.toFixed(2)}</td></tr>
-      </tbody>
-    </table>
-
-    <h3 style="font-size:0.85rem;font-weight:700;margin-top:24px;margin-bottom:4px">Estimated Deductions</h3>
-    <table>
-      <thead><tr><th>Deduction</th><th class="r">Amount</th></tr></thead>
-      <tbody>
-        <tr><td>Income Tax (est. 20%)</td><td class="r">&pound;${tax.toFixed(2)}</td></tr>
-        <tr><td>National Insurance (est. 12%)</td><td class="r">&pound;${ni.toFixed(2)}</td></tr>
-        <tr class="total-row"><td>Total Deductions</td><td class="r">&pound;${(tax+ni).toFixed(2)}</td></tr>
-      </tbody>
-    </table>
-
-    <div class="net">
-      <span class="net-label">Net Pay</span>
-      <span class="net-val">&pound;${netPay.toFixed(2)}</span>
+    <div class="title-block">
+      <h1>PAYSLIP</h1>
+      <div class="period">${periodLabel.toUpperCase()}</div>
+      <div class="confidential">Private &amp; Confidential</div>
     </div>
   </div>
-  <div class="footer">This is a computer-generated payslip. Miro Partners Ltd &middot; t/a AskMiro Cleaning Services</div>
+
+  <!-- Employee Info -->
+  <div class="emp-section">
+    <div class="emp-col">
+      <div class="lbl">Employee</div>
+      <div class="emp-name">${group.worker_name||'—'}</div>
+      <div class="emp-role">${group.role||worker.role||'Cleaner'}</div>
+      <div class="emp-addr">${worker.address||'No address on file'}</div>
+    </div>
+    <div class="emp-col">
+      <div class="lbl">Employee Ref</div>
+      <div class="emp-val">${empRef}</div>
+      <div class="emp-sub-lbl">Tax Code</div>
+      <div class="emp-sub">${taxCode}</div>
+    </div>
+    <div class="emp-col">
+      <div class="lbl">Pay Date</div>
+      <div class="emp-val">${payDate}</div>
+      <div class="emp-sub-lbl">NI Number</div>
+      <div class="emp-sub">${niNumber}</div>
+    </div>
+  </div>
+
+  <!-- Employer Bar -->
+  <div class="employer-bar">
+    <div class="cell"><div class="cell-lbl">Employer</div><div class="cell-val">Miro Partners Ltd</div></div>
+    <div class="cell"><div class="cell-lbl">Pay Period</div><div class="cell-val">${periodLabel}</div></div>
+    <div class="cell"><div class="cell-lbl">Pay Type</div><div class="cell-val">${payType} &middot; Hourly</div></div>
+    <div class="cell"><div class="cell-lbl">Payment Method</div><div class="cell-val">${payMethod}</div></div>
+  </div>
+
+  <!-- Earnings & Deductions -->
+  <div class="two-col">
+    <div class="col-half">
+      <h3>Earnings</h3>
+      <table class="earn-table">
+        <thead><tr><td></td><td class="r" style="font-size:0.65rem;color:#9ca3af;font-weight:600">HRS</td><td class="r" style="font-size:0.65rem;color:#9ca3af;font-weight:600">RATE</td><td class="r" style="font-size:0.65rem;color:#9ca3af;font-weight:600">AMOUNT</td></tr></thead>
+        <tbody>
+          ${Object.entries(byType).map(([k,v])=>`
+            <tr><td>${typeLabel(k)}</td><td class="r">${v.hours.toFixed(2)}</td><td class="r">&pound;${v.rate.toFixed(2)}</td><td class="r">&pound;${v.gross.toFixed(2)}</td></tr>
+          `).join('')}
+          <tr class="total-line"><td colspan="2"><strong>Gross Pay</strong></td><td class="r">${totalHours.toFixed(2)}</td><td class="r amount">&pound;${grossPay.toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-half">
+      <h3>Deductions</h3>
+      <table class="ded-table">
+        <thead><tr><td></td><td class="r" style="font-size:0.65rem;color:#9ca3af;font-weight:600">AMOUNT</td></tr></thead>
+        <tbody>
+          <tr><td>Income Tax <span class="ded-sub">(${taxCode})</span></td><td class="r">&pound;${tax.toFixed(2)}</td></tr>
+          <tr><td>National Insurance <span class="ded-sub">(Cat A)</span></td><td class="r">&pound;${employeeNI.toFixed(2)}</td></tr>
+          <tr class="total-line"><td><strong>Total Deductions</strong></td><td class="r amount">&pound;${totalDeductions.toFixed(2)}</td></tr>
+        </tbody>
+      </table>
+      <div class="disclaimer">
+        <div class="info-icon">i</div>
+        <div>Tax &amp; NI are indicative estimates. Confirm with your payroll accountant before payment.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YTD + Pay Breakdown -->
+  <div class="ytd-section">
+    <div class="ytd-col">
+      <h3>Tax Year to Date &mdash; This Employment</h3>
+      <div class="ytd-row"><span class="k">Gross Pay</span><span class="v">&pound;${grossPay.toFixed(2)}</span></div>
+      <div class="ytd-row"><span class="k">Taxable Pay</span><span class="v">&pound;${Math.max(0,taxable).toFixed(2)}</span></div>
+      <div class="ytd-row"><span class="k">Income Tax</span><span class="v">&pound;${tax.toFixed(2)}</span></div>
+      <div class="ytd-row"><span class="k">Employee NI</span><span class="v">&pound;${employeeNI.toFixed(2)}</span></div>
+      <div class="ytd-row"><span class="k">Total Hours</span><span class="v">${totalHours.toFixed(2)} hrs</span></div>
+    </div>
+    <div class="ytd-col">
+      <h3>Pay Breakdown</h3>
+      <div class="ytd-row"><span class="k">Gross Earnings</span><span class="v">&pound;${grossPay.toFixed(2)}</span></div>
+      <div class="ytd-row"><span class="k">Total Deductions</span><span class="v">&pound;${totalDeductions.toFixed(2)}</span></div>
+      <div style="height:1px;background:#e5e7eb;margin:8px 0"></div>
+      <div class="ytd-row net-pay-row"><span class="k">Net Pay</span><span class="v">&pound;${netPay.toFixed(2)}</span></div>
+      <div class="ytd-row" style="margin-top:4px"><span class="k" style="font-size:0.78rem">Paid via</span><span class="v" style="font-size:0.78rem">${payMethod}</span></div>
+    </div>
+  </div>
+
+  <!-- Net Pay Footer -->
+  <div class="net-footer">
+    <div class="net-footer-left">
+      <div class="nf-title">NET PAY THIS PERIOD</div>
+      <div class="nf-sub">${periodLabel} &middot; ${payMethod}</div>
+    </div>
+    <div class="net-footer-right">
+      <div class="net-footer-amount"><sup>&pound;</sup>${netPay.toFixed(2)}</div>
+      <div class="paye-badge">${payType.toUpperCase()}</div>
+    </div>
+  </div>
+
+  <!-- Bottom Info -->
+  <div class="bottom-info">
+    <div class="bi-col"><div class="bi-lbl">NI Number</div><div class="bi-val">${niNumber}</div></div>
+    <div class="bi-col" style="text-align:center"><div class="bi-lbl">Tax Code</div><div class="bi-val">${taxCode}</div></div>
+    <div class="bi-col" style="text-align:right"><div class="bi-lbl">Employer's NI (Est.)</div><div class="bi-val">&pound;${employerNI.toFixed(2)}</div></div>
+  </div>
+
+  <!-- Legal Footer -->
+  <div class="legal-footer">
+    Miro Partners Ltd &middot; Registered in England &amp; Wales &middot; Trading as AskMiro Cleaning Services &middot; London, UK &middot; info@askmiro.com<br/>
+    Tax &amp; NI deductions shown are estimates for reference only. This payslip should be retained as a record of pay. Please contact your payroll administrator with any queries.
+  </div>
 </div>
-<button class="print-btn" onclick="window.print()">Print Payslip</button>
+<button class="print-btn" onclick="window.print()">&#128424; Print Payslip</button>
 </body></html>`)
   w.document.close()
 }
@@ -501,7 +647,7 @@ export default function Payroll(){
                             {st==='paid'&&(
                               <span style={{fontSize:'0.78rem',fontWeight:600,color:'#059669'}}>✓ Paid</span>
                             )}
-                            <Btn small outline color="#6B7280" onClick={()=>openPayslip(g,entries)}>📋 Payslip</Btn>
+                            <Btn small outline color="#6B7280" onClick={()=>openPayslip(g,entries,workers)}>📋 Payslip</Btn>
                           </div>
                         </TD>
                       </tr>
@@ -535,7 +681,7 @@ export default function Payroll(){
                   <div style={{display:'flex',gap:8,marginTop:6}}>
                     {statusPill(g.status)}
                   </div>
-                  <Btn onClick={()=>openPayslip(g,entries)} style={{marginTop:8,width:'100%',textAlign:'center'}}>View & Print</Btn>
+                  <Btn onClick={()=>openPayslip(g,entries,workers)} style={{marginTop:8,width:'100%',textAlign:'center'}}>View & Print</Btn>
                 </div>
               ))}
             </div>
