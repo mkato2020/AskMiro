@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: askmiro-os
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn api:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: askmiro-db
+          property: connectionString
+      - key: GAS_ENDPOINT
+        sync: false
+      - key: GAS_TOKEN
+        sync: false
+      - key: AI_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: UI_MODE
+        value: react
+      # Auth (set these in Render dashboard to enable Google OAuth)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: AUTH_ALLOWED_EMAILS
+        sync: false
+      - key: AUTH_ENABLED
+        value: "false"
+      # Email deliverability
+      - key: OUTREACH_FROM_EMAIL
+        value: "office@askmiro.com"
+      - key: OUTREACH_FROM_NAME
+        value: "Mike Kato"
+      - key: EMAIL_DAILY_LIMIT
+        value: "50"
+      - key: EMAIL_PER_MINUTE_LIMIT
+        value: "5"
+
+databases:
+  - name: askmiro-db
+    databaseName: askmiro
+    user: askmiro
+    plan: free
