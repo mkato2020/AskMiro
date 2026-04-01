@@ -29,6 +29,15 @@ export default function App(){
   const {data:auth,isLoading:authLoading}=useQuery({queryKey:['auth'],queryFn:api.authStatus,staleTime:300000,retry:false})
   const user=auth?.user
 
+  // Hooks must be called before any conditional returns
+  const openLead=useCallback(async(entityId)=>{
+    if(!entityId)return
+    try{
+      const lead=await api.lead(entityId)
+      if(lead&&(lead.entity_id||lead.place_id))setSelectedLead(lead)
+    }catch(e){console.warn('Lead not found',entityId,e)}
+  },[])
+
   // Auth guard — show login screen if auth is required and user is not authenticated
   if(authLoading){
     return(
@@ -46,14 +55,6 @@ export default function App(){
   if(auth?.auth_required && !auth?.authenticated){
     return <Login/>
   }
-
-  const openLead=useCallback(async(entityId)=>{
-    if(!entityId)return
-    try{
-      const lead=await api.lead(entityId)
-      if(lead&&(lead.entity_id||lead.place_id))setSelectedLead(lead)
-    }catch(e){console.warn('Lead not found',entityId,e)}
-  },[])
 
   return(
     <>
