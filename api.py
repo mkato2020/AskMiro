@@ -5281,6 +5281,10 @@ def seed_ops_data(payload: dict):
                         inserted += 1
                 except Exception as e:
                     logger.warning("seed %s row error: %s", table, e)
+                    if not results.get(table+"_errors"):
+                        results[table+"_errors"] = []
+                    if len(results.get(table+"_errors",[])) < 3:
+                        results[table+"_errors"].append(str(e)[:200])
             results[table] = inserted
         return {"status": "ok", "inserted": results}
     except Exception as exc:
