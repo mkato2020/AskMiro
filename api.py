@@ -5256,6 +5256,38 @@ def compliance_template_get(name: str):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ── Seed endpoint (temporary — for migrating operational data to Render) ──────
+@app.post("/api/admin/seed-ops-data")
+def seed_ops_data(payload: dict):
+    """Accept JSON with table data and INSERT into Render DB. Skips existing IDs."""
+    import db_pg as _db
+    ALLOWED = {"ops_cleaners","pay_workers","pay_entries","fin_invoices","fin_expenses","fin_transactions","fin_settings","fin_payments"}
+    results = {}
+    try:
+        for table, rows in payload.items():
+            if table not in ALLOWED or not rows:
+                continue
+            inserted = 0
+            for row in rows:
+                row.pop("id", None)
+                cols = list(row.keys())
+                vals = [row[c] for c in cols]
+                placeholders = ",".join(["%s"]*len(cols))
+                col_names = ",".join(cols)
+                try:
+                    with _db.transaction() as conn:
+                        cur = conn.cursor()
+                        cur.execute(f"INSERT INTO {table} ({col_names}) VALUES ({placeholders})", vals)
+                        inserted += 1
+                except Exception as e:
+                    logger.warning("seed %s row error: %s", table, e)
+            results[table] = inserted
+        return {"status": "ok", "inserted": results}
+    except Exception as exc:
+        logger.error("seed error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── SPA catch-all (must be last) ─────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
