@@ -36,7 +36,7 @@ import weekly_targets
 import pdf_extractor
 import db_pg
 import json
-from ops_tables import next_invoice_number, mark_overdue_invoices, recalculate_snapshots
+from ops_tables import ensure_ops_tables, next_invoice_number, mark_overdue_invoices, recalculate_snapshots
 from database import (
     init_db,
     log_activity, get_activities,
@@ -73,6 +73,12 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup():
     init_db()
+    # Create operational tables (finance, cleaners, payroll, quality, SEO, compliance)
+    try:
+        with db_pg.transaction() as conn:
+            ensure_ops_tables(conn)
+    except Exception as e:
+        logger.warning("ops tables init: %s", e)
     _start_scheduler()
 
 
