@@ -1,8 +1,34 @@
 const BASE = ''
 async function req(path, opts={}) {
-  const res = await fetch(BASE+path,{headers:{'Content-Type':'application/json',...(opts.headers||{})},method:opts.method||'GET',body:opts.body?JSON.stringify(opts.body):undefined})
-  if(res.status===401&&!path.startsWith('/auth/')){window.location.href='/auth/login';throw new Error('Not authenticated')}
-  if(!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  let res
+  try {
+    res = await fetch(BASE+path,{headers:{'Content-Type':'application/json',...(opts.headers||{})},method:opts.method||'GET',body:opts.body?JSON.stringify(opts.body):undefined})
+  } catch(netErr) {
+    // Network error (offline, DNS, Render cold start timeout)
+    console.warn('[api] network error on', path, netErr.message)
+    throw new Error(`Network error: ${netErr.message}`)
+  }
+  // Auth redirect — only redirect if auth is truly required, don't loop
+  if(res.status===401&&!path.startsWith('/auth/')){
+    console.warn('[api] 401 on', path)
+    // Don't redirect — let the auth guard in App.jsx handle it
+    throw new Error('Not authenticated')
+  }
+  if(!res.ok) {
+    // Try to get error detail from response body
+    let detail = `${res.status} ${res.statusText}`
+    try { const body = await res.json(); detail = body.detail || body.error || detail } catch(e) {}
+    throw new Error(detail)
+  }
+  // Guard against non-JSON responses (Render 502 pages, etc.)
+  const ct = res.headers.get('content-type') || ''
+  if(!ct.includes('application/json')){
+    console.warn('[api] non-JSON response on', path, ct)
+    // Try parsing anyway — some endpoints don't set content-type
+    try { return await res.json() } catch(e) {
+      throw new Error('Server returned non-JSON response')
+    }
+  }
   return res.json()
 }
 export const api = {

@@ -3,20 +3,25 @@ import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
 
 export default function LeadModal({lead,onClose}){
-  if(!lead)return null
-
+  // ALL hooks must be called before any conditional return (React rules of hooks)
   const qc=useQueryClient()
-  const id=lead.entity_id||lead.place_id||lead.id
+  const id=lead?.entity_id||lead?.place_id||lead?.id||null
   const [tab,setTab]=useState('overview')
   const [noteText,setNoteText]=useState('')
 
-  const {data:activities=[]}=useQuery({queryKey:['activities',id],queryFn:()=>api.activities(id),enabled:!!id&&tab==='activity'})
-  const {data:notes=[]}=useQuery({queryKey:['notes',id],queryFn:()=>api.notes(id),enabled:!!id&&tab==='notes'})
-  const {data:intel}=useQuery({queryKey:['intel',id],queryFn:()=>api.intelligence(id),enabled:!!id&&tab==='intel',retry:false})
+  const {data:activities=[]}=useQuery({queryKey:['activities',id],queryFn:()=>api.activities(id),enabled:!!id&&!!lead&&tab==='activity'})
+  const {data:notes=[]}=useQuery({queryKey:['notes',id],queryFn:()=>api.notes(id),enabled:!!id&&!!lead&&tab==='notes'})
+  const {data:intel}=useQuery({queryKey:['intel',id],queryFn:()=>api.intelligence(id),enabled:!!id&&!!lead&&tab==='intel',retry:false})
 
   const addNote=useMutation({mutationFn:()=>api.addNote(id,{content:noteText}),onSuccess:()=>{setNoteText('');qc.invalidateQueries({queryKey:['notes',id]})}})
   const archiveLead=useMutation({mutationFn:()=>api.archiveLead(id),onSuccess:onClose})
   const genOutreach=useMutation({mutationFn:()=>api.generateOutreach(id)})
+
+  // Reset tab when lead changes
+  useEffect(()=>{if(lead)setTab('overview')},[lead])
+
+  // Now safe to return null after all hooks are called
+  if(!lead)return null
 
   const scoreBand=lead.score>=80?'A':lead.score>=60?'B':lead.score>=40?'C':'D'
   const scoreColor={A:'#10b981',B:'#3b82f6',C:'#f59e0b',D:'#ef4444'}[scoreBand]
@@ -48,15 +53,15 @@ export default function LeadModal({lead,onClose}){
                 <span style={{display:'inline-block',marginTop:6,padding:'2px 10px',borderRadius:12,fontSize:'0.7rem',fontWeight:600,color:'var(--teal)',background:'var(--teal)18'}}>{lead.pipeline_stage.replace(/_/g,' ')}</span>
               )}
             </div>
-            <button onClick={onClose} style={{border:'none',background:'transparent',fontSize:'1.2rem',cursor:'pointer',color:'var(--text-muted)',padding:4}}>✕</button>
+            <button onClick={onClose} style={{border:'none',background:'transparent',fontSize:'1.2rem',cursor:'pointer',color:'var(--text-muted)',padding:4}}>&#10005;</button>
           </div>
 
           {/* Contact Info */}
           <div style={{display:'flex',gap:16,marginTop:12,flexWrap:'wrap'}}>
-            {lead.contact_name&&<InfoChip icon="👤" value={lead.contact_name} sub={lead.contact_role}/>}
-            {lead.phone&&<InfoChip icon="📞" value={lead.phone} href={'tel:'+lead.phone}/>}
-            {lead.email&&<InfoChip icon="📧" value={lead.email} href={'mailto:'+lead.email}/>}
-            {lead.website&&<InfoChip icon="🌐" value={lead.website} href={lead.website.startsWith('http')?lead.website:'https://'+lead.website}/>}
+            {lead.contact_name&&<InfoChip icon="&#128100;" value={lead.contact_name} sub={lead.contact_role}/>}
+            {lead.phone&&<InfoChip icon="&#128222;" value={lead.phone} href={'tel:'+lead.phone}/>}
+            {lead.email&&<InfoChip icon="&#128231;" value={lead.email} href={'mailto:'+lead.email}/>}
+            {lead.website&&<InfoChip icon="&#127760;" value={lead.website} href={lead.website.startsWith('http')?lead.website:'https://'+lead.website}/>}
           </div>
 
           {/* Quick Actions */}
