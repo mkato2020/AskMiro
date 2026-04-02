@@ -225,6 +225,43 @@ def db_check():
     return result
 
 
+@app.get("/api/admin/db-test-leads")
+def db_test_leads():
+    """Diagnostic: test the exact leads query path."""
+    from urllib.parse import urlparse as _up
+    dsn = os.getenv("DATABASE_URL", "")
+    if dsn.startswith("postgres://"):
+        dsn = "postgresql://" + dsn[len("postgres://"):]
+    try:
+        p = _up(dsn)
+        import psycopg2, psycopg2.extras
+        conn = psycopg2.connect(
+            dbname=p.path.lstrip("/"), user=p.username, password=p.password,
+            host=p.hostname, port=p.port or 5432,
+            cursor_factory=psycopg2.extras.RealDictCursor, connect_timeout=5,
+        )
+        cur = conn.cursor()
+        # Check if v_lead_board exists
+        cur.execute("SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema='public' AND table_name='v_lead_board'")
+        view_exists = cur.fetchone()["cnt"]
+        # Check views
+        cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'v_%' ORDER BY table_name")
+        views = [r["table_name"] for r in cur.fetchall()]
+        # Try the actual query
+        lead_error = None
+        lead_count = 0
+        try:
+            cur.execute("SELECT COUNT(*) as cnt FROM v_lead_board WHERE active = TRUE AND total_score >= 0")
+            lead_count = cur.fetchone()["cnt"]
+        except Exception as e2:
+            lead_error = str(e2)
+            conn.rollback()
+        conn.close()
+        return {"v_lead_board_exists": view_exists, "views": views, "lead_count": lead_count, "lead_error": lead_error}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── Leads ─────────────────────────────────────────────────────────────────────
 
 @app.get("/api/leads")
@@ -238,18 +275,22 @@ def list_leads(
     search: Optional[str] = None,
     hvt_only: bool = False,
 ):
-    with db_pg.transaction() as conn:
-        return db_pg.list_leads(
-            conn,
-            page=page,
-            per_page=per_page,
-            min_score=min_score,
-            borough=borough,
-            sector=sector,
-            search=search,
-            hvt_only=hvt_only,
-            limit=limit,
-        )
+    try:
+        with db_pg.transaction() as conn:
+            return db_pg.list_leads(
+                conn,
+                page=page,
+                per_page=per_page,
+                min_score=min_score,
+                borough=borough,
+                sector=sector,
+                search=search,
+                hvt_only=hvt_only,
+                limit=limit,
+            )
+    except Exception as e:
+        logger.error("leads error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/leads/filters")
