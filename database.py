@@ -376,8 +376,12 @@ def _create_pg_schema(conn):
             import logging
             logging.getLogger("database").info("Fresh DB detected — bootstrapping from pg_schema.sql")
             sql = _schema_file.read_text()
-            conn.execute(sql)
-            conn.commit()
+            # Use raw psycopg2 cursor to avoid _normalize_sql corrupting DDL
+            raw_conn = conn._conn if hasattr(conn, '_conn') else conn
+            raw_cur = raw_conn.cursor()
+            raw_cur.execute(sql)
+            raw_conn.commit()
+            raw_cur.close()
             _is_normalized = True
 
     if _is_normalized:
