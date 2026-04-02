@@ -3646,9 +3646,10 @@ def seo_generate(body: dict = Body(...)):
             ]
             return {"suggestions": suggestions}
 
-        elif mode == "generate":
+        elif mode in ("generate", "article"):
             keyword = body.get("keyword", "commercial cleaning services")
             slug = body.get("slug") or keyword.lower().replace(" ", "-")
+            slug = "".join(c for c in slug if c.isalnum() or c == "-")
             title = body.get("title") or keyword.title()
             # Use existing generate_script pattern if available, else return placeholder
             try:
@@ -3660,7 +3661,29 @@ def seo_generate(body: dict = Body(...)):
                 html = result.get("script", f"<h1>{title}</h1><p>Article content for: {keyword}</p>")
             except Exception:
                 html = f"<h1>{title}</h1><p>Article about {keyword}. Content generation pending.</p>"
-            return {"title": title, "slug": slug, "keyword": keyword, "html": html}
+            # Save as draft so we get an id for publishing
+            word_count = len(html.split()) if html else 0
+            try:
+                with db_pg.transaction() as conn:
+                    row = db_pg.fetchone(conn, """
+                        INSERT INTO seo_articles
+                            (title, slug, target_keyword, content_type, html_content,
+                             word_count, status)
+                        VALUES (%s,%s,%s,'blog',%s,%s,'draft')
+                        RETURNING *
+                    """, (title, slug, keyword, html, word_count))
+                article = dict(row) if row else {}
+            except Exception:
+                article = {}
+            return {
+                "id": article.get("id"),
+                "title": title,
+                "slug": slug,
+                "keyword": keyword,
+                "html": html,
+                "word_count": word_count,
+                "filename": f"{slug}.html",
+            }
 
         elif mode == "publish":
             # Store article and return success
