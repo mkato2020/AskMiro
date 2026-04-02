@@ -19,7 +19,7 @@ export default function Today(){
   const complete=useMutation({mutationFn:api.completeTask,onSuccess:()=>qc.invalidateQueries({queryKey:['tasks-today']})})
   const snooze=useMutation({mutationFn:api.snoozeTask,onSuccess:()=>qc.invalidateQueries({queryKey:['tasks-today']})})
 
-  const tasks=data?.tasks||data||[]
+  const tasks=Array.isArray(data?.tasks)?data.tasks:Array.isArray(data)?data:[]
   const summary=data?.summary||{}
   const today=new Date()
   const greeting=today.getHours()<12?'Good morning':'Good afternoon'

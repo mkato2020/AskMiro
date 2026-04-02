@@ -46,7 +46,7 @@ export default function SEOContent(){
   const {data,isLoading}=useQuery({queryKey:['seo-content'],queryFn:api.seoContent,staleTime:60000})
   const seo=data||{}
 
-  const content=(seo.content||[]).filter(c=>{
+  const content=(Array.isArray(seo.content)?seo.content:[]).filter(c=>{
     if(typeFilter!=='all'&&c.content_type!==typeFilter)return false
     if(!search)return true
     const q=search.toLowerCase()

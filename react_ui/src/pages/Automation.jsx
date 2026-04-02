@@ -31,7 +31,7 @@ export default function Automation(){
     }catch(e){setMsgs(m=>({...m,[key]:'✗ '+((e&&e.message)||'Error')}))}
   }
 
-  const connectors=status?.connectors||[]
+  const connectors=Array.isArray(status?.connectors)?status.connectors:[]
   const tabs=[
     {id:'overview',label:'Overview',icon:'📊'},
     {id:'connectors',label:'Connectors',icon:'🔌'},
@@ -233,7 +233,7 @@ export default function Automation(){
           </div>
         </div>
       </div>
-      {c.recent_pushes&&c.recent_pushes.length>0&&(
+      {Array.isArray(c.recent_pushes)&&c.recent_pushes.length>0&&(
         <div>
           <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>Recent Pushes</div>
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden'}}>

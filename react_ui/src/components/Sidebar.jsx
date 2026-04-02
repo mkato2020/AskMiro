@@ -25,7 +25,7 @@ export default function Sidebar({tab,setTab,user}){
     <aside style={{
       width:collapsed?68:200,
       minHeight:'100vh',
-      background:'#111827',
+      background:'#161a28',
       display:'flex',
       flexDirection:'column',
       transition:'width 0.2s ease',
@@ -57,7 +57,7 @@ export default function Sidebar({tab,setTab,user}){
       {/* Nav */}
       <nav style={{flex:1,padding:'8px 8px',display:'flex',flexDirection:'column',gap:2}}>
         {NAV.map((item,i)=>{
-          if(item.sep)return <div key={i} style={{height:1,background:'#1f2937',margin:'8px 0'}}/>
+          if(item.sep)return <div key={i} style={{height:1,background:'#232840',margin:'8px 0'}}/>
           const active=tab===item.id||(item.id==='pipeline'&&(tab==='leads'||tab==='signals'||tab==='today'))
           return(
             <button key={item.id} onClick={()=>setTab(item.id)} style={{
@@ -71,7 +71,7 @@ export default function Sidebar({tab,setTab,user}){
               transition:'all 0.15s',
               width:'100%',
             }}
-              onMouseOver={e=>{if(!active)e.currentTarget.style.background='#1f2937'}}
+              onMouseOver={e=>{if(!active)e.currentTarget.style.background='#232840'}}
               onMouseOut={e=>{if(!active)e.currentTarget.style.background='transparent'}}
             >
               <span style={{fontSize:'1rem',width:20,textAlign:'center'}}>{item.icon}</span>
@@ -95,7 +95,7 @@ export default function Sidebar({tab,setTab,user}){
             <button key={s.id} onClick={()=>setTab(s.id)} style={{
               display:'block',width:'100%',textAlign:'left',
               padding:'7px 12px 7px 28px',border:'none',borderRadius:6,cursor:'pointer',
-              background:tab===s.id?'#1f2937':'transparent',
+              background:tab===s.id?'#232840':'transparent',
               color:tab===s.id?'white':'#6b7280',
               fontSize:'0.78rem',fontWeight:tab===s.id?600:400,
             }}>{s.label}</button>
@@ -105,7 +105,7 @@ export default function Sidebar({tab,setTab,user}){
 
       {/* User */}
       {user&&(
-        <div style={{padding:collapsed?'16px 8px':'16px 16px',borderTop:'1px solid #1f2937',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{padding:collapsed?'16px 8px':'16px 16px',borderTop:'1px solid #232840',display:'flex',alignItems:'center',gap:10}}>
           {user.picture?(
             <img src={user.picture} alt="" style={{width:28,height:28,borderRadius:14}}/>
           ):(

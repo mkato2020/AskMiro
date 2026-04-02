@@ -108,7 +108,7 @@ export default function Cleaners(){
 
   /* ── derived data ── */
   const raw=data||{}
-  const all=raw.cleaners||[]
+  const all=Array.isArray(raw.cleaners)?raw.cleaners:[]
   const boroughs=useMemo(()=>[...new Set(all.map(c=>c.borough).filter(Boolean))].sort(),[all])
 
   const filtered=useMemo(()=>all.filter(c=>{

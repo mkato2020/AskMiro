@@ -50,8 +50,8 @@ export default function Operations({openLead}){
 
   const {data,isLoading}=useQuery({queryKey:['operations'],queryFn:api.operations,staleTime:60000})
   const ops=data||{}
-  const todayJobs=ops.today_jobs||[]
-  const schedule=ops.schedule||[]
+  const todayJobs=Array.isArray(ops.today_jobs)?ops.today_jobs:[]
+  const schedule=Array.isArray(ops.schedule)?ops.schedule:[]
   const missedJobs=todayJobs.filter(j=>j.status==='Missed')
 
   const clockInMut=useMutation({mutationFn:api.clockIn,onSuccess:()=>qc.invalidateQueries({queryKey:['operations']})})

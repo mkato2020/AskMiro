@@ -139,13 +139,13 @@ export default function Finance(){
   const {data:profData}=useQuery({queryKey:['financeProf',profMonth],queryFn:()=>api.financeProfitability(profMonth),staleTime:60000})
 
   const ov=overview||{}
-  const invoices=invoicesData?.invoices||invoicesData||[]
-  const transactions=txnData?.transactions||txnData||[]
-  const expenses=expData?.expenses||expData||[]
-  const profSnapshots=profData?.snapshots||profData||[]
-  const profSummary=profData?.summary||{}
-  const recurring=expData?.recurring_templates||[]
-  const categoryBreakdown=expData?.by_category||[]
+  const invoices=Array.isArray(invoicesData)?invoicesData:(invoicesData?.invoices||[])
+  const transactions=Array.isArray(txnData)?txnData:(txnData?.transactions||[])
+  const expenses=Array.isArray(expData)?expData:(expData?.expenses||[])
+  const profSnapshots=Array.isArray(profData)?profData:(profData?.snapshots||[])
+  const profSummary=profData&&!Array.isArray(profData)?profData:{}
+  const recurring=Array.isArray(expData?.recurring_templates)?expData.recurring_templates:[]
+  const categoryBreakdown=Array.isArray(expData?.by_category)?expData.by_category:[]
 
   /* mutations */
   const invalidate=()=>{qc.invalidateQueries({queryKey:['financeOverview']});qc.invalidateQueries({queryKey:['financeInvoices']});qc.invalidateQueries({queryKey:['financeTxn']});qc.invalidateQueries({queryKey:['financeExp']});qc.invalidateQueries({queryKey:['financeProf']})}

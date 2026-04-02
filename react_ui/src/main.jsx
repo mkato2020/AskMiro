@@ -16,16 +16,16 @@ class ErrorBoundary extends React.Component {
   render(){
     if(this.state.hasError){
       return(
-        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#0f1117',padding:40}}>
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#141720',padding:40}}>
           <div style={{maxWidth:500,textAlign:'center'}}>
             <div style={{fontSize:'2rem',marginBottom:16}}>&#9888;&#65039;</div>
             <div style={{fontSize:'1.1rem',fontWeight:800,color:'#f1f5f9',marginBottom:8}}>
               <span>Ask</span><span style={{color:'#14b8a6'}}>Miro</span> — Something went wrong
             </div>
-            <div style={{fontSize:'0.85rem',color:'#64748b',lineHeight:1.6,marginBottom:20}}>
+            <div style={{fontSize:'0.85rem',color:'#8892a8',lineHeight:1.6,marginBottom:20}}>
               The app encountered an error. This has been logged. Try refreshing the page.
             </div>
-            <div style={{padding:16,background:'#1a1d27',borderRadius:8,border:'1px solid #2a2d3a',textAlign:'left',marginBottom:20}}>
+            <div style={{padding:16,background:'#1c2030',borderRadius:8,border:'1px solid #2e3348',textAlign:'left',marginBottom:20}}>
               <div style={{fontSize:'0.72rem',color:'#ef4444',fontFamily:'monospace',wordBreak:'break-all'}}>
                 {this.state.error?.message||'Unknown error'}
               </div>
@@ -58,12 +58,12 @@ class ErrorBoundary extends React.Component {
 const style=document.createElement('style')
 style.textContent=`
   :root {
-    --bg-base: #0f1117;
-    --bg-surface: #1a1d27;
-    --border: #2a2d3a;
+    --bg-base: #141720;
+    --bg-surface: #1c2030;
+    --border: #2e3348;
     --teal: #14b8a6;
     --text-1: #f1f5f9;
-    --text-muted: #64748b;
+    --text-muted: #8892a8;
     --r-sm: 8px;
     --r-lg: 12px;
   }
@@ -77,8 +77,8 @@ style.textContent=`
   #root { display:flex; min-height:100vh; }
   ::-webkit-scrollbar { width:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:#2a2d3a; border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:#3a3d4a; }
+  ::-webkit-scrollbar-thumb { background:#2e3348; border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:#3e4460; }
   input, select, textarea, button { font-family: inherit; }
   a { color: var(--teal); text-decoration: none; }
 `

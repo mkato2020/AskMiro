@@ -391,9 +391,9 @@ export default function Payroll(){
   const {data,isLoading}=useQuery({queryKey:['payroll'],queryFn:api.payroll,staleTime:60000})
   const pr=data||{}
   const summary=pr.summary||{}
-  const entries=pr.entries||[]
-  const workers=pr.workers||[]
-  const groups=pr.payroll_groups||[]
+  const entries=Array.isArray(pr.entries)?pr.entries:[]
+  const workers=Array.isArray(pr.workers)?pr.workers:[]
+  const groups=Array.isArray(pr.payroll_groups)?pr.payroll_groups:[]
 
   /* mutations */
   const createEntry=useMutation({mutationFn:api.createPayEntry,onSuccess:()=>{qc.invalidateQueries({queryKey:['payroll']});setShowLogModal(false)}})

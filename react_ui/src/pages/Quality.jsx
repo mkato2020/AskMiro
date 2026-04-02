@@ -59,8 +59,8 @@ export default function Quality(){
   const createInc=useMutation({mutationFn:b=>api.createIncident(b),onSuccess:()=>{qc.invalidateQueries({queryKey:['quality']});setShowIncident(false);setIncForm(emptyInc)}})
   const resolveInc=useMutation({mutationFn:({id,body})=>api.resolveIncident(id,body),onSuccess:()=>{qc.invalidateQueries({queryKey:['quality']});setResolveTarget(null);setResolution('')}})
 
-  const inspections=q.inspections||[]
-  const incidents=q.incidents||[]
+  const inspections=Array.isArray(q.inspections)?q.inspections:[]
+  const incidents=Array.isArray(q.incidents)?q.incidents:[]
   const openCount=q.open_incidents||0
 
   const avgScore=q.avg_score

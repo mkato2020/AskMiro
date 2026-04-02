@@ -193,8 +193,8 @@ export default function Leads({ openLead }) {
     keepPreviousData: true,
   });
 
-  const leads = data?.leads ?? [];
-  const total = data?.total ?? 0;
+  const leads = Array.isArray(data?.leads) ? data.leads : Array.isArray(data) ? data : [];
+  const total = data?.total ?? leads.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   /* KPI computations */

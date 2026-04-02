@@ -5,18 +5,25 @@ import {api} from '../api'
 export default function Email({openLead}){
   const qc=useQueryClient()
   const [tab,setTab]=useState('queue')
-  const {data:stats}=useQuery({queryKey:['email-stats'],queryFn:api.emailStats,staleTime:30000})
-  const {data:queue=[],isLoading:qLoading}=useQuery({queryKey:['email-queue'],queryFn:api.emailQueue,enabled:tab==='queue'})
-  const {data:log=[],isLoading:lLoading}=useQuery({queryKey:['email-log'],queryFn:api.emailLog,enabled:tab==='sent'})
-  const {data:replies=[],isLoading:rLoading}=useQuery({queryKey:['email-replies'],queryFn:api.emailReplies,enabled:tab==='replies'})
+  const {data:statsRaw}=useQuery({queryKey:['email-stats'],queryFn:api.emailStats,staleTime:30000})
+  const {data:queueRaw,isLoading:qLoading}=useQuery({queryKey:['email-queue'],queryFn:api.emailQueue,enabled:tab==='queue'})
+  const {data:logRaw,isLoading:lLoading}=useQuery({queryKey:['email-log'],queryFn:api.emailLog,enabled:tab==='sent'})
+  const {data:repliesRaw,isLoading:rLoading}=useQuery({queryKey:['email-replies'],queryFn:api.emailReplies,enabled:tab==='replies'})
   const {data:guardStats}=useQuery({queryKey:['guard-stats'],queryFn:api.emailGuardStats,enabled:tab==='guard'})
-  const {data:guardLog=[]}=useQuery({queryKey:['guard-log'],queryFn:()=>api.emailGuardLog(100),enabled:tab==='guard'})
-  const {data:suppressions=[]}=useQuery({queryKey:['guard-suppressions'],queryFn:api.emailGuardSuppressions,enabled:tab==='guard'})
+  const {data:guardLogRaw}=useQuery({queryKey:['guard-log'],queryFn:()=>api.emailGuardLog(100),enabled:tab==='guard'})
+  const {data:suppressionsRaw}=useQuery({queryKey:['guard-suppressions'],queryFn:api.emailGuardSuppressions,enabled:tab==='guard'})
+
+  const stats=statsRaw?.stats||statsRaw||{}
+  const queue=Array.isArray(queueRaw)?queueRaw:(queueRaw?.items||queueRaw?.leads||[])
+  const log=Array.isArray(logRaw)?logRaw:(logRaw?.items||logRaw?.log||[])
+  const replies=Array.isArray(repliesRaw)?repliesRaw:(repliesRaw?.items||repliesRaw?.leads||[])
+  const guardLog=Array.isArray(guardLogRaw)?guardLogRaw:[]
+  const suppressions=Array.isArray(suppressionsRaw)?suppressionsRaw:[]
 
   const sendOne=useMutation({mutationFn:api.emailSendOne,onSuccess:()=>{qc.invalidateQueries({queryKey:['email-queue']});qc.invalidateQueries({queryKey:['email-stats']})}})
   const resolve=useMutation({mutationFn:api.emailResolve,onSuccess:()=>qc.invalidateQueries({queryKey:['email-replies']})})
 
-  const s=stats||{}
+  const s=stats
   const tabs=[['queue','Queue'],['sent','Sent Log'],['replies','Replies'],['guard','Email Guard']]
 
   return(

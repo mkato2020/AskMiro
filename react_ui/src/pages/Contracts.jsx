@@ -6,7 +6,8 @@ const fmtCur=v=>'£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:
 const STATUS_COLORS={active:'#10b981',ended:'#6b7280',expiring:'#f59e0b',pending:'#3b82f6'}
 
 export default function Contracts({openLead}){
-  const {data:contracts=[],isLoading}=useQuery({queryKey:['contracts'],queryFn:api.contracts})
+  const {data:contractsRaw,isLoading}=useQuery({queryKey:['contracts'],queryFn:api.contracts})
+  const contracts=Array.isArray(contractsRaw)?contractsRaw:(contractsRaw?.contracts||[])
   const [filter,setFilter]=useState('all')
   const [search,setSearch]=useState('')
 

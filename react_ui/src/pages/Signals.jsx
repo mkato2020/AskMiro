@@ -15,7 +15,8 @@ const TYPES={
 
 export default function Signals({openLead}){
   const [filter,setFilter]=useState('')
-  const {data:signals=[],isLoading}=useQuery({queryKey:['signals',filter],queryFn:()=>api.signals(filter||undefined)})
+  const {data:signalsRaw,isLoading}=useQuery({queryKey:['signals',filter],queryFn:()=>api.signals(filter||undefined)})
+  const signals=Array.isArray(signalsRaw)?signalsRaw:(signalsRaw?.signals||[])
 
   const now=new Date()
   const weekAgo=new Date(now.getTime()-7*86400000)

@@ -134,8 +134,8 @@ export default function Analytics({openLead}){
   const qual = qualData || {}
   const qualStats = qual.stats || {}
   const fin = finData || {}
-  const inspections = qual.inspections || []
-  const incidents = qual.incidents || []
+  const inspections = Array.isArray(qual.inspections) ? qual.inspections : []
+  const incidents = Array.isArray(qual.incidents) ? qual.incidents : []
 
   const activeSites = opsSummary.active_sites || s.active_pipeline || 0
   const monthlyRevenue = fin.total_invoiced || 0

@@ -9,7 +9,8 @@ const STATUS_COLORS={draft:'#f59e0b',sent:'#3b82f6',won:'#10b981',lost:'#ef4444'
 
 export default function Quotes({openLead}){
   const qc=useQueryClient()
-  const {data:quotes=[],isLoading}=useQuery({queryKey:['quotes'],queryFn:()=>api.quotes()})
+  const {data:quotesRaw,isLoading}=useQuery({queryKey:['quotes'],queryFn:()=>api.quotes()})
+  const quotes=Array.isArray(quotesRaw)?quotesRaw:(quotesRaw?.quotes||[])
   const {data:settings}=useQuery({queryKey:['fin-settings'],queryFn:api.financeSettings,staleTime:300000})
   const [tab,setTab]=useState('all')
   const [showBuilder,setShowBuilder]=useState(true)
