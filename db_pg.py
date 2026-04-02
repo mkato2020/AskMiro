@@ -41,7 +41,7 @@ VALID_TRANSITIONS: dict[str, list[str]] = {
 
 def _get_dsn() -> str:
     # Prefer DATABASE_URL (set on Render / production) over legacy PG_DSN
-    url = os.getenv("DATABASE_URL", "")
+    url = os.getenv("DATABASE_URL", "").strip()
     if url:
         # psycopg2 needs postgresql:// not postgres://
         if url.startswith("postgres://"):

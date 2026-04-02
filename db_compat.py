@@ -38,7 +38,7 @@ def _pg_connect(dsn: str, **kwargs):
 
 def _get_dsn() -> str:
     """Resolve DATABASE_URL → psycopg2 DSN. Handles Render/Supabase URLs."""
-    url = os.getenv("DATABASE_URL", "")
+    url = os.getenv("DATABASE_URL", "").strip()
     # Render/Supabase give postgres:// — psycopg2 needs postgresql://
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
