@@ -149,3 +149,94 @@ export const api = {
   // Public
   joinTeam:(body)=>req('/api/public/join-team',{method:'POST',body}),
 }
+
+// ══════════════════════════════════════════════════════════════
+// INTELLIGENCE ENGINE
+// ══════════════════════════════════════════════════════════════
+export async function fetchTodayEngine() {
+  const r = await fetch(`${BASE}/api/today`);
+  return r.json();
+}
+export async function fetchIntelligenceAlerts(acknowledged = false) {
+  const r = await fetch(`${BASE}/api/intelligence/alerts?acknowledged=${acknowledged}`);
+  return r.json();
+}
+export async function acknowledgeAlert(alertId) {
+  const r = await fetch(`${BASE}/api/intelligence/alerts/${alertId}/acknowledge`, { method: 'POST' });
+  return r.json();
+}
+export async function fetchDailySummary() {
+  const r = await fetch(`${BASE}/api/intelligence/daily-summary`);
+  return r.json();
+}
+export async function fetchFeasibility(postcode, hours = 0, sector = '') {
+  const r = await fetch(`${BASE}/api/intelligence/feasibility?postcode=${encodeURIComponent(postcode)}&hours=${hours}&sector=${encodeURIComponent(sector)}`);
+  return r.json();
+}
+export async function fetchSectorCosts(sector, borough = '') {
+  const r = await fetch(`${BASE}/api/intelligence/sector-costs?sector=${encodeURIComponent(sector)}&borough=${encodeURIComponent(borough)}`);
+  return r.json();
+}
+export async function fetchQuoteIntelligence(entityId, postcode, sector, hours, revenue) {
+  const r = await fetch(`${BASE}/api/intelligence/quote?entity_id=${entityId}&postcode=${encodeURIComponent(postcode)}&sector=${encodeURIComponent(sector)}&hours=${hours}&revenue=${revenue}`);
+  return r.json();
+}
+export async function generateAlerts() {
+  const r = await fetch(`${BASE}/api/intelligence/generate-alerts`, { method: 'POST' });
+  return r.json();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CLEANER MATCHING
+// ══════════════════════════════════════════════════════════════
+export async function fetchCleanerMatch(postcode, hours = 0, sector = '', limit = 5) {
+  const r = await fetch(`${BASE}/api/intelligence/cleaner-match?postcode=${encodeURIComponent(postcode)}&hours=${hours}&sector=${encodeURIComponent(sector)}&limit=${limit}`);
+  return r.json();
+}
+export async function fetchCoverageSummary(postcode) {
+  const r = await fetch(`${BASE}/api/intelligence/coverage?postcode=${encodeURIComponent(postcode)}`);
+  return r.json();
+}
+export async function computeCleanerCoverage(cleanerId) {
+  const r = await fetch(`${BASE}/api/cleaners/${cleanerId}/compute-coverage`, { method: 'POST' });
+  return r.json();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONTRACTS LIFECYCLE
+// ══════════════════════════════════════════════════════════════
+export async function fetchContracts(status = '', page = 1, perPage = 50) {
+  const r = await fetch(`${BASE}/api/contracts?status=${encodeURIComponent(status)}&page=${page}&per_page=${perPage}`);
+  return r.json();
+}
+export async function fetchContract(contractId) {
+  const r = await fetch(`${BASE}/api/contracts/${contractId}`);
+  return r.json();
+}
+export async function createContract(data) {
+  const r = await fetch(`${BASE}/api/contracts`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  return r.json();
+}
+export async function updateContract(contractId, data) {
+  const r = await fetch(`${BASE}/api/contracts/${contractId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  return r.json();
+}
+export async function assignContractCleaner(contractId, cleanerId, role = 'primary') {
+  const r = await fetch(`${BASE}/api/contracts/${contractId}/assign-cleaner`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cleaner_id: cleanerId, role }),
+  });
+  return r.json();
+}
+export async function fetchContractHealth(contractId) {
+  const r = await fetch(`${BASE}/api/contracts/${contractId}/health`);
+  return r.json();
+}
+export async function fetchContractProfitability(contractId) {
+  const r = await fetch(`${BASE}/api/contracts/${contractId}/profitability`);
+  return r.json();
+}

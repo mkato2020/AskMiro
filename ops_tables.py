@@ -368,6 +368,130 @@ def ensure_ops_tables(conn):
     # Seed compliance requirements for UK cleaning company
     _seed_compliance_requirements(conn)
 
+    # 17. contracts
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS contracts (
+            id SERIAL PRIMARY KEY,
+            opportunity_id INTEGER,
+            entity_id BIGINT,
+            site_name TEXT,
+            site_address TEXT,
+            site_postcode TEXT,
+            service_type TEXT DEFAULT 'Regular Cleaning',
+            cleaning_frequency TEXT DEFAULT '5 days/week',
+            hours_per_week NUMERIC(5,1),
+            monthly_value_gbp NUMERIC(10,2),
+            annual_value_gbp NUMERIC(10,2),
+            contract_start DATE,
+            contract_end DATE,
+            renewal_date DATE,
+            notice_period_days INTEGER DEFAULT 30,
+            payment_terms INTEGER DEFAULT 30,
+            sla_response_hours INTEGER DEFAULT 4,
+            assigned_cleaners JSONB DEFAULT '[]',
+            status TEXT DEFAULT 'active',
+            margin_pct NUMERIC(5,2),
+            risk_flag TEXT DEFAULT 'healthy',
+            staffing_status TEXT DEFAULT 'unassigned',
+            launch_readiness TEXT DEFAULT 'pending',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    # 18. contract_schedules
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS contract_schedules (
+            id SERIAL PRIMARY KEY,
+            contract_id INTEGER NOT NULL,
+            day_of_week INTEGER,
+            start_time TEXT DEFAULT '06:00',
+            end_time TEXT,
+            cleaner_id INTEGER,
+            active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    # 19. quote_cost_breakdowns
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS quote_cost_breakdowns (
+            id SERIAL PRIMARY KEY,
+            quote_id BIGINT,
+            entity_id BIGINT,
+            hours_per_week NUMERIC(5,1),
+            days_per_week INTEGER DEFAULT 5,
+            hourly_rate NUMERIC(8,2),
+            llw_rate NUMERIC(8,2),
+            on_costs_pct NUMERIC(5,2),
+            monthly_labour NUMERIC(10,2),
+            monthly_supplies NUMERIC(10,2) DEFAULT 0,
+            monthly_travel NUMERIC(10,2) DEFAULT 0,
+            monthly_other NUMERIC(10,2) DEFAULT 0,
+            monthly_revenue NUMERIC(10,2),
+            monthly_cost NUMERIC(10,2),
+            gross_margin_pct NUMERIC(5,2),
+            scenario TEXT DEFAULT 'balanced',
+            sector_avg_margin NUMERIC(5,2),
+            feasibility_score INTEGER,
+            matched_cleaners JSONB,
+            risk_level TEXT DEFAULT 'normal',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    # 20. cleaner_coverage
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS cleaner_coverage (
+            id SERIAL PRIMARY KEY,
+            cleaner_id INTEGER NOT NULL,
+            postcode_district TEXT NOT NULL,
+            travel_minutes INTEGER,
+            distance_km NUMERIC(5,1),
+            preferred BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(cleaner_id, postcode_district)
+        )
+    """)
+
+    # 21. intelligence_alerts
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS intelligence_alerts (
+            id SERIAL PRIMARY KEY,
+            alert_type TEXT NOT NULL,
+            severity TEXT DEFAULT 'warning',
+            entity_id BIGINT,
+            contract_id INTEGER,
+            cleaner_id INTEGER,
+            opportunity_id INTEGER,
+            title TEXT NOT NULL,
+            detail TEXT,
+            action_url TEXT,
+            module TEXT,
+            acknowledged BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW(),
+            expires_at TIMESTAMP
+        )
+    """)
+
+    # ── ALTER ops_cleaners: add new columns for coverage/intelligence ──
+    for col_sql in [
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS home_latitude DOUBLE PRECISION",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS home_longitude DOUBLE PRECISION",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS max_travel_minutes INTEGER DEFAULT 60",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS skills JSONB DEFAULT '[]'",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS preferred_sectors TEXT DEFAULT ''",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS reliability_score NUMERIC(3,1) DEFAULT 5.0",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS performance_score NUMERIC(3,1) DEFAULT 5.0",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS assigned_hours NUMERIC(5,1) DEFAULT 0",
+        "ALTER TABLE ops_cleaners ADD COLUMN IF NOT EXISTS transport_mode_v2 TEXT DEFAULT 'public_transport'",
+    ]:
+        try:
+            db_pg.execute(conn, col_sql)
+        except Exception:
+            pass
+
     # ── Performance indexes ──────────────────────────────────────────────
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_fin_invoices_status ON fin_invoices(status)",
@@ -390,6 +514,17 @@ def ensure_ops_tables(conn):
         "CREATE INDEX IF NOT EXISTS idx_seo_articles_status ON seo_articles(status)",
         "CREATE INDEX IF NOT EXISTS idx_compliance_docs_category ON compliance_documents(category)",
         "CREATE INDEX IF NOT EXISTS idx_compliance_docs_status ON compliance_documents(status)",
+        # New table indexes
+        "CREATE INDEX IF NOT EXISTS idx_contracts_entity ON contracts(entity_id)",
+        "CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status)",
+        "CREATE INDEX IF NOT EXISTS idx_contracts_postcode ON contracts(site_postcode)",
+        "CREATE INDEX IF NOT EXISTS idx_contracts_renewal ON contracts(renewal_date)",
+        "CREATE INDEX IF NOT EXISTS idx_sched_contract ON contract_schedules(contract_id)",
+        "CREATE INDEX IF NOT EXISTS idx_sched_cleaner ON contract_schedules(cleaner_id)",
+        "CREATE INDEX IF NOT EXISTS idx_coverage_postcode ON cleaner_coverage(postcode_district)",
+        "CREATE INDEX IF NOT EXISTS idx_coverage_cleaner ON cleaner_coverage(cleaner_id)",
+        "CREATE INDEX IF NOT EXISTS idx_alerts_type ON intelligence_alerts(alert_type)",
+        "CREATE INDEX IF NOT EXISTS idx_alerts_active ON intelligence_alerts(acknowledged, created_at DESC)",
     ]:
         try:
             db_pg.execute(conn, idx_sql)

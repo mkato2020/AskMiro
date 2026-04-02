@@ -1,6 +1,7 @@
 import {useState,useMemo,useCallback} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
+import {createContract,fetchFeasibility} from '../api'
 import Spinner from '../components/Spinner'
 
 /* ── constants ─────────────────────────────────────────── */
@@ -90,6 +91,177 @@ function scoreBand(score){
   return {bg:'rgba(100,116,139,.2)',color:'#94A3B8'}
 }
 
+/* ── Intelligence helpers ─────────────────────────────── */
+function daysInStage(lead){
+  const dt=lead.stage_entered_at||lead.updated_at||lead.last_touched_at
+  if(!dt)return null
+  return Math.floor((Date.now()-new Date(dt).getTime())/(86400000))
+}
+
+function feasibilityDot(lead){
+  const score=lead.feasibility_score??lead.feasibility??null
+  if(score==null)return '\u26AA'
+  if(score>70)return '\uD83D\uDFE2'
+  if(score>40)return '\uD83D\uDFE1'
+  return '\uD83D\uDD34'
+}
+
+const QUOTE_AND_LATER=['quote_sent','quote_prepared','negotiating','won']
+
+function DaysInStageBadge({lead}){
+  const days=daysInStage(lead)
+  if(days==null)return null
+  const stale=days>7
+  return <span style={{fontSize:'0.58rem',fontWeight:600,color:stale?'#DC2626':'var(--text-muted)',whiteSpace:'nowrap'}}>{days}d</span>
+}
+
+function FeasibilityDot({lead}){
+  if(!QUOTE_AND_LATER.includes(lead.stage))return null
+  return <span style={{fontSize:'0.62rem',lineHeight:1}} title={`Feasibility: ${lead.feasibility_score??lead.feasibility??'unknown'}`}>{feasibilityDot(lead)}</span>
+}
+
+function MonthlyValueBadge({lead}){
+  const v=lead.estimated_monthly_value_gbp
+  if(v==null||v===0)return null
+  return <span style={{fontSize:'0.6rem',fontWeight:700,color:'#8B5CF6',whiteSpace:'nowrap'}}>~{'\u00A3'}{Number(v).toLocaleString('en-GB',{maximumFractionDigits:0})}/mo</span>
+}
+
+const CLEANING_FREQ_OPTIONS=['daily','weekly','biweekly','monthly','one_off']
+
+/* ── Won → Contract Modal ─────────────────────────────── */
+function ContractModal({opportunity,onClose,onSuccess}){
+  const [form,setForm]=useState({
+    contract_start:'',
+    hours_per_week:opportunity?.hours_per_week||opportunity?.estimated_hours||'',
+    monthly_value_gbp:opportunity?.estimated_monthly_value_gbp||opportunity?.value||opportunity?.quote_value_gbp||'',
+    cleaning_frequency:opportunity?.cleaning_frequency||'weekly',
+    notes:'',
+  })
+  const [submitting,setSubmitting]=useState(false)
+  const [error,setError]=useState(null)
+  const [success,setSuccess]=useState(false)
+
+  const handleSubmit=async(e)=>{
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    try{
+      const payload={
+        opportunity_id:opportunity.entity_id||opportunity.id,
+        company_name:opportunity.company_name||opportunity.name,
+        contact_name:opportunity.contact_name||'',
+        postcode:opportunity.postcode||'',
+        sector:opportunity.sector||'',
+        contract_start:form.contract_start||undefined,
+        hours_per_week:form.hours_per_week?Number(form.hours_per_week):undefined,
+        monthly_value_gbp:form.monthly_value_gbp?Number(form.monthly_value_gbp):undefined,
+        cleaning_frequency:form.cleaning_frequency||undefined,
+        notes:form.notes||undefined,
+      }
+      await createContract(payload)
+      setSuccess(true)
+      if(onSuccess)onSuccess()
+    }catch(err){
+      setError(err.message||'Failed to create contract')
+    }finally{
+      setSubmitting(false)
+    }
+  }
+
+  const inputStyle={width:'100%',padding:'8px 12px',fontSize:'0.82rem',border:'1px solid var(--border)',borderRadius:8,background:'var(--bg-surface)',color:'var(--text-1)',outline:'none',boxSizing:'border-box'}
+  const labelStyle={display:'block',fontSize:'0.7rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:4}
+
+  return(
+    <div style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.55)',backdropFilter:'blur(4px)'}} onClick={onClose}>
+      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:14,padding:'28px 32px',width:440,maxWidth:'90vw',maxHeight:'85vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+        {success?(
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:'2rem',marginBottom:12}}>&#9989;</div>
+            <div style={{fontSize:'1.1rem',fontWeight:800,color:'var(--text-1)',marginBottom:6}}>Contract Created</div>
+            <div style={{fontSize:'0.82rem',color:'var(--text-muted)',marginBottom:20}}>
+              Contract for {opportunity.company_name||opportunity.name} is ready.
+            </div>
+            <button onClick={onClose} style={{padding:'10px 28px',fontSize:'0.82rem',fontWeight:700,color:'#fff',background:'var(--teal)',border:'none',borderRadius:8,cursor:'pointer'}}>Done</button>
+          </div>
+        ):(
+          <>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <div>
+                <div style={{fontSize:'1.1rem',fontWeight:800,color:'var(--text-1)'}}>Create Contract</div>
+                <div style={{fontSize:'0.78rem',color:'var(--text-muted)',marginTop:2}}>{opportunity.company_name||opportunity.name}</div>
+              </div>
+              <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:'1.2rem',cursor:'pointer',padding:4,lineHeight:1}}>&times;</button>
+            </div>
+
+            {error&&<div style={{background:'rgba(220,38,38,.1)',color:'#DC2626',fontSize:'0.78rem',fontWeight:600,padding:'10px 14px',borderRadius:8,marginBottom:16}}>{error}</div>}
+
+            <form onSubmit={handleSubmit}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+                <div>
+                  <label style={labelStyle}>Contract Start</label>
+                  <input type="date" value={form.contract_start} onChange={e=>setForm(f=>({...f,contract_start:e.target.value}))} style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Hours / Week</label>
+                  <input type="number" step="0.5" min="0" value={form.hours_per_week} onChange={e=>setForm(f=>({...f,hours_per_week:e.target.value}))} style={inputStyle} placeholder="e.g. 10"/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Monthly Value (&pound;)</label>
+                  <input type="number" step="0.01" min="0" value={form.monthly_value_gbp} onChange={e=>setForm(f=>({...f,monthly_value_gbp:e.target.value}))} style={inputStyle} placeholder="e.g. 1500"/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Cleaning Frequency</label>
+                  <select value={form.cleaning_frequency} onChange={e=>setForm(f=>({...f,cleaning_frequency:e.target.value}))} style={inputStyle}>
+                    {CLEANING_FREQ_OPTIONS.map(o=><option key={o} value={o}>{o.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{marginBottom:18}}>
+                <label style={labelStyle}>Notes</label>
+                <textarea rows={3} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={{...inputStyle,resize:'vertical'}} placeholder="Any special requirements..."/>
+              </div>
+              <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+                <button type="button" onClick={onClose} style={{padding:'9px 20px',fontSize:'0.8rem',fontWeight:600,color:'var(--text-muted)',background:'transparent',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer'}}>Cancel</button>
+                <button type="submit" disabled={submitting} style={{padding:'9px 24px',fontSize:'0.8rem',fontWeight:700,color:'#fff',background:'var(--teal)',border:'none',borderRadius:8,cursor:submitting?'wait':'pointer',opacity:submitting?.6:1}}>
+                  {submitting?'Creating...':'Create Contract'}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Pipeline Velocity Bar ────────────────────────────── */
+function VelocityBar({leads}){
+  const now=Date.now()
+  const activeStages=['new','ready_to_contact','contacted','qualified','quote_sent','quote_prepared','negotiating']
+  const active=leads.filter(l=>activeStages.includes(l.stage))
+  const stale=active.filter(l=>{
+    const dt=l.updated_at||l.last_touched_at
+    if(!dt)return true
+    return (now-new Date(dt).getTime())>(3*86400000)
+  })
+  const thisMonth=new Date()
+  const wonThisMonth=leads.filter(l=>{
+    if(l.stage!=='won')return false
+    const dt=l.updated_at||l.won_at||l.last_touched_at
+    if(!dt)return false
+    const d=new Date(dt)
+    return d.getMonth()===thisMonth.getMonth()&&d.getFullYear()===thisMonth.getFullYear()
+  })
+  if(active.length===0&&wonThisMonth.length===0)return null
+  return(
+    <div style={{display:'flex',gap:16,alignItems:'center',padding:'10px 18px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:10,marginBottom:16,flexWrap:'wrap'}}>
+      <span style={{fontSize:'0.72rem',fontWeight:700,color:'var(--text-1)'}}>{active.length} active</span>
+      {stale.length>0&&<span style={{fontSize:'0.72rem',fontWeight:700,color:'#DC2626'}}>{stale.length} stale (&gt;3d)</span>}
+      <span style={{fontSize:'0.72rem',fontWeight:700,color:'#059669'}}>{wonThisMonth.length} won this month</span>
+    </div>
+  )
+}
+
 /* ── Sector badge ──────────────────────────────────────── */
 function SectorBadge({sector}){
   if(!sector)return null
@@ -124,12 +296,14 @@ function KPI({label,value,color,sub}){
 }
 
 /* ── Lead card (Kanban) ────────────────────────────────── */
-function LeadCard({lead,onAdvance,onClick,advancing}){
+function LeadCard({lead,onAdvance,onClick,advancing,onCreateContract}){
   const stg=STAGES.find(s=>s.key===lead.stage)||STAGES[0]
   const next=nextStageLabel(lead.stage)
   const nextKey=nextStageKey(lead.stage)
   const heat=HEAT_COLORS[lead.pipeline_heat]||HEAT_COLORS.cold
   const val=fmtCurrency(lead.value||lead.estimated_monthly_value_gbp||lead.quote_value_gbp)
+  const isWon=lead.stage==='won'
+  const isAdvancingToWon=nextKey==='won'
 
   return(
     <div
@@ -138,7 +312,7 @@ function LeadCard({lead,onAdvance,onClick,advancing}){
       onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--teal)';e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.15)'}}
       onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='none'}}
     >
-      {/* Top row: avatar + name + score */}
+      {/* Top row: avatar + name + score + feasibility */}
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
         <div style={{width:34,height:34,borderRadius:8,background:`${stg.color}18`,color:stg.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.68rem',fontWeight:800,flexShrink:0}}>
           {initials(lead.company_name||lead.name)}
@@ -148,12 +322,15 @@ function LeadCard({lead,onAdvance,onClick,advancing}){
           {(lead.contact_name||lead.borough)&&(
             <div style={{fontSize:'0.68rem',color:'var(--text-muted)',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {lead.contact_name&&<span>{lead.contact_name}</span>}
-              {lead.contact_name&&lead.borough&&<span> \u00B7 </span>}
+              {lead.contact_name&&lead.borough&&<span> {'\u00B7'} </span>}
               {lead.borough&&<span>{lead.borough}</span>}
             </div>
           )}
         </div>
-        <ScoreBadge score={lead.total_score}/>
+        <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+          <FeasibilityDot lead={lead}/>
+          <ScoreBadge score={lead.total_score}/>
+        </div>
       </div>
 
       {/* Tags row */}
@@ -163,22 +340,47 @@ function LeadCard({lead,onAdvance,onClick,advancing}){
           <span style={{background:heat.bg,color:heat.color,fontSize:'0.58rem',fontWeight:800,padding:'1px 7px',borderRadius:8,textTransform:'uppercase',letterSpacing:'.04em'}}>{heat.label}</span>
         )}
         {val&&<span style={{fontSize:'0.62rem',fontWeight:700,color:'var(--teal)'}}>{val}/mo</span>}
+        <MonthlyValueBadge lead={lead}/>
+        <DaysInStageBadge lead={lead}/>
       </div>
 
-      {/* Bottom row: time + advance button */}
+      {/* Bottom row: time + advance / contract button */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10,paddingTop:8,borderTop:'1px solid rgba(255,255,255,.04)'}}>
         <span style={{fontSize:'0.62rem',color:'var(--text-muted)'}}>{timeAgo(lead.updated_at||lead.last_touched_at)||'No activity'}</span>
-        {next&&nextKey&&(
-          <button
-            onClick={e=>{e.stopPropagation();onAdvance(lead.entity_id||lead.id,nextKey)}}
-            disabled={advancing}
-            style={{fontSize:'0.62rem',fontWeight:700,color:'var(--teal)',background:'rgba(20,184,166,.08)',border:'1px solid rgba(20,184,166,.25)',borderRadius:6,padding:'3px 10px',cursor:advancing?'wait':'pointer',opacity:advancing?0.5:1,transition:'all .15s'}}
-            onMouseEnter={e=>{if(!advancing){e.target.style.background='rgba(20,184,166,.18)'}}}
-            onMouseLeave={e=>{e.target.style.background='rgba(20,184,166,.08)'}}
-          >
-            {next} \u2192
-          </button>
-        )}
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          {isWon&&onCreateContract&&(
+            <button
+              onClick={e=>{e.stopPropagation();onCreateContract(lead)}}
+              style={{fontSize:'0.62rem',fontWeight:700,color:'#059669',background:'rgba(5,150,105,.08)',border:'1px solid rgba(5,150,105,.25)',borderRadius:6,padding:'3px 10px',cursor:'pointer',transition:'all .15s'}}
+              onMouseEnter={e=>{e.target.style.background='rgba(5,150,105,.18)'}}
+              onMouseLeave={e=>{e.target.style.background='rgba(5,150,105,.08)'}}
+            >
+              Create Contract
+            </button>
+          )}
+          {next&&nextKey&&!isAdvancingToWon&&(
+            <button
+              onClick={e=>{e.stopPropagation();onAdvance(lead.entity_id||lead.id,nextKey)}}
+              disabled={advancing}
+              style={{fontSize:'0.62rem',fontWeight:700,color:'var(--teal)',background:'rgba(20,184,166,.08)',border:'1px solid rgba(20,184,166,.25)',borderRadius:6,padding:'3px 10px',cursor:advancing?'wait':'pointer',opacity:advancing?0.5:1,transition:'all .15s'}}
+              onMouseEnter={e=>{if(!advancing){e.target.style.background='rgba(20,184,166,.18)'}}}
+              onMouseLeave={e=>{e.target.style.background='rgba(20,184,166,.08)'}}
+            >
+              {next} {'\u2192'}
+            </button>
+          )}
+          {isAdvancingToWon&&(
+            <button
+              onClick={e=>{e.stopPropagation();if(onCreateContract){onCreateContract(lead,true)}else{onAdvance(lead.entity_id||lead.id,nextKey)}}}
+              disabled={advancing}
+              style={{fontSize:'0.62rem',fontWeight:700,color:'#059669',background:'rgba(5,150,105,.08)',border:'1px solid rgba(5,150,105,.25)',borderRadius:6,padding:'3px 10px',cursor:advancing?'wait':'pointer',opacity:advancing?0.5:1,transition:'all .15s'}}
+              onMouseEnter={e=>{if(!advancing){e.target.style.background='rgba(5,150,105,.18)'}}}
+              onMouseLeave={e=>{e.target.style.background='rgba(5,150,105,.08)'}}
+            >
+              Won {'\u2192'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -190,6 +392,8 @@ export default function Pipeline({openLead}){
   const [stageFilter,setStageFilter]=useState('All')
   const [search,setSearch]=useState('')
   const [advancingId,setAdvancingId]=useState(null)
+  const [contractOpp,setContractOpp]=useState(null)
+  const [contractAdvanceAfter,setContractAdvanceAfter]=useState(false)
   const qc=useQueryClient()
 
   /* data */
@@ -245,6 +449,18 @@ export default function Pipeline({openLead}){
 
   const handleAdvance=useCallback((id,stage)=>advanceMut.mutate({id,stage}),[advanceMut])
   const handleOpenLead=useCallback((id)=>{if(openLead)openLead(id)},[openLead])
+  const handleCreateContract=useCallback((opp,advanceFirst)=>{
+    setContractOpp(opp)
+    setContractAdvanceAfter(!!advanceFirst)
+  },[])
+  const handleContractSuccess=useCallback(()=>{
+    if(contractAdvanceAfter&&contractOpp){
+      advanceMut.mutate({id:contractOpp.entity_id||contractOpp.id,stage:'won'})
+    }
+    qc.invalidateQueries({queryKey:['pipeline-leads']})
+    qc.invalidateQueries({queryKey:['pipeline-analytics']})
+  },[contractAdvanceAfter,contractOpp,advanceMut,qc])
+  const handleContractClose=useCallback(()=>{setContractOpp(null);setContractAdvanceAfter(false)},[])
 
   /* loading / error */
   if(pipeLoading&&!pipeData)return(
@@ -300,6 +516,9 @@ export default function Pipeline({openLead}){
         <KPI label="Overdue" value={overdueActions} color={overdueActions>0?'#DC2626':'var(--text-1)'}/>
       </div>
 
+      {/* Pipeline Velocity */}
+      <VelocityBar leads={leads}/>
+
       {/* Tabs + Filters */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',marginBottom:20,flexWrap:'wrap',gap:8}}>
         <div style={{display:'flex',gap:0}}>
@@ -338,15 +557,18 @@ export default function Pipeline({openLead}){
       </div>
 
       {/* Tab content */}
-      {tab==='Pipeline'&&<KanbanView leads={leads} grouped={grouped} onAdvance={handleAdvance} onClick={handleOpenLead} advancingId={advancingId}/>}
-      {tab==='List'&&<ListView leads={leads} onClick={handleOpenLead}/>}
+      {tab==='Pipeline'&&<KanbanView leads={leads} grouped={grouped} onAdvance={handleAdvance} onClick={handleOpenLead} advancingId={advancingId} onCreateContract={handleCreateContract}/>}
+      {tab==='List'&&<ListView leads={leads} onClick={handleOpenLead} onCreateContract={handleCreateContract}/>}
       {tab==='Activity'&&<ActivityView leads={leads} onClick={handleOpenLead}/>}
+
+      {/* Won → Contract Modal */}
+      {contractOpp&&<ContractModal opportunity={contractOpp} onClose={handleContractClose} onSuccess={handleContractSuccess}/>}
     </div>
   )
 }
 
 /* ── Kanban view ───────────────────────────────────────── */
-function KanbanView({leads,grouped,onAdvance,onClick,advancingId}){
+function KanbanView({leads,grouped,onAdvance,onClick,advancingId,onCreateContract}){
   if(leads.length===0)return <EmptyState message="No leads in pipeline" sub="Add leads or run the AI shortlist to populate your pipeline"/>
 
   return(
@@ -362,7 +584,10 @@ function KanbanView({leads,grouped,onAdvance,onClick,advancingId}){
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                   <span style={{fontSize:'0.68rem',fontWeight:800,textTransform:'uppercase',letterSpacing:'.06em',color:stage.color}}>{stage.label}</span>
                 </div>
-                <span style={{fontSize:'0.68rem',fontWeight:800,background:`${stage.color}15`,color:stage.color,borderRadius:8,padding:'2px 10px'}}>{items.length}</span>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  {colValue>0&&<span style={{fontSize:'0.6rem',fontWeight:600,color:'var(--text-muted)'}}>{fmtCurrency(colValue)}</span>}
+                  <span style={{fontSize:'0.68rem',fontWeight:800,background:`${stage.color}15`,color:stage.color,borderRadius:8,padding:'2px 10px'}}>{items.length}</span>
+                </div>
               </div>
               {colValue>0&&(
                 <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginTop:4,fontWeight:500}}>{fmtCurrency(colValue)}/mo potential</div>
@@ -383,6 +608,7 @@ function KanbanView({leads,grouped,onAdvance,onClick,advancingId}){
                   onAdvance={onAdvance}
                   onClick={onClick}
                   advancing={advancingId===(lead.entity_id||lead.id)}
+                  onCreateContract={onCreateContract}
                 />
               ))}
               {items.length>50&&(
@@ -399,7 +625,7 @@ function KanbanView({leads,grouped,onAdvance,onClick,advancingId}){
 }
 
 /* ── List view ─────────────────────────────────────────── */
-function ListView({leads,onClick}){
+function ListView({leads,onClick,onCreateContract}){
   if(leads.length===0)return <EmptyState message="No leads found" sub="Adjust your filters or add new leads"/>
 
   const thStyle={padding:'10px 14px',textAlign:'left',fontSize:'0.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',borderBottom:'1px solid var(--border)',background:'var(--bg-surface)'}
@@ -416,7 +642,9 @@ function ListView({leads,onClick}){
             <th style={thStyle}>Stage</th>
             <th style={thStyle}>Score</th>
             <th style={thStyle}>Value</th>
+            <th style={thStyle}>Age</th>
             <th style={thStyle}>Updated</th>
+            <th style={thStyle}></th>
           </tr>
         </thead>
         <tbody>
@@ -441,10 +669,29 @@ function ListView({leads,onClick}){
               </td>
               <td style={{...tdStyle,fontSize:'0.75rem',color:'var(--text-muted)'}}>{lead.borough||'--'}</td>
               <td style={tdStyle}><SectorBadge sector={lead.sector}/></td>
-              <td style={tdStyle}><StagePill stage={lead.stage}/></td>
+              <td style={tdStyle}>
+                <div style={{display:'flex',alignItems:'center',gap:4}}>
+                  <FeasibilityDot lead={lead}/>
+                  <StagePill stage={lead.stage}/>
+                </div>
+              </td>
               <td style={tdStyle}><ScoreBadge score={lead.total_score}/></td>
-              <td style={{...tdStyle,fontWeight:600,color:'var(--teal)',fontSize:'0.8rem'}}>{fmtCurrency(lead.value||lead.estimated_monthly_value_gbp)||'--'}</td>
+              <td style={{...tdStyle,fontWeight:600,color:'var(--teal)',fontSize:'0.8rem'}}>
+                {fmtCurrency(lead.value||lead.estimated_monthly_value_gbp)||'--'}
+                {lead.estimated_monthly_value_gbp!=null&&lead.estimated_monthly_value_gbp>0&&<div style={{fontSize:'0.6rem',fontWeight:600,color:'#8B5CF6'}}>~{'\u00A3'}{Number(lead.estimated_monthly_value_gbp).toLocaleString('en-GB',{maximumFractionDigits:0})}/mo</div>}
+              </td>
+              <td style={tdStyle}><DaysInStageBadge lead={lead}/></td>
               <td style={{...tdStyle,color:'var(--text-muted)',fontSize:'0.72rem'}}>{timeAgo(lead.updated_at||lead.last_touched_at)}</td>
+              <td style={tdStyle}>
+                {lead.stage==='won'&&onCreateContract&&(
+                  <button
+                    onClick={e=>{e.stopPropagation();onCreateContract(lead)}}
+                    style={{fontSize:'0.62rem',fontWeight:700,color:'#059669',background:'rgba(5,150,105,.08)',border:'1px solid rgba(5,150,105,.25)',borderRadius:6,padding:'3px 10px',cursor:'pointer',whiteSpace:'nowrap'}}
+                  >
+                    Create Contract
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -489,7 +736,11 @@ function ActivityView({leads,onClick}){
               </div>
             </div>
             <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4,flexShrink:0}}>
-              <ScoreBadge score={lead.total_score}/>
+              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                <FeasibilityDot lead={lead}/>
+                <ScoreBadge score={lead.total_score}/>
+              </div>
+              <DaysInStageBadge lead={lead}/>
               <span style={{fontSize:'0.65rem',color:'var(--text-muted)',whiteSpace:'nowrap'}}>{timeAgo(lead.updated_at||lead.last_touched_at)}</span>
             </div>
           </div>

@@ -5755,6 +5755,412 @@ def seed_ops_data(payload: dict):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# INTELLIGENCE ENGINE ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/intelligence/alerts")
+def get_intelligence_alerts(acknowledged: bool = False, limit: int = 50):
+    """Get active intelligence alerts for Dashboard."""
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, """
+                SELECT * FROM intelligence_alerts
+                WHERE acknowledged = %s
+                ORDER BY
+                    CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+                    created_at DESC
+                LIMIT %s
+            """, (acknowledged, limit))
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error("intelligence alerts: %s", e)
+        return []
+
+@app.post("/api/intelligence/alerts/{alert_id}/acknowledge")
+def acknowledge_alert(alert_id: int):
+    try:
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, "UPDATE intelligence_alerts SET acknowledged = TRUE WHERE id = %s", (alert_id,))
+            return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.get("/api/intelligence/daily-summary")
+def daily_summary():
+    """The Today Engine — daily intelligence for the Dashboard."""
+    try:
+        from services.intelligence_engine import daily_intelligence_summary
+        with db_pg.transaction() as conn:
+            return daily_intelligence_summary(conn)
+    except Exception as e:
+        logger.error("daily summary: %s", e)
+        return {"leads_to_contact_today": 0, "followups_due": 0, "alerts_unacknowledged": 0, "top_opportunities": [], "at_risk_contracts": []}
+
+@app.get("/api/intelligence/feasibility")
+def check_feasibility(postcode: str = "", entity_id: int = 0, hours: float = 0, sector: str = ""):
+    """Check operational feasibility for a site/postcode."""
+    try:
+        from services.intelligence_engine import compute_feasibility_score
+        with db_pg.transaction() as conn:
+            return compute_feasibility_score(conn, entity_id=entity_id or None, postcode=postcode or None, hours_per_week=hours, sector=sector or None)
+    except Exception as e:
+        logger.error("feasibility: %s", e)
+        return {"feasibility_score": 0, "coverage_strength": "unknown", "warnings": [str(e)]}
+
+@app.get("/api/intelligence/sector-costs")
+def sector_costs(sector: str = "", borough: str = ""):
+    """Sector cost benchmarks for Quotes module."""
+    try:
+        from services.intelligence_engine import sector_cost_summary
+        with db_pg.transaction() as conn:
+            return sector_cost_summary(conn, sector=sector, borough=borough or None)
+    except Exception as e:
+        logger.error("sector costs: %s", e)
+        return {"avg_margin_pct": 0, "total_contracts_in_sector": 0}
+
+@app.get("/api/intelligence/quote")
+def quote_intel(entity_id: int = 0, postcode: str = "", sector: str = "", hours: float = 0, revenue: float = 0):
+    """Full quote intelligence — sector benchmarks + feasibility + cleaner matching + scenarios."""
+    try:
+        from services.intelligence_engine import quote_intelligence
+        with db_pg.transaction() as conn:
+            return quote_intelligence(conn, entity_id=entity_id, postcode=postcode, sector=sector, hours_per_week=hours, monthly_revenue=revenue)
+    except Exception as e:
+        logger.error("quote intelligence: %s", e)
+        return {"scenarios": [], "feasibility": {}, "top_cleaners": []}
+
+@app.post("/api/intelligence/generate-alerts")
+def trigger_alert_generation():
+    """Manually trigger alert generation (also runs daily via scheduler)."""
+    try:
+        from services.intelligence_engine import generate_alerts
+        with db_pg.transaction() as conn:
+            count = generate_alerts(conn)
+            return {"ok": True, "alerts_generated": count}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLEANER MATCHING ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/intelligence/cleaner-match")
+def cleaner_match(postcode: str = "", hours: float = 0, sector: str = "", limit: int = 5):
+    """Ranked cleaner matching for a site postcode."""
+    try:
+        from services.cleaner_matcher import match_cleaners
+        with db_pg.transaction() as conn:
+            return match_cleaners(conn, site_postcode=postcode, hours_needed=hours, sector=sector or None, limit=limit)
+    except Exception as e:
+        logger.error("cleaner match: %s", e)
+        return []
+
+@app.get("/api/intelligence/coverage")
+def coverage_check(postcode: str = ""):
+    """Coverage summary for a postcode district."""
+    try:
+        from services.cleaner_matcher import coverage_summary, extract_district
+        with db_pg.transaction() as conn:
+            district = extract_district(postcode) if postcode else ""
+            return coverage_summary(conn, district)
+    except Exception as e:
+        logger.error("coverage: %s", e)
+        return {"coverage_strength": "unknown", "total_cleaners_nearby": 0}
+
+@app.post("/api/cleaners/{cleaner_id}/compute-coverage")
+def compute_cleaner_cov(cleaner_id: int):
+    """Compute and store coverage zones for a cleaner."""
+    try:
+        from services.cleaner_matcher import compute_cleaner_coverage
+        with db_pg.transaction() as conn:
+            count = compute_cleaner_coverage(conn, cleaner_id)
+            return {"ok": True, "zones_computed": count}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTRACTS LIFECYCLE ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/contracts")
+def list_contracts(status: str = "", page: int = 1, per_page: int = 50):
+    """List contracts with optional status filter."""
+    try:
+        with db_pg.transaction() as conn:
+            conditions = []
+            params = []
+            if status:
+                conditions.append("status = %s")
+                params.append(status)
+            where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
+            total = db_pg.fetchval(conn, f"SELECT COUNT(*) FROM contracts{where}", params)
+            offset = (page - 1) * per_page
+            rows = db_pg.fetchall(conn, f"""
+                SELECT c.*,
+                    CASE WHEN c.contract_end IS NOT NULL AND c.contract_end <= CURRENT_DATE + 60 THEN TRUE ELSE FALSE END as expiring_soon
+                FROM contracts c
+                {where}
+                ORDER BY c.created_at DESC
+                LIMIT %s OFFSET %s
+            """, params + [per_page, offset])
+            return {"contracts": [dict(r) for r in rows], "total": total or 0, "page": page, "per_page": per_page}
+    except Exception as e:
+        logger.error("list contracts: %s", e)
+        return {"contracts": [], "total": 0}
+
+@app.get("/api/contracts/{contract_id}")
+def get_contract(contract_id: int):
+    """Get full contract detail with schedules, health, profitability."""
+    try:
+        from services.contract_lifecycle import check_launch_readiness, contract_profitability
+        with db_pg.transaction() as conn:
+            contract = db_pg.fetchone(conn, "SELECT * FROM contracts WHERE id = %s", (contract_id,))
+            if not contract:
+                raise HTTPException(404, "Contract not found")
+            result = dict(contract)
+            # Schedules
+            result['schedules'] = [dict(r) for r in db_pg.fetchall(conn, "SELECT * FROM contract_schedules WHERE contract_id = %s ORDER BY day_of_week", (contract_id,))]
+            # Readiness
+            result['readiness'] = check_launch_readiness(conn, contract_id)
+            # Profitability
+            result['profitability'] = contract_profitability(conn, contract_id)
+            # Recent inspections
+            try:
+                result['inspections'] = [dict(r) for r in db_pg.fetchall(conn, "SELECT * FROM ops_inspections WHERE site_name = %s ORDER BY inspection_date DESC LIMIT 5", (contract.get('site_name', ''),))]
+            except Exception:
+                result['inspections'] = []
+            return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get contract: %s", e)
+        raise HTTPException(500, str(e))
+
+@app.post("/api/contracts")
+def create_contract(body: dict = Body(...)):
+    """Create a contract (directly or from opportunity)."""
+    try:
+        from services.contract_lifecycle import create_contract_from_opportunity, generate_schedules
+        with db_pg.transaction() as conn:
+            if body.get('opportunity_id'):
+                result = create_contract_from_opportunity(conn, body['opportunity_id'], **body)
+            else:
+                # Direct creation
+                row = db_pg.fetchone(conn, """
+                    INSERT INTO contracts (entity_id, site_name, site_address, site_postcode,
+                        service_type, cleaning_frequency, hours_per_week,
+                        monthly_value_gbp, annual_value_gbp,
+                        contract_start, contract_end, margin_pct,
+                        status, staffing_status, launch_readiness, notes)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active','unassigned','pending',%s)
+                    RETURNING *
+                """, (
+                    body.get('entity_id'), body.get('site_name', ''), body.get('site_address', ''),
+                    body.get('site_postcode', ''), body.get('service_type', 'Regular Cleaning'),
+                    body.get('cleaning_frequency', '5 days/week'), body.get('hours_per_week', 0),
+                    body.get('monthly_value_gbp', 0), (body.get('monthly_value_gbp', 0) or 0) * 12,
+                    body.get('contract_start'), body.get('contract_end'), body.get('margin_pct', 0),
+                    body.get('notes', ''),
+                ))
+                result = dict(row) if row else {"error": "Insert failed"}
+            # Auto-generate schedules if contract created
+            if result and not result.get('error') and result.get('id'):
+                generate_schedules(conn, result['id'])
+            return result
+    except Exception as e:
+        logger.error("create contract: %s", e)
+        raise HTTPException(500, str(e))
+
+@app.put("/api/contracts/{contract_id}")
+def update_contract(contract_id: int, body: dict = Body(...)):
+    """Update contract fields."""
+    try:
+        with db_pg.transaction() as conn:
+            allowed = ['site_name','site_address','site_postcode','service_type','cleaning_frequency',
+                       'hours_per_week','monthly_value_gbp','contract_start','contract_end',
+                       'renewal_date','notice_period_days','payment_terms','margin_pct',
+                       'status','staffing_status','notes','risk_flag']
+            sets = []
+            params = []
+            for k in allowed:
+                if k in body:
+                    sets.append(f"{k} = %s")
+                    params.append(body[k])
+            if not sets:
+                return {"ok": False, "error": "No fields to update"}
+            sets.append("updated_at = NOW()")
+            if 'monthly_value_gbp' in body:
+                sets.append("annual_value_gbp = %s")
+                params.append((body['monthly_value_gbp'] or 0) * 12)
+            params.append(contract_id)
+            db_pg.execute(conn, f"UPDATE contracts SET {', '.join(sets)} WHERE id = %s", params)
+            return db_pg.fetchone(conn, "SELECT * FROM contracts WHERE id = %s", (contract_id,)) or {}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@app.post("/api/contracts/{contract_id}/assign-cleaner")
+def assign_contract_cleaner(contract_id: int, body: dict = Body(...)):
+    """Assign a cleaner to a contract."""
+    try:
+        from services.contract_lifecycle import assign_cleaner
+        with db_pg.transaction() as conn:
+            result = assign_cleaner(conn, contract_id, body['cleaner_id'], body.get('role', 'primary'))
+            return result
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@app.get("/api/contracts/{contract_id}/health")
+def contract_health(contract_id: int):
+    """Get contract health score."""
+    try:
+        from services.intelligence_engine import contract_health_score
+        with db_pg.transaction() as conn:
+            return contract_health_score(conn, contract_id)
+    except Exception as e:
+        return {"health_score": 0, "status_label": "unknown", "issues": [str(e)]}
+
+@app.get("/api/contracts/{contract_id}/profitability")
+def contract_profit(contract_id: int):
+    """Get contract profitability analysis."""
+    try:
+        from services.contract_lifecycle import contract_profitability
+        with db_pg.transaction() as conn:
+            return contract_profitability(conn, contract_id)
+    except Exception as e:
+        return {"error": str(e)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TODAY ENGINE ENDPOINT
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/today")
+def today_engine():
+    """The Today Engine — unified daily priorities across all modules."""
+    try:
+        with db_pg.transaction() as conn:
+            result = {}
+
+            # Sales: Top leads to contact today (by score, not yet contacted)
+            try:
+                result['leads_to_contact'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT entity_id, business_name, borough, sector, total_score,
+                           estimated_monthly_value_gbp, next_best_action,
+                           'High-scoring lead ready for outreach' as reason
+                    FROM v_lead_board
+                    WHERE active = TRUE AND total_score >= 60
+                    ORDER BY total_score DESC LIMIT 20
+                """)]
+            except Exception:
+                result['leads_to_contact'] = []
+
+            # Pipeline movement recommendations
+            try:
+                result['pipeline_stale'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                           o.updated_at, e.canonical_name as business_name,
+                           EXTRACT(DAY FROM NOW() - o.updated_at) as days_in_stage
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    WHERE o.current_stage NOT IN ('won','lost','dormant')
+                      AND o.updated_at < NOW() - INTERVAL '3 days'
+                    ORDER BY o.updated_at ASC LIMIT 15
+                """)]
+            except Exception:
+                result['pipeline_stale'] = []
+
+            # Quotes needing action
+            try:
+                result['quotes_pending'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT q.id, q.entity_id, q.title, q.monthly_value, q.margin_pct, q.status, q.created_at,
+                           e.canonical_name as business_name
+                    FROM quotes q
+                    LEFT JOIN entities e ON e.id = q.entity_id
+                    WHERE q.status IN ('draft','sent')
+                    ORDER BY q.created_at DESC LIMIT 10
+                """)]
+            except Exception:
+                result['quotes_pending'] = []
+
+            # Contracts needing staffing
+            try:
+                result['contracts_unstaffed'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT id, site_name, site_postcode, monthly_value_gbp, contract_start,
+                           staffing_status, launch_readiness
+                    FROM contracts
+                    WHERE staffing_status IN ('unassigned','partial') AND status = 'active'
+                    ORDER BY contract_start ASC NULLS LAST LIMIT 10
+                """)]
+            except Exception:
+                result['contracts_unstaffed'] = []
+
+            # Contracts expiring
+            try:
+                result['contracts_expiring'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT id, site_name, monthly_value_gbp, contract_end, renewal_date
+                    FROM contracts
+                    WHERE status IN ('active','expiring')
+                      AND (contract_end <= CURRENT_DATE + 60 OR renewal_date <= CURRENT_DATE + 60)
+                    ORDER BY COALESCE(contract_end, renewal_date) ASC LIMIT 10
+                """)]
+            except Exception:
+                result['contracts_expiring'] = []
+
+            # Overdue invoices
+            try:
+                result['overdue_invoices'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT id, client_name, amount, due_date,
+                           EXTRACT(DAY FROM NOW() - due_date) as days_overdue
+                    FROM fin_invoices
+                    WHERE status = 'sent' AND due_date < CURRENT_DATE
+                    ORDER BY due_date ASC LIMIT 10
+                """)]
+            except Exception:
+                result['overdue_invoices'] = []
+
+            # Intelligence alerts (unacknowledged)
+            try:
+                result['alerts'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT * FROM intelligence_alerts
+                    WHERE acknowledged = FALSE
+                    ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, created_at DESC
+                    LIMIT 20
+                """)]
+            except Exception:
+                result['alerts'] = []
+
+            # Borough intelligence
+            try:
+                result['top_boroughs'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT borough, COUNT(*) as lead_count,
+                           ROUND(AVG(total_score)::NUMERIC, 1) as avg_score,
+                           SUM(CASE WHEN hvt = TRUE THEN 1 ELSE 0 END) as hvt_count
+                    FROM v_lead_board
+                    WHERE active = TRUE AND borough IS NOT NULL AND borough != ''
+                    GROUP BY borough
+                    ORDER BY avg_score DESC LIMIT 10
+                """)]
+            except Exception:
+                result['top_boroughs'] = []
+
+            # Counts summary
+            try:
+                result['counts'] = {
+                    'total_leads': db_pg.fetchval(conn, "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE") or 0,
+                    'active_pipeline': db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')") or 0,
+                    'won_contracts': db_pg.fetchval(conn, "SELECT COUNT(*) FROM contracts WHERE status = 'active'") or 0,
+                    'pending_quotes': db_pg.fetchval(conn, "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')") or 0,
+                    'active_cleaners': db_pg.fetchval(conn, "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'") or 0,
+                }
+            except Exception:
+                result['counts'] = {}
+
+            return result
+    except Exception as e:
+        logger.error("today engine: %s", e)
+        return {"error": str(e)}
+
+
 # ── SPA catch-all (must be last) ─────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)

@@ -1,6 +1,6 @@
 import {useState,useMemo} from 'react'
 import {useQuery} from '@tanstack/react-query'
-import {api} from '../api'
+import {api, fetchTodayEngine, fetchIntelligenceAlerts, acknowledgeAlert} from '../api'
 import Spinner from '../components/Spinner'
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
@@ -125,6 +125,18 @@ export default function Analytics({openLead}){
   const {data:sectorRev,isLoading:lSec}  = useQuery({queryKey:['sector-revenue'],queryFn:api.sectorRevenue,staleTime:120000})
   const {data:pendingQuotes,isLoading:lQ} = useQuery({queryKey:['quotes-pending'],queryFn:()=>api.quotes('pending'),staleTime:60000})
 
+  /* ── Today Engine + Intelligence Alerts ──────────────────── */
+  const {data:today} = useQuery({queryKey:['today-engine'],queryFn:fetchTodayEngine,staleTime:60000,refetchInterval:60000})
+  const {data:alerts,refetch:refetchAlerts} = useQuery({queryKey:['intel-alerts'],queryFn:()=>fetchIntelligenceAlerts(false),staleTime:60000,refetchInterval:60000})
+  const [dismissedAlerts,setDismissedAlerts] = useState(new Set())
+  const handleAck = async(id)=>{
+    setDismissedAlerts(prev=>new Set(prev).add(id))
+    try{ await acknowledgeAlert(id) }catch(e){/* ignore */}
+    refetchAlerts()
+  }
+  const safeArr = v => Array.isArray(v) ? v : []
+  const visibleAlerts = safeArr(alerts).filter(a=>!dismissedAlerts.has(a.id))
+
   const loading = lSum||lOps||lQual||lFin||lPipe
 
   /* ── derived KPIs ──────────────────────────────────────────── */
@@ -224,6 +236,158 @@ export default function Analytics({openLead}){
           {PERIOD_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
+
+      {/* ─── TODAY ENGINE: Intelligence Layer ────────────────────── */}
+      {today && (
+        <>
+          {/* ── Intelligence Alerts Strip ─────────────────────────── */}
+          {visibleAlerts.length > 0 && (
+            <div style={{display:'flex',gap:10,marginBottom:18,overflowX:'auto',paddingBottom:4}}>
+              {visibleAlerts.map(a=>{
+                const sev = (a.severity||'info').toLowerCase()
+                const icon = sev==='critical' ? '\uD83D\uDD34' : sev==='warning' ? '\uD83D\uDFE1' : '\u2139\uFE0F'
+                const borderColor = sev==='critical' ? '#DC2626' : sev==='warning' ? '#D97706' : '#2563EB'
+                const bgColor = sev==='critical' ? '#FEF2F2' : sev==='warning' ? '#FFFBEB' : '#EFF6FF'
+                return(
+                  <div key={a.id} onClick={()=>handleAck(a.id)} style={{
+                    ...card,padding:'12px 16px',minWidth:220,maxWidth:320,flex:'0 0 auto',cursor:'pointer',
+                    borderLeft:`4px solid ${borderColor}`,background:bgColor,transition:'opacity .15s',
+                  }} onMouseEnter={e=>e.currentTarget.style.opacity=0.8} onMouseLeave={e=>e.currentTarget.style.opacity=1}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                      <span style={{fontSize:'0.9rem'}}>{icon}</span>
+                      <span style={{fontSize:'0.78rem',fontWeight:700,color:'var(--text-1)'}}>{a.title||'Alert'}</span>
+                    </div>
+                    <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.4}}>{a.detail||a.message||''}</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ── Command Centre KPIs ───────────────────────────────── */}
+          <div style={{display:'flex',gap:12,marginBottom:22,flexWrap:'wrap'}}>
+            {[
+              {label:'Leads to Contact',count:safeArr(today.leads_to_contact).length,accent:'var(--teal)'},
+              {label:'Pipeline Stale',count:safeArr(today.pipeline_stale).length,accent:'#D97706'},
+              {label:'Quotes Pending',count:safeArr(today.quotes_pending).length,accent:'#2563EB'},
+              {label:'Unstaffed Contracts',count:safeArr(today.contracts_unstaffed).length,accent:'#DC2626'},
+              {label:'Overdue Invoices',count:safeArr(today.overdue_invoices).length,accent:'#DC2626'},
+              {label:'Expiring Contracts',count:safeArr(today.contracts_expiring).length,accent:'#F59E0B'},
+            ].map((k,i)=>(
+              <div key={i} style={{
+                ...card,flex:1,minWidth:130,padding:'14px 18px',cursor:'pointer',position:'relative',overflow:'hidden',
+                transition:'box-shadow .15s',
+              }} onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'}
+                 onMouseLeave={e=>e.currentTarget.style.boxShadow='none'}>
+                <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:k.accent,borderRadius:'var(--r-lg) var(--r-lg) 0 0'}}/>
+                <div style={{fontSize:'1.6rem',fontWeight:800,color:k.count>0?k.accent:'var(--text-muted)',letterSpacing:'-.03em',lineHeight:1}}>{k.count}</div>
+                <div style={{fontSize:'0.65rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,marginTop:8}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Top Leads Today + Pipeline Movement ────────────────── */}
+          <div style={{display:'flex',gap:18,marginBottom:22,flexWrap:'wrap'}}>
+            {/* Top Leads Today */}
+            {safeArr(today.leads_to_contact).length > 0 && (
+              <div style={{...card,flex:2,minWidth:380}}>
+                <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Top Leads Today</div>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',borderCollapse:'collapse'}}>
+                    <thead>
+                      <tr style={{borderBottom:'2px solid var(--border)'}}>
+                        <th style={thStyle}>Business</th>
+                        <th style={thStyle}>Borough</th>
+                        <th style={thStyle}>Sector</th>
+                        <th style={thStyle}>Score</th>
+                        <th style={thStyle}>Est. Value</th>
+                        <th style={thStyle}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {safeArr(today.leads_to_contact).slice(0,5).map((lead,i)=>{
+                        const sc = Number(lead.score)||0
+                        const scoreColor = sc>=70?'#059669':sc>=50?'#D97706':'#DC2626'
+                        const scoreBg = sc>=70?'#ECFDF5':sc>=50?'#FFFBEB':'#FEF2F2'
+                        return(
+                          <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                            <td style={{...tdStyle,fontWeight:600}}>{lead.business_name||lead.name||'—'}</td>
+                            <td style={tdStyle}>{lead.borough||'—'}</td>
+                            <td style={tdStyle}>{lead.sector||'—'}</td>
+                            <td style={tdStyle}>
+                              <span style={{display:'inline-block',fontSize:'0.7rem',fontWeight:800,padding:'2px 10px',
+                                borderRadius:20,background:scoreBg,color:scoreColor}}>{sc}</span>
+                            </td>
+                            <td style={{...tdStyle,fontWeight:600}}>{lead.est_value!=null?fmtGBP(lead.est_value):'—'}</td>
+                            <td style={{...tdStyle,fontSize:'0.75rem',color:'var(--teal)',fontWeight:600}}>{lead.next_best_action||'—'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Pipeline Movement Needed */}
+            {safeArr(today.pipeline_stale).length > 0 && (
+              <div style={{...card,flex:1,minWidth:260}}>
+                <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Pipeline Movement Needed</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {safeArr(today.pipeline_stale).slice(0,8).map((item,i)=>{
+                    const days = Number(item.days_in_stage)||0
+                    const isOverdue = days > 7
+                    return(
+                      <div key={i} style={{
+                        display:'flex',alignItems:'center',justifyContent:'space-between',
+                        padding:'8px 12px',borderRadius:'var(--r-sm)',
+                        background:isOverdue?'#FEF2F2':'var(--bg-surface)',
+                        border:`1px solid ${isOverdue?'#FECACA':'var(--border)'}`,
+                      }}>
+                        <div>
+                          <div style={{fontSize:'0.8rem',fontWeight:600,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
+                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.stage||item.current_stage||'—'}</div>
+                        </div>
+                        <div style={{fontSize:'0.75rem',fontWeight:700,color:isOverdue?'#DC2626':'var(--text-muted)',whiteSpace:'nowrap'}}>
+                          {days}d
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Top Boroughs This Week ─────────────────────────────── */}
+          {safeArr(today.top_boroughs).length > 0 && (
+            <div style={{...card,marginBottom:22}}>
+              <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Top Boroughs This Week</div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}}>
+                {(()=>{
+                  const boroughs = safeArr(today.top_boroughs)
+                  const maxCount = Math.max(...boroughs.map(b=>Number(b.count||b.lead_count)||0),1)
+                  return boroughs.slice(0,10).map((b,i)=>{
+                    const count = Number(b.count||b.lead_count)||0
+                    const pct = count/maxCount*100
+                    return(
+                      <div key={i} style={{flex:1,minWidth:70,maxWidth:120,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                        <span style={{fontSize:'0.72rem',fontWeight:700,color:'var(--text-1)'}}>{count}</span>
+                        <div style={{width:'100%',borderRadius:4,overflow:'hidden',background:'var(--border)',height:24}}>
+                          <div style={{width:`${pct}%`,height:'100%',background:'var(--teal)',borderRadius:4,transition:'width .3s'}}/>
+                        </div>
+                        <span style={{fontSize:'0.62rem',color:'var(--text-muted)',textAlign:'center',lineHeight:1.2,fontWeight:600}}>
+                          {(b.borough||b.name||'').length>12?(b.borough||b.name||'').slice(0,10)+'...':(b.borough||b.name||'')}
+                        </span>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* ─── Action Banner (web leads) ─────────────────────────── */}
       {webLeads > 0 && (

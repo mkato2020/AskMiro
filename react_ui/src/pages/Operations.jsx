@@ -1,10 +1,11 @@
 import {useState,useCallback} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
+import {fetchContracts} from '../api'
 import {formatDate} from '../utils'
 import Spinner from '../components/Spinner'
 
-const TABS=['Today\'s Jobs','Schedule','Issues']
+const TABS=['Today\'s Jobs','Schedule','Issues','Capacity']
 const STATUS_PILL={
   Scheduled:  {bg:'#EFF6FF',color:'#2563EB',label:'Scheduled'},
   InProgress: {bg:'#FFFBEB',color:'#D97706',label:'In Progress'},
@@ -42,6 +43,46 @@ const pill=(status)=>{
 const thStyle={padding:'10px 14px',textAlign:'left',fontSize:'0.7rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)'}
 const tdStyle={padding:'10px 14px',fontSize:'0.8rem'}
 
+/* Capacity helpers */
+const CAPACITY_HRS=40
+const OVERLOAD_HRS=38
+
+function utilizationColor(pct){
+  if(pct>95)return '#DC2626'
+  if(pct>=75)return '#D97706'
+  return '#059669'
+}
+
+function UtilBar({pct}){
+  const color=utilizationColor(pct)
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden',minWidth:60}}>
+        <div style={{width:`${Math.min(pct,100)}%`,height:'100%',background:color,borderRadius:4,transition:'width 0.3s'}}/>
+      </div>
+      <span style={{fontSize:'0.75rem',fontWeight:700,color,minWidth:38,textAlign:'right'}}>{pct.toFixed(0)}%</span>
+    </div>
+  )
+}
+
+function contractLink(job, contracts){
+  if(!contracts||contracts.length===0)return null
+  // Match by contract_id first, then by site_name / client_name
+  let match=null
+  if(job.contract_id){
+    match=contracts.find(c=>c.id===job.contract_id)
+  }
+  if(!match&&job.client_name){
+    match=contracts.find(c=>c.site_name&&c.site_name.toLowerCase()===job.client_name.toLowerCase())
+  }
+  if(!match)return null
+  return(
+    <span style={{fontSize:'0.65rem',color:'var(--teal)',fontWeight:600,marginLeft:4}}>
+      [{match.site_name||`Contract #${match.id}`}]
+    </span>
+  )
+}
+
 export default function Operations({openLead}){
   const [tab,setTab]=useState("Today's Jobs")
   const [showModal,setShowModal]=useState(false)
@@ -53,6 +94,38 @@ export default function Operations({openLead}){
   const todayJobs=Array.isArray(ops.today_jobs)?ops.today_jobs:[]
   const schedule=Array.isArray(ops.schedule)?ops.schedule:[]
   const missedJobs=todayJobs.filter(j=>j.status==='Missed')
+
+  /* Capacity data */
+  const {data:cleanersData}=useQuery({queryKey:['cleaners'],queryFn:api.cleaners,staleTime:60000,enabled:tab==='Capacity'})
+  const {data:contractsData}=useQuery({queryKey:['contracts-capacity'],queryFn:()=>fetchContracts(),staleTime:60000})
+  const allContracts=Array.isArray(contractsData?.contracts)?contractsData.contracts:Array.isArray(contractsData)?contractsData:[]
+  const cleanersList=Array.isArray(cleanersData)?cleanersData:Array.isArray(cleanersData?.cleaners)?cleanersData.cleaners:[]
+
+  /* Cleaner capacity computations */
+  const cleanerCapacity=cleanersList
+    .filter(c=>c.status==='active'||c.is_available||(!c.archived&&!c.is_archived))
+    .map(c=>{
+      const assigned=Number(c.assigned_hours||c.weekly_hours||c.hours_per_week||0)
+      const pct=CAPACITY_HRS>0?(assigned/CAPACITY_HRS)*100:0
+      return{
+        ...c,
+        assigned_hours:assigned,
+        capacity:CAPACITY_HRS,
+        utilization:pct,
+        overloaded:assigned>OVERLOAD_HRS,
+      }
+    })
+    .sort((a,b)=>b.utilization-a.utilization)
+
+  const unstaffedContracts=allContracts.filter(c=>
+    c.staffing_status==='unassigned'||c.staffing_status==='Unassigned'
+  )
+
+  /* Capacity KPIs */
+  const totalActive=cleanerCapacity.length
+  const avgUtil=totalActive>0?cleanerCapacity.reduce((s,c)=>s+c.utilization,0)/totalActive:0
+  const overloadedCount=cleanerCapacity.filter(c=>c.overloaded).length
+  const availableCapacity=cleanerCapacity.reduce((s,c)=>s+Math.max(0,CAPACITY_HRS-c.assigned_hours),0)
 
   const clockInMut=useMutation({mutationFn:api.clockIn,onSuccess:()=>qc.invalidateQueries({queryKey:['operations']})})
   const clockOutMut=useMutation({mutationFn:api.clockOut,onSuccess:()=>qc.invalidateQueries({queryKey:['operations']})})
@@ -115,6 +188,7 @@ export default function Operations({openLead}){
           }}>
             {t}
             {t==='Issues'&&(ops.open_issues||0)>0?<span style={{background:'#DC2626',color:'#fff',fontSize:'0.65rem',fontWeight:700,padding:'1px 6px',borderRadius:10,marginLeft:6}}>{ops.open_issues}</span>:''}
+            {t==='Capacity'&&overloadedCount>0?<span style={{background:'#DC2626',color:'#fff',fontSize:'0.65rem',fontWeight:700,padding:'1px 6px',borderRadius:10,marginLeft:6}}>{overloadedCount}</span>:''}
           </button>
         ))}
       </div>
@@ -149,6 +223,7 @@ export default function Operations({openLead}){
                         <div style={{fontWeight:700,fontSize:'0.85rem',cursor:j.place_id?'pointer':'default'}}
                           onClick={()=>j.place_id&&openLead&&openLead(j.place_id)}>
                           {j.client_name||'—'}
+                          {contractLink(j, allContracts)}
                         </div>
                         <div style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>{j.site_id?`Site ${j.site_id}`:''}</div>
                       </td>
@@ -212,7 +287,7 @@ export default function Operations({openLead}){
                   </div>
                   <table style={{width:'100%',borderCollapse:'collapse'}}>
                     <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-                      {['Client','Site','Time','Staff','Status'].map(h=><th key={h} style={thStyle}>{h}</th>)}
+                      {['Client','Site','Time','Staff','Contract','Status'].map(h=><th key={h} style={thStyle}>{h}</th>)}
                     </tr></thead>
                     <tbody>
                       {dayJobs.map((s,i)=>{
@@ -223,6 +298,9 @@ export default function Operations({openLead}){
                             <td style={{...tdStyle,color:'var(--text-muted)'}}>{s.site_id?`Site ${s.site_id}`:''}</td>
                             <td style={tdStyle}>{fmtTime(s.start_time)}</td>
                             <td style={tdStyle}>{s.staff_name||'Unassigned'}</td>
+                            <td style={tdStyle}>
+                              {contractLink(s, allContracts)||<span style={{color:'var(--text-muted)',fontSize:'0.75rem'}}>—</span>}
+                            </td>
                             <td style={tdStyle}><span style={{background:st.bg,color:st.color,fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20}}>{st.label}</span></td>
                           </tr>
                         )
@@ -245,6 +323,101 @@ export default function Operations({openLead}){
           <p style={{fontSize:'0.85rem',color:'var(--text-muted)',maxWidth:400,margin:'0 auto',lineHeight:1.5}}>
             View quality inspections and incidents in the Quality module.
           </p>
+        </div>
+      )}
+
+      {/* Tab 4: Capacity */}
+      {tab==='Capacity'&&!isLoading&&(
+        <div style={{display:'grid',gap:20}}>
+          {/* Capacity Summary KPIs */}
+          <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+            <KPI label="Active Cleaners" value={totalActive} color="var(--teal)"/>
+            <KPI label="Avg Utilization" value={`${avgUtil.toFixed(0)}%`} color={utilizationColor(avgUtil)}/>
+            <KPI label="Overloaded" value={overloadedCount} color={overloadedCount>0?'#DC2626':'var(--text-1)'} sub={overloadedCount>0?`>${OVERLOAD_HRS}hrs/week`:'All within capacity'}/>
+            <KPI label="Available Capacity" value={`${availableCapacity.toFixed(0)}h`} sub="total spare hours/week"/>
+          </div>
+
+          {/* Cleaner Capacity Table */}
+          <div>
+            <h3 style={{fontSize:'0.95rem',fontWeight:700,margin:'0 0 12px',color:'var(--text-1)'}}>Cleaner Capacity</h3>
+            {cleanerCapacity.length===0
+              ?<div style={{padding:60,textAlign:'center',color:'var(--text-muted)',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)'}}>
+                No active cleaners found. Add cleaners in the HR module.
+              </div>
+              :<div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
+                  <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                    {['Name','Assigned Hours','Capacity','Utilization','Status'].map(h=>
+                      <th key={h} style={thStyle}>{h}</th>
+                    )}
+                  </tr></thead>
+                  <tbody>
+                    {cleanerCapacity.map((c,i)=>(
+                      <tr key={c.id||i} style={{borderBottom:'1px solid var(--border)'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='var(--bg-raised)'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <td style={{...tdStyle,fontWeight:700}}>
+                          {c.name||c.full_name||'—'}
+                          {c.overloaded&&<span style={{background:'#DC2626',color:'#fff',fontSize:'0.6rem',fontWeight:700,padding:'2px 7px',borderRadius:10,marginLeft:8}}>OVERLOADED</span>}
+                        </td>
+                        <td style={tdStyle}>{c.assigned_hours.toFixed(1)}h</td>
+                        <td style={tdStyle}>{CAPACITY_HRS}h</td>
+                        <td style={{...tdStyle,minWidth:160}}><UtilBar pct={c.utilization}/></td>
+                        <td style={tdStyle}>
+                          {c.overloaded
+                            ?<span style={{background:'#FEF2F2',color:'#DC2626',fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20}}>Over Capacity</span>
+                            :c.utilization>=75
+                              ?<span style={{background:'#FFFBEB',color:'#D97706',fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20}}>Near Capacity</span>
+                              :<span style={{background:'#ECFDF5',color:'#059669',fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20}}>Available</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
+          {/* Unstaffed Contracts */}
+          <div>
+            <h3 style={{fontSize:'0.95rem',fontWeight:700,margin:'0 0 12px',color:'var(--text-1)'}}>
+              Unstaffed Contracts
+              {unstaffedContracts.length>0&&<span style={{background:'#DC2626',color:'#fff',fontSize:'0.65rem',fontWeight:700,padding:'2px 8px',borderRadius:10,marginLeft:8}}>{unstaffedContracts.length}</span>}
+            </h3>
+            {unstaffedContracts.length===0
+              ?<div style={{padding:60,textAlign:'center',color:'var(--text-muted)',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)'}}>
+                All contracts are staffed. No action needed.
+              </div>
+              :<div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',minWidth:600}}>
+                  <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                    {['Site Name','Postcode','Hours/Week','Monthly Value','Status'].map(h=>
+                      <th key={h} style={thStyle}>{h}</th>
+                    )}
+                  </tr></thead>
+                  <tbody>
+                    {unstaffedContracts.map((c,i)=>(
+                      <tr key={c.id||i} style={{borderBottom:'1px solid var(--border)'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='var(--bg-raised)'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <td style={{...tdStyle,fontWeight:700}}>
+                          {c.site_name||c.client_name||'—'}
+                          <span style={{background:'#DC2626',color:'#fff',fontSize:'0.6rem',fontWeight:700,padding:'2px 7px',borderRadius:10,marginLeft:8}}>Needs Cleaner</span>
+                        </td>
+                        <td style={tdStyle}>{c.postcode||c.site_postcode||'—'}</td>
+                        <td style={tdStyle}>{c.hours_per_week!=null?`${c.hours_per_week}h`:c.weekly_hours!=null?`${c.weekly_hours}h`:'—'}</td>
+                        <td style={tdStyle}>{c.monthly_value!=null?`£${Number(c.monthly_value).toLocaleString()}`:c.contract_value!=null?`£${Number(c.contract_value).toLocaleString()}`:'—'}</td>
+                        <td style={tdStyle}>
+                          <span style={{background:'#FEF2F2',color:'#DC2626',fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20}}>Unassigned</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
         </div>
       )}
 

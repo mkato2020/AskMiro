@@ -1,11 +1,18 @@
-import {useState,useEffect,useMemo} from 'react'
+import {useState,useEffect,useMemo,useCallback,useRef} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
+import {fetchQuoteIntelligence,fetchCleanerMatch,fetchFeasibility} from '../api'
 
 const fmtCur=v=>'£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})
 const fmtPct=v=>(v||0).toFixed(1)+'%'
 const SEGMENTS=['Office','Retail','Medical','Educational','Residential','Industrial','Hospitality','Other']
 const STATUS_COLORS={draft:'#f59e0b',sent:'#3b82f6',won:'#10b981',lost:'#ef4444',expired:'#6b7280'}
+
+// ── Helpers ──────────────────────────────────────────────────
+function scoreColor(v){return v>=70?'#10b981':v>=40?'#f59e0b':'#ef4444'}
+function marginBadgeColor(yours,avg){return yours>=avg?'#10b981':'#ef4444'}
+function riskLabel(margin){return margin>=30?'Low':margin>=20?'Medium':'High'}
+function riskColor(margin){return margin>=30?'#10b981':margin>=20?'#f59e0b':'#ef4444'}
 
 export default function Quotes({openLead}){
   const qc=useQueryClient()
@@ -22,8 +29,14 @@ export default function Quotes({openLead}){
   const vatRate=settings?.vat_rate||20
 
   // Form state
-  const [form,setForm]=useState({client:'',site:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:''})
+  const [form,setForm]=useState({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:''})
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}))
+
+  // Intelligence state
+  const [intel,setIntel]=useState(null)
+  const [intelLoading,setIntelLoading]=useState(false)
+  const [intelError,setIntelError]=useState(null)
+  const [showIntel,setShowIntel]=useState(true)
 
   // Live calculator
   const calc=useMemo(()=>{
@@ -39,6 +52,54 @@ export default function Quotes({openLead}){
 
   const marginOk=calc.margin>=minMargin
   const marginColor=marginOk?'#10b981':'#ef4444'
+
+  // ── Intelligence fetch ─────────────────────────────────────
+  const fetchIntel=useCallback(async()=>{
+    const pc=form.postcode?.trim()
+    if(!pc||!form.hrs) return
+    setIntelLoading(true)
+    setIntelError(null)
+    try{
+      const [quoteIntel,feasibility,cleanerMatch]=await Promise.allSettled([
+        fetchQuoteIntelligence('',pc,form.segment,form.hrs,calc.revenue),
+        fetchFeasibility(pc,form.hrs,form.segment),
+        fetchCleanerMatch(pc,form.hrs,form.segment,3)
+      ])
+      setIntel({
+        quote:quoteIntel.status==='fulfilled'?quoteIntel.value:null,
+        feasibility:feasibility.status==='fulfilled'?feasibility.value:null,
+        cleaners:cleanerMatch.status==='fulfilled'?cleanerMatch.value:null,
+      })
+    }catch(err){
+      setIntelError(err.message||'Intelligence lookup failed')
+      setIntel(null)
+    }finally{
+      setIntelLoading(false)
+    }
+  },[form.postcode,form.segment,form.hrs,calc.revenue])
+
+  // Debounced auto-fetch when key fields change
+  const debounceRef=useRef(null)
+  useEffect(()=>{
+    if(!form.postcode?.trim()||!form.hrs) return
+    if(debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current=setTimeout(()=>fetchIntel(),900)
+    return()=>{if(debounceRef.current) clearTimeout(debounceRef.current)}
+  },[form.postcode,form.segment,form.hrs,form.rate,fetchIntel])
+
+  // Scenario cards
+  const scenarios=useMemo(()=>{
+    if(!calc.totalCosts) return null
+    const cost=calc.totalCosts
+    const buildScenario=(label,targetMargin)=>{
+      const price=cost/(1-targetMargin/100)
+      const margin=price>0?((price-cost)/price)*100:0
+      return{label,price,margin,risk:riskLabel(margin)}
+    }
+    return[buildScenario('Aggressive',15),buildScenario('Balanced',25),buildScenario('Protected',35)]
+  },[calc.totalCosts])
+
+  const canShowIntel=!!form.postcode?.trim()&&form.hrs>0
 
   // Filter quotes
   const filtered=tab==='all'?quotes:tab==='web'?quotes.filter(q=>q.source==='web'||q.intel):quotes.filter(q=>q.status===tab)
@@ -73,12 +134,12 @@ export default function Quotes({openLead}){
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
               <Field label="Client Name *" value={form.client} onChange={v=>upd('client',v)}/>
               <Field label="Site Address *" value={form.site} onChange={v=>upd('site',v)}/>
+              <Field label="Postcode *" value={form.postcode} onChange={v=>upd('postcode',v)} placeholder="e.g. SW1A 1AA"/>
               <SelectField label="Segment" value={form.segment} onChange={v=>upd('segment',v)} options={SEGMENTS}/>
               <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Price']}/>
               <Field label="Hrs/Week" value={form.hrs} onChange={v=>upd('hrs',Number(v))} type="number"/>
               <SelectField label="Days/Week" value={form.days} onChange={v=>upd('days',Number(v))} options={[1,2,3,4,5,6,7]}/>
               <Field label="Client Rate (£/hr)" value={form.rate} onChange={v=>upd('rate',v)} type="number" step="0.5"/>
-              <div/>
               <Field label="Supplies/Month (£)" value={form.supplies} onChange={v=>upd('supplies',v)} type="number"/>
               <Field label="Other Costs/Month (£)" value={form.other} onChange={v=>upd('other',v)} type="number"/>
             </div>
@@ -119,9 +180,20 @@ export default function Quotes({openLead}){
               </div>
             </div>
 
-            {!marginOk&&(
+            {/* ── Margin Guard ── */}
+            {calc.margin<10&&calc.revenue>0&&(
+              <div style={{marginTop:16,padding:'10px 14px',background:'#450a0a',border:'1px solid #dc2626',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#fca5a5',fontWeight:700}}>
+                Critical: This quote has dangerously low margin ({fmtPct(calc.margin)}). Approval required.
+              </div>
+            )}
+            {calc.margin>=10&&calc.margin<20&&calc.revenue>0&&(
               <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
-                ✗ Below {minMargin}% floor — override required to send
+                Warning: This quote is below the minimum margin threshold (20%). Review before sending.
+              </div>
+            )}
+            {calc.margin>=20&&!marginOk&&(
+              <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
+                Below {minMargin}% floor — override required to send
               </div>
             )}
 
@@ -130,6 +202,163 @@ export default function Quotes({openLead}){
               These drive all calculations. Update in Admin → Settings.
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          INTELLIGENCE PANEL
+         ══════════════════════════════════════════════════════════ */}
+      {showBuilder&&canShowIntel&&(
+        <div style={{marginBottom:28}}>
+          {/* Toggle header */}
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:showIntel?16:0,cursor:'pointer'}} onClick={()=>setShowIntel(!showIntel)}>
+            <span style={{background:'#8b5cf6',color:'white',fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:4,textTransform:'uppercase'}}>Intelligence</span>
+            <span style={{fontSize:'0.95rem',fontWeight:700,color:'var(--text-1)'}}>Commercial Intelligence</span>
+            <span style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{showIntel?'▼':'▶'}</span>
+            {intelLoading&&<span style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>Loading...</span>}
+            {!intel&&!intelLoading&&(
+              <button onClick={e=>{e.stopPropagation();fetchIntel()}} style={{marginLeft:'auto',background:'#8b5cf6',color:'white',border:'none',borderRadius:'var(--r-sm)',padding:'5px 14px',fontSize:'0.72rem',fontWeight:600,cursor:'pointer'}}>
+                Check Intelligence
+              </button>
+            )}
+          </div>
+
+          {showIntel&&intelError&&(
+            <div style={{padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',marginBottom:16}}>
+              Intelligence error: {intelError}
+            </div>
+          )}
+
+          {showIntel&&intel&&(
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+
+              {/* ── Sector Benchmark Card ── */}
+              <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:22}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                  <span style={{background:'#6366f1',color:'white',fontSize:'0.55rem',fontWeight:700,padding:'2px 7px',borderRadius:4,textTransform:'uppercase'}}>Benchmark</span>
+                  <span style={{fontSize:'0.88rem',fontWeight:700,color:'var(--text-1)'}}>Sector Benchmark</span>
+                </div>
+                {intel.quote?.benchmark?(
+                  <>
+                    <div style={{fontSize:'0.82rem',color:'var(--text-1)',marginBottom:8}}>
+                      Avg margin for <strong>{form.segment}</strong> in <strong>{intel.quote.benchmark.borough||'area'}</strong>: <strong>{fmtPct(intel.quote.benchmark.avg_margin)}</strong>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                      <span style={{fontSize:'0.82rem',color:'var(--text-1)'}}>Your quote margin:</span>
+                      <span style={{fontSize:'1.1rem',fontWeight:800,color:marginBadgeColor(calc.margin,intel.quote.benchmark.avg_margin||20)}}>{fmtPct(calc.margin)}</span>
+                      {calc.margin>=(intel.quote.benchmark.avg_margin||20)
+                        ?<span style={{fontSize:'0.65rem',background:'#10b98118',color:'#10b981',padding:'2px 8px',borderRadius:10,fontWeight:600}}>Above avg</span>
+                        :<span style={{fontSize:'0.65rem',background:'#ef444418',color:'#ef4444',padding:'2px 8px',borderRadius:10,fontWeight:600}}>Below avg</span>
+                      }
+                    </div>
+                    {intel.quote.benchmark.note&&(
+                      <div style={{fontSize:'0.72rem',color:'var(--text-muted)',fontStyle:'italic',lineHeight:1.5}}>{intel.quote.benchmark.note}</div>
+                    )}
+                  </>
+                ):(
+                  <div style={{fontSize:'0.78rem',color:'var(--text-muted)'}}>No benchmark data available for this sector/area.</div>
+                )}
+              </div>
+
+              {/* ── Feasibility Score Card ── */}
+              <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:22}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                  <span style={{background:'#0ea5e9',color:'white',fontSize:'0.55rem',fontWeight:700,padding:'2px 7px',borderRadius:4,textTransform:'uppercase'}}>Feasibility</span>
+                  <span style={{fontSize:'0.88rem',fontWeight:700,color:'var(--text-1)'}}>Feasibility Score</span>
+                </div>
+                {intel.feasibility?.score!=null?(
+                  <>
+                    <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:12}}>
+                      <div style={{width:56,height:56,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:scoreColor(intel.feasibility.score)+'20',border:`3px solid ${scoreColor(intel.feasibility.score)}`}}>
+                        <span style={{fontSize:'1.2rem',fontWeight:900,color:scoreColor(intel.feasibility.score)}}>{Math.round(intel.feasibility.score)}</span>
+                      </div>
+                      <div>
+                        {intel.feasibility.coverage_label&&<div style={{fontSize:'0.82rem',fontWeight:600,color:'var(--text-1)'}}>{intel.feasibility.coverage_label}</div>}
+                        {intel.feasibility.cleaners_nearby!=null&&<div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{intel.feasibility.cleaners_nearby} cleaners nearby</div>}
+                        {intel.feasibility.travel_burden&&<div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>Travel: {intel.feasibility.travel_burden}</div>}
+                      </div>
+                    </div>
+                    {intel.feasibility.warnings?.length>0&&(
+                      <div style={{marginTop:4}}>
+                        {intel.feasibility.warnings.map((w,i)=>(
+                          <div key={i} style={{fontSize:'0.72rem',color:'#f59e0b',marginBottom:3}}>• {w}</div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ):(
+                  <div style={{fontSize:'0.78rem',color:'var(--text-muted)'}}>No feasibility data available.</div>
+                )}
+              </div>
+
+              {/* ── Scenario Cards ── */}
+              {scenarios&&(
+                <div style={{gridColumn:'1 / -1',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:22}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                    <span style={{background:'#f59e0b',color:'white',fontSize:'0.55rem',fontWeight:700,padding:'2px 7px',borderRadius:4,textTransform:'uppercase'}}>Scenarios</span>
+                    <span style={{fontSize:'0.88rem',fontWeight:700,color:'var(--text-1)'}}>Pricing Scenarios</span>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                    {scenarios.map((s,i)=>{
+                      const isBalanced=i===1
+                      return(
+                        <div key={s.label} style={{
+                          background:isBalanced?'#8b5cf610':'var(--bg-base)',
+                          border:isBalanced?'2px solid #8b5cf6':'1px solid var(--border)',
+                          borderRadius:'var(--r-lg)',padding:18,textAlign:'center',position:'relative'
+                        }}>
+                          {isBalanced&&<div style={{position:'absolute',top:-9,left:'50%',transform:'translateX(-50%)',background:'#8b5cf6',color:'white',fontSize:'0.55rem',fontWeight:700,padding:'2px 10px',borderRadius:10,textTransform:'uppercase'}}>Recommended</div>}
+                          <div style={{fontSize:'0.78rem',fontWeight:700,color:'var(--text-1)',marginBottom:6,marginTop:isBalanced?4:0}}>{s.label}</div>
+                          <div style={{fontSize:'1.5rem',fontWeight:900,color:'var(--text-1)',lineHeight:1}}>{fmtCur(s.price)}</div>
+                          <div style={{fontSize:'0.7rem',color:'var(--text-muted)',marginBottom:8}}>/month</div>
+                          <div style={{display:'flex',justifyContent:'center',gap:10}}>
+                            <span style={{fontSize:'0.72rem',color:riskColor(s.margin),fontWeight:700}}>{fmtPct(s.margin)} margin</span>
+                            <span style={{fontSize:'0.65rem',background:riskColor(s.margin)+'18',color:riskColor(s.margin),padding:'2px 8px',borderRadius:10,fontWeight:600}}>{s.risk} risk</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Top Matched Cleaners ── */}
+              <div style={{gridColumn:'1 / -1',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:22}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                  <span style={{background:'#10b981',color:'white',fontSize:'0.55rem',fontWeight:700,padding:'2px 7px',borderRadius:4,textTransform:'uppercase'}}>Match</span>
+                  <span style={{fontSize:'0.88rem',fontWeight:700,color:'var(--text-1)'}}>Top Matched Cleaners</span>
+                </div>
+                {intel.cleaners?.matches?.length>0?(
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                    {intel.cleaners.matches.slice(0,3).map((c,i)=>(
+                      <div key={c.id||i} style={{background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:14}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                          <span style={{fontSize:'0.85rem',fontWeight:700,color:'var(--text-1)'}}>{c.name||'Unnamed'}</span>
+                          {c.match_quality&&(
+                            <span style={{fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:10,
+                              background:c.match_quality==='strong'?'#10b98118':c.match_quality==='good'?'#f59e0b18':'#ef444418',
+                              color:c.match_quality==='strong'?'#10b981':c.match_quality==='good'?'#f59e0b':'#ef4444',
+                              textTransform:'uppercase'
+                            }}>{c.match_quality}</span>
+                          )}
+                        </div>
+                        <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.7}}>
+                          {c.distance!=null&&<div>Distance: {typeof c.distance==='number'?c.distance.toFixed(1)+' mi':c.distance}</div>}
+                          {c.travel_time!=null&&<div>Travel: {c.travel_time} min</div>}
+                          {c.pay_rate!=null&&<div>Pay rate: £{Number(c.pay_rate).toFixed(2)}/hr</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ):(
+                  <div style={{padding:'12px 14px',background:'#fef3c718',border:'1px solid #fef3c7',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#f59e0b',fontWeight:600}}>
+                    No strong cleaner matches for this postcode/hours combination. Consider expanding the search or recruiting in this area.
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       )}
 
@@ -187,11 +416,11 @@ export default function Quotes({openLead}){
   )
 }
 
-function Field({label,value,onChange,type='text',step}){
+function Field({label,value,onChange,type='text',step,placeholder}){
   return(
     <div>
       <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{label}</label>
-      <input type={type} step={step} value={value} onChange={e=>onChange(e.target.value)} style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.85rem',color:'var(--text-1)',fontFamily:'inherit'}}/>
+      <input type={type} step={step} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.85rem',color:'var(--text-1)',fontFamily:'inherit'}}/>
     </div>
   )
 }

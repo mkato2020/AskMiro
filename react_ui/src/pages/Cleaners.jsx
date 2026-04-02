@@ -1,6 +1,6 @@
 import {useState,useCallback,useMemo} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
-import {api} from '../api'
+import {api,computeCleanerCoverage,fetchCleanerMatch} from '../api'
 import {formatDate} from '../utils'
 import Spinner from '../components/Spinner'
 
@@ -60,7 +60,13 @@ const inputStyle={width:'100%',padding:'9px 12px',fontSize:'0.85rem',background:
 const toggleStyle=(on)=>({width:40,height:22,borderRadius:11,background:on?'var(--teal)':'var(--border)',position:'relative',cursor:'pointer',border:'none',transition:'background 0.2s',flexShrink:0})
 const toggleDot=(on)=>({width:16,height:16,borderRadius:8,background:'#fff',position:'absolute',top:3,left:on?21:3,transition:'left 0.2s'})
 
-const EMPTY_FORM={full_name:'',email:'',phone:'',home_postcode:'',borough:'',cleaner_type:'Employee',status:'Active',hourly_rate:'',performance_rating:'',availability_type:'Full-time',currently_available:'Yes',emergency_cover:'No',transport_mode:'Public Transport',has_own_vehicle:'No',services_offered:'',compliance_status:'Ready',dbs_status:'Enhanced',notes:''}
+const TRANSPORT_MODE_OPTIONS=['public_transport','driving','cycling','walking']
+const EMPTY_FORM={full_name:'',email:'',phone:'',home_postcode:'',borough:'',cleaner_type:'Employee',status:'Active',hourly_rate:'',performance_rating:'',availability_type:'Full-time',currently_available:'Yes',emergency_cover:'No',transport_mode:'Public Transport',has_own_vehicle:'No',services_offered:'',compliance_status:'Ready',dbs_status:'Enhanced',notes:'',max_travel_minutes:'60',skills:'',preferred_sectors:'',reliability_score:'',intel_transport_mode:'public_transport'}
+
+/* ── Intelligence helpers ── */
+function capacityColor(hrs){const h=Number(hrs)||0;if(h>38)return'#DC2626';if(h>=30)return'#D97706';return'#059669'}
+function capacityDot(hrs){const h=Number(hrs)||0;if(h>38)return'\uD83D\uDD34';if(h>=30)return'\uD83D\uDFE1';return'\uD83D\uDFE2'}
+function renderStars(score,max=10){const s=Number(score)||0;const filled=Math.round(s/max*5);return Array.from({length:5},(_,i)=>i<filled?'\u2605':'\u2606').join('')}
 
 /* ── Overlay backdrop ── */
 const Overlay=({show,onClose,children})=>{
@@ -125,7 +131,7 @@ export default function Cleaners(){
 
   /* ── drawer helpers ── */
   const openAdd=useCallback(()=>{setForm({...EMPTY_FORM});setSelected(null);setDrawer('add')},[])
-  const openEdit=useCallback(c=>{setForm({full_name:c.full_name||'',email:c.email||'',phone:c.phone||'',home_postcode:c.home_postcode||'',borough:c.borough||'',cleaner_type:c.cleaner_type||'Employee',status:c.status||'Active',hourly_rate:c.hourly_rate||'',performance_rating:c.performance_rating||'',availability_type:c.availability_type||'Full-time',currently_available:c.currently_available||'Yes',emergency_cover:c.emergency_cover||'No',transport_mode:c.transport_mode||'Public Transport',has_own_vehicle:c.has_own_vehicle||'No',services_offered:c.services_offered||'',compliance_status:c.compliance_status||'Ready',dbs_status:c.dbs_status||'Enhanced',notes:c.notes||''});setSelected(c);setDrawer('edit')},[])
+  const openEdit=useCallback(c=>{setForm({full_name:c.full_name||'',email:c.email||'',phone:c.phone||'',home_postcode:c.home_postcode||'',borough:c.borough||'',cleaner_type:c.cleaner_type||'Employee',status:c.status||'Active',hourly_rate:c.hourly_rate||'',performance_rating:c.performance_rating||'',availability_type:c.availability_type||'Full-time',currently_available:c.currently_available||'Yes',emergency_cover:c.emergency_cover||'No',transport_mode:c.transport_mode||'Public Transport',has_own_vehicle:c.has_own_vehicle||'No',services_offered:c.services_offered||'',compliance_status:c.compliance_status||'Ready',dbs_status:c.dbs_status||'Enhanced',notes:c.notes||'',max_travel_minutes:c.max_travel_minutes!=null?String(c.max_travel_minutes):'60',skills:Array.isArray(c.skills)?c.skills.join(', '):(c.skills||''),preferred_sectors:Array.isArray(c.preferred_sectors)?c.preferred_sectors.join(', '):(c.preferred_sectors||''),reliability_score:c.reliability_score!=null?String(c.reliability_score):'',intel_transport_mode:c.intel_transport_mode||'public_transport'});setSelected(c);setDrawer('edit')},[])
   const openView=useCallback(c=>{setSelected(c);setDrawer('view')},[])
   const closeDrawer=useCallback(()=>{setDrawer(null);setSelected(null)},[])
 
@@ -133,7 +139,7 @@ export default function Cleaners(){
 
   const handleSubmit=useCallback(()=>{
     if(!form.full_name||!form.email||!form.cleaner_type)return
-    const body={...form,hourly_rate:form.hourly_rate?Number(form.hourly_rate):null,performance_rating:form.performance_rating?Number(form.performance_rating):null}
+    const body={...form,hourly_rate:form.hourly_rate?Number(form.hourly_rate):null,performance_rating:form.performance_rating?Number(form.performance_rating):null,max_travel_minutes:form.max_travel_minutes?Number(form.max_travel_minutes):60,skills:form.skills?form.skills.split(',').map(s=>s.trim()).filter(Boolean):[],preferred_sectors:form.preferred_sectors?form.preferred_sectors.split(',').map(s=>s.trim()).filter(Boolean):[],reliability_score:form.reliability_score?Number(form.reliability_score):null,intel_transport_mode:form.intel_transport_mode||'public_transport'}
     if(drawer==='edit'&&selected){
       updateMut.mutate({id:selected.id,body},{ onSuccess:closeDrawer })
     }else{
@@ -217,11 +223,16 @@ export default function Cleaners(){
                           {initials(c.full_name)}
                         </div>
                         <div>
-                          <div style={{fontWeight:700,fontSize:'0.85rem',lineHeight:1.2}}>{c.full_name||'\u2014'}</div>
+                          <div style={{fontWeight:700,fontSize:'0.85rem',lineHeight:1.2}}>
+                            {c.full_name||'\u2014'}
+                            {c.assigned_hours!=null&&c.assigned_hours>0&&<span style={{marginLeft:6,fontSize:'0.6rem',fontWeight:700,padding:'1px 6px',borderRadius:10,background:capacityColor(c.assigned_hours)+'18',color:capacityColor(c.assigned_hours)}}>{c.assigned_hours}h</span>}
+                            {c.reliability_score!=null&&<span style={{marginLeft:4,fontSize:'0.6rem',fontWeight:700,padding:'1px 6px',borderRadius:10,background:'#F5F3FF',color:'#7C3AED'}}>{c.reliability_score}/10</span>}
+                          </div>
                           <div style={{fontSize:'0.7rem',color:'var(--text-muted)',marginTop:2}}>
                             {c.phone&&<span>{c.phone}</span>}
                             {c.phone&&c.email&&<span> &middot; </span>}
                             {c.email&&<span>{c.email}</span>}
+                            {c.assigned_hours!=null&&<span> {capacityDot(c.assigned_hours)}</span>}
                           </div>
                         </div>
                       </div>
@@ -377,6 +388,28 @@ export default function Cleaners(){
             </button>
           </div>
 
+          {/* Intelligence */}
+          <Section title="Intelligence"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <Field label="Max Travel Minutes">
+              <input style={inputStyle} type="number" min="0" value={form.max_travel_minutes} onChange={e=>setField('max_travel_minutes',e.target.value)} placeholder="60"/>
+            </Field>
+            <Field label="Reliability Score (1-10)">
+              <input style={inputStyle} type="number" step="0.1" min="1" max="10" value={form.reliability_score} onChange={e=>setField('reliability_score',e.target.value)} placeholder="8.5"/>
+            </Field>
+          </div>
+          <Field label="Skills (comma-separated)">
+            <input style={inputStyle} value={form.skills} onChange={e=>setField('skills',e.target.value)} placeholder="deep clean, end of tenancy, carpet cleaning"/>
+          </Field>
+          <Field label="Preferred Sectors (comma-separated)">
+            <input style={inputStyle} value={form.preferred_sectors} onChange={e=>setField('preferred_sectors',e.target.value)} placeholder="commercial, residential, healthcare"/>
+          </Field>
+          <Field label="Intel Transport Mode">
+            <select style={inputStyle} value={form.intel_transport_mode} onChange={e=>setField('intel_transport_mode',e.target.value)}>
+              {TRANSPORT_MODE_OPTIONS.map(o=><option key={o} value={o}>{o.replace('_',' ').replace(/\b\w/g,l=>l.toUpperCase())}</option>)}
+            </select>
+          </Field>
+
           {/* Services */}
           <Section title="Services"/>
           <Field label="Services Offered (pipe-separated)">
@@ -495,6 +528,59 @@ export default function Cleaners(){
               </>
             )}
 
+            {/* ── Workload Summary ── */}
+            <Section title="Workload Summary"/>
+            {(()=>{
+              const hrs=Number(selected.assigned_hours)||0
+              const pct=Math.min(hrs/40*100,100)
+              const col=capacityColor(hrs)
+              return(
+                <div style={{marginBottom:14}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <span style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-2)'}}>{hrs} / 40 hrs assigned</span>
+                    <span style={{fontSize:'0.7rem',fontWeight:700,color:col}}>{hrs>38?'Over capacity':hrs>=30?'Near capacity':'Available'}</span>
+                  </div>
+                  <div style={{height:10,borderRadius:5,background:'var(--bg-base)',overflow:'hidden',border:'1px solid var(--border)'}}>
+                    <div style={{height:'100%',width:pct+'%',borderRadius:5,background:col,transition:'width 0.3s ease'}}/>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── Coverage & Matching ── */}
+            <Section title="Coverage & Matching"/>
+            <CoveragePanel cleaner={selected}/>
+
+            {/* ── Skills & Preferences ── */}
+            {(selected.skills&&(Array.isArray(selected.skills)?selected.skills.length>0:selected.skills.length>0))||(selected.preferred_sectors&&(Array.isArray(selected.preferred_sectors)?selected.preferred_sectors.length>0:selected.preferred_sectors.length>0))||(selected.max_travel_minutes!=null)?(
+              <>
+                <Section title="Skills & Preferences"/>
+                {selected.skills&&(Array.isArray(selected.skills)?selected.skills:[selected.skills]).filter(Boolean).length>0&&(
+                  <div style={{marginBottom:10}}>
+                    <span style={{fontSize:'0.72rem',fontWeight:600,color:'var(--text-muted)'}}>Skills: </span>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
+                      {(Array.isArray(selected.skills)?selected.skills:selected.skills.split(',').map(s=>s.trim())).filter(Boolean).map(s=>(
+                        <span key={s} style={pill('rgba(99,102,241,0.1)','#6366f1',s)}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selected.preferred_sectors&&(Array.isArray(selected.preferred_sectors)?selected.preferred_sectors:[selected.preferred_sectors]).filter(Boolean).length>0&&(
+                  <div style={{marginBottom:10}}>
+                    <span style={{fontSize:'0.72rem',fontWeight:600,color:'var(--text-muted)'}}>Preferred Sectors: </span>
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
+                      {(Array.isArray(selected.preferred_sectors)?selected.preferred_sectors:selected.preferred_sectors.split(',').map(s=>s.trim())).filter(Boolean).map(s=>(
+                        <span key={s} style={pill('rgba(245,158,11,0.1)','#D97706',s)}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selected.max_travel_minutes!=null&&(
+                  <ViewRow label="Max Travel" value={selected.max_travel_minutes+' mins'}/>
+                )}
+              </>
+            ):null}
+
             {/* Quick actions */}
             <div style={{display:'flex',gap:10,marginTop:28}}>
               <button onClick={()=>{closeDrawer();setTimeout(()=>openEdit(selected),100)}} style={{flex:1,padding:'10px 0',fontSize:'0.85rem',fontWeight:700,color:'var(--teal)',background:'transparent',border:'1px solid var(--teal)',borderRadius:8,cursor:'pointer'}}>
@@ -507,6 +593,60 @@ export default function Cleaners(){
           </div>
         )}
       </Overlay>
+    </div>
+  )
+}
+
+/* ── Coverage panel sub-component ── */
+function CoveragePanel({cleaner}){
+  const [coverage,setCoverage]=useState(null)
+  const [loading,setLoading]=useState(false)
+  const [error,setError]=useState(null)
+
+  const handleCompute=async()=>{
+    setLoading(true);setError(null)
+    try{
+      const res=await computeCleanerCoverage(cleaner.id)
+      setCoverage(res)
+    }catch(e){setError(e.message||'Failed to compute coverage')}
+    finally{setLoading(false)}
+  }
+
+  return(
+    <div style={{marginBottom:14}}>
+      {/* Existing scores if available */}
+      {cleaner.reliability_score!=null&&(
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:'0.78rem',color:'var(--text-muted)',fontWeight:600}}>Reliability</span>
+          <span style={{fontSize:'0.85rem',fontWeight:700,color:'#7C3AED'}}>{renderStars(cleaner.reliability_score)} <span style={{fontSize:'0.72rem',fontWeight:600,color:'var(--text-muted)'}}>{cleaner.reliability_score}/10</span></span>
+        </div>
+      )}
+      {cleaner.performance_score!=null&&(
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:'0.78rem',color:'var(--text-muted)',fontWeight:600}}>Performance</span>
+          <span style={{fontSize:'0.85rem',fontWeight:700,color:'#0DBDAD'}}>{renderStars(cleaner.performance_score)} <span style={{fontSize:'0.72rem',fontWeight:600,color:'var(--text-muted)'}}>{cleaner.performance_score}/10</span></span>
+        </div>
+      )}
+
+      {/* Computed coverage data */}
+      {coverage&&(
+        <div style={{marginTop:8,padding:12,background:'var(--bg-base)',borderRadius:8,border:'1px solid var(--border)'}}>
+          {coverage.coverage_radius_km!=null&&<div style={{fontSize:'0.78rem',marginBottom:4}}><strong>Coverage Radius:</strong> {coverage.coverage_radius_km} km</div>}
+          {coverage.postcodes_covered!=null&&<div style={{fontSize:'0.78rem',marginBottom:4}}><strong>Postcodes Covered:</strong> {Array.isArray(coverage.postcodes_covered)?coverage.postcodes_covered.join(', '):coverage.postcodes_covered}</div>}
+          {coverage.match_score!=null&&<div style={{fontSize:'0.78rem',marginBottom:4}}><strong>Match Score:</strong> {coverage.match_score}</div>}
+          {coverage.notes&&<div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>{coverage.notes}</div>}
+        </div>
+      )}
+
+      {error&&<div style={{color:'#DC2626',fontSize:'0.78rem',marginTop:6}}>{error}</div>}
+
+      <button onClick={handleCompute} disabled={loading} style={{
+        marginTop:8,padding:'7px 16px',fontSize:'0.78rem',fontWeight:700,
+        color:'var(--teal)',background:'transparent',border:'1px solid var(--teal)',
+        borderRadius:6,cursor:loading?'wait':'pointer',opacity:loading?0.6:1
+      }}>
+        {loading?'Computing\u2026':'Compute Coverage'}
+      </button>
     </div>
   )
 }
