@@ -167,34 +167,73 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
-    _version = "2026-04-02-v8-debug"
-    # Debug: test the actual connection path
-    from urllib.parse import urlparse as _up
-    dsn = os.getenv("DATABASE_URL", "")
-    debug = {"dsn_starts": dsn[:30] + "...", "dsn_len": len(dsn)}
+    _version = "2026-04-02-v10-diag"
+    result = {"_version": _version}
     try:
-        if dsn.startswith("postgres://"):
-            dsn = "postgresql://" + dsn[len("postgres://"):]
-        debug["dsn_converted"] = dsn[:30] + "..."
-        p = _up(dsn)
-        debug["parsed"] = {"host": p.hostname, "port": p.port, "db": p.path, "user": p.username}
-        import psycopg2, psycopg2.extras
-        conn = psycopg2.connect(
-            dbname=p.path.lstrip("/"),
-            user=p.username,
-            password=p.password,
-            host=p.hostname,
-            port=p.port or 5432,
-            cursor_factory=psycopg2.extras.RealDictCursor,
-            connect_timeout=5,
-        )
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) as cnt FROM entities")
-        row = cur.fetchone()
-        conn.close()
-        return {"status": "ok", "entities": row["cnt"] if row else 0, "_version": _version, "debug": debug}
+        with db_pg.transaction() as conn:
+            # Check entities
+            result["entities"] = db_pg.fetchval(conn, "SELECT COUNT(*) FROM entities") or 0
+            # Check which key tables exist
+            tables_check = ['entities', 'signals', 'opportunities', 'opportunity_scores',
+                           'fin_invoices', 'fin_expenses', 'fin_transactions', 'fin_payments',
+                           'ops_cleaners', 'contracts', 'intelligence_alerts', 'quotes',
+                           'contract_schedules', 'cleaner_coverage']
+            existing = []
+            missing = []
+            for t in tables_check:
+                try:
+                    db_pg.fetchval(conn, f"SELECT COUNT(*) FROM {t}")
+                    existing.append(t)
+                except Exception:
+                    missing.append(t)
+            result["tables_ok"] = existing
+            result["tables_missing"] = missing
+            # Check v_lead_board view
+            try:
+                result["v_lead_board_count"] = db_pg.fetchval(conn, "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE") or 0
+                result["v_lead_board_scored"] = db_pg.fetchval(conn, "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE AND total_score >= 50") or 0
+            except Exception as e:
+                result["v_lead_board_error"] = str(e)
+            # Check opportunities
+            try:
+                result["opportunities_count"] = db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities") or 0
+            except Exception as e:
+                result["opportunities_error"] = str(e)
+            result["status"] = "ok"
     except Exception as e:
-        return {"status": "error", "detail": str(e), "_version": _version, "debug": debug}
+        result["status"] = "error"
+        result["detail"] = str(e)
+        # Fallback direct connection test
+        try:
+            from urllib.parse import urlparse as _up
+            dsn = os.getenv("DATABASE_URL", "").strip()
+            if dsn.startswith("postgres://"):
+                dsn = "postgresql://" + dsn[len("postgres://"):]
+            p = _up(dsn)
+            import psycopg2, psycopg2.extras
+            conn = psycopg2.connect(dbname=p.path.lstrip("/"), user=p.username, password=p.password,
+                                     host=p.hostname, port=p.port or 5432,
+                                     cursor_factory=psycopg2.extras.RealDictCursor, connect_timeout=5)
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) as cnt FROM entities")
+            row = cur.fetchone()
+            conn.close()
+            result["fallback_ok"] = True
+            result["fallback_entities"] = row["cnt"] if row else 0
+        except Exception as e2:
+            result["fallback_error"] = str(e2)
+    return result
+
+
+@app.post("/api/admin/ensure-tables")
+def ensure_tables_endpoint():
+    """Create any missing tables (contracts, intelligence_alerts, etc.)"""
+    try:
+        with db_pg.transaction() as conn:
+            ensure_ops_tables(conn)
+        return {"ok": True, "message": "Tables ensured"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.get("/api/admin/db-pg-debug")

@@ -47,7 +47,7 @@ const Btn=({children,variant,small,disabled,...p})=>{
 
 const TH=({children,sortKey,sort,setSort})=>{
   const active=sort?.key===sortKey
-  return <th onClick={sortKey?()=>setSort(s=>s?.key===sortKey?{key:sortKey,dir:s.dir==='asc'?'desc':'asc'}:{key:sortKey,dir:'asc'}):undefined} style={{padding:'10px 14px',textAlign:'left',fontSize:'0.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',cursor:sortKey?'pointer':'default',userSelect:'none',whiteSpace:'nowrap'}}>{children}{active?(sort.dir==='asc'?' \u25B2':' \u25BC'):''}</th>
+  return <th onClick={sortKey?()=>setSort(s=>s?.key===sortKey?{key:sortKey,dir:(s&&s.dir)==='asc'?'desc':'asc'}:{key:sortKey,dir:'asc'}):undefined} style={{padding:'10px 14px',textAlign:'left',fontSize:'0.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',cursor:sortKey?'pointer':'default',userSelect:'none',whiteSpace:'nowrap'}}>{children}{active?((sort&&sort.dir)==='asc'?' \u25B2':' \u25BC'):''}</th>
 }
 
 const Modal=({open,onClose,title,children,width})=>{
@@ -87,8 +87,8 @@ function useSorter(data,sort){
       let av=a[sort.key],bv=b[sort.key]
       if(typeof av==='string')av=av.toLowerCase()
       if(typeof bv==='string')bv=bv.toLowerCase()
-      if(av<bv)return sort.dir==='asc'?-1:1
-      if(av>bv)return sort.dir==='asc'?1:-1
+      if(av<bv)return (sort&&sort.dir)==='asc'?-1:1
+      if(av>bv)return (sort&&sort.dir)==='asc'?1:-1
       return 0
     })
     return arr
