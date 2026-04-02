@@ -715,6 +715,14 @@ def list_signals(signal_type: Optional[str] = None, limit: int = 500):
             d['urgency_score']  = urgency
             d['urgency_bucket'] = _urgency_bucket(urgency)
             d['action']         = _SIGNAL_ACTIONS.get(r['signal_type'], 'Review and assess')
+            # Frontend aliases
+            d['entity_name'] = d.get('canonical_name') or 'Unknown'
+            d['name'] = d['entity_name']
+            d['title'] = d.get('evidence') or d.get('action') or 'Signal detected'
+            d['description'] = d.get('action') or d.get('evidence') or ''
+            d['created_at'] = d.get('detected_at')
+            d['priority'] = d['urgency_bucket']
+            d['score_impact'] = int((d.get('strength') or 0) * 0.1) if d.get('strength') else 0
             result.append(d)
 
         result.sort(key=lambda x: (-x['urgency_score'], str(x.get('detected_at') or '')), reverse=False)
