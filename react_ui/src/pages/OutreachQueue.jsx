@@ -157,8 +157,8 @@ export default function OutreachQueue({openLead}){
   const {data:stats}=useQuery({queryKey:['emailStats'],queryFn:api.emailStats,staleTime:30000})
   const {data:autorun}=useQuery({queryKey:['emailAutorun'],queryFn:api.emailAutorun,staleTime:30000})
 
-  const queue=queueRaw||[]
-  const st=stats||{}
+  const queue=Array.isArray(queueRaw)?queueRaw:(queueRaw?.queue||[])
+  const st=stats?.stats||stats||{}
 
   /* Partition queue */
   const needsAttention=queue.filter(l=>l.reply_status==='needs_review'||l.reply_status==='replied'||l.reply_status==='bounced')

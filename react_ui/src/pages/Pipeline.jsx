@@ -5,8 +5,8 @@ import Spinner from '../components/Spinner'
 
 /* ── constants ─────────────────────────────────────────── */
 const STAGES=[
-  {key:'outreach_queue',label:'Outreach Queue',color:'#94A3B8'},
   {key:'new',label:'New',color:'#3B82F6'},
+  {key:'ready_to_contact',label:'Ready to Contact',color:'#94A3B8'},
   {key:'contacted',label:'Contacted',color:'#8B5CF6'},
   {key:'qualified',label:'Qualified',color:'#F59E0B'},
   {key:'quote_sent',label:'Quote Sent',color:'#EC4899'},
@@ -15,8 +15,8 @@ const STAGES=[
 const WON_STAGE={key:'won',label:'Won',color:'#059669'}
 const ALL_STAGES=[...STAGES,WON_STAGE]
 
-const STAGE_FILTERS=['All','New','Qualified','Quote Sent','Negotiating','Won']
-const STAGE_FILTER_MAP={'New':'new','Qualified':'qualified','Quote Sent':'quote_sent','Negotiating':'negotiating','Won':'won'}
+const STAGE_FILTERS=['All','New','Ready','Contacted','Qualified','Quote Sent','Negotiating','Won']
+const STAGE_FILTER_MAP={'New':'new','Ready':'ready_to_contact','Contacted':'contacted','Qualified':'qualified','Quote Sent':'quote_sent','Negotiating':'negotiating','Won':'won'}
 
 const TABS=['Pipeline','List','Activity']
 
@@ -184,8 +184,8 @@ export default function Pipeline({openLead}){
     leads.forEach(l=>{
       if(map[l.stage])map[l.stage].push(l)
       else if(l.stage!=='won'){
-        // default unknown stages to outreach_queue
-        map.outreach_queue.push(l)
+        // default unknown stages to new
+        map.new.push(l)
       }
     })
     return map

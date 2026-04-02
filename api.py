@@ -254,7 +254,12 @@ def get_lead(place_id: str):
         )
     if not row:
         raise HTTPException(status_code=404, detail="Lead not found")
-    return dict(row)
+    d = dict(row)
+    d['name'] = d.get('business_name') or d.get('canonical_name') or 'Unknown'
+    d['company_name'] = d['name']
+    if 'current_stage' in d:
+        d['stage'] = d['current_stage']
+    return d
 
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
@@ -881,6 +886,13 @@ def list_pipeline(status: Optional[str] = None):
     result = []
     for r in rows:
         d = dict(r)
+        # Normalise field names for frontend compatibility
+        d['name'] = d.get('business_name') or d.get('title') or 'Unknown'
+        d['company_name'] = d['name']
+        d['stage'] = d.get('current_stage') or 'new'
+        d['value'] = d.get('quote_value_gbp') or d.get('estimated_monthly_value_gbp') or 0
+        d['updated_at'] = d.get('last_touched_at')
+        d['id'] = d.get('entity_id') or d.get('opportunity_id')
         score = d.get('total_score') or d.get('priority_score') or 0
         signals = d.get('signals') or []
         has_tender = ('public_procurement' in signals) if isinstance(signals, list) else False
@@ -4584,8 +4596,15 @@ def unified_outreach_queue(limit: int = 50):
                 LIMIT %s
             """, (limit,))
 
-        # Group by action type for the frontend
-        queue = [dict(r) for r in rows]
+        # Normalise field names for frontend and group by action type
+        queue = []
+        for r in rows:
+            d = dict(r)
+            d['name'] = d.get('business_name') or d.get('name') or 'Unknown'
+            d['score'] = d.get('total_score')
+            d['outreach_count'] = 0  # default; overridden if outreach tracking exists
+            d['reply_status'] = None
+            queue.append(d)
         action_counts = {}
         for r in queue:
             t = r.get("action_type", "standard")

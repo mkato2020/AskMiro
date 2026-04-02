@@ -104,6 +104,24 @@ def fetchval(conn, sql: str, params=()):
 
 
 # ------------------------------------------------------------------
+# Field normalisation — DB views use business_name / current_stage,
+# but the React frontend expects name / company_name / stage.
+# ------------------------------------------------------------------
+
+def _normalise_lead(d: dict) -> dict:
+    """Add frontend-friendly aliases to a lead/pipeline dict."""
+    d['name'] = d.get('business_name') or d.get('canonical_name') or d.get('name') or 'Unknown'
+    d['company_name'] = d['name']
+    if 'current_stage' in d:
+        d['stage'] = d['current_stage']
+    if 'last_touched_at' in d:
+        d['updated_at'] = d['last_touched_at']
+    if 'entity_id' in d and 'id' not in d:
+        d['id'] = d['entity_id']
+    return d
+
+
+# ------------------------------------------------------------------
 # Lead board (replaces SQLite list_leads)
 # ------------------------------------------------------------------
 
@@ -154,7 +172,7 @@ def list_leads(
 
     if limit is not None:
         rows = fetchall(conn, f"SELECT vl.* {base_sql} ORDER BY vl.total_score DESC LIMIT %s", params + [limit])
-        return {"leads": [dict(r) for r in rows], "total": total}
+        return {"leads": [_normalise_lead(dict(r)) for r in rows], "total": total}
 
     offset = (page - 1) * per_page
     rows = fetchall(
@@ -164,7 +182,7 @@ def list_leads(
     )
     import math
     return {
-        "leads": [dict(r) for r in rows],
+        "leads": [_normalise_lead(dict(r)) for r in rows],
         "total": total,
         "page": page,
         "per_page": per_page,
