@@ -5001,6 +5001,57 @@ def unified_outreach_queue(limit: int = 50):
         return {"queue": [], "total": 0, "by_action": {}}
 
 
+@app.get("/api/outreach/auto-queue")
+def outreach_auto_queue():
+    """Auto-generate outreach queue from pipeline Ready stage + high-score uncontacted leads."""
+    try:
+        with db_pg.transaction() as conn:
+            # Get leads that should be in outreach: high score + not in active pipeline yet
+            # OR in pipeline at ready_to_contact/new/enriched stages
+            rows = db_pg.fetchall(conn, """
+                SELECT DISTINCT ON (vl.entity_id)
+                    vl.entity_id, vl.business_name, vl.borough, vl.sector,
+                    vl.total_score, vl.score_band, vl.phone, vl.email, vl.website,
+                    vl.estimated_monthly_value_gbp, vl.next_best_action, vl.hvt,
+                    o.id as opportunity_id, o.current_stage,
+                    CASE
+                        WHEN o.current_stage IN ('new','enriched','ready_to_contact') THEN 'pipeline_ready'
+                        WHEN o.id IS NULL AND vl.total_score >= 65 THEN 'high_score_uncontacted'
+                        ELSE 'standard'
+                    END as queue_reason,
+                    CASE
+                        WHEN vl.email IS NOT NULL AND vl.email != '' THEN 'email'
+                        WHEN vl.phone IS NOT NULL AND vl.phone != '' THEN 'call'
+                        ELSE 'research'
+                    END as contact_method
+                FROM v_lead_board vl
+                LEFT JOIN opportunities o ON o.entity_id = vl.entity_id
+                    AND o.current_stage NOT IN ('won','lost','dormant')
+                WHERE vl.active = TRUE
+                  AND vl.total_score >= 50
+                  AND (
+                      o.current_stage IN ('new','enriched','ready_to_contact')
+                      OR (o.id IS NULL AND vl.total_score >= 65)
+                  )
+                  AND (vl.email IS NOT NULL AND vl.email != ''
+                       OR vl.phone IS NOT NULL AND vl.phone != '')
+                ORDER BY vl.entity_id, vl.total_score DESC
+            """)
+
+            # Sort by priority: HVT first, then by score
+            leads = sorted(
+                [dict(r) for r in rows],
+                key=lambda x: (
+                    -(1 if x.get('hvt') else 0),
+                    -(x.get('total_score') or 0),
+                ),
+            )
+            return {"queue": leads, "total": len(leads)}
+    except Exception as e:
+        logger.error("outreach auto-queue: %s", e)
+        return {"queue": [], "total": 0}
+
+
 # ── Website lead webhook (inbound from askmiro.com forms / GAS) ──────────────
 
 @app.post("/api/webhook/lead")
@@ -6036,81 +6087,217 @@ def contract_profit(contract_id: int):
 
 @app.get("/api/today")
 def today_engine():
-    """The Today Engine — unified daily priorities across all modules."""
+    """The Today Engine — what to do right now."""
     try:
         with db_pg.transaction() as conn:
             result = {}
 
-            # Sales: Top leads to contact today (by score, not yet contacted)
+            # ── LEADS TO CONTACT TODAY (top 20 by composite score) ──
+            # High score + not recently contacted + has contact info
             try:
                 result['leads_to_contact'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT entity_id, business_name, borough, sector, total_score,
-                           estimated_monthly_value_gbp, next_best_action,
-                           'High-scoring lead ready for outreach' as reason
-                    FROM v_lead_board
-                    WHERE active = TRUE AND total_score >= 60
-                    ORDER BY total_score DESC LIMIT 20
+                    SELECT vl.entity_id, vl.business_name, vl.borough, vl.sector,
+                           vl.total_score, vl.score_band, vl.phone, vl.email, vl.website,
+                           vl.estimated_monthly_value_gbp, vl.next_best_action,
+                           vl.hvt,
+                           CASE
+                             WHEN vl.hvt = TRUE AND vl.total_score >= 75 THEN 'High-value target with strong score — contact immediately'
+                             WHEN vl.total_score >= 80 THEN 'Top-scoring lead — priority outreach'
+                             WHEN vl.hvt = TRUE THEN 'High-value target — worth pursuing'
+                             WHEN vl.total_score >= 65 THEN 'Strong lead — ready for contact'
+                             ELSE 'Good prospect — outreach recommended'
+                           END as reason,
+                           CASE
+                             WHEN vl.phone IS NOT NULL AND vl.phone != '' THEN 'Call directly'
+                             WHEN vl.email IS NOT NULL AND vl.email != '' THEN 'Send email'
+                             WHEN vl.website IS NOT NULL AND vl.website != '' THEN 'Find contact via website'
+                             ELSE 'Research contact details'
+                           END as suggested_action
+                    FROM v_lead_board vl
+                    WHERE vl.active = TRUE
+                      AND vl.total_score >= 50
+                      AND NOT EXISTS (
+                          SELECT 1 FROM opportunities o
+                          WHERE o.entity_id = vl.entity_id
+                          AND o.current_stage IN ('won','lost')
+                      )
+                    ORDER BY
+                        (CASE WHEN vl.hvt = TRUE THEN 20 ELSE 0 END) + vl.total_score DESC
+                    LIMIT 20
                 """)]
-            except Exception:
+            except Exception as e:
+                logger.error("today leads: %s", e)
                 result['leads_to_contact'] = []
 
-            # Pipeline movement recommendations
+            # ── FOLLOW-UPS DUE (top 10 stale pipeline items) ──
             try:
-                result['pipeline_stale'] = [dict(r) for r in db_pg.fetchall(conn, """
+                result['followups_due'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
                            o.updated_at, e.canonical_name as business_name,
-                           EXTRACT(DAY FROM NOW() - o.updated_at) as days_in_stage
+                           e.sector,
+                           a.borough,
+                           os.total_score,
+                           os.estimated_monthly_value_gbp,
+                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_stale,
+                           CASE
+                             WHEN EXTRACT(DAY FROM NOW() - o.updated_at) > 14 THEN 'Critical — ' || EXTRACT(DAY FROM NOW() - o.updated_at)::int || ' days with no activity. Risk of losing opportunity.'
+                             WHEN EXTRACT(DAY FROM NOW() - o.updated_at) > 7 THEN 'Overdue — needs follow-up this week'
+                             ELSE 'Due for follow-up — keep momentum'
+                           END as reason,
+                           CASE
+                             WHEN o.current_stage = 'contacted' THEN 'Send follow-up email or call'
+                             WHEN o.current_stage = 'replied' THEN 'Schedule site visit or send quote'
+                             WHEN o.current_stage = 'meeting_or_site_visit' THEN 'Prepare and send quote'
+                             WHEN o.current_stage = 'quote_sent' THEN 'Chase quote response'
+                             WHEN o.current_stage = 'negotiating' THEN 'Push to close'
+                             ELSE 'Review and advance'
+                           END as suggested_action
                     FROM opportunities o
                     JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
                     WHERE o.current_stage NOT IN ('won','lost','dormant')
+                      AND o.updated_at < NOW() - INTERVAL '2 days'
+                    ORDER BY
+                        EXTRACT(DAY FROM NOW() - o.updated_at) DESC,
+                        COALESCE(os.total_score, 0) DESC
+                    LIMIT 10
+                """)]
+            except Exception as e:
+                logger.error("today followups: %s", e)
+                result['followups_due'] = []
+
+            # ── PUSH TO SITE VISIT (top 5 qualified leads ready for site visit) ──
+            try:
+                result['push_to_visit'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                           e.canonical_name as business_name, e.sector,
+                           a.borough, a.postcode,
+                           os.total_score, os.estimated_monthly_value_gbp,
+                           'Contacted/replied lead with strong score — push to site visit' as reason,
+                           'Propose site visit or virtual walkthrough' as suggested_action
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    WHERE o.current_stage IN ('contacted','replied')
+                      AND COALESCE(os.total_score, 0) >= 60
+                    ORDER BY COALESCE(os.total_score, 0) DESC, o.updated_at ASC
+                    LIMIT 5
+                """)]
+            except Exception as e:
+                logger.error("today push_to_visit: %s", e)
+                result['push_to_visit'] = []
+
+            # ── LEADS TO QUOTE (top 3 ready for quote) ──
+            try:
+                result['leads_to_quote'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                           e.canonical_name as business_name, e.sector,
+                           a.borough, a.postcode,
+                           os.total_score, os.estimated_monthly_value_gbp,
+                           'Qualified lead ready for quote — act now before competitor moves' as reason,
+                           'Prepare and send quote today' as suggested_action
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    WHERE o.current_stage IN ('meeting_or_site_visit','replied','quote_prepared')
+                      AND COALESCE(os.total_score, 0) >= 55
+                    ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC, os.total_score DESC
+                    LIMIT 3
+                """)]
+            except Exception as e:
+                logger.error("today leads_to_quote: %s", e)
+                result['leads_to_quote'] = []
+
+            # ── PIPELINE MOVEMENT RECOMMENDATIONS ──
+            try:
+                result['pipeline_movement'] = []
+                # Ready → Contacted: leads sitting in ready/enriched/new with good scores
+                ready_to_contact = db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
+                           o.current_stage, os.total_score, e.sector, a.borough,
+                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    WHERE o.current_stage IN ('new','enriched','ready_to_contact')
+                      AND COALESCE(os.total_score, 0) >= 50
+                    ORDER BY os.total_score DESC LIMIT 10
+                """)
+                for r in ready_to_contact:
+                    d = dict(r)
+                    d['recommendation'] = 'Move to Contacted — start outreach'
+                    d['from_stage'] = d['current_stage']
+                    d['to_stage'] = 'contacted'
+                    result['pipeline_movement'].append(d)
+
+                # Contacted stale → push forward or flag
+                contacted_stale = db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
+                           o.current_stage, os.total_score, e.sector, a.borough,
+                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    WHERE o.current_stage = 'contacted'
+                      AND o.updated_at < NOW() - INTERVAL '5 days'
+                    ORDER BY COALESCE(os.total_score, 0) DESC LIMIT 5
+                """)
+                for r in contacted_stale:
+                    d = dict(r)
+                    d['recommendation'] = f"Stale {d.get('days_in_stage',0)}d — follow up or move to Replied/Lost"
+                    d['from_stage'] = 'contacted'
+                    d['to_stage'] = 'replied'
+                    result['pipeline_movement'].append(d)
+
+                # Quote sent stale → chase
+                quote_stale = db_pg.fetchall(conn, """
+                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
+                           o.current_stage, os.total_score,
+                           os.estimated_monthly_value_gbp,
+                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                    WHERE o.current_stage = 'quote_sent'
                       AND o.updated_at < NOW() - INTERVAL '3 days'
-                    ORDER BY o.updated_at ASC LIMIT 15
-                """)]
-            except Exception:
-                result['pipeline_stale'] = []
+                    ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC LIMIT 5
+                """)
+                for r in quote_stale:
+                    d = dict(r)
+                    d['recommendation'] = f"Quote sent {d.get('days_in_stage',0)}d ago — chase for response"
+                    d['from_stage'] = 'quote_sent'
+                    d['to_stage'] = 'negotiating'
+                    result['pipeline_movement'].append(d)
+            except Exception as e:
+                logger.error("today pipeline_movement: %s", e)
+                result['pipeline_movement'] = []
 
-            # Quotes needing action
+            # ── AT-RISK (commercial) ──
             try:
-                result['quotes_pending'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT q.id, q.entity_id, q.title, q.monthly_value, q.margin_pct, q.status, q.created_at,
-                           e.canonical_name as business_name
-                    FROM quotes q
-                    LEFT JOIN entities e ON e.id = q.entity_id
-                    WHERE q.status IN ('draft','sent')
-                    ORDER BY q.created_at DESC LIMIT 10
-                """)]
-            except Exception:
-                result['quotes_pending'] = []
-
-            # Contracts needing staffing
-            try:
-                result['contracts_unstaffed'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT id, site_name, site_postcode, monthly_value_gbp, contract_start,
-                           staffing_status, launch_readiness
+                result['at_risk'] = [dict(r) for r in db_pg.fetchall(conn, """
+                    SELECT id, site_name, monthly_value_gbp, margin_pct, risk_flag, staffing_status
                     FROM contracts
-                    WHERE staffing_status IN ('unassigned','partial') AND status = 'active'
-                    ORDER BY contract_start ASC NULLS LAST LIMIT 10
+                    WHERE status = 'active' AND (risk_flag IN ('risk','loss') OR margin_pct < 20 OR staffing_status = 'unassigned')
+                    ORDER BY COALESCE(margin_pct, 0) ASC LIMIT 10
                 """)]
             except Exception:
-                result['contracts_unstaffed'] = []
+                result['at_risk'] = []
 
-            # Contracts expiring
-            try:
-                result['contracts_expiring'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT id, site_name, monthly_value_gbp, contract_end, renewal_date
-                    FROM contracts
-                    WHERE status IN ('active','expiring')
-                      AND (contract_end <= CURRENT_DATE + 60 OR renewal_date <= CURRENT_DATE + 60)
-                    ORDER BY COALESCE(contract_end, renewal_date) ASC LIMIT 10
-                """)]
-            except Exception:
-                result['contracts_expiring'] = []
-
-            # Overdue invoices
+            # ── OVERDUE INVOICES ──
             try:
                 result['overdue_invoices'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT id, client_name, amount, due_date,
-                           EXTRACT(DAY FROM NOW() - due_date) as days_overdue
+                           EXTRACT(DAY FROM NOW() - due_date)::int as days_overdue
                     FROM fin_invoices
                     WHERE status = 'sent' AND due_date < CURRENT_DATE
                     ORDER BY due_date ASC LIMIT 10
@@ -6118,39 +6305,32 @@ def today_engine():
             except Exception:
                 result['overdue_invoices'] = []
 
-            # Intelligence alerts (unacknowledged)
-            try:
-                result['alerts'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT * FROM intelligence_alerts
-                    WHERE acknowledged = FALSE
-                    ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, created_at DESC
-                    LIMIT 20
-                """)]
-            except Exception:
-                result['alerts'] = []
-
-            # Borough intelligence
+            # ── TOP BOROUGHS THIS WEEK ──
             try:
                 result['top_boroughs'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT borough, COUNT(*) as lead_count,
                            ROUND(AVG(total_score)::NUMERIC, 1) as avg_score,
-                           SUM(CASE WHEN hvt = TRUE THEN 1 ELSE 0 END) as hvt_count
+                           SUM(CASE WHEN hvt = TRUE THEN 1 ELSE 0 END) as hvt_count,
+                           ROUND(SUM(COALESCE(estimated_monthly_value_gbp,0))::NUMERIC, 0) as total_value
                     FROM v_lead_board
-                    WHERE active = TRUE AND borough IS NOT NULL AND borough != ''
+                    WHERE active = TRUE AND borough IS NOT NULL AND borough != '' AND total_score >= 50
                     GROUP BY borough
-                    ORDER BY avg_score DESC LIMIT 10
+                    HAVING COUNT(*) >= 3
+                    ORDER BY AVG(total_score) DESC LIMIT 10
                 """)]
             except Exception:
                 result['top_boroughs'] = []
 
-            # Counts summary
+            # ── COUNTS ──
             try:
                 result['counts'] = {
                     'total_leads': db_pg.fetchval(conn, "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE") or 0,
                     'active_pipeline': db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')") or 0,
                     'won_contracts': db_pg.fetchval(conn, "SELECT COUNT(*) FROM contracts WHERE status = 'active'") or 0,
+                    'stale_pipeline': db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant') AND updated_at < NOW() - INTERVAL '3 days'") or 0,
                     'pending_quotes': db_pg.fetchval(conn, "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')") or 0,
                     'active_cleaners': db_pg.fetchval(conn, "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'") or 0,
+                    'unstaffed_contracts': db_pg.fetchval(conn, "SELECT COUNT(*) FROM contracts WHERE staffing_status = 'unassigned' AND status = 'active'") or 0,
                 }
             except Exception:
                 result['counts'] = {}

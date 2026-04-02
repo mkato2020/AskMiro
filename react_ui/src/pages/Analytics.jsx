@@ -115,6 +115,7 @@ function BarChart({data,width=520,height=200}){
 
 export default function Analytics({openLead}){
   const [period,setPeriod]=useState('h1-2026')
+  const [showAllContacts,setShowAllContacts]=useState(false)
 
   /* ── data fetching ──────────────────────────────────────────── */
   const {data:summary,isLoading:lSum}   = useQuery({queryKey:['summary'],queryFn:api.summary,staleTime:120000})
@@ -237,8 +238,8 @@ export default function Analytics({openLead}){
         </select>
       </div>
 
-      {/* ─── TODAY ENGINE: Intelligence Layer ────────────────────── */}
-      {today && (
+      {/* ─── TODAY ENGINE: Command Centre ──────────────────────── */}
+      {today ? (
         <>
           {/* ── Intelligence Alerts Strip ─────────────────────────── */}
           {visibleAlerts.length > 0 && (
@@ -264,121 +265,340 @@ export default function Analytics({openLead}){
             </div>
           )}
 
-          {/* ── Command Centre KPIs ───────────────────────────────── */}
-          <div style={{display:'flex',gap:12,marginBottom:22,flexWrap:'wrap'}}>
-            {[
-              {label:'Leads to Contact',count:safeArr(today.leads_to_contact).length,accent:'var(--teal)'},
-              {label:'Pipeline Stale',count:safeArr(today.pipeline_stale).length,accent:'#D97706'},
-              {label:'Quotes Pending',count:safeArr(today.quotes_pending).length,accent:'#2563EB'},
-              {label:'Unstaffed Contracts',count:safeArr(today.contracts_unstaffed).length,accent:'#DC2626'},
-              {label:'Overdue Invoices',count:safeArr(today.overdue_invoices).length,accent:'#DC2626'},
-              {label:'Expiring Contracts',count:safeArr(today.contracts_expiring).length,accent:'#F59E0B'},
-            ].map((k,i)=>(
-              <div key={i} style={{
-                ...card,flex:1,minWidth:130,padding:'14px 18px',cursor:'pointer',position:'relative',overflow:'hidden',
-                transition:'box-shadow .15s',
-              }} onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'}
-                 onMouseLeave={e=>e.currentTarget.style.boxShadow='none'}>
-                <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:k.accent,borderRadius:'var(--r-lg) var(--r-lg) 0 0'}}/>
-                <div style={{fontSize:'1.6rem',fontWeight:800,color:k.count>0?k.accent:'var(--text-muted)',letterSpacing:'-.03em',lineHeight:1}}>{k.count}</div>
-                <div style={{fontSize:'0.65rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,marginTop:8}}>{k.label}</div>
+          {/* ── SECTION 1: Action Strip ────────────────────────────── */}
+          {(()=>{
+            const counts = today.counts || {}
+            const strips = [
+              {id:'sec-contacts',icon:'\uD83C\uDFAF',label:'Leads to Contact',count:safeArr(today.leads_to_contact).length,bg:'#0D9488',fg:'#fff'},
+              {id:'sec-followups',icon:'\u23F0',label:'Follow-ups Due',count:safeArr(today.followups_due).length,bg:safeArr(today.followups_due).length>0?'#D97706':'#94A3B8',fg:'#fff'},
+              {id:'sec-visits',icon:'\uD83D\uDCCD',label:'Push to Visit',count:safeArr(today.push_to_visit).length,bg:'#2563EB',fg:'#fff'},
+              {id:'sec-quotes',icon:'\uD83D\uDCB0',label:'Quotes to Send',count:safeArr(today.leads_to_quote).length,bg:'#059669',fg:'#fff'},
+              {id:'sec-followups',icon:'\u26A0\uFE0F',label:'Stale Pipeline',count:counts.stale_pipeline||0,bg:(counts.stale_pipeline||0)>0?'#DC2626':'#94A3B8',fg:'#fff'},
+              {id:'sec-risk',icon:'\uD83D\uDCCB',label:'Unstaffed Contracts',count:counts.unstaffed_contracts||0,bg:(counts.unstaffed_contracts||0)>0?'#DC2626':'#94A3B8',fg:'#fff'},
+            ]
+            return(
+              <div style={{display:'flex',gap:8,marginBottom:22,overflowX:'auto',paddingBottom:4}}>
+                {strips.map((s,i)=>(
+                  <div key={i} onClick={()=>{const el=document.getElementById(s.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})}}
+                    style={{
+                      display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderRadius:28,
+                      background:s.count>0?s.bg:'var(--bg-surface)',border:s.count>0?'none':'1px solid var(--border)',
+                      color:s.count>0?s.fg:'var(--text-muted)',cursor:'pointer',whiteSpace:'nowrap',
+                      transition:'transform .1s,box-shadow .15s',flex:'0 0 auto',
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.12)'}}
+                    onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='none'}}>
+                    <span style={{fontSize:'0.95rem'}}>{s.icon}</span>
+                    <span style={{fontSize:'0.78rem',fontWeight:800,letterSpacing:'-.01em'}}>{s.count} {s.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
 
-          {/* ── Top Leads Today + Pipeline Movement ────────────────── */}
-          <div style={{display:'flex',gap:18,marginBottom:22,flexWrap:'wrap'}}>
-            {/* Top Leads Today */}
-            {safeArr(today.leads_to_contact).length > 0 && (
-              <div style={{...card,flex:2,minWidth:380}}>
-                <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Top Leads Today</div>
-                <div style={{overflowX:'auto'}}>
-                  <table style={{width:'100%',borderCollapse:'collapse'}}>
-                    <thead>
-                      <tr style={{borderBottom:'2px solid var(--border)'}}>
-                        <th style={thStyle}>Business</th>
-                        <th style={thStyle}>Borough</th>
-                        <th style={thStyle}>Sector</th>
-                        <th style={thStyle}>Score</th>
-                        <th style={thStyle}>Est. Value</th>
-                        <th style={thStyle}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {safeArr(today.leads_to_contact).slice(0,5).map((lead,i)=>{
-                        const sc = Number(lead.score)||0
-                        const scoreColor = sc>=70?'#059669':sc>=50?'#D97706':'#DC2626'
-                        const scoreBg = sc>=70?'#ECFDF5':sc>=50?'#FFFBEB':'#FEF2F2'
-                        return(
-                          <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
-                            <td style={{...tdStyle,fontWeight:600}}>{lead.business_name||lead.name||'—'}</td>
-                            <td style={tdStyle}>{lead.borough||'—'}</td>
-                            <td style={tdStyle}>{lead.sector||'—'}</td>
-                            <td style={tdStyle}>
-                              <span style={{display:'inline-block',fontSize:'0.7rem',fontWeight:800,padding:'2px 10px',
-                                borderRadius:20,background:scoreBg,color:scoreColor}}>{sc}</span>
-                            </td>
-                            <td style={{...tdStyle,fontWeight:600}}>{lead.est_value!=null?fmtGBP(lead.est_value):'—'}</td>
-                            <td style={{...tdStyle,fontSize:'0.75rem',color:'var(--teal)',fontWeight:600}}>{lead.next_best_action||'—'}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+          {/* ── SECTION 2: Contact Today (full-width table) ────────── */}
+          {safeArr(today.leads_to_contact).length > 0 && (
+            <div id="sec-contacts" style={{...card,marginBottom:22}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:'1rem'}}>{'\uD83C\uDFAF'}</span>
+                  <span style={{fontSize:'0.82rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Contact Today</span>
+                  {badge('#0D9488','#fff',`${safeArr(today.leads_to_contact).length} leads`)}
                 </div>
               </div>
-            )}
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr style={{borderBottom:'2px solid var(--border)'}}>
+                      <th style={{...thStyle,width:30}}>#</th>
+                      <th style={thStyle}>Business Name</th>
+                      <th style={thStyle}>Borough</th>
+                      <th style={thStyle}>Sector</th>
+                      <th style={{...thStyle,textAlign:'center'}}>Score</th>
+                      <th style={{...thStyle,textAlign:'right'}}>Est. Value</th>
+                      <th style={thStyle}>Reason</th>
+                      <th style={thStyle}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {safeArr(today.leads_to_contact).slice(0,showAllContacts?50:10).map((lead,i)=>{
+                      const sc = Number(lead.score)||0
+                      const isA = sc>=70, isB = sc>=50 && sc<70
+                      const scoreBg = isA?'#ECFDF5':isB?'#EFF6FF':'#FFFBEB'
+                      const scoreColor = isA?'#059669':isB?'#2563EB':'#D97706'
+                      const scoreBand = isA?'A':isB?'B':'C'
+                      return(
+                        <tr key={i} style={{borderBottom:'1px solid var(--border)',transition:'background .1s'}}
+                          onMouseEnter={e=>e.currentTarget.style.background='var(--bg-surface-hover,rgba(0,0,0,.02))'}
+                          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <td style={{...tdStyle,color:'var(--text-muted)',fontWeight:600,fontSize:'0.72rem'}}>{i+1}</td>
+                          <td style={{...tdStyle,fontWeight:700}}>{lead.business_name||lead.name||'—'}</td>
+                          <td style={tdStyle}>{lead.borough||'—'}</td>
+                          <td style={tdStyle}>{lead.sector||'—'}</td>
+                          <td style={{...tdStyle,textAlign:'center'}}>
+                            <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:800,padding:'3px 10px',
+                              borderRadius:20,background:scoreBg,color:scoreColor,minWidth:36,textAlign:'center'}}>{sc} {scoreBand}</span>
+                          </td>
+                          <td style={{...tdStyle,textAlign:'right',fontWeight:600}}>{lead.est_value!=null?fmtGBP(lead.est_value):'—'}</td>
+                          <td style={{...tdStyle,fontSize:'0.74rem',color:'var(--text-muted)',maxWidth:200}}>{lead.reason||'—'}</td>
+                          <td style={tdStyle}>
+                            <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:700,padding:'3px 12px',
+                              borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap'}}>{lead.suggested_action||lead.next_best_action||'Contact'}</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {safeArr(today.leads_to_contact).length > 10 && !showAllContacts && (
+                <div style={{textAlign:'center',marginTop:12}}>
+                  <button onClick={()=>setShowAllContacts(true)} style={{
+                    background:'none',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:'8px 20px',
+                    fontSize:'0.78rem',fontWeight:700,color:'var(--teal)',cursor:'pointer',transition:'background .15s',
+                  }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-surface)'}
+                     onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                    Show all {safeArr(today.leads_to_contact).length} leads
+                  </button>
+                </div>
+              )}
+              {showAllContacts && safeArr(today.leads_to_contact).length > 10 && (
+                <div style={{textAlign:'center',marginTop:12}}>
+                  <button onClick={()=>setShowAllContacts(false)} style={{
+                    background:'none',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:'8px 20px',
+                    fontSize:'0.78rem',fontWeight:700,color:'var(--text-muted)',cursor:'pointer',
+                  }}>Show less</button>
+                </div>
+              )}
+            </div>
+          )}
 
-            {/* Pipeline Movement Needed */}
-            {safeArr(today.pipeline_stale).length > 0 && (
-              <div style={{...card,flex:1,minWidth:260}}>
-                <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Pipeline Movement Needed</div>
+          {/* ── SECTION 3: Follow Up Now + Pipeline Movement ────────── */}
+          <div id="sec-followups" style={{display:'flex',gap:18,marginBottom:22,flexWrap:'wrap'}}>
+            {/* Left: Follow Up Now */}
+            <div style={{...card,flex:1,minWidth:340}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                <span style={{fontSize:'0.95rem'}}>{'\u23F0'}</span>
+                <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Follow Up Now</span>
+                {safeArr(today.followups_due).length>0 && badge('#D97706','#fff',`${safeArr(today.followups_due).length}`)}
+              </div>
+              {safeArr(today.followups_due).length === 0 ? (
+                <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'12px 0'}}>No follow-ups due. Pipeline is moving.</div>
+              ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {safeArr(today.pipeline_stale).slice(0,8).map((item,i)=>{
-                    const days = Number(item.days_in_stage)||0
-                    const isOverdue = days > 7
+                  {safeArr(today.followups_due).sort((a,b)=>(Number(b.days_stale)||0)-(Number(a.days_stale)||0)).map((item,i)=>{
+                    const days = Number(item.days_stale)||0
+                    const isCritical = days > 14
+                    const isWarn = days > 7
                     return(
                       <div key={i} style={{
-                        display:'flex',alignItems:'center',justifyContent:'space-between',
-                        padding:'8px 12px',borderRadius:'var(--r-sm)',
-                        background:isOverdue?'#FEF2F2':'var(--bg-surface)',
-                        border:`1px solid ${isOverdue?'#FECACA':'var(--border)'}`,
+                        display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,
+                        padding:'10px 14px',borderRadius:'var(--r-sm)',
+                        background:isCritical?'#FEF2F2':isWarn?'#FFFBEB':'var(--bg-surface)',
+                        border:`1px solid ${isCritical?'#FECACA':isWarn?'#FDE68A':'var(--border)'}`,
                       }}>
-                        <div>
-                          <div style={{fontSize:'0.8rem',fontWeight:600,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
-                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.stage||item.current_stage||'—'}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:2}}>{item.business_name||item.name||'—'}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                            {(item.current_stage||item.stage) && badge(
+                              isCritical?'#FEE2E2':isWarn?'#FEF3C7':'#F1F5F9',
+                              isCritical?'#DC2626':isWarn?'#92400E':'#475569',
+                              item.current_stage||item.stage
+                            )}
+                            <span style={{fontSize:'0.72rem',fontWeight:700,color:isCritical?'#DC2626':isWarn?'#D97706':'var(--text-muted)'}}>{days}d stale</span>
+                          </div>
+                          {item.reason && <div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:4,lineHeight:1.3}}>{item.reason}</div>}
                         </div>
-                        <div style={{fontSize:'0.75rem',fontWeight:700,color:isOverdue?'#DC2626':'var(--text-muted)',whiteSpace:'nowrap'}}>
-                          {days}d
-                        </div>
+                        {item.suggested_action && (
+                          <span style={{display:'inline-block',fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',
+                            borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap',marginTop:2,flex:'0 0 auto'}}>{item.suggested_action}</span>
+                        )}
                       </div>
                     )
                   })}
                 </div>
+              )}
+            </div>
+
+            {/* Right: Pipeline Movement */}
+            <div style={{...card,flex:1,minWidth:340}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                <span style={{fontSize:'0.95rem'}}>{'\u27A1\uFE0F'}</span>
+                <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Pipeline Movement</span>
               </div>
-            )}
+              {safeArr(today.pipeline_movement).length === 0 ? (
+                <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'12px 0'}}>No pipeline moves recommended.</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {safeArr(today.pipeline_movement).map((item,i)=>{
+                    const urgency = (item.urgency||'').toLowerCase()
+                    const borderL = urgency==='high'?'#DC2626':urgency==='medium'?'#D97706':'#2563EB'
+                    return(
+                      <div key={i} style={{
+                        padding:'10px 14px',borderRadius:'var(--r-sm)',borderLeft:`3px solid ${borderL}`,
+                        background:'var(--bg-surface)',border:'1px solid var(--border)',borderLeftColor:borderL,
+                      }}>
+                        <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:4}}>{item.business_name||item.name||'—'}</div>
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                          <span style={{fontSize:'0.68rem',fontWeight:700,padding:'2px 8px',borderRadius:12,background:'#F1F5F9',color:'#475569'}}>{item.from_stage||'—'}</span>
+                          <span style={{fontSize:'0.8rem',color:'var(--teal)',fontWeight:800}}>{'\u2192'}</span>
+                          <span style={{fontSize:'0.68rem',fontWeight:700,padding:'2px 8px',borderRadius:12,background:'#ECFDF5',color:'#059669'}}>{item.to_stage||'—'}</span>
+                        </div>
+                        {item.recommendation && <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.3}}>{item.recommendation}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* ── Top Boroughs This Week ─────────────────────────────── */}
+          {/* ── SECTION 4: Push to Visit + Leads to Quote ──────────── */}
+          <div style={{display:'flex',gap:18,marginBottom:22,flexWrap:'wrap'}}>
+            {/* Left: Push to Site Visit */}
+            <div id="sec-visits" style={{...card,flex:1,minWidth:300}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                <span style={{fontSize:'0.95rem'}}>{'\uD83D\uDCCD'}</span>
+                <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Push to Site Visit</span>
+                {safeArr(today.push_to_visit).length>0 && badge('#2563EB','#fff',`${safeArr(today.push_to_visit).length}`)}
+              </div>
+              {safeArr(today.push_to_visit).length === 0 ? (
+                <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'8px 0'}}>No site visits to push.</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {safeArr(today.push_to_visit).map((item,i)=>{
+                    const sc = Number(item.score)||0
+                    return(
+                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                        padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
+                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.borough||''}{item.borough&&sc?' · ':''}{sc?`Score ${sc}`:''}</div>
+                        </div>
+                        {(item.suggested_action||item.next_best_action) && (
+                          <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
+                            background:'#EFF6FF',color:'#2563EB',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Leads to Quote */}
+            <div id="sec-quotes" style={{...card,flex:1,minWidth:300}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                <span style={{fontSize:'0.95rem'}}>{'\uD83D\uDCB0'}</span>
+                <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Leads to Quote</span>
+                {safeArr(today.leads_to_quote).length>0 && badge('#059669','#fff',`${safeArr(today.leads_to_quote).length}`)}
+              </div>
+              {safeArr(today.leads_to_quote).length === 0 ? (
+                <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'8px 0'}}>No quotes to prepare.</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {safeArr(today.leads_to_quote).map((item,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                      padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)'}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
+                        {item.est_value!=null && <div style={{fontSize:'0.72rem',fontWeight:700,color:'#059669'}}>{fmtGBP(item.est_value)}</div>}
+                      </div>
+                      {(item.suggested_action||item.next_best_action) && (
+                        <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
+                          background:'#ECFDF5',color:'#059669',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── SECTION 5: Alerts & Risk (conditional) ─────────────── */}
+          {(safeArr(today.at_risk).length > 0 || safeArr(today.overdue_invoices).length > 0) && (
+            <div id="sec-risk" style={{display:'flex',gap:18,marginBottom:22,flexWrap:'wrap'}}>
+              {safeArr(today.at_risk).length > 0 && (
+                <div style={{...card,flex:1,minWidth:300,borderLeft:'4px solid #DC2626'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    {badge('#FEF2F2','#DC2626','AT RISK')}
+                    <span style={{fontSize:'0.78rem',fontWeight:700,color:'var(--text-1)'}}>Contracts at Risk</span>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {safeArr(today.at_risk).map((item,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                        padding:'8px 12px',borderRadius:'var(--r-sm)',background:'#FEF2F2',border:'1px solid #FECACA'}}>
+                        <div>
+                          <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
+                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>
+                            {item.margin_pct!=null && <span>Margin {Number(item.margin_pct).toFixed(1)}%</span>}
+                            {item.risk_flag && <span>{item.margin_pct!=null?' · ':''}{item.risk_flag}</span>}
+                          </div>
+                        </div>
+                        <span style={{fontSize:'0.72rem',fontWeight:800,color:'#DC2626'}}>{'\u26A0\uFE0F'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {safeArr(today.overdue_invoices).length > 0 && (
+                <div style={{...card,flex:1,minWidth:300,borderLeft:'4px solid #D97706'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    {badge('#FFFBEB','#D97706','OVERDUE')}
+                    <span style={{fontSize:'0.78rem',fontWeight:700,color:'var(--text-1)'}}>Overdue Invoices</span>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {safeArr(today.overdue_invoices).map((item,i)=>{
+                      const daysOd = Number(item.days_overdue)||0
+                      return(
+                        <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                          padding:'8px 12px',borderRadius:'var(--r-sm)',background:daysOd>30?'#FEF2F2':'#FFFBEB',
+                          border:`1px solid ${daysOd>30?'#FECACA':'#FDE68A'}`}}>
+                          <div>
+                            <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.client_name||item.name||'—'}</div>
+                            <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.invoice_number||''}{item.invoice_number?' · ':''}{daysOd}d overdue</div>
+                          </div>
+                          <span style={{fontSize:'0.82rem',fontWeight:800,color:daysOd>30?'#DC2626':'#D97706'}}>{item.amount!=null?fmtGBP(item.amount):'—'}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── SECTION 6: Borough Intelligence ────────────────────── */}
           {safeArr(today.top_boroughs).length > 0 && (
             <div style={{...card,marginBottom:22}}>
-              <div style={{fontSize:'0.72rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:14}}>Top Boroughs This Week</div>
-              <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                <span style={{fontSize:'0.95rem'}}>{'\uD83D\uDCCA'}</span>
+                <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Borough Intelligence</span>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
                 {(()=>{
                   const boroughs = safeArr(today.top_boroughs)
-                  const maxCount = Math.max(...boroughs.map(b=>Number(b.count||b.lead_count)||0),1)
+                  const maxVal = Math.max(...boroughs.map(b=>Number(b.total_value||b.count||b.lead_count)||0),1)
                   return boroughs.slice(0,10).map((b,i)=>{
                     const count = Number(b.count||b.lead_count)||0
-                    const pct = count/maxCount*100
+                    const totalVal = Number(b.total_value)||0
+                    const avgSc = Number(b.avg_score)||0
+                    const pct = (totalVal||count)/maxVal*100
+                    const barColor = i<3?'var(--teal)':i<6?'#2563EB':'#64748B'
+                    const name = b.borough||b.name||'Unknown'
                     return(
-                      <div key={i} style={{flex:1,minWidth:70,maxWidth:120,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                        <span style={{fontSize:'0.72rem',fontWeight:700,color:'var(--text-1)'}}>{count}</span>
-                        <div style={{width:'100%',borderRadius:4,overflow:'hidden',background:'var(--border)',height:24}}>
-                          <div style={{width:`${pct}%`,height:'100%',background:'var(--teal)',borderRadius:4,transition:'width .3s'}}/>
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:12}}>
+                        <div style={{width:110,fontSize:'0.78rem',fontWeight:600,color:'var(--text-1)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:'0 0 110px'}}>
+                          {name}
                         </div>
-                        <span style={{fontSize:'0.62rem',color:'var(--text-muted)',textAlign:'center',lineHeight:1.2,fontWeight:600}}>
-                          {(b.borough||b.name||'').length>12?(b.borough||b.name||'').slice(0,10)+'...':(b.borough||b.name||'')}
-                        </span>
+                        <div style={{flex:1,height:22,borderRadius:4,overflow:'hidden',background:'var(--border)',position:'relative'}}>
+                          <div style={{width:`${Math.max(pct,2)}%`,height:'100%',background:barColor,borderRadius:4,transition:'width .3s'}}/>
+                        </div>
+                        <div style={{display:'flex',gap:12,flex:'0 0 auto',alignItems:'center'}}>
+                          <span style={{fontSize:'0.7rem',fontWeight:700,color:'var(--text-1)',minWidth:20,textAlign:'right'}}>{count}</span>
+                          {avgSc > 0 && <span style={{fontSize:'0.65rem',fontWeight:600,color:'var(--text-muted)',minWidth:40}}>Avg {avgSc.toFixed(0)}</span>}
+                          {totalVal > 0 && <span style={{fontSize:'0.7rem',fontWeight:700,color:'#059669',minWidth:55,textAlign:'right'}}>{fmtGBP(totalVal)}</span>}
+                        </div>
                       </div>
                     )
                   })
@@ -387,6 +607,11 @@ export default function Analytics({openLead}){
             </div>
           )}
         </>
+      ) : (
+        <div style={{...card,marginBottom:22,textAlign:'center',padding:'32px 24px'}}>
+          <Spinner/>
+          <div style={{fontSize:'0.82rem',color:'var(--text-muted)',marginTop:12}}>Loading Today Engine...</div>
+        </div>
       )}
 
       {/* ─── Action Banner (web leads) ─────────────────────────── */}
