@@ -23,6 +23,7 @@ export default function Quotes({openLead}){
   const [showBuilder,setShowBuilder]=useState(true)
   const [saving,setSaving]=useState(false)
   const [saveMsg,setSaveMsg]=useState(null)
+  const [selectedQuote,setSelectedQuote]=useState(null)
 
   // Settings with defaults
   const llw=settings?.llw_rate||13.85
@@ -124,6 +125,26 @@ export default function Quotes({openLead}){
       setSaveMsg({type:'error',text:err.message||'Save failed'})
     }finally{setSaving(false)}
   },[form,llw,onCosts,qc])
+
+  // ── Load into builder ────────────────────────────────────
+  const loadIntoBuilder=useCallback((q)=>{
+    setForm({
+      client:q.client_name||q.client||q.customer||'',
+      site:q.site_address||q.site||q.address||'',
+      postcode:q.site_postcode||q.postcode||'',
+      segment:q.sector||q.segment||'Office',
+      mode:q.mode==='fixed'?'Fixed Price':'Hourly Rate',
+      hrs:Number(q.hours_per_week||q.hoursPerWeek||20),
+      days:Number(q.days_per_week||q.daysPerWeek||5),
+      rate:Number(q.client_rate||q.hourlyRate||18.50),
+      supplies:Number(q.supplies_month||q.suppliesCost||200),
+      other:Number(q.other_costs_month||q.otherCosts||0),
+      notes:q.notes||''
+    })
+    setSelectedQuote(null)
+    setShowBuilder(true)
+    setSaveMsg({type:'success',text:`Loaded "${q.client_name||q.client||''}" into builder — edit and save as new version`})
+  },[])
 
   const canShowIntel=!!form.postcode?.trim()&&form.hrs>0
 
@@ -422,25 +443,111 @@ export default function Quotes({openLead}){
               </tr>
             </thead>
             <tbody>
-              {filtered.map((q,i)=>(
-                <tr key={q.id||i} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>q.entity_id&&openLead(q.entity_id)}>
+              {filtered.map((q,i)=>{
+                const rev=q.monthly_revenue||q.revenue||q.quote_value_gbp||0
+                const mgn=q.margin_pct!=null?q.margin_pct:(q.margin||0)
+                const client=q.client_name||q.client||q.customer||'—'
+                const site=q.site_address||q.site||q.address||'—'
+                return(
+                <tr key={q.id||i} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>setSelectedQuote(q)}>
                   <td style={{padding:'10px',color:'var(--text-1)',fontWeight:600,fontFamily:'monospace',fontSize:'0.75rem'}}>
                     {q.id?.substring(0,18)||'—'}
                     {(q.source==='web'||q.intel)&&<span style={{marginLeft:6,background:'var(--teal)',color:'white',fontSize:'0.55rem',padding:'1px 5px',borderRadius:3,fontWeight:700}}>Intel</span>}
                   </td>
                   <td style={{padding:'10px',color:'var(--text-muted)'}}>{q.version||'v1'}</td>
-                  <td style={{padding:'10px',color:'var(--text-1)',fontWeight:600}}>{q.client||q.customer||'—'}</td>
-                  <td style={{padding:'10px',color:'var(--text-muted)'}}>{q.site||q.address||'—'}</td>
-                  <td style={{padding:'10px',color:'var(--text-1)'}}>{q.revenue?fmtCur(q.revenue)+'/mo':'£0/mo'}</td>
-                  <td style={{padding:'10px',color:q.margin>minMargin?'#10b981':'#ef4444',fontWeight:600}}>{q.margin?fmtPct(q.margin):'0.0%'}</td>
+                  <td style={{padding:'10px',color:'var(--text-1)',fontWeight:600}}>{client}</td>
+                  <td style={{padding:'10px',color:'var(--text-muted)'}}>{site}</td>
+                  <td style={{padding:'10px',color:'var(--text-1)'}}>{rev?fmtCur(rev)+'/mo':'£0/mo'}</td>
+                  <td style={{padding:'10px',color:mgn>minMargin?'#10b981':'#ef4444',fontWeight:600}}>{mgn?fmtPct(mgn):'0.0%'}</td>
                   <td style={{padding:'10px'}}><span style={{padding:'2px 10px',borderRadius:12,fontSize:'0.72rem',fontWeight:600,color:STATUS_COLORS[q.status]||'#6b7280',background:(STATUS_COLORS[q.status]||'#6b7280')+'18'}}>{q.status||'draft'}</span></td>
                   <td style={{padding:'10px',color:'var(--text-muted)',fontSize:'0.78rem'}}>{q.created_at?new Date(q.created_at).toLocaleDateString():'—'}</td>
-                </tr>
-              ))}
+                </tr>)
+              })}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          QUOTE DETAIL MODAL
+         ══════════════════════════════════════════════════════════ */}
+      {selectedQuote&&(()=>{
+        const q=selectedQuote
+        const rev=q.monthly_revenue||q.revenue||q.quote_value_gbp||0
+        const cost=q.monthly_cost||q.directCost||0
+        const mgn=q.margin_pct!=null?q.margin_pct:(q.margin||0)
+        const client=q.client_name||q.client||q.customer||'—'
+        const site=q.site_address||q.site||q.address||'—'
+        const postcode=q.site_postcode||q.postcode||''
+        const marginColor=mgn>=minMargin?'#10b981':mgn>=10?'#f59e0b':'#ef4444'
+        const belowFloor=mgn<minMargin
+        return(
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}} onClick={()=>setSelectedQuote(null)}>
+            <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',width:600,maxHeight:'85vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+              {/* Branded header */}
+              <div style={{background:'linear-gradient(135deg,#0f172a,#134e4a)',padding:'20px 24px',borderRadius:'var(--r-lg) var(--r-lg) 0 0'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:'0.95rem',color:'#5eead4'}}>AskMiro Cleaning Services</div>
+                    <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.5)',marginTop:2}}>Proposal for {client} · {site}</div>
+                  </div>
+                  <button onClick={()=>setSelectedQuote(null)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.6)',fontSize:'1.2rem',cursor:'pointer',padding:4}}>✕</button>
+                </div>
+              </div>
+
+              <div style={{padding:'20px 24px'}}>
+                {/* ID + Status */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                  <div style={{fontFamily:'monospace',fontSize:'0.78rem',color:'var(--text-muted)'}}>
+                    {q.id?.substring(0,24)} · v{q.version||1}
+                    {(q.source==='web'||q.intel)&&<span style={{marginLeft:8,background:'var(--teal)',color:'white',fontSize:'0.55rem',padding:'2px 6px',borderRadius:3,fontWeight:700}}>Intel</span>}
+                  </div>
+                  <span style={{padding:'3px 12px',borderRadius:12,fontSize:'0.72rem',fontWeight:600,color:STATUS_COLORS[q.status]||'#6b7280',background:(STATUS_COLORS[q.status]||'#6b7280')+'18'}}>{q.status||'draft'}</span>
+                </div>
+
+                {/* Financial breakdown */}
+                <div style={{border:'1px solid var(--border)',borderRadius:'var(--r-sm)',overflow:'hidden',marginBottom:16}}>
+                  <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border)',background:'var(--bg-base)'}}>
+                    <CalcRow label="Hours/week" value={`${q.hours_per_week||q.hoursPerWeek||'—'}h`}/>
+                    <CalcRow label="Days/week" value={q.days_per_week||q.daysPerWeek||'—'}/>
+                    <CalcRow label="Client Rate" value={`£${Number(q.client_rate||q.hourlyRate||0).toFixed(2)}/hr`}/>
+                    {postcode&&<CalcRow label="Postcode" value={postcode}/>}
+                    <CalcRow label="Sector" value={q.sector||q.segment||'—'}/>
+                  </div>
+                  <div style={{padding:'14px 18px'}}>
+                    <CalcRow label="Monthly Revenue" value={fmtCur(rev)} bold/>
+                    <CalcRow label="Direct Cost" value={fmtCur(cost)} muted/>
+                    <CalcRow label="Gross Margin" value={<span style={{color:marginColor,fontWeight:700}}>{fmtPct(mgn)} ({fmtCur(rev-cost)}/mo)</span>}/>
+                  </div>
+                </div>
+
+                {/* Margin warning */}
+                {belowFloor&&(
+                  <div style={{padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',marginBottom:16,fontSize:'0.78rem',color:'#dc2626',fontWeight:700}}>
+                    Below {minMargin}% floor — owner must approve before sending.
+                  </div>
+                )}
+
+                {/* Notes */}
+                {q.notes&&(
+                  <div style={{padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',marginBottom:16,fontSize:'0.82rem',color:'var(--text-muted)',lineHeight:1.6}}>
+                    {q.notes}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{display:'flex',gap:8,justifyContent:'flex-end',paddingTop:8,borderTop:'1px solid var(--border)'}}>
+                  <button onClick={()=>setSelectedQuote(null)} style={{padding:'8px 16px',borderRadius:'var(--r-sm)',border:'1px solid var(--border)',background:'transparent',color:'var(--text-muted)',fontSize:'0.8rem',fontWeight:600,cursor:'pointer'}}>Close</button>
+                  <button onClick={()=>loadIntoBuilder(q)} style={{padding:'8px 16px',borderRadius:'var(--r-sm)',border:'1px solid var(--border)',background:'transparent',color:'var(--text-1)',fontSize:'0.8rem',fontWeight:600,cursor:'pointer'}}>✎ Edit in Builder</button>
+                  {!belowFloor&&(
+                    <button onClick={()=>{if(q.entity_id)openLead(q.entity_id);setSelectedQuote(null)}} style={{padding:'8px 16px',borderRadius:'var(--r-sm)',border:'none',background:'var(--teal)',color:'white',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>Open Lead</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
