@@ -75,10 +75,14 @@ const Field=({label,children,style:s})=>(
 const inp={width:'100%',padding:'8px 12px',fontSize:'0.85rem',background:'var(--bg-raised)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',color:'var(--text-1)',outline:'none'}
 const sel={...inp,appearance:'auto'}
 
+/* safe-array: always returns [] if input is not a real array */
+const safeArr=(v)=>Array.isArray(v)?v:[]
+
 function useSorter(data,sort){
   return useMemo(()=>{
-    if(!sort?.key||!data)return data||[]
-    const arr=[...data]
+    const safe=safeArr(data)
+    if(!sort?.key)return safe
+    const arr=[...safe]
     arr.sort((a,b)=>{
       let av=a[sort.key],bv=b[sort.key]
       if(typeof av==='string')av=av.toLowerCase()
@@ -139,13 +143,13 @@ export default function Finance(){
   const {data:profData}=useQuery({queryKey:['financeProf',profMonth],queryFn:()=>api.financeProfitability(profMonth),staleTime:60000})
 
   const ov=overview||{}
-  const invoices=Array.isArray(invoicesData)?invoicesData:(invoicesData?.invoices||[])
-  const transactions=Array.isArray(txnData)?txnData:(txnData?.transactions||[])
-  const expenses=Array.isArray(expData)?expData:(expData?.expenses||[])
-  const profSnapshots=Array.isArray(profData)?profData:(profData?.snapshots||[])
-  const profSummary=profData&&!Array.isArray(profData)?profData:{}
-  const recurring=Array.isArray(expData?.recurring_templates)?expData.recurring_templates:[]
-  const categoryBreakdown=Array.isArray(expData?.by_category)?expData.by_category:[]
+  const invoices=safeArr(Array.isArray(invoicesData)?invoicesData:invoicesData?.invoices)
+  const transactions=safeArr(Array.isArray(txnData)?txnData:txnData?.transactions)
+  const expenses=safeArr(Array.isArray(expData)?expData:expData?.expenses)
+  const profSnapshots=safeArr(Array.isArray(profData)?profData:profData?.snapshots)
+  const profSummary=(profData&&typeof profData==='object'&&!Array.isArray(profData))?profData:{}
+  const recurring=safeArr(expData?.recurring_templates)
+  const categoryBreakdown=safeArr(expData?.by_category)
 
   /* mutations */
   const invalidate=()=>{qc.invalidateQueries({queryKey:['financeOverview']});qc.invalidateQueries({queryKey:['financeInvoices']});qc.invalidateQueries({queryKey:['financeTxn']});qc.invalidateQueries({queryKey:['financeExp']});qc.invalidateQueries({queryKey:['financeProf']})}
@@ -167,10 +171,10 @@ export default function Finance(){
   const sortedProf=useSorter(profSnapshots,profSort)
 
   /* invoice counts for sub-tabs */
-  const allInv=invoicesData?.invoices||invoicesData||[]
+  const allInv=safeArr(Array.isArray(invoicesData)?invoicesData:invoicesData?.invoices)
   const invCounts=useMemo(()=>{
     const c={All:0,Draft:0,Issued:0,Paid:0,Overdue:0,Void:0}
-    ;(Array.isArray(allInv)?allInv:[]).forEach(i=>{
+    ;safeArr(allInv).forEach(i=>{
       c.All++
       const s=(i.status||'').toLowerCase()
       if(s==='draft')c.Draft++
@@ -183,20 +187,23 @@ export default function Finance(){
   },[allInv])
 
   /* overview derived */
-  const overdueInvoices=useMemo(()=>(ov.overdue_invoices||[]).slice(0,3),[ov])
-  const recentInvoices=useMemo(()=>(ov.recent_invoices||[]).slice(0,5),[ov])
-  const recentExpenses=useMemo(()=>(ov.recent_expenses||[]).slice(0,5),[ov])
+  const overdueInvoices=useMemo(()=>safeArr(ov.overdue_invoices).slice(0,3),[ov])
+  const recentInvoices=useMemo(()=>safeArr(ov.recent_invoices).slice(0,5),[ov])
+  const recentExpenses=useMemo(()=>safeArr(ov.recent_expenses).slice(0,5),[ov])
 
-  /* txn summary */
+  /* txn summary — prefer API-computed totals when available */
   const txnSummary=useMemo(()=>{
+    if(txnData&&typeof txnData==='object'&&!Array.isArray(txnData)&&txnData.total_in!=null){
+      return {in:Number(txnData.total_in)||0,out:Number(txnData.total_out)||0,net:Number(txnData.net)||0}
+    }
     let tin=0,tout=0
-    ;(transactions||[]).forEach(t=>{
+    ;safeArr(transactions).forEach(t=>{
       if(t.voided)return
       const a=Number(t.amount_gross)||0
       if(t.type==='income')tin+=a; else if(t.type==='expense')tout+=a
     })
     return {in:tin,out:tout,net:tin-tout}
-  },[transactions])
+  },[txnData,transactions])
 
   /* chat handler */
   const sendChat=useCallback(()=>{
@@ -554,8 +561,8 @@ export default function Finance(){
   const renderProfitability=()=>(
     <>
       <div style={{display:'flex',gap:14,marginBottom:18,flexWrap:'wrap'}}>
-        <KPI label="Portfolio Revenue" value={fmtCur(profSummary.total_revenue)} color="var(--teal)"/>
-        <KPI label="Portfolio Margin" value={profSummary.avg_margin!=null?profSummary.avg_margin.toFixed(1)+'%':'--'} color={RAG[ragColor(profSummary.avg_margin||0)].color}/>
+        <KPI label="Portfolio Revenue" value={fmtCur(profSummary.portfolio_revenue||profSummary.total_revenue)} color="var(--teal)"/>
+        <KPI label="Portfolio Margin" value={(profSummary.portfolio_margin??profSummary.avg_margin)!=null?(profSummary.portfolio_margin??profSummary.avg_margin).toFixed(1)+'%':'--'} color={RAG[ragColor(profSummary.portfolio_margin||profSummary.avg_margin||0)].color}/>
         <KPI label="Risk Contracts" value={profSummary.risk_count||0} alert={(profSummary.risk_count||0)>0}/>
         <KPI label="Missing Data" value={profSummary.missing_data||0} color="var(--text-muted)"/>
       </div>
@@ -789,7 +796,7 @@ export default function Finance(){
         <Btn onClick={sendChat} disabled={!chatInput.trim()}>Send</Btn>
       </div>
       <div style={{fontSize:'0.7rem',color:'var(--text-muted)',marginTop:8,textAlign:'center'}}>
-        Context: {(invoices||[]).length} invoices, {(expenses||[]).length} expenses, {(sortedProf||[]).length} profitability snapshots
+        Context: {safeArr(invoices).length} invoices, {safeArr(expenses).length} expenses, {safeArr(sortedProf).length} profitability snapshots
       </div>
     </div>
   )
@@ -859,7 +866,7 @@ export default function Finance(){
   /* Record Payment Modal */
   const PaymentModal=()=>{
     const preInv=modal?.invoice
-    const unpaid=(invoices||[]).filter(i=>{const s=(i.status||'').toLowerCase();return s!=='paid'&&s!=='void'})
+    const unpaid=safeArr(invoices).filter(i=>{const s=(i.status||'').toLowerCase();return s!=='paid'&&s!=='void'})
     const [f,setF]=useState({invoice_id:preInv?.id||'',amount:preInv?.balance||preInv?.total||'',date_received:new Date().toISOString().slice(0,10),payment_method:'BACS',reference:'',notes:''})
     const set=(k,v)=>setF(p=>({...p,[k]:v}))
     const valid=f.invoice_id&&Number(f.amount)>0&&f.date_received

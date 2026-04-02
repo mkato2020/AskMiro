@@ -31,7 +31,7 @@ export default function Automation(){
     }catch(e){setMsgs(m=>({...m,[key]:'✗ '+((e&&e.message)||'Error')}))}
   }
 
-  const connectors=Array.isArray(status?.connectors)?status.connectors:[]
+  const connectors=Array.isArray(status)?status:Array.isArray(status?.connectors)?status.connectors:[]
   const tabs=[
     {id:'overview',label:'Overview',icon:'📊'},
     {id:'connectors',label:'Connectors',icon:'🔌'},
@@ -51,13 +51,13 @@ export default function Automation(){
 
   // ── Overview Tab ───────────────────────────────────────────────────────
   const renderOverview=()=>{
-    const h=health||{}
+    const h=(health&&typeof health==='object'&&!Array.isArray(health))?health:{}
     const totalEntities=h.total_entities||h.total||0
     const totalSignals=h.total_signals||0
     const totalOpps=h.total_opportunities||0
     const avgScore=h.avg_score||0
-    const crmData=crm||{}
-    const guardData=guard||{}
+    const crmData=(crm&&typeof crm==='object'&&!Array.isArray(crm))?crm:{}
+    const guardData=(guard&&typeof guard==='object'&&!Array.isArray(guard))?guard:{}
     return(<>
       {/* System Health */}
       <div style={{marginBottom:24}}>
@@ -204,13 +204,15 @@ export default function Automation(){
 
   // ── CRM Tab ────────────────────────────────────────────────────────────
   const renderCRM=()=>{
-    const c=crm||{}
+    const c=(crm&&typeof crm==='object'&&!Array.isArray(crm))?crm:{}
+    const recentPushes=Array.isArray(c.recent_pushes)?c.recent_pushes:Array.isArray(c.recent_errors)?c.recent_errors:[]
+    const byStatus=Array.isArray(c.by_status)?c.by_status:[]
     return(<>
       <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>CRM Pipeline Status</div>
       <p style={{fontSize:'0.8rem',color:'var(--text-muted)',marginBottom:16}}>Qualified leads are auto-pushed to GAS CRM every 30 minutes. GAS handles Gmail relay for outreach emails.</p>
       <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:20}}>
         {kpi('Total Pushed',c.total_pushed||0)}
-        {kpi('Pending Push',c.pending||0,null,c.pending>0?'#D97706':undefined)}
+        {kpi('Pending Push',c.pending_push||c.pending||0,null,(c.pending_push||c.pending)>0?'#D97706':undefined)}
         {kpi('Sent Emails',c.sent||0,'via GAS','var(--teal)')}
         {kpi('Replied',c.replied||0,null,'#059669')}
         {kpi('Bounced',c.bounced||0,null,c.bounced>0?'#DC2626':undefined)}
@@ -233,7 +235,7 @@ export default function Automation(){
           </div>
         </div>
       </div>
-      {Array.isArray(c.recent_pushes)&&c.recent_pushes.length>0&&(
+      {recentPushes.length>0&&(
         <div>
           <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>Recent Pushes</div>
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden'}}>
@@ -242,12 +244,12 @@ export default function Automation(){
                 {['Entity','Email','Status','Pushed At'].map(h=><th key={h} style={{padding:'8px 14px',textAlign:'left',fontSize:'0.65rem',fontWeight:700,textTransform:'uppercase',color:'var(--text-muted)'}}>{h}</th>)}
               </tr></thead>
               <tbody>
-                {c.recent_pushes.slice(0,10).map((p,i)=>(
+                {recentPushes.slice(0,10).map((p,i)=>(
                   <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
-                    <td style={{padding:'8px 14px',fontWeight:600,fontSize:'0.85rem'}}>{p.name||p.entity_name||'—'}</td>
+                    <td style={{padding:'8px 14px',fontWeight:600,fontSize:'0.85rem'}}>{p.name||p.entity_name||p.business_name||'—'}</td>
                     <td style={{padding:'8px 14px',fontSize:'0.8rem',color:'var(--text-muted)'}}>{p.email||'—'}</td>
-                    <td style={{padding:'8px 14px'}}>{pill(p.status==='sent'?'#ECFDF5':p.status==='bounced'?'#FEF2F2':'#F1F5F9',p.status==='sent'?'#059669':p.status==='bounced'?'#DC2626':'#64748B',p.status||'pending')}</td>
-                    <td style={{padding:'8px 14px',fontSize:'0.8rem',color:'var(--text-muted)'}}>{p.pushed_at?timeAgo(p.pushed_at):'—'}</td>
+                    <td style={{padding:'8px 14px'}}>{pill(p.status==='sent'?'#ECFDF5':p.status==='bounced'?'#FEF2F2':'#F1F5F9',p.status==='sent'?'#059669':p.status==='bounced'?'#DC2626':'#64748B',p.status||p.handoff_status||'pending')}</td>
+                    <td style={{padding:'8px 14px',fontSize:'0.8rem',color:'var(--text-muted)'}}>{(p.pushed_at||p.handoff_at)?timeAgo(p.pushed_at||p.handoff_at):'—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -260,7 +262,16 @@ export default function Automation(){
 
   // ── Email Guard Tab ────────────────────────────────────────────────────
   const renderEmailGuard=()=>{
-    const g=guard||{}
+    const _g=(guard&&typeof guard==='object'&&!Array.isArray(guard))?guard:{}
+    // Normalise field names: API returns today_sent/total_bounced, UI expects sent_24h/bounce_rate
+    const g={
+      ..._g,
+      sent_24h:_g.sent_24h||_g.today_sent||0,
+      blocked:_g.blocked||_g.today_blocked||0,
+      bounced:_g.bounced||_g.total_bounced||0,
+      validated:_g.validated||_g.total_delivered||0,
+      bounce_rate:_g.bounce_rate!=null?_g.bounce_rate:(_g.today_sent>0?Math.round((_g.total_bounced||0)/(_g.today_sent||1)*100):0),
+    }
     return(<>
       <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>Email Deliverability Protection</div>
       <p style={{fontSize:'0.8rem',color:'var(--text-muted)',marginBottom:16}}>Pre-send validation protects your domain reputation. Every email is checked for RFC format, DNS/MX records, role-based addresses, and bounce history before sending.</p>
@@ -325,12 +336,13 @@ export default function Automation(){
     const updateStatusMut=useMutation({mutationFn:({id,status})=>api.updateComplianceDoc(id,{status}),onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
     const updateDocMut=useMutation({mutationFn:({id,...body})=>api.updateComplianceDoc(id,body),onSuccess:()=>{setEditDoc(null);queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
 
-    const comp=compData||{}
+    const comp=(compData&&typeof compData==='object'&&!Array.isArray(compData))?compData:{}
     const docs=Array.isArray(compDocs)?compDocs:Array.isArray(compDocs?.documents)?compDocs.documents:[]
     const expiring=Array.isArray(compExpiring)?compExpiring:Array.isArray(compExpiring?.documents)?compExpiring.documents:[]
     const categories=Array.isArray(comp.categories)?comp.categories:[]
+    const urgent=Array.isArray(comp.urgent)?comp.urgent:[]
 
-    const s=comp.summary||comp||{}
+    const s=(comp.summary&&typeof comp.summary==='object')?comp.summary:{}
     const totalRequired=s.total_required||0
     const totalCurrent=s.current||s.total_current||0
     const totalMissing=s.missing||s.total_missing||0
@@ -371,7 +383,7 @@ export default function Automation(){
         <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>Category Progress</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
           {COMPLIANCE_CATEGORIES.map(catName=>{
-            const catData=categories.find(c=>c.name===catName)||{name:catName,total:0,current:0}
+            const catData=categories.find(c=>(c.name||c.category)===catName)||{name:catName,total:0,current:0}
             const total=catData.total||0
             const current=catData.current||0
             const pct=total>0?Math.round(current/total*100):0
@@ -421,7 +433,7 @@ export default function Automation(){
                 const sc=STATUS_COLORS[doc.status]||{bg:'var(--bg-raised)',color:'var(--text-muted)'}
                 return(
                   <tr key={doc.id} style={{borderBottom:'1px solid var(--border)'}}>
-                    <td style={{padding:'10px 14px',fontWeight:600,fontSize:'0.82rem'}}>{doc.name||'—'}</td>
+                    <td style={{padding:'10px 14px',fontWeight:600,fontSize:'0.82rem'}}>{doc.name||doc.document_name||'—'}</td>
                     <td style={{padding:'10px 14px',fontSize:'0.78rem',color:'var(--text-muted)'}}>{doc.category||'—'}</td>
                     <td style={{padding:'10px 14px',fontSize:'0.78rem',color:'var(--text-muted)'}}>{doc.subcategory||'—'}</td>
                     <td style={{padding:'10px 14px'}}>{pill(sc.bg,sc.color,doc.status||'unknown')}</td>
@@ -435,7 +447,7 @@ export default function Automation(){
                           <option value="">Status</option>
                           {['current','missing','expired','draft','review','uploaded'].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
                         </select>
-                        <button className="btn btn-ghost btn-sm" style={{fontSize:'0.7rem',padding:'2px 8px'}} onClick={()=>{setEditDoc(doc);setEditForm({name:doc.name||'',category:doc.category||'',subcategory:doc.subcategory||'',status:doc.status||'draft',required:doc.required??true,expiry_date:doc.expiry_date||'',notes:doc.notes||''})}} title="Edit document details">✎</button>
+                        <button className="btn btn-ghost btn-sm" style={{fontSize:'0.7rem',padding:'2px 8px'}} onClick={()=>{setEditDoc(doc);setEditForm({name:doc.name||doc.document_name||'',category:doc.category||'',subcategory:doc.subcategory||'',status:doc.status||'draft',required:doc.required??true,expiry_date:doc.expiry_date||'',notes:doc.notes||''})}} title="Edit document details">✎</button>
                       </div>
                     </td>
                   </tr>
