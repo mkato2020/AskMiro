@@ -5332,6 +5332,94 @@ def webhook_lead(body: dict = Body(...)):
 
     logger.info("webhook_lead: entity_id=%s score=%d — %s <%s>", entity_id, score, biz, email)
 
+    # ── AUTO-GENERATE INTELLIGENT QUOTE ──────────────────────────────
+    # When a web lead arrives, auto-create a draft quote with AI recommendations
+    quote_id = None
+    try:
+        if entity_id and postcode:
+            # Estimate hours from frequency/sector
+            freq_map = {'daily': 25, 'weekly': 10, 'twice-weekly': 15, 'fortnightly': 5, 'monthly': 4, 'one-off': 8}
+            est_hours = freq_map.get(frequency.lower(), 10) if frequency else 10
+            # Sector rate adjustments
+            sector_rates = {'offices': 18.50, 'healthcare': 22.00, 'education': 17.50, 'gym': 19.00, 'industrial': 20.00, 'residential': 16.50}
+            est_rate = sector_rates.get(sector.lower(), 18.50)
+            llw_rate = 13.85
+            on_costs_pct = 36
+            est_days = 5 if est_hours >= 20 else 3 if est_hours >= 10 else 2
+
+            monthly_hrs = est_hours * (est_days / 5) * 4.33
+            labour = monthly_hrs * llw_rate * (1 + on_costs_pct / 100)
+            supplies = 150  # default estimate
+            total_cost = labour + supplies
+            revenue = monthly_hrs * est_rate
+            margin = ((revenue - total_cost) / revenue * 100) if revenue > 0 else 0
+            risk = 'critical' if margin < 10 else 'warning' if margin < 20 else ''
+
+            # Fetch intelligence (non-blocking, best-effort)
+            intel_notes = []
+            try:
+                from services.intelligence_engine import quote_intelligence, compute_feasibility_score
+                qi = quote_intelligence('', postcode, sector, est_hours, revenue)
+                if qi.get('benchmark'):
+                    intel_notes.append(f"Sector avg margin: {qi['benchmark'].get('avg_margin', '?')}%")
+                    if qi['benchmark'].get('note'):
+                        intel_notes.append(qi['benchmark']['note'])
+                fs = compute_feasibility_score(postcode, est_hours, sector)
+                if fs.get('score') is not None:
+                    intel_notes.append(f"Feasibility score: {fs['score']}/100")
+                    if fs.get('warnings'):
+                        intel_notes.extend(fs['warnings'])
+            except Exception as intel_err:
+                logger.warning("webhook_lead: intel lookup failed — %s", intel_err)
+
+            # Fetch cleaner matches
+            try:
+                from services.cleaner_matcher import match_cleaners
+                cm = match_cleaners(postcode, est_hours, sector, limit=3)
+                if cm.get('matches'):
+                    names = [m.get('name', '?') for m in cm['matches'][:3]]
+                    intel_notes.append(f"Matched cleaners: {', '.join(names)}")
+            except Exception:
+                pass
+
+            quote_notes = f"AUTO-GENERATED from website enquiry.\n"
+            if message:
+                quote_notes += f"Customer message: {message[:300]}\n"
+            if name:
+                quote_notes += f"Contact: {name}\n"
+            if intel_notes:
+                quote_notes += f"\nAI Recommendations:\n" + "\n".join(f"• {n}" for n in intel_notes)
+
+            with db_pg.transaction() as conn2:
+                row = db_pg.fetchone(conn2, """
+                    INSERT INTO quotes (
+                        entity_id, title, client_name, site_address, site_postcode,
+                        sector, mode, hours_per_week, days_per_week,
+                        client_rate, llw_rate, on_costs_pct, supplies_month,
+                        monthly_revenue, monthly_cost, monthly_value, margin_pct,
+                        scenario, risk_flag, notes, quote_value_gbp, status,
+                        quote_date, valid_until, created_at, updated_at
+                    ) VALUES (
+                        %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s, 'draft',
+                        CURRENT_DATE, CURRENT_DATE + 30, NOW(), NOW()
+                    ) RETURNING id
+                """, (
+                    entity_id, f"Web Quote — {biz}", biz, address or '', postcode,
+                    sector, 'hourly', est_hours, est_days,
+                    est_rate, llw_rate, on_costs_pct, supplies,
+                    round(revenue, 2), round(total_cost, 2), round(revenue, 2), round(margin, 1),
+                    'balanced', risk, quote_notes, round(revenue, 2),
+                ))
+                if row:
+                    quote_id = row['id'] if isinstance(row, dict) else row[0]
+                    logger.info("webhook_lead: auto-quote %s generated for entity %s (margin %.1f%%)", quote_id, entity_id, margin)
+    except Exception as quote_err:
+        logger.warning("webhook_lead: auto-quote generation failed — %s", quote_err)
+
     # Auto-generate outreach + auto-push to GAS in background (non-blocking)
     # Full pipeline: score → generate outreach → push to GAS → <30 min end-to-end
     def _auto_outreach_pipeline():
@@ -5394,7 +5482,7 @@ def webhook_lead(body: dict = Body(...)):
     threading.Thread(target=_auto_outreach_pipeline, daemon=True).start()
 
     return {"status": "ok", "entity_id": entity_id, "place_id": place_id,
-            "score": score, "source": source}
+            "score": score, "source": source, "quote_id": quote_id}
 
 
 # ── GAS → Python real-time status webhook ────────────────────────────────────
