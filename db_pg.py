@@ -10,6 +10,8 @@ import os
 from contextlib import contextmanager
 from typing import Any, Generator, Optional
 
+from urllib.parse import urlparse
+
 import psycopg2
 import psycopg2.extras
 
@@ -53,10 +55,20 @@ def _get_dsn() -> str:
 
 def get_conn() -> psycopg2.extensions.connection:
     """Return a new psycopg2 connection with RealDictCursor as default."""
-    conn = psycopg2.connect(
-        _get_dsn(),
-        cursor_factory=psycopg2.extras.RealDictCursor,
-    )
+    dsn = _get_dsn()
+    # Parse URI format into keyword args (psycopg2 URI support is version-dependent)
+    if dsn.startswith("postgresql://") or dsn.startswith("postgres://"):
+        p = urlparse(dsn)
+        conn = psycopg2.connect(
+            dbname=p.path.lstrip("/"),
+            user=p.username,
+            password=p.password,
+            host=p.hostname,
+            port=p.port or 5432,
+            cursor_factory=psycopg2.extras.RealDictCursor,
+        )
+    else:
+        conn = psycopg2.connect(dsn, cursor_factory=psycopg2.extras.RealDictCursor)
     conn.autocommit = False
     return conn
 
