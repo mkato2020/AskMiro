@@ -176,7 +176,7 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
-    _version = "2026-04-02-v11-quote-docs"
+    _version = "2026-04-02-v12-today-fix"
     result = {"_version": _version}
     try:
         with db_pg.transaction() as conn:
@@ -6355,14 +6355,38 @@ def today_engine():
     try:
         with db_pg.transaction() as conn:
             result = {}
+            # Helper: run query with savepoint so failures don't abort the transaction
+            def _safe_query(label, sql, params=None):
+                try:
+                    conn.execute("SAVEPOINT sp_%s" % label)
+                    rows = db_pg.fetchall(conn, sql, params)
+                    conn.execute("RELEASE SAVEPOINT sp_%s" % label)
+                    return [dict(r) for r in rows]
+                except Exception as e:
+                    conn.execute("ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    logger.error("today %s: %s", label, e)
+                    result[f'_debug_{label}_error'] = str(e)
+                    return []
+            def _safe_val(label, sql):
+                try:
+                    conn.execute("SAVEPOINT sp_%s" % label)
+                    val = db_pg.fetchval(conn, sql) or 0
+                    conn.execute("RELEASE SAVEPOINT sp_%s" % label)
+                    return val
+                except Exception as e:
+                    conn.execute("ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    logger.error("today count %s: %s", label, e)
+                    return 0
 
             # ── LEADS TO CONTACT TODAY (top 20 by composite score) ──
             # High score + not recently contacted + has contact info
-            try:
-                result['leads_to_contact'] = [dict(r) for r in db_pg.fetchall(conn, """
+            result['leads_to_contact'] = _safe_query('leads', """
                     SELECT vl.entity_id, vl.business_name, vl.borough, vl.sector,
-                           vl.total_score, vl.score_band, vl.phone, vl.website,
-                           vl.estimated_monthly_value_gbp, vl.next_best_action,
+                           vl.total_score, vl.score_band,
+                           vl.primary_phone as phone, vl.primary_website as website,
+                           vl.primary_email as email,
+                           vl.quote_value_gbp as estimated_monthly_value_gbp,
+                           vl.next_best_action,
                            vl.hvt,
                            CASE
                              WHEN vl.hvt = TRUE AND vl.total_score >= 75 THEN 'High-value target with strong score — contact immediately'
@@ -6372,8 +6396,9 @@ def today_engine():
                              ELSE 'Good prospect — outreach recommended'
                            END as reason,
                            CASE
-                             WHEN vl.phone IS NOT NULL AND vl.phone != '' THEN 'Call directly'
-                             WHEN vl.website IS NOT NULL AND vl.website != '' THEN 'Find contact via website'
+                             WHEN vl.primary_phone IS NOT NULL AND vl.primary_phone != '' THEN 'Call directly'
+                             WHEN vl.primary_email IS NOT NULL AND vl.primary_email != '' THEN 'Send outreach email'
+                             WHEN vl.primary_website IS NOT NULL AND vl.primary_website != '' THEN 'Find contact via website'
                              ELSE 'Research contact details'
                            END as suggested_action
                     FROM v_lead_board vl
@@ -6387,15 +6412,10 @@ def today_engine():
                     ORDER BY
                         (CASE WHEN vl.hvt = TRUE THEN 20 ELSE 0 END) + vl.total_score DESC
                     LIMIT 20
-                """)]
-            except Exception as e:
-                logger.error("today leads: %s", e)
-                result['leads_to_contact'] = []
-                result['_debug_leads_error'] = str(e)
+                """)
 
             # ── FOLLOW-UPS DUE (top 10 stale pipeline items) ──
-            try:
-                result['followups_due'] = [dict(r) for r in db_pg.fetchall(conn, """
+            result['followups_due'] = _safe_query('followups', """
                     SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
                            o.updated_at, e.canonical_name as business_name,
                            e.sector,
@@ -6427,15 +6447,10 @@ def today_engine():
                         EXTRACT(DAY FROM NOW() - o.updated_at) DESC,
                         COALESCE(os.total_score, 0) DESC
                     LIMIT 10
-                """)]
-            except Exception as e:
-                logger.error("today followups: %s", e)
-                result['followups_due'] = []
-                result['_debug_followups_error'] = str(e)
+                """)
 
             # ── PUSH TO SITE VISIT (top 5 qualified leads ready for site visit) ──
-            try:
-                result['push_to_visit'] = [dict(r) for r in db_pg.fetchall(conn, """
+            result['push_to_visit'] = _safe_query('push_visit', """
                     SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
                            e.canonical_name as business_name, e.sector,
                            a.borough, a.postcode,
@@ -6451,14 +6466,10 @@ def today_engine():
                       AND COALESCE(os.total_score, 0) >= 60
                     ORDER BY COALESCE(os.total_score, 0) DESC, o.updated_at ASC
                     LIMIT 5
-                """)]
-            except Exception as e:
-                logger.error("today push_to_visit: %s", e)
-                result['push_to_visit'] = []
+                """)
 
             # ── LEADS TO QUOTE (top 3 ready for quote) ──
-            try:
-                result['leads_to_quote'] = [dict(r) for r in db_pg.fetchall(conn, """
+            result['leads_to_quote'] = _safe_query('leads_quote', """
                     SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
                            e.canonical_name as business_name, e.sector,
                            a.borough, a.postcode,
@@ -6474,10 +6485,7 @@ def today_engine():
                       AND COALESCE(os.total_score, 0) >= 55
                     ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC, os.total_score DESC
                     LIMIT 3
-                """)]
-            except Exception as e:
-                logger.error("today leads_to_quote: %s", e)
-                result['leads_to_quote'] = []
+                """)
 
             # ── PIPELINE MOVEMENT RECOMMENDATIONS ──
             try:
@@ -6587,9 +6595,8 @@ def today_engine():
                 result['top_boroughs'] = []
                 result['_debug_boroughs_error'] = str(e)
 
-            # ── COUNTS (each individually guarded) ──
+            # ── COUNTS (each individually guarded with savepoints) ──
             counts = {}
-            _debug_errors = []
             for key, sql in [
                 ('total_leads', "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE"),
                 ('active_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')"),
@@ -6599,14 +6606,8 @@ def today_engine():
                 ('active_cleaners', "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'"),
                 ('unstaffed_contracts', "SELECT COUNT(*) FROM contracts WHERE staffing_status = 'unassigned' AND status = 'active'"),
             ]:
-                try:
-                    counts[key] = db_pg.fetchval(conn, sql) or 0
-                except Exception as exc:
-                    counts[key] = 0
-                    _debug_errors.append(f"{key}: {exc}")
+                counts[key] = _safe_val(key, sql)
             result['counts'] = counts
-            if _debug_errors:
-                result['_debug_count_errors'] = _debug_errors
 
             return result
     except Exception as e:
