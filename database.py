@@ -347,6 +347,7 @@ def _create_pg_schema(conn):
     """
     # ── Detect schema type ────────────────────────────────────────────────
     _is_normalized = False
+    _has_flat = False
     try:
         r = conn.execute("""
             SELECT table_type FROM information_schema.tables
@@ -357,9 +358,31 @@ def _create_pg_schema(conn):
     except Exception:
         pass
 
+    if not _is_normalized:
+        try:
+            r2 = conn.execute("""
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'lead_records'
+            """).fetchone()
+            if r2:
+                _has_flat = True
+        except Exception:
+            pass
+
+    # ── Fresh DB: no tables at all → bootstrap from pg_schema.sql ──────
+    if not _is_normalized and not _has_flat:
+        _schema_file = Path(__file__).parent / "pg_schema.sql"
+        if _schema_file.exists():
+            import logging
+            logging.getLogger("database").info("Fresh DB detected — bootstrapping from pg_schema.sql")
+            sql = _schema_file.read_text()
+            conn.execute(sql)
+            conn.commit()
+            _is_normalized = True
+
     if _is_normalized:
         _create_normalized_compat(conn)
-    else:
+    elif _has_flat:
         _create_flat_compat(conn)
 
     # ── Shared: tables that exist in BOTH schemas (IF NOT EXISTS) ─────────
