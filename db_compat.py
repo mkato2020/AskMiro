@@ -15,8 +15,25 @@ import re
 from contextlib import contextmanager
 from typing import Any, Iterator, Optional
 
+from urllib.parse import urlparse
+
 import psycopg2
 import psycopg2.extras
+
+
+def _pg_connect(dsn: str, **kwargs):
+    """Connect to Postgres, parsing URI into keyword args for compatibility."""
+    if dsn.startswith("postgresql://") or dsn.startswith("postgres://"):
+        p = urlparse(dsn)
+        return psycopg2.connect(
+            dbname=p.path.lstrip("/"),
+            user=p.username,
+            password=p.password,
+            host=p.hostname,
+            port=p.port or 5432,
+            **kwargs,
+        )
+    return psycopg2.connect(dsn, **kwargs)
 
 
 def _get_dsn() -> str:
@@ -132,7 +149,7 @@ def pg_connection() -> Iterator[_PgConn]:
     Auto-commits on success, rolls back on error.
     """
     dsn = _get_dsn()
-    conn = psycopg2.connect(dsn)
+    conn = _pg_connect(dsn)
     conn.autocommit = False
     wrapped = _PgConn(conn)
     try:
@@ -151,7 +168,7 @@ def is_postgres_available() -> bool:
         dsn = _get_dsn()
         if not dsn:
             return False
-        conn = psycopg2.connect(dsn, connect_timeout=3)
+        conn = _pg_connect(dsn, connect_timeout=3)
         conn.close()
         return True
     except Exception:
