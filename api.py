@@ -1165,13 +1165,27 @@ def advance_pipeline(place_id: str, body: AdvanceBody):
                                     intel_notes.append(w)
                     except Exception:
                         pass
+                    cleaner_matches = []
                     try:
                         from services.cleaner_matcher import match_cleaners
                         if postcode:
-                            cm = match_cleaners(postcode, est_hours, sector, limit=3)
-                            if cm.get('matches'):
-                                names = [m.get('name', '?') for m in cm['matches'][:3]]
-                                intel_notes.append(f"Matched cleaners: {', '.join(names)}")
+                            cm = match_cleaners(postcode, est_hours, sector, limit=5)
+                            cleaner_matches = cm.get('matches', [])
+                            if cleaner_matches:
+                                intel_notes.append(f"\nRecommended Cleaners (by proximity to {postcode}):")
+                                for i, c in enumerate(cleaner_matches[:5], 1):
+                                    dist = f"{c['distance']:.1f} mi" if isinstance(c.get('distance'), (int, float)) else c.get('distance', '?')
+                                    travel = f"{c.get('travel_time', '?')} min"
+                                    rate = f"£{float(c.get('pay_rate', 0)):.2f}/hr" if c.get('pay_rate') else '—'
+                                    quality = c.get('match_quality', '').upper()
+                                    avail = '✓ Available' if c.get('available', True) else '✗ Busy'
+                                    hrs_cur = c.get('current_hours', 0) or 0
+                                    hrs_max = c.get('max_hours', 40) or 40
+                                    capacity = f"{hrs_cur}/{hrs_max}h used"
+                                    best = ' ★ BEST MATCH' if i == 1 else ''
+                                    intel_notes.append(
+                                        f"  {i}. {c.get('name', 'Unknown')} — {dist}, {travel} | {rate} | {avail} | {capacity} | {quality}{best}"
+                                    )
                     except Exception:
                         pass
 
@@ -1219,7 +1233,51 @@ def advance_pipeline(place_id: str, body: AdvanceBody):
             except Exception as qe:
                 logger.warning("advance_pipeline: auto-quote failed — %s", qe)
 
-    return {"ok": True, "quote_generated": quote_generated}
+        # ── AUTO-ASSIGN BEST CLEANER when advancing to won ──────────
+        recommended_cleaner = None
+        if body.new_status == 'won':
+            try:
+                opp_won = db_pg.fetchone(conn, """
+                    SELECT o.entity_id, e.canonical_name, e.sector,
+                           a.postcode, a.borough, a.line1 as address
+                    FROM opportunities o
+                    JOIN entities e ON e.id = o.entity_id
+                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    WHERE o.id = %s
+                """, (opp_id,))
+                if opp_won and opp_won.get('postcode'):
+                    from services.cleaner_matcher import match_cleaners
+                    cm = match_cleaners(opp_won['postcode'], 15, opp_won.get('sector', ''), limit=5)
+                    matches = cm.get('matches', [])
+                    if matches:
+                        best = matches[0]
+                        recommended_cleaner = {
+                            'id': best.get('id'),
+                            'name': best.get('name'),
+                            'distance': best.get('distance'),
+                            'travel_time': best.get('travel_time'),
+                            'match_quality': best.get('match_quality'),
+                            'pay_rate': best.get('pay_rate'),
+                        }
+                        # Log recommendation as activity
+                        all_names = ', '.join(f"{m.get('name','?')} ({m.get('distance','?')} mi)" for m in matches[:3])
+                        db_pg.execute(conn, """
+                            INSERT INTO activity_log (entity_id, activity_type, actor, subject, body)
+                            VALUES (%s, 'note', 'system', %s, %s)
+                        """, (
+                            opp_won['entity_id'],
+                            f"Cleaner recommendation for won contract",
+                            f"Best match: {best.get('name', '?')} — {best.get('distance', '?')} mi from {opp_won['postcode']}\n"
+                            f"Travel: {best.get('travel_time', '?')} min | Rate: £{float(best.get('pay_rate', 0)):.2f}/hr | "
+                            f"Quality: {best.get('match_quality', '?')}\n\n"
+                            f"All candidates: {all_names}"
+                        ))
+                        logger.info("advance_pipeline: won — recommended cleaner %s for opp %s", best.get('name'), opp_id)
+            except Exception as ce:
+                logger.warning("advance_pipeline: cleaner recommendation failed — %s", ce)
+
+    return {"ok": True, "quote_generated": quote_generated, "recommended_cleaner": recommended_cleaner}
 
 
 class ShortlistBody(BaseModel):

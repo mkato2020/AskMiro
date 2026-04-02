@@ -446,9 +446,13 @@ export default function Pipeline({openLead}){
     onMutate:({id})=>setAdvancingId(id),
     onSuccess:(data,{stage})=>{
       if(stage==='quote_prepared'&&data?.quote_generated){
-        // Auto-quote was generated — invalidate quotes too
         qc.invalidateQueries({queryKey:['quotes']})
-        alert('Quote auto-generated with AI recommendations. Check the Quotes tab.')
+        alert('✅ Quote auto-generated with AI recommendations, pricing scenarios & cleaner matches. Check the Quotes tab.')
+      }
+      if(stage==='won'&&data?.recommended_cleaner){
+        const c=data.recommended_cleaner
+        qc.invalidateQueries({queryKey:['contracts']})
+        alert(`🏆 Contract won! Best cleaner match: ${c.name} — ${c.distance} mi away, ${c.travel_time} min travel, ${c.match_quality} match. Check Contracts to assign.`)
       }
     },
     onSettled:()=>{setAdvancingId(null);qc.invalidateQueries({queryKey:['pipeline-leads']});qc.invalidateQueries({queryKey:['pipeline-analytics']})},
