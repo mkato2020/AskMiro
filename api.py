@@ -177,6 +177,17 @@ def health():
 @app.get("/api/admin/db-check")
 def db_check():
     """Diagnostic: list all tables and views in the DB."""
+    import database
+    db_url = os.getenv("DATABASE_URL", "(not set)")
+    # Mask password in URL for security
+    masked = db_url
+    if "@" in masked:
+        parts = masked.split("@")
+        pre = parts[0]
+        if ":" in pre:
+            user_part = pre.rsplit(":", 1)[0]
+            masked = user_part + ":***@" + parts[1]
+    result = {"database_url_set": bool(os.getenv("DATABASE_URL")), "masked_url": masked, "use_postgres": database._USE_POSTGRES}
     try:
         with db_pg.transaction() as conn:
             rows = db_pg.fetchall(conn, """
@@ -185,9 +196,10 @@ def db_check():
                 WHERE table_schema = 'public'
                 ORDER BY table_type, table_name
             """)
-            return {"tables": [dict(r) for r in rows]}
+            result["tables"] = [dict(r) for r in rows]
     except Exception as e:
-        return {"error": str(e)}
+        result["error"] = str(e)
+    return result
 
 
 # ── Leads ─────────────────────────────────────────────────────────────────────
