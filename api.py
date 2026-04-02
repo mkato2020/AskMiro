@@ -197,6 +197,22 @@ def health():
         return {"status": "error", "detail": str(e), "_version": _version, "debug": debug}
 
 
+@app.get("/api/admin/db-pg-debug")
+def db_pg_debug():
+    """Diagnostic: inspect what db_pg.get_conn() actually does."""
+    import inspect
+    src = inspect.getsource(db_pg.get_conn)
+    dsn = db_pg._get_dsn()
+    return {
+        "get_conn_source": src,
+        "dsn_starts": dsn[:40],
+        "dsn_len": len(dsn),
+        "starts_postgresql": dsn.startswith("postgresql://"),
+        "starts_postgres": dsn.startswith("postgres://"),
+        "repr_first10": repr(dsn[:10]),
+    }
+
+
 @app.get("/api/admin/db-check")
 def db_check():
     """Diagnostic: list all tables and views in the DB."""
