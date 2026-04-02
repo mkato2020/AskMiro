@@ -876,36 +876,40 @@ def analytics_sector_revenue():
 
 @app.get("/api/pipeline")
 def list_pipeline(status: Optional[str] = None):
-    with db_pg.transaction() as conn:
-        rows = db_pg.fetchall(conn,
-            "SELECT * FROM v_pipeline_board" +
-            (" WHERE current_stage = %s" if status else "") +
-            " ORDER BY total_score DESC",
-            (status,) if status else ()
-        )
-    result = []
-    for r in rows:
-        d = dict(r)
-        # Normalise field names for frontend compatibility
-        d['name'] = d.get('business_name') or d.get('title') or 'Unknown'
-        d['company_name'] = d['name']
-        d['stage'] = d.get('current_stage') or 'new'
-        d['value'] = d.get('quote_value_gbp') or d.get('estimated_monthly_value_gbp') or 0
-        d['updated_at'] = d.get('last_touched_at')
-        d['id'] = d.get('entity_id') or d.get('opportunity_id')
-        score = d.get('total_score') or d.get('priority_score') or 0
-        signals = d.get('signals') or []
-        has_tender = ('public_procurement' in signals) if isinstance(signals, list) else False
-        if score >= 80 or has_tender:
-            d['pipeline_heat'] = 'hot'
-        elif score >= 65:
-            d['pipeline_heat'] = 'warm'
-        else:
-            d['pipeline_heat'] = 'cold'
-        result.append(d)
-    heat_order = {'hot': 0, 'warm': 1, 'cold': 2}
-    result.sort(key=lambda x: (heat_order.get(x['pipeline_heat'], 3), -(x.get('total_score') or 0)))
-    return result
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn,
+                "SELECT * FROM v_pipeline_board" +
+                (" WHERE current_stage = %s" if status else "") +
+                " ORDER BY total_score DESC",
+                (status,) if status else ()
+            )
+        result = []
+        for r in rows:
+            d = dict(r)
+            # Normalise field names for frontend compatibility
+            d['name'] = d.get('business_name') or d.get('title') or 'Unknown'
+            d['company_name'] = d['name']
+            d['stage'] = d.get('current_stage') or 'new'
+            d['value'] = d.get('quote_value_gbp') or d.get('estimated_monthly_value_gbp') or 0
+            d['updated_at'] = d.get('last_touched_at')
+            d['id'] = d.get('entity_id') or d.get('opportunity_id')
+            score = d.get('total_score') or d.get('priority_score') or 0
+            signals = d.get('signals') or []
+            has_tender = ('public_procurement' in signals) if isinstance(signals, list) else False
+            if score >= 80 or has_tender:
+                d['pipeline_heat'] = 'hot'
+            elif score >= 65:
+                d['pipeline_heat'] = 'warm'
+            else:
+                d['pipeline_heat'] = 'cold'
+            result.append(d)
+        heat_order = {'hot': 0, 'warm': 1, 'cold': 2}
+        result.sort(key=lambda x: (heat_order.get(x['pipeline_heat'], 3), -(x.get('total_score') or 0)))
+        return result
+    except Exception as exc:
+        logger.error("list_pipeline error: %s", exc)
+        return []
 
 
 @app.get("/api/pipeline/today")
@@ -5026,7 +5030,7 @@ def compliance_overview():
         }
     except Exception as exc:
         logger.error("compliance_overview error: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        return {"summary": {}, "categories": [], "urgent": []}
 
 
 @app.get("/api/compliance/categories")

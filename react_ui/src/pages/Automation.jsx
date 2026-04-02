@@ -326,16 +326,17 @@ export default function Automation(){
     const updateDocMut=useMutation({mutationFn:({id,...body})=>api.updateComplianceDoc(id,body),onSuccess:()=>{setEditDoc(null);queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
 
     const comp=compData||{}
-    const docs=(compDocs&&compDocs.documents)||[]
-    const expiring=(compExpiring&&compExpiring.documents)||[]
-    const categories=comp.categories||[]
+    const docs=Array.isArray(compDocs)?compDocs:Array.isArray(compDocs?.documents)?compDocs.documents:[]
+    const expiring=Array.isArray(compExpiring)?compExpiring:Array.isArray(compExpiring?.documents)?compExpiring.documents:[]
+    const categories=Array.isArray(comp.categories)?comp.categories:[]
 
-    const totalRequired=comp.total_required||0
-    const totalCurrent=comp.total_current||0
-    const totalMissing=comp.total_missing||0
-    const totalExpired=comp.total_expired||0
-    const totalExpiringSoon=comp.total_expiring_soon||0
-    const totalReview=comp.total_review||0
+    const s=comp.summary||comp||{}
+    const totalRequired=s.total_required||0
+    const totalCurrent=s.current||s.total_current||0
+    const totalMissing=s.missing||s.total_missing||0
+    const totalExpired=s.expired||s.total_expired||0
+    const totalExpiringSoon=s.expiring_soon||s.total_expiring_soon||0
+    const totalReview=s.review||s.total_review||0
 
     const hasAlerts=(totalExpired>0||expiring.length>0)
 

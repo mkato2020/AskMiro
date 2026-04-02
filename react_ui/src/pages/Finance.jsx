@@ -660,7 +660,7 @@ export default function Finance(){
             </div>
           )}
           {/* Recommendations */}
-          {cash.recommendations&&(
+          {Array.isArray(cash.recommendations)&&cash.recommendations.length>0&&(
             <div style={{display:'flex',flexDirection:'column',gap:4}}>
               {cash.recommendations.filter(Boolean).map((r,i)=>(
                 <div key={i} style={{fontSize:'0.78rem',color:'var(--text-2)',padding:'6px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)'}}>💡 {r}</div>
@@ -725,7 +725,7 @@ export default function Finance(){
             ))}
           </div>
           {/* Deductions by HMRC category */}
-          {tax.deductions_by_category&&tax.deductions_by_category.length>0&&(
+          {Array.isArray(tax.deductions_by_category)&&tax.deductions_by_category.length>0&&(
             <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',overflow:'hidden',marginBottom:12}}>
               <div style={{padding:'12px 18px',fontSize:'0.78rem',fontWeight:700,borderBottom:'1px solid var(--border)'}}>Allowable Deductions by HMRC Category</div>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -753,7 +753,7 @@ export default function Finance(){
             </div>
           )}
           {/* HMRC Notes */}
-          {tax.notes&&(
+          {Array.isArray(tax.notes)&&tax.notes.length>0&&(
             <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:'14px 18px'}}>
               <div style={{fontSize:'0.72rem',fontWeight:700,color:'var(--text-muted)',marginBottom:8}}>HMRC Compliance Notes</div>
               {tax.notes.map((n,i)=><div key={i} style={{fontSize:'0.78rem',color:'var(--text-2)',padding:'4px 0',borderBottom:i<tax.notes.length-1?'1px solid var(--border)':'none'}}>📋 {n}</div>)}
