@@ -6530,23 +6530,29 @@ def today_engine():
             # Helper: run query with savepoint so failures don't abort the transaction
             def _safe_query(label, sql, params=None):
                 try:
-                    conn.execute("SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "SAVEPOINT sp_%s" % label)
                     rows = db_pg.fetchall(conn, sql, params)
-                    conn.execute("RELEASE SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "RELEASE SAVEPOINT sp_%s" % label)
                     return [dict(r) for r in rows]
                 except Exception as e:
-                    conn.execute("ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    try:
+                        db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    except Exception:
+                        pass
                     logger.error("today %s: %s", label, e)
                     result[f'_debug_{label}_error'] = str(e)
                     return []
             def _safe_val(label, sql):
                 try:
-                    conn.execute("SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "SAVEPOINT sp_%s" % label)
                     val = db_pg.fetchval(conn, sql) or 0
-                    conn.execute("RELEASE SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "RELEASE SAVEPOINT sp_%s" % label)
                     return val
                 except Exception as e:
-                    conn.execute("ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    try:
+                        db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    except Exception:
+                        pass
                     logger.error("today count %s: %s", label, e)
                     return 0
 
