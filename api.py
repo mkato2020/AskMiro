@@ -6391,6 +6391,7 @@ def today_engine():
             except Exception as e:
                 logger.error("today leads: %s", e)
                 result['leads_to_contact'] = []
+                result['_debug_leads_error'] = str(e)
 
             # ── FOLLOW-UPS DUE (top 10 stale pipeline items) ──
             try:
@@ -6430,6 +6431,7 @@ def today_engine():
             except Exception as e:
                 logger.error("today followups: %s", e)
                 result['followups_due'] = []
+                result['_debug_followups_error'] = str(e)
 
             # ── PUSH TO SITE VISIT (top 5 qualified leads ready for site visit) ──
             try:
@@ -6581,11 +6583,13 @@ def today_engine():
                     HAVING COUNT(*) >= 3
                     ORDER BY AVG(total_score) DESC LIMIT 10
                 """)]
-            except Exception:
+            except Exception as e:
                 result['top_boroughs'] = []
+                result['_debug_boroughs_error'] = str(e)
 
             # ── COUNTS (each individually guarded) ──
             counts = {}
+            _debug_errors = []
             for key, sql in [
                 ('total_leads', "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE"),
                 ('active_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')"),
@@ -6597,9 +6601,12 @@ def today_engine():
             ]:
                 try:
                     counts[key] = db_pg.fetchval(conn, sql) or 0
-                except Exception:
+                except Exception as exc:
                     counts[key] = 0
+                    _debug_errors.append(f"{key}: {exc}")
             result['counts'] = counts
+            if _debug_errors:
+                result['_debug_count_errors'] = _debug_errors
 
             return result
     except Exception as e:
