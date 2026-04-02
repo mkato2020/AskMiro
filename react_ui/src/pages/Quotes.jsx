@@ -21,6 +21,8 @@ export default function Quotes({openLead}){
   const {data:settings}=useQuery({queryKey:['fin-settings'],queryFn:api.financeSettings,staleTime:300000})
   const [tab,setTab]=useState('all')
   const [showBuilder,setShowBuilder]=useState(true)
+  const [saving,setSaving]=useState(false)
+  const [saveMsg,setSaveMsg]=useState(null)
 
   // Settings with defaults
   const llw=settings?.llw_rate||13.85
@@ -99,6 +101,30 @@ export default function Quotes({openLead}){
     return[buildScenario('Aggressive',15),buildScenario('Balanced',25),buildScenario('Protected',35)]
   },[calc.totalCosts])
 
+  // ── Save as Draft ────────────────────────────────────────
+  const saveQuote=useCallback(async()=>{
+    if(!form.client?.trim()){setSaveMsg({type:'error',text:'Client name is required'});return}
+    setSaving(true);setSaveMsg(null)
+    try{
+      const res=await fetch('/api/quotes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        client_name:form.client,site_address:form.site,site_postcode:form.postcode,
+        sector:form.segment,mode:form.mode==='Hourly Rate'?'hourly':'fixed',
+        hours_per_week:form.hrs,days_per_week:form.days,client_rate:Number(form.rate),
+        llw_rate:llw,on_costs_pct:onCosts,supplies_month:Number(form.supplies),
+        other_costs_month:Number(form.other),notes:form.notes,status:'draft'
+      })})
+      const data=await res.json()
+      if(!res.ok) throw new Error(data.detail||data.error||'Save failed')
+      setSaveMsg({type:'success',text:`Quote ${(data.id||'').substring(0,8)} saved`})
+      qc.invalidateQueries({queryKey:['quotes']})
+      // Reset form
+      setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:''})
+      setIntel(null)
+    }catch(err){
+      setSaveMsg({type:'error',text:err.message||'Save failed'})
+    }finally{setSaving(false)}
+  },[form,llw,onCosts,qc])
+
   const canShowIntel=!!form.postcode?.trim()&&form.hrs>0
 
   // Filter quotes
@@ -152,7 +178,10 @@ export default function Quotes({openLead}){
               <textarea value={form.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Scope, access notes, special requirements..." style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',minHeight:70,resize:'vertical',fontFamily:'inherit'}}/>
             </div>
             <div style={{marginTop:20,textAlign:'center'}}>
-              <button style={{background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',padding:'10px 32px',fontSize:'0.85rem',fontWeight:700,cursor:'pointer'}}>Save as Draft</button>
+              <button onClick={saveQuote} disabled={saving} style={{background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',padding:'10px 32px',fontSize:'0.85rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
+                {saving?'Saving…':'Save as Draft'}
+              </button>
+              {saveMsg&&<div style={{marginTop:8,fontSize:'0.78rem',fontWeight:600,color:saveMsg.type==='success'?'#10b981':'#ef4444'}}>{saveMsg.text}</div>}
             </div>
           </div>
 

@@ -578,6 +578,39 @@ def ensure_ops_tables(conn):
         except Exception:
             pass
 
+    # ── Extend quotes table with builder fields ──────────────────────
+    for col in [
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS entity_id BIGINT",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS client_name TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS site_address TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS site_postcode TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sector TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'hourly'",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS hours_per_week NUMERIC(6,1) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS days_per_week INTEGER DEFAULT 5",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS client_rate NUMERIC(8,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS llw_rate NUMERIC(8,2) DEFAULT 13.85",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS on_costs_pct NUMERIC(5,2) DEFAULT 36",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS supplies_month NUMERIC(8,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS other_costs_month NUMERIC(8,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS monthly_revenue NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS monthly_cost NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS monthly_value NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS margin_pct NUMERIC(5,1) DEFAULT 0",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS scenario TEXT DEFAULT 'balanced'",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS risk_flag TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS valid_until DATE",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()",
+    ]:
+        try:
+            db_pg.execute(conn, col)
+        except Exception:
+            pass
+
     log.info("All operational tables verified.")
 
 

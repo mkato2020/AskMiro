@@ -1846,24 +1846,27 @@ def set_pipeline_outcome(place_id: str, body: dict = Body(...)):
 
 @app.get("/api/quotes")
 def list_quotes(status: Optional[str] = None):
-    """List all quotes with opportunity and entity info."""
+    """List all quotes with builder fields + opportunity info."""
     try:
         with db_pg.transaction() as conn:
-            where = "WHERE q.status = %s" if status else ""
-            params = (status,) if status else ()
+            conditions = []
+            params = []
+            if status:
+                conditions.append("q.status = %s")
+                params.append(status)
+            where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
             rows = db_pg.fetchall(conn, f"""
-                SELECT q.id, q.opportunity_id, q.quote_value_gbp, q.quote_date,
-                       q.valid_until, q.service_description, q.status, q.created_at,
-                       o.entity_id, o.title AS opportunity_title, o.current_stage,
-                       e.canonical_name AS business_name, e.sector,
+                SELECT q.*,
+                       o.title AS opportunity_title, o.current_stage,
+                       e.canonical_name AS business_name, e.sector AS entity_sector,
                        a.borough
                 FROM quotes q
-                JOIN opportunities o ON o.id = q.opportunity_id
-                JOIN entities e ON e.id = o.entity_id
+                LEFT JOIN opportunities o ON o.id = q.opportunity_id
+                LEFT JOIN entities e ON e.id = COALESCE(q.entity_id, o.entity_id)
                 LEFT JOIN LATERAL (
                     SELECT addr.borough FROM entity_locations el
                     JOIN addresses addr ON addr.id = el.address_id
-                    WHERE el.entity_id = e.id AND el.is_primary = TRUE LIMIT 1
+                    WHERE el.entity_id = COALESCE(q.entity_id, o.entity_id) AND el.is_primary = TRUE LIMIT 1
                 ) a ON TRUE
                 {where}
                 ORDER BY q.created_at DESC
@@ -1872,6 +1875,96 @@ def list_quotes(status: Optional[str] = None):
     except Exception as exc:
         logger.error("list_quotes error: %s", exc)
         return []
+
+
+@app.post("/api/quotes")
+def create_quote(body: dict = Body(...)):
+    """Save a quote from the quote builder."""
+    try:
+        with db_pg.transaction() as conn:
+            # Calculate financials
+            hrs = float(body.get('hours_per_week') or 0)
+            days = int(body.get('days_per_week') or 5)
+            rate = float(body.get('client_rate') or 18.50)
+            llw = float(body.get('llw_rate') or 13.85)
+            on_costs = float(body.get('on_costs_pct') or 36)
+            supplies = float(body.get('supplies_month') or 0)
+            other = float(body.get('other_costs_month') or 0)
+
+            monthly_hrs = hrs * (days / 5) * 4.33
+            labour = monthly_hrs * llw * (1 + on_costs / 100)
+            total_cost = labour + supplies + other
+            revenue = monthly_hrs * rate
+            margin = ((revenue - total_cost) / revenue * 100) if revenue > 0 else 0
+
+            risk = ''
+            if margin < 10: risk = 'critical'
+            elif margin < 20: risk = 'warning'
+
+            row = db_pg.fetchone(conn, """
+                INSERT INTO quotes (
+                    opportunity_id, entity_id, title, client_name, site_address,
+                    site_postcode, sector, mode, hours_per_week, days_per_week,
+                    client_rate, llw_rate, on_costs_pct, supplies_month, other_costs_month,
+                    monthly_revenue, monthly_cost, monthly_value, margin_pct,
+                    scenario, risk_flag, notes, quote_value_gbp, status,
+                    quote_date, valid_until, created_at, updated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    CURRENT_DATE, CURRENT_DATE + 30, NOW(), NOW()
+                ) RETURNING *
+            """, (
+                body.get('opportunity_id'), body.get('entity_id'),
+                body.get('title') or f"Quote for {body.get('client_name', '')}",
+                body.get('client_name', ''), body.get('site_address', ''),
+                body.get('site_postcode') or body.get('postcode', ''),
+                body.get('sector') or body.get('segment', ''),
+                body.get('mode', 'hourly'),
+                hrs, days, rate, llw, on_costs, supplies, other,
+                round(revenue, 2), round(total_cost, 2), round(revenue, 2),
+                round(margin, 1),
+                body.get('scenario', 'balanced'), risk,
+                body.get('notes', ''), round(revenue, 2),
+                body.get('status', 'draft'),
+            ))
+            return dict(row) if row else {"error": "Insert failed"}
+    except Exception as exc:
+        logger.error("create_quote: %s", exc)
+        raise HTTPException(500, str(exc))
+
+
+@app.put("/api/quotes/{quote_id}")
+def update_quote(quote_id: int, body: dict = Body(...)):
+    """Update a quote."""
+    try:
+        with db_pg.transaction() as conn:
+            allowed = ['title','client_name','site_address','site_postcode','sector','mode',
+                       'hours_per_week','days_per_week','client_rate','llw_rate','on_costs_pct',
+                       'supplies_month','other_costs_month','monthly_revenue','monthly_cost',
+                       'monthly_value','margin_pct','scenario','risk_flag','notes','status',
+                       'valid_until']
+            sets = []
+            params = []
+            for k in allowed:
+                if k in body:
+                    sets.append(f"{k} = %s")
+                    params.append(body[k])
+            if not sets:
+                return {"ok": False, "error": "No fields to update"}
+            sets.append("updated_at = NOW()")
+            if body.get('status') == 'sent':
+                sets.append("sent_at = NOW()")
+            if body.get('status') == 'accepted':
+                sets.append("accepted_at = NOW()")
+            params.append(quote_id)
+            db_pg.execute(conn, f"UPDATE quotes SET {', '.join(sets)} WHERE id = %s", params)
+            return db_pg.fetchone(conn, "SELECT * FROM quotes WHERE id = %s", (quote_id,)) or {}
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
 
 
 @app.get("/api/contracts")

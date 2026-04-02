@@ -22,6 +22,16 @@ export default function Automation(){
   const {data:guard}=useQuery({queryKey:['emailGuardStats'],queryFn:api.emailGuardStats,staleTime:30000,retry:false})
   const {data:health}=useQuery({queryKey:['health'],queryFn:()=>fetch('/api/health').then(r=>r.json()),staleTime:30000,retry:false})
 
+  // Documents hooks — must be at top level (not inside renderDocuments) to follow React hook rules
+  const {data:compData,isLoading:compLoading}=useQuery({queryKey:['compliance'],queryFn:api.compliance,staleTime:30000,retry:false})
+  const {data:compDocs}=useQuery({queryKey:['complianceDocs',docCatFilter,docStatusFilter],queryFn:()=>api.complianceDocuments(docCatFilter,docStatusFilter),staleTime:15000,retry:false})
+  const {data:compExpiring}=useQuery({queryKey:['complianceExpiring'],queryFn:api.complianceExpiring,staleTime:30000,retry:false})
+  const generateMut=useMutation({mutationFn:api.generateComplianceDocs,onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
+  const reviewMut=useMutation({mutationFn:({id})=>api.reviewComplianceDoc(id,{status:'current',reviewed_at:new Date().toISOString()}),onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
+  const updateStatusMut=useMutation({mutationFn:({id,status})=>api.updateComplianceDoc(id,{status}),onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
+  const updateDocMut=useMutation({mutationFn:({id,...body})=>api.updateComplianceDoc(id,body),onSuccess:()=>{setEditDoc(null);queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
+
+
   async function run(key,fn){
     setMsgs(m=>({...m,[key]:'running…'}))
     try{
@@ -327,14 +337,6 @@ export default function Automation(){
   const renderDocuments=()=>{
     const COMPLIANCE_CATEGORIES=['Company & Legal','Tax & HMRC','Insurance','Health & Safety','COSHH','Employment','Client Contracts','TUPE','Data Protection','Quality & Audit','Waste & Environmental','Vehicles & Equipment']
     const STATUS_COLORS={current:{bg:'#ECFDF5',color:'#059669'},missing:{bg:'#FEF2F2',color:'#DC2626'},expired:{bg:'#FFF7ED',color:'#EA580C'},draft:{bg:'#EFF6FF',color:'#2563EB'},review:{bg:'#FFFBEB',color:'#D97706'},uploaded:{bg:'#F5F3FF',color:'#7C3AED'}}
-    const {data:compData,isLoading:compLoading}=useQuery({queryKey:['compliance'],queryFn:api.compliance,staleTime:30000,retry:false})
-    const {data:compDocs}=useQuery({queryKey:['complianceDocs',docCatFilter,docStatusFilter],queryFn:()=>api.complianceDocuments(docCatFilter,docStatusFilter),staleTime:15000,retry:false})
-    const {data:compExpiring}=useQuery({queryKey:['complianceExpiring'],queryFn:api.complianceExpiring,staleTime:30000,retry:false})
-
-    const generateMut=useMutation({mutationFn:api.generateComplianceDocs,onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
-    const reviewMut=useMutation({mutationFn:({id})=>api.reviewComplianceDoc(id,{status:'current',reviewed_at:new Date().toISOString()}),onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
-    const updateStatusMut=useMutation({mutationFn:({id,status})=>api.updateComplianceDoc(id,{status}),onSuccess:()=>{queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
-    const updateDocMut=useMutation({mutationFn:({id,...body})=>api.updateComplianceDoc(id,body),onSuccess:()=>{setEditDoc(null);queryClient.invalidateQueries({queryKey:['compliance']});queryClient.invalidateQueries({queryKey:['complianceDocs']});queryClient.invalidateQueries({queryKey:['complianceExpiring']})}})
 
     const comp=(compData&&typeof compData==='object'&&!Array.isArray(compData))?compData:{}
     const docs=Array.isArray(compDocs)?compDocs:Array.isArray(compDocs?.documents)?compDocs.documents:[]
