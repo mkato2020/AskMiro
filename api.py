@@ -5072,7 +5072,7 @@ def outreach_auto_queue():
             rows = db_pg.fetchall(conn, """
                 SELECT DISTINCT ON (vl.entity_id)
                     vl.entity_id, vl.business_name, vl.borough, vl.sector,
-                    vl.total_score, vl.score_band, vl.phone, vl.email, vl.website,
+                    vl.total_score, vl.score_band, vl.phone, vl.website,
                     vl.estimated_monthly_value_gbp, vl.next_best_action, vl.hvt,
                     o.id as opportunity_id, o.current_stage,
                     CASE
@@ -5081,8 +5081,8 @@ def outreach_auto_queue():
                         ELSE 'standard'
                     END as queue_reason,
                     CASE
-                        WHEN vl.email IS NOT NULL AND vl.email != '' THEN 'email'
                         WHEN vl.phone IS NOT NULL AND vl.phone != '' THEN 'call'
+                        WHEN vl.website IS NOT NULL AND vl.website != '' THEN 'email_via_website'
                         ELSE 'research'
                     END as contact_method
                 FROM v_lead_board vl
@@ -5094,8 +5094,8 @@ def outreach_auto_queue():
                       o.current_stage IN ('new','enriched','ready_to_contact')
                       OR (o.id IS NULL AND vl.total_score >= 65)
                   )
-                  AND (vl.email IS NOT NULL AND vl.email != ''
-                       OR vl.phone IS NOT NULL AND vl.phone != '')
+                  AND (vl.phone IS NOT NULL AND vl.phone != ''
+                       OR vl.website IS NOT NULL AND vl.website != '')
                 ORDER BY vl.entity_id, vl.total_score DESC
             """)
 
@@ -5128,17 +5128,33 @@ def webhook_lead(body: dict = Body(...)):
     """
     import uuid as _uuid
 
-    # Normalise incoming fields (handles both GAS and direct POST formats)
+    # Normalise incoming fields — handles:
+    # - askmiro.com/get-quote form (service-type, company, name, email, phone, postcode, frequency, message)
+    # - GAS relay format (contactName, companyName, etc.)
+    # - Direct POST format (business, address, etc.)
     name    = (body.get("name") or body.get("contactName") or "").strip()
     email   = (body.get("email") or "").strip().lower()
     phone   = (body.get("phone") or "").strip()
-    biz     = (body.get("business") or body.get("companyName") or name or "Website Lead").strip()
+    biz     = (body.get("company") or body.get("business") or body.get("companyName") or name or "Website Lead").strip()
     address = (body.get("address") or body.get("location") or "").strip()
     message = (body.get("message") or body.get("notes") or "").strip()
-    source  = (body.get("source") or "website").strip()
-    sector  = (body.get("serviceType") or body.get("sector") or "other").strip()
+    source  = (body.get("source") or "website_quote").strip()
+    sector  = (body.get("service-type") or body.get("serviceType") or body.get("sector") or "other").strip()
     borough = (body.get("borough") or "").strip()
     postcode = (body.get("postcode") or "").strip()
+    frequency = (body.get("frequency") or "").strip()
+    premises_size = body.get("premisesSizeM2") or body.get("premisesSize") or ""
+    # Append extra context to message
+    extras = []
+    if frequency: extras.append(f"Frequency: {frequency}")
+    if premises_size: extras.append(f"Premises size: {premises_size}m²")
+    # Equipment from oven cleaning form
+    for eq_key in ['eq-standard','eq-combi','eq-deck','eq-range']:
+        val = body.get(eq_key)
+        if val and str(val) != '0':
+            extras.append(f"{eq_key}: {val}")
+    if extras:
+        message = (message + "\n" + " | ".join(extras)).strip()
 
     place_id = f"web_{_uuid.uuid4().hex[:12]}"
 
@@ -5729,14 +5745,17 @@ def public_join_team(body: dict = Body(...)):
     Writes cleaner applicants directly to ops_cleaners.
     No auth required — this replaces the Google Sheets form backend.
     """
-    name = (body.get("fullName") or "").strip()
+    # Handle both direct form fields and GAS relay format
+    first = (body.get("firstName") or "").strip()
+    last = (body.get("lastName") or "").strip()
+    name = (body.get("fullName") or f"{first} {last}".strip() or "").strip()
     email = (body.get("email") or "").strip()
     phone = (body.get("phone") or "").strip()
 
     if not name:
         raise HTTPException(status_code=400, detail="Full name is required")
-    if not email:
-        raise HTTPException(status_code=400, detail="Email is required")
+    if not phone and not email:
+        raise HTTPException(status_code=400, detail="Phone or email is required")
 
     # Map and validate fields
     cleaner_type = (body.get("cleanerType") or "Employee").strip()
@@ -5776,14 +5795,14 @@ def public_join_team(body: dict = Body(...)):
                 ) VALUES (%s,%s,%s,%s,%s,%s,'Active',%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 name, email, phone,
-                (body.get("homePostcode") or "").strip(),
-                (body.get("borough") or "").strip(),
+                (body.get("homePostcode") or body.get("home_postcode") or "").strip(),
+                (body.get("borough") or body.get("area") or "").strip(),
                 cleaner_type,
-                (body.get("servicesOffered") or "").strip(),
-                (body.get("availabilityType") or "Full-time").strip(),
+                (body.get("servicesOffered") or body.get("services") or "").strip(),
+                (body.get("availType") or body.get("availabilityType") or "Full-time").strip(),
                 (body.get("currentlyAvailable") or "Yes").strip(),
                 compliance, dbs,
-                (body.get("transportMode") or "Public Transport").strip(),
+                (body.get("transport") or body.get("transportMode") or "Public Transport").strip(),
                 rate,
                 (body.get("emergencyCover") or "No").strip(),
                 (body.get("notes") or f"Applied via Join Our Team form").strip(),
@@ -6241,7 +6260,7 @@ def today_engine():
             try:
                 result['leads_to_contact'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT vl.entity_id, vl.business_name, vl.borough, vl.sector,
-                           vl.total_score, vl.score_band, vl.phone, vl.email, vl.website,
+                           vl.total_score, vl.score_band, vl.phone, vl.website,
                            vl.estimated_monthly_value_gbp, vl.next_best_action,
                            vl.hvt,
                            CASE
@@ -6253,7 +6272,6 @@ def today_engine():
                            END as reason,
                            CASE
                              WHEN vl.phone IS NOT NULL AND vl.phone != '' THEN 'Call directly'
-                             WHEN vl.email IS NOT NULL AND vl.email != '' THEN 'Send email'
                              WHEN vl.website IS NOT NULL AND vl.website != '' THEN 'Find contact via website'
                              ELSE 'Research contact details'
                            END as suggested_action
@@ -6465,19 +6483,22 @@ def today_engine():
             except Exception:
                 result['top_boroughs'] = []
 
-            # ── COUNTS ──
-            try:
-                result['counts'] = {
-                    'total_leads': db_pg.fetchval(conn, "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE") or 0,
-                    'active_pipeline': db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')") or 0,
-                    'won_contracts': db_pg.fetchval(conn, "SELECT COUNT(*) FROM contracts WHERE status = 'active'") or 0,
-                    'stale_pipeline': db_pg.fetchval(conn, "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant') AND updated_at < NOW() - INTERVAL '3 days'") or 0,
-                    'pending_quotes': db_pg.fetchval(conn, "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')") or 0,
-                    'active_cleaners': db_pg.fetchval(conn, "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'") or 0,
-                    'unstaffed_contracts': db_pg.fetchval(conn, "SELECT COUNT(*) FROM contracts WHERE staffing_status = 'unassigned' AND status = 'active'") or 0,
-                }
-            except Exception:
-                result['counts'] = {}
+            # ── COUNTS (each individually guarded) ──
+            counts = {}
+            for key, sql in [
+                ('total_leads', "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE"),
+                ('active_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')"),
+                ('won_contracts', "SELECT COUNT(*) FROM contracts WHERE status = 'active'"),
+                ('stale_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant') AND updated_at < NOW() - INTERVAL '3 days'"),
+                ('pending_quotes', "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')"),
+                ('active_cleaners', "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'"),
+                ('unstaffed_contracts', "SELECT COUNT(*) FROM contracts WHERE staffing_status = 'unassigned' AND status = 'active'"),
+            ]:
+                try:
+                    counts[key] = db_pg.fetchval(conn, sql) or 0
+                except Exception:
+                    counts[key] = 0
+            result['counts'] = counts
 
             return result
     except Exception as e:
