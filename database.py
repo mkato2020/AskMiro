@@ -374,20 +374,39 @@ def _create_pg_schema(conn):
         _schema_file = Path(__file__).parent / "pg_schema.sql"
         if _schema_file.exists():
             import logging
-            logging.getLogger("database").info("Fresh DB detected — bootstrapping from pg_schema.sql")
+            _log = logging.getLogger("database")
+            _log.info("Fresh DB detected — bootstrapping from pg_schema.sql")
             sql = _schema_file.read_text()
             # Use raw psycopg2 cursor to avoid _normalize_sql corrupting DDL
             raw_conn = conn._conn if hasattr(conn, '_conn') else conn
-            raw_cur = raw_conn.cursor()
-            raw_cur.execute(sql)
-            raw_conn.commit()
-            raw_cur.close()
-            _is_normalized = True
+            try:
+                raw_conn.rollback()  # clear any aborted txn state
+                raw_cur = raw_conn.cursor()
+                raw_cur.execute(sql)
+                raw_conn.commit()
+                raw_cur.close()
+                _is_normalized = True
+                _log.info("pg_schema.sql bootstrap complete")
+            except Exception as exc:
+                _log.error("pg_schema.sql bootstrap failed: %s", exc)
+                try:
+                    raw_conn.rollback()
+                except Exception:
+                    pass
 
-    if _is_normalized:
-        _create_normalized_compat(conn)
-    elif _has_flat:
-        _create_flat_compat(conn)
+    try:
+        if _is_normalized:
+            _create_normalized_compat(conn)
+        elif _has_flat:
+            _create_flat_compat(conn)
+    except Exception as exc:
+        import logging
+        logging.getLogger("database").error("view creation failed: %s", exc)
+        try:
+            raw_conn = conn._conn if hasattr(conn, '_conn') else conn
+            raw_conn.rollback()
+        except Exception:
+            pass
 
     # ── Shared: tables that exist in BOTH schemas (IF NOT EXISTS) ─────────
     _create_shared_tables(conn)

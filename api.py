@@ -72,7 +72,10 @@ logger = logging.getLogger(__name__)
 # Ensure DB is initialised on startup
 @app.on_event("startup")
 async def startup():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        logger.error("init_db failed (non-fatal): %s", e)
     # Create operational tables (finance, cleaners, payroll, quality, SEO, compliance)
     try:
         with db_pg.transaction() as conn:
@@ -164,8 +167,27 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
-    with db_pg.transaction() as conn:
-        return db_pg.analytics_summary(conn)
+    try:
+        with db_pg.transaction() as conn:
+            return db_pg.analytics_summary(conn)
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+@app.get("/api/admin/db-check")
+def db_check():
+    """Diagnostic: list all tables and views in the DB."""
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, """
+                SELECT table_name, table_type
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                ORDER BY table_type, table_name
+            """)
+            return {"tables": [dict(r) for r in rows]}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ── Leads ─────────────────────────────────────────────────────────────────────
