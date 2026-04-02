@@ -176,7 +176,7 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
-    _version = "2026-04-02-v10-diag"
+    _version = "2026-04-02-v11-quote-docs"
     result = {"_version": _version}
     try:
         with db_pg.transaction() as conn:
