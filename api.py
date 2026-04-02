@@ -167,11 +167,14 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
+    _version = "2026-04-02-v7"
     try:
         with db_pg.transaction() as conn:
-            return db_pg.analytics_summary(conn)
+            result = db_pg.analytics_summary(conn)
+            result["_version"] = _version
+            return result
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "detail": str(e), "_version": _version}
 
 
 @app.get("/api/admin/db-check")
