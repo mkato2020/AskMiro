@@ -167,14 +167,34 @@ if os.path.isdir(_DIST):
 
 @app.get("/api/health")
 def health():
-    _version = "2026-04-02-v7"
+    _version = "2026-04-02-v8-debug"
+    # Debug: test the actual connection path
+    from urllib.parse import urlparse as _up
+    dsn = os.getenv("DATABASE_URL", "")
+    debug = {"dsn_starts": dsn[:30] + "...", "dsn_len": len(dsn)}
     try:
-        with db_pg.transaction() as conn:
-            result = db_pg.analytics_summary(conn)
-            result["_version"] = _version
-            return result
+        if dsn.startswith("postgres://"):
+            dsn = "postgresql://" + dsn[len("postgres://"):]
+        debug["dsn_converted"] = dsn[:30] + "..."
+        p = _up(dsn)
+        debug["parsed"] = {"host": p.hostname, "port": p.port, "db": p.path, "user": p.username}
+        import psycopg2, psycopg2.extras
+        conn = psycopg2.connect(
+            dbname=p.path.lstrip("/"),
+            user=p.username,
+            password=p.password,
+            host=p.hostname,
+            port=p.port or 5432,
+            cursor_factory=psycopg2.extras.RealDictCursor,
+            connect_timeout=5,
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) as cnt FROM entities")
+        row = cur.fetchone()
+        conn.close()
+        return {"status": "ok", "entities": row["cnt"] if row else 0, "_version": _version, "debug": debug}
     except Exception as e:
-        return {"status": "error", "detail": str(e), "_version": _version}
+        return {"status": "error", "detail": str(e), "_version": _version, "debug": debug}
 
 
 @app.get("/api/admin/db-check")
