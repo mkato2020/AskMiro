@@ -1,6 +1,8 @@
 /**
  * Login.jsx — Full-screen Google OAuth login for AskMiro OS
  */
+import React from 'react'
+
 export default function Login() {
   return (
     <div style={{

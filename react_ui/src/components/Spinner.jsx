@@ -1,3 +1,5 @@
+import React from 'react'
+
 export default function Spinner({size=24,color='var(--teal)'}){
   return(
     <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
