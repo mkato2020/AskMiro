@@ -655,24 +655,28 @@ def analytics_signals():
 
 @app.get("/api/targets/weekly")
 def targets_weekly():
-    with db_pg.transaction() as conn:
-        immediate = db_pg.fetchall(conn, """
-            SELECT vl.* FROM v_lead_board vl
-            LEFT JOIN opportunities o ON o.entity_id=vl.entity_id
-            WHERE vl.active=TRUE AND o.id IS NULL AND vl.buyer_signal_score > 0
-            ORDER BY vl.total_score DESC LIMIT 100
-        """)
-        strategic = db_pg.fetchall(conn, """
-            SELECT vl.* FROM v_lead_board vl
-            LEFT JOIN opportunities o ON o.entity_id=vl.entity_id
-            WHERE vl.active=TRUE AND o.id IS NULL AND vl.multi_site_signal=TRUE
-            ORDER BY vl.total_score DESC LIMIT 50
-        """)
-    return {
-        "immediate": [dict(r) for r in immediate],
-        "strategic":  [dict(r) for r in strategic],
-        "visit": [], "regulated": [],
-    }
+    try:
+        with db_pg.transaction() as conn:
+            immediate = db_pg.fetchall(conn, """
+                SELECT vl.* FROM v_lead_board vl
+                LEFT JOIN opportunities o ON o.entity_id=vl.entity_id
+                WHERE vl.active=TRUE AND o.id IS NULL AND vl.buyer_signal_score > 0
+                ORDER BY vl.total_score DESC LIMIT 100
+            """)
+            strategic = db_pg.fetchall(conn, """
+                SELECT vl.* FROM v_lead_board vl
+                LEFT JOIN opportunities o ON o.entity_id=vl.entity_id
+                WHERE vl.active=TRUE AND o.id IS NULL AND vl.multi_site_signal=TRUE
+                ORDER BY vl.total_score DESC LIMIT 50
+            """)
+        return {
+            "immediate": [dict(r) for r in immediate],
+            "strategic":  [dict(r) for r in strategic],
+            "visit": [], "regulated": [],
+        }
+    except Exception as e:
+        logger.warning("targets_weekly: %s", e)
+        return {"immediate": [], "strategic": [], "visit": [], "regulated": []}
 
 
 @app.get("/api/analytics/revenue")
@@ -4046,11 +4050,15 @@ def api_get_renewal(entity_id: int):
 @app.get("/api/tasks/today")
 def api_get_daily_tasks(regenerate: bool = False):
     """Return today's prioritised task list. Auto-generates if empty."""
-    with db_pg.transaction() as conn:
-        if regenerate:
-            generate_daily_tasks(conn)
-        tasks = get_daily_tasks(conn)
-    return {"tasks": tasks, "total": len(tasks), "date": str(date.today())}
+    try:
+        with db_pg.transaction() as conn:
+            if regenerate:
+                generate_daily_tasks(conn)
+            tasks = get_daily_tasks(conn)
+        return {"tasks": tasks, "total": len(tasks), "date": str(date.today())}
+    except Exception as e:
+        logger.warning("tasks/today: %s", e)
+        return {"tasks": [], "total": 0, "date": str(date.today())}
 
 
 @app.post("/api/tasks/{task_id}/complete")
@@ -4392,30 +4400,37 @@ def api_crm_sync():
 @app.get("/api/email-guard/stats")
 def email_guard_stats():
     """Dashboard stats for email deliverability protection."""
-    with db_pg.transaction() as conn:
-        today_sent = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_send_log
-            WHERE sent_at >= CURRENT_DATE AND status IN ('sent','delivered')
-        """) or 0
-        today_blocked = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_send_log
-            WHERE sent_at >= CURRENT_DATE AND status IN ('blocked','suppressed')
-        """) or 0
-        total_bounced = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_send_log WHERE status = 'bounced'
-        """) or 0
-        total_suppressed = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_suppressions WHERE active = TRUE
-        """) or 0
-        today_failed = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_send_log
-            WHERE sent_at >= CURRENT_DATE AND status = 'failed'
-        """) or 0
-        total_delivered = db_pg.fetchval(conn, """
-            SELECT COUNT(*) FROM email_send_log WHERE status = 'delivered'
-        """) or 0
+    try:
+        with db_pg.transaction() as conn:
+            today_sent = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_send_log
+                WHERE sent_at >= CURRENT_DATE AND status IN ('sent','delivered')
+            """) or 0
+            today_blocked = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_send_log
+                WHERE sent_at >= CURRENT_DATE AND status IN ('blocked','suppressed')
+            """) or 0
+            total_bounced = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_send_log WHERE status = 'bounced'
+            """) or 0
+            total_suppressed = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_suppressions WHERE active = TRUE
+            """) or 0
+            today_failed = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_send_log
+                WHERE sent_at >= CURRENT_DATE AND status = 'failed'
+            """) or 0
+            total_delivered = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM email_send_log WHERE status = 'delivered'
+            """) or 0
+    except Exception as e:
+        logger.warning("email-guard/stats: %s", e)
+        today_sent = today_blocked = total_bounced = total_suppressed = today_failed = total_delivered = 0
 
-    from email_guard import DAILY_SEND_LIMIT, PER_MINUTE_LIMIT
+    try:
+        from email_guard import DAILY_SEND_LIMIT, PER_MINUTE_LIMIT
+    except Exception:
+        DAILY_SEND_LIMIT, PER_MINUTE_LIMIT = 50, 5
     return {
         "today_sent": today_sent,
         "today_blocked": today_blocked,
@@ -4432,32 +4447,40 @@ def email_guard_stats():
 @app.get("/api/email-guard/send-log")
 def email_guard_send_log(limit: int = 100, status: str = None):
     """Recent email send log with status tracking."""
-    with db_pg.transaction() as conn:
-        sql = """
-            SELECT esl.*, e.canonical_name AS business_name
-            FROM email_send_log esl
-            LEFT JOIN entities e ON e.id = esl.entity_id
-        """
-        params = []
-        if status:
-            sql += " WHERE esl.status = %s"
-            params.append(status)
-        sql += " ORDER BY esl.sent_at DESC LIMIT %s"
-        params.append(limit)
-        rows = db_pg.fetchall(conn, sql, tuple(params))
-    return [dict(r) for r in rows]
+    try:
+        with db_pg.transaction() as conn:
+            sql = """
+                SELECT esl.*, e.canonical_name AS business_name
+                FROM email_send_log esl
+                LEFT JOIN entities e ON e.id = esl.entity_id
+            """
+            params = []
+            if status:
+                sql += " WHERE esl.status = %s"
+                params.append(status)
+            sql += " ORDER BY esl.sent_at DESC LIMIT %s"
+            params.append(limit)
+            rows = db_pg.fetchall(conn, sql, tuple(params))
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.warning("email-guard/send-log: %s", e)
+        return []
 
 
 @app.get("/api/email-guard/suppressions")
 def email_guard_suppressions():
     """List all suppressed emails."""
-    with db_pg.transaction() as conn:
-        rows = db_pg.fetchall(conn, """
-            SELECT * FROM email_suppressions
-            WHERE active = TRUE
-            ORDER BY suppressed_at DESC
-        """)
-    return [dict(r) for r in rows]
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, """
+                SELECT * FROM email_suppressions
+                WHERE active = TRUE
+                ORDER BY suppressed_at DESC
+            """)
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.warning("email-guard/suppressions: %s", e)
+        return []
 
 
 @app.post("/api/email-guard/validate/{place_id}")
