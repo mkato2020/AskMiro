@@ -444,6 +444,13 @@ export default function Pipeline({openLead}){
   const advanceMut=useMutation({
     mutationFn:({id,stage})=>api.advanceLead(id,{new_status:stage}),
     onMutate:({id})=>setAdvancingId(id),
+    onSuccess:(data,{stage})=>{
+      if(stage==='quote_prepared'&&data?.quote_generated){
+        // Auto-quote was generated — invalidate quotes too
+        qc.invalidateQueries({queryKey:['quotes']})
+        alert('Quote auto-generated with AI recommendations. Check the Quotes tab.')
+      }
+    },
     onSettled:()=>{setAdvancingId(null);qc.invalidateQueries({queryKey:['pipeline-leads']});qc.invalidateQueries({queryKey:['pipeline-analytics']})},
   })
 
