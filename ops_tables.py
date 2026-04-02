@@ -531,6 +531,53 @@ def ensure_ops_tables(conn):
         except Exception:
             pass
 
+    # ── Email Deliverability tables ────────────────────────────────────
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS email_suppression_list (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            reason TEXT,
+            smtp_code TEXT,
+            suppressed_at TIMESTAMPTZ DEFAULT NOW(),
+            active BOOLEAN DEFAULT TRUE
+        )
+    """)
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS email_bounce_log (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL,
+            entity_id INTEGER,
+            smtp_code TEXT,
+            smtp_message TEXT,
+            bounce_type TEXT,
+            action_taken TEXT,
+            recorded_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS email_send_log (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL,
+            entity_id INTEGER,
+            template_type TEXT,
+            subject TEXT,
+            sent_at TIMESTAMPTZ DEFAULT NOW(),
+            delivery_status TEXT DEFAULT 'sent',
+            smtp_response TEXT
+        )
+    """)
+    # Add deliverability columns to entity_emails
+    for col in [
+        "ALTER TABLE entity_emails ADD COLUMN IF NOT EXISTS bounced BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE entity_emails ADD COLUMN IF NOT EXISTS bounce_count INTEGER DEFAULT 0",
+        "ALTER TABLE entity_emails ADD COLUMN IF NOT EXISTS validation_status TEXT DEFAULT 'unknown'",
+        "ALTER TABLE entity_emails ADD COLUMN IF NOT EXISTS last_validated_at TIMESTAMPTZ",
+    ]:
+        try:
+            db_pg.execute(conn, col)
+        except Exception:
+            pass
+
     log.info("All operational tables verified.")
 
 

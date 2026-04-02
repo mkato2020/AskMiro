@@ -80,8 +80,17 @@ async def startup():
     try:
         with db_pg.transaction() as conn:
             ensure_ops_tables(conn)
+            logger.info("ops tables ensured OK")
     except Exception as e:
         logger.warning("ops tables init: %s", e)
+    # Create deliverability tables
+    try:
+        from services.email_deliverability import ensure_deliverability_tables
+        with db_pg.transaction() as conn:
+            ensure_deliverability_tables(conn)
+            logger.info("deliverability tables ensured OK")
+    except Exception as e:
+        logger.warning("deliverability tables init: %s", e)
     _start_scheduler()
 
 
@@ -325,9 +334,16 @@ def list_leads(
     per_page: int = Query(50, ge=1, le=500),
     limit: Optional[int] = Query(None, ge=1, le=10000),  # legacy: used by export callers
     min_score: int = Query(0, ge=0, le=100),
+    max_score: int = Query(100, ge=0, le=100),
     borough: Optional[str] = None,
     sector: Optional[str] = None,
     search: Optional[str] = None,
+    q: Optional[str] = None,
+    stage: Optional[str] = None,
+    has_email: Optional[str] = None,
+    has_phone: Optional[str] = None,
+    sort: Optional[str] = None,
+    order: Optional[str] = None,
     hvt_only: bool = False,
 ):
     try:
@@ -337,9 +353,15 @@ def list_leads(
                 page=page,
                 per_page=per_page,
                 min_score=min_score,
+                max_score=max_score,
                 borough=borough,
                 sector=sector,
-                search=search,
+                search=search or q,
+                stage=stage,
+                has_email=has_email,
+                has_phone=has_phone,
+                sort=sort,
+                order=order,
                 hvt_only=hvt_only,
                 limit=limit,
             )
@@ -5843,6 +5865,89 @@ def seed_ops_data(payload: dict):
     except Exception as exc:
         logger.error("seed error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EMAIL DELIVERABILITY PROTECTION LAYER
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/email/validate")
+def validate_email_endpoint(body: dict = Body(...)):
+    """Pre-send validation gate. Check email before sending."""
+    try:
+        from services.email_deliverability import validate_email, pre_send_check
+        email = body.get('email', '')
+        sector = body.get('sector', '')
+        full_check = body.get('full_check', False)
+        if full_check:
+            with db_pg.transaction() as conn:
+                return pre_send_check(conn, email, sector=sector or None)
+        else:
+            return validate_email(email, sector=sector or None, check_mx=body.get('check_mx', True))
+    except Exception as e:
+        logger.error("email validate: %s", e)
+        return {"status": "error", "email": body.get('email',''), "error": str(e)}
+
+@app.post("/api/email/validate-batch")
+def validate_batch_endpoint(body: dict = Body(...)):
+    """Validate multiple emails at once."""
+    try:
+        from services.email_deliverability import validate_email
+        emails = body.get('emails', [])
+        sector = body.get('sector', '')
+        results = []
+        for email in emails[:100]:  # Cap at 100
+            results.append(validate_email(email, sector=sector or None, check_mx=True))
+        valid = sum(1 for r in results if r['status'] == 'valid')
+        risky = sum(1 for r in results if r['status'] == 'risky')
+        invalid = sum(1 for r in results if r['status'] == 'invalid')
+        return {"results": results, "summary": {"total": len(results), "valid": valid, "risky": risky, "invalid": invalid}}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/email/bounce")
+def record_bounce_endpoint(body: dict = Body(...)):
+    """Record a bounce event."""
+    try:
+        from services.email_deliverability import record_bounce
+        with db_pg.transaction() as conn:
+            return record_bounce(conn, body['email'], body['smtp_code'],
+                                body.get('smtp_message', ''), body.get('entity_id'))
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/email/send-stats")
+def send_stats_endpoint(hours: int = 24):
+    """Get sending stats and rate limit status."""
+    try:
+        from services.email_deliverability import get_send_stats
+        with db_pg.transaction() as conn:
+            return get_send_stats(conn, hours)
+    except Exception as e:
+        return {"total_sent": 0, "bounce_rate_pct": 0, "sending_paused": False, "daily_cap": 50, "remaining_today": 50}
+
+@app.get("/api/email/suppression-list")
+def suppression_list_endpoint(limit: int = 100):
+    """Get suppression list."""
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, """
+                SELECT * FROM email_suppression_list WHERE active = TRUE
+                ORDER BY suppressed_at DESC LIMIT %s
+            """, (limit,))
+            return [dict(r) for r in rows]
+    except Exception as e:
+        return []
+
+@app.delete("/api/email/suppression/{email}")
+def unsuppress_email(email: str):
+    """Remove email from suppression list (manual override)."""
+    try:
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, "UPDATE email_suppression_list SET active = FALSE WHERE email = %s", (email,))
+            return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -126,10 +126,25 @@ def _normalise_lead(d: dict) -> dict:
     d['company_name'] = d['name']
     if 'current_stage' in d:
         d['stage'] = d['current_stage']
+        d['pipeline_stage'] = d['current_stage']
+    elif 'stage' in d:
+        d['pipeline_stage'] = d['stage']
     if 'last_touched_at' in d:
         d['updated_at'] = d['last_touched_at']
+        d['last_activity_date'] = d['last_touched_at']
     if 'entity_id' in d and 'id' not in d:
         d['id'] = d['entity_id']
+    # Score aliases
+    if 'total_score' in d and 'score' not in d:
+        d['score'] = d['total_score']
+    # Email — v_lead_board doesn't have email, so default empty
+    if 'email' not in d:
+        d['email'] = d.get('primary_email') or ''
+    # Contact info defaults
+    if 'contact_name' not in d:
+        d['contact_name'] = d.get('contact_person') or ''
+    if 'contact_role' not in d:
+        d['contact_role'] = ''
     return d
 
 
@@ -143,21 +158,41 @@ def list_leads(
     page: int = 1,
     per_page: int = 50,
     min_score: int = 0,
+    max_score: int = 100,
     borough: Optional[str] = None,
     sector: Optional[str] = None,
     search: Optional[str] = None,
+    stage: Optional[str] = None,
+    has_email: Optional[str] = None,
+    has_phone: Optional[str] = None,
+    sort: Optional[str] = None,
+    order: Optional[str] = None,
     hvt_only: bool = False,
     limit: Optional[int] = None,
 ) -> dict:
     conditions = ["vl.active = TRUE", "vl.total_score >= %s"]
     params: list[Any] = [min_score]
 
+    if max_score < 100:
+        conditions.append("vl.total_score <= %s")
+        params.append(max_score)
     if borough:
         conditions.append("vl.borough = %s")
         params.append(borough)
     if sector:
         conditions.append("vl.sector = %s")
         params.append(sector)
+    if stage:
+        conditions.append("vl.current_stage = %s")
+        params.append(stage)
+    if has_email == 'yes':
+        conditions.append("(vl.email IS NOT NULL AND vl.email != '')")
+    elif has_email == 'no':
+        conditions.append("(vl.email IS NULL OR vl.email = '')")
+    if has_phone == 'yes':
+        conditions.append("(vl.phone IS NOT NULL AND vl.phone != '')")
+    elif has_phone == 'no':
+        conditions.append("(vl.phone IS NULL OR vl.phone = '')")
     if hvt_only:
         conditions.append("vl.hvt = TRUE")
     if search:
@@ -180,16 +215,27 @@ def list_leads(
         WHERE {where}
     """
 
+    # Sort
+    sort_col = 'vl.total_score'
+    sort_dir = 'DESC'
+    allowed_sorts = {'total_score': 'vl.total_score', 'score': 'vl.total_score', 'name': 'vl.business_name',
+                     'business_name': 'vl.business_name', 'borough': 'vl.borough', 'sector': 'vl.sector',
+                     'stage': 'vl.current_stage', 'pipeline_stage': 'vl.current_stage'}
+    if sort and sort in allowed_sorts:
+        sort_col = allowed_sorts[sort]
+    if order and order.upper() in ('ASC', 'DESC'):
+        sort_dir = order.upper()
+
     total = fetchval(conn, f"SELECT COUNT(*) {base_sql}", params)
 
     if limit is not None:
-        rows = fetchall(conn, f"SELECT vl.* {base_sql} ORDER BY vl.total_score DESC LIMIT %s", params + [limit])
+        rows = fetchall(conn, f"SELECT vl.* {base_sql} ORDER BY {sort_col} {sort_dir} LIMIT %s", params + [limit])
         return {"leads": [_normalise_lead(dict(r)) for r in rows], "total": total}
 
     offset = (page - 1) * per_page
     rows = fetchall(
         conn,
-        f"SELECT vl.* {base_sql} ORDER BY vl.total_score DESC LIMIT %s OFFSET %s",
+        f"SELECT vl.* {base_sql} ORDER BY {sort_col} {sort_dir} LIMIT %s OFFSET %s",
         params + [per_page, offset],
     )
     import math
