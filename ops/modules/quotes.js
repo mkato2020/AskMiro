@@ -23,6 +23,14 @@ window.Quotes = (() => {
   function _safeText(s, fallback) {
     return (s === null || s === undefined || s === '') ? (fallback || '') : String(s);
   }
+  function _timeAgo(iso) {
+    if (!iso) return '';
+    var diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60)   return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
 
   // ── Auto-refresh every 60s while Quotes page is open ─────────
   let _refreshTimer = null;
