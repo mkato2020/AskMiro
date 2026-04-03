@@ -7,7 +7,7 @@
 
 (function() {
   const modules = [
-    'Outreach','Email'
+    'Quotes','Outreach','Email'
   ];
   modules.forEach(function(name) {
     if (typeof window[name] === 'undefined') {

@@ -8,11 +8,13 @@ window. Router = (() => {
   let _navigating = false;
 
   const PAGE_TITLES = {
+    quotes:   'Quote Requests',
     outreach: 'Outreach Queue',
     email:    'Email Centre',
   };
 
   const PAGE_CTA = {
+    quotes:   { label: '+ New Quote', action: () => Quotes.openNew()            },
     outreach: { label: '+ Add Lead',  action: () => Outreach.openAddLead()      },
     email:    { label: '+ Compose',   action: () => Email._switchTab('compose') },
   };
@@ -27,7 +29,7 @@ window. Router = (() => {
 
   function getRoute() {
     const hash = window.location.hash.replace('#/', '').split('?')[0];
-    return (hash && routes[hash]) ? hash : 'outreach';
+    return (hash && routes[hash]) ? hash : 'quotes';
   }
 
   // ── NAVIGATE ──────────────────────────────────────────────
@@ -105,8 +107,8 @@ window. Router = (() => {
         <button class="btn bp" style="font-size:13px" onclick="Router.navigate('${route}')">
           ↻ Try Again
         </button>
-        <button class="btn bo" style="font-size:13px;margin-left:8px" onclick="Router.navigate('outreach')">
-          ← Outreach
+        <button class="btn bo" style="font-size:13px;margin-left:8px" onclick="Router.navigate('quotes')">
+          ← Quotes
         </button>
       </div>`;
   }

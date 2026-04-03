@@ -25,26 +25,154 @@ window.Quotes = (() => {
   }
 
   async function render() {
-    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://precious-essence.up.railway.app';
     const mc = document.getElementById('main-content');
-    mc.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px">
-        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:40px 48px;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)">
-          <div style="width:48px;height:48px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px">🚀</div>
-          <h2 style="margin:0 0 10px;font-size:1.25rem;font-weight:800;color:#0F172A;letter-spacing:-.02em">This module has moved</h2>
-          <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.65">
-            This section is now part of <strong style="color:#0F172A">AskMiro OS</strong> — the unified operations platform on Railway.
-            All your data is there.
-          </p>
-          <a href="${osUrl}" target="_blank" rel="noopener"
-            style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0DBDAD,#0A9688);color:#fff;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(10,150,136,.3)">
-            Open AskMiro OS →
-          </a>
-          <p style="margin:20px 0 0;font-size:12px;color:#94A3B8">
-            Outreach &amp; Email remain here in Ops.
-          </p>
-        </div>
-      </div>`;
+    UI.setLoading(true);
+
+    let qs = [];
+    try {
+      qs = await API.get('quotes');
+    } catch(e) {
+      mc.innerHTML = '<div class="alert alert-r" style="margin:32px 24px">Failed to load quotes: ' + _escHtml(e.message) + '</div>';
+      UI.setLoading(false);
+      return;
+    }
+
+    _quotes = Array.isArray(qs) ? qs : [];
+    _byId   = {};
+    _quotes.forEach(function(q) { _byId[q.id] = q; });
+    updateBadge();
+
+    const webDrafts   = _quotes.filter(function(q) { return q.source === 'web_form' && q.status === 'Draft'; });
+    const allFiltered = _filter === 'web'  ? webDrafts
+                      : _filter === 'all'  ? _quotes
+                      : _quotes.filter(function(q) { return (q.status || '') === _filter; });
+
+    // ── PRIORITY BANNER: website requests ─────────────────────
+    let webHtml = '';
+    if (webDrafts.length) {
+      webHtml = '<div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:12px;padding:16px 20px;margin-bottom:24px">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+        + '<span style="background:#F97316;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em">&#9889; WEBSITE REQUESTS</span>'
+        + '<span style="font-size:12px;color:#9A3412;font-weight:600">'
+        + webDrafts.length + ' new request' + (webDrafts.length !== 1 ? 's' : '') + ' — respond within the hour'
+        + '</span>'
+        + '</div>'
+        + webDrafts.map(function(q) {
+            const dc   = parseFloat(q.intel_directCostPM) || 0;
+            const balR = dc > 0 ? Math.round(dc / 0.75) : 0;
+            const rc   = parseInt(q.intel_riskCount) || 0;
+            const rCol = rc >= 2 ? '#DC2626' : rc === 1 ? '#D97706' : '#059669';
+            const rBg  = rc >= 2 ? '#FEF2F2' : rc === 1 ? '#FFFBEB' : '#ECFDF5';
+            const rLbl = rc >= 2 ? rc + ' risks' : rc === 1 ? '1 risk' : 'Low risk';
+            return '<div onclick="Quotes.openViewById(\'' + _escHtml(q.id) + '\')" '
+              + 'style="background:#fff;border:1px solid #FED7AA;border-radius:8px;padding:14px 16px;'
+              + 'margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;'
+              + 'transition:box-shadow .15s" '
+              + 'onmouseenter="this.style.boxShadow=\'0 4px 16px rgba(249,115,22,.15)\'" '
+              + 'onmouseleave="this.style.boxShadow=\'none\'">'
+              + '<div style="flex:1;min-width:0">'
+              + '<div style="font-weight:700;font-size:14px;color:#1E293B;margin-bottom:2px">' + _escHtml(_safeText(q.clientName, '(name not provided)')) + '</div>'
+              + '<div style="font-size:12px;color:#64748B">'
+              + _escHtml(_safeText(q.siteAddress, '')) + (q.siteAddress ? ' &bull; ' : '')
+              + (q.intel_hoursPerWeek ? q.intel_hoursPerWeek + 'h/wk' : '')
+              + (q.intel_visitsPerWeek ? ' &bull; ' + q.intel_visitsPerWeek + 'x per week' : '')
+              + '</div>'
+              + '</div>'
+              + (balR ? '<div style="text-align:right;margin-right:4px;min-width:90px">'
+                + '<div style="font-size:10px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Balanced est.</div>'
+                + '<div style="font-size:17px;font-weight:800;color:#0D9488;letter-spacing:-.02em">&#163;' + balR + '<span style="font-size:11px;font-weight:500">/mo</span></div>'
+                + '</div>' : '')
+              + '<div style="min-width:64px;text-align:center">'
+              + '<span style="font-size:11px;font-weight:700;color:' + rCol + ';background:' + rBg + ';padding:3px 9px;border-radius:20px">' + rLbl + '</span>'
+              + '</div>'
+              + '<button class="btn bp btn-sm" onclick="event.stopPropagation();Quotes.openViewById(\'' + _escHtml(q.id) + '\')">Review &#8594;</button>'
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
+
+    // ── ALL QUOTES TABLE ───────────────────────────────────────
+    const statusColors = {
+      'Draft':    '#94A3B8', 'Sent':     '#0284C7', 'Approved': '#059669',
+      'Accepted': '#0D9488', 'Declined': '#DC2626', 'Expired':  '#F59E0B'
+    };
+    const filterBtns = ['all','web','Draft','Sent','Accepted'].map(function(f) {
+      const active = _filter === f;
+      return '<button onclick="Quotes.setFilter(\'' + f + '\')" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;'
+        + 'border:1.5px solid ' + (active ? '#0D9488' : '#E2E8F0') + ';'
+        + 'background:' + (active ? '#0D9488' : '#fff') + ';'
+        + 'color:' + (active ? '#fff' : '#64748B') + '">'
+        + (f === 'all' ? 'All (' + _quotes.length + ')' : f === 'web' ? '&#9889; Website (' + webDrafts.length + ')' : f)
+        + '</button>';
+    }).join('');
+
+    const rows = allFiltered.length
+      ? allFiltered.map(function(q) {
+          const m    = parseFloat(q.grossMarginPct) || 0;
+          const isW  = q.source === 'web_form';
+          const mCol = m >= CFG.MIN_MARGIN_PCT + 5 ? '#059669' : m >= CFG.MIN_MARGIN_PCT ? '#D97706' : '#94A3B8';
+          const sBg  = statusColors[q.status] || '#94A3B8';
+          const hwDisplay = q.hoursPerWeek || q.intel_hoursPerWeek;
+          return '<tr class="q-row" data-qid="' + _escHtml(q.id) + '" style="cursor:pointer">'
+            + '<td style="font-family:monospace;font-size:12px;color:#64748B">' + _escHtml(q.id) + '</td>'
+            + '<td style="font-weight:600;color:#1E293B">' + _escHtml(_safeText(q.clientName, '—'))
+            + (isW ? ' <span style="font-size:10px;background:#FED7AA;color:#9A3412;padding:1px 6px;border-radius:10px;font-weight:700">WEB</span>' : '')
+            + '</td>'
+            + '<td style="color:#64748B;font-size:13px">' + _escHtml(_safeText(q.siteAddress, '—')) + '</td>'
+            + '<td style="font-weight:700;color:#0D9488">' + (q.revenueMonthly ? UI.fmt(q.revenueMonthly) : (isW ? '<span style="font-size:11px;color:#94A3B8">Intel</span>' : '—')) + '</td>'
+            + '<td style="font-weight:600;color:' + mCol + '">' + (m > 0 ? m.toFixed(1) + '%' : (isW ? '<span style="font-size:11px;color:#94A3B8">Intel</span>' : '—')) + '</td>'
+            + '<td style="color:#475569">' + (hwDisplay ? _escHtml(String(hwDisplay)) + 'h' : '—') + '</td>'
+            + '<td><span style="font-size:11px;font-weight:700;color:#fff;background:' + sBg + ';padding:2px 8px;border-radius:10px">' + _escHtml(q.status || '—') + '</span></td>'
+            + '<td style="font-size:12px;color:#94A3B8">' + (isW ? 'Website' : 'Manual') + '</td>'
+            + '<td style="font-size:12px;color:#94A3B8">' + (q.createdAt ? new Date(q.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—') + '</td>'
+            + '</tr>';
+        }).join('')
+      : '<tr><td colspan="9" style="text-align:center;padding:40px;color:#94A3B8;font-size:13px">No quotes match this filter</td></tr>';
+
+    const tableHtml = '<div style="margin-bottom:28px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      + '<h3 style="margin:0;font-size:14px;font-weight:700;color:#1E293B">All Quotes</h3>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + filterBtns + '</div>'
+      + '</div>'
+      + '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden">'
+      + '<table class="tbl" id="quotes-table" style="width:100%">'
+      + '<thead><tr><th>ID</th><th>Client</th><th>Site</th><th>Rev/mo</th><th>Margin</th><th>Hrs/wk</th><th>Status</th><th>Source</th><th>Created</th></tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table></div></div>';
+
+    // ── QUOTE BUILDER ──────────────────────────────────────────
+    const builderHtml = '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px;margin-bottom:24px">'
+      + '<h3 style="margin:0 0 18px;font-size:14px;font-weight:700;color:#1E293B">&#9998; Quote Builder <span style="font-size:12px;font-weight:500;color:#94A3B8;margin-left:6px">Manual / follow-up pricing</span></h3>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px">'
+      + '<div class="fg"><label class="fl">Client Name <span class="req">*</span></label><input class="fin" id="q-cl" placeholder="e.g. Soho Media Ltd" oninput="Quotes.calc()"></div>'
+      + '<div class="fg"><label class="fl">Site Address</label><input class="fin" id="q-sa" placeholder="e.g. 14 Dean Street, London W1D 3RR"></div>'
+      + '<div class="fg"><label class="fl">Segment</label><select class="fin" id="q-sg"><option value="">— select —</option><option>Commercial Office</option><option>Retail</option><option>Medical / Dental</option><option>Education</option><option>Industrial / Warehouse</option><option>Residential Block</option><option>Other</option></select></div>'
+      + '<div class="fg"><label class="fl">Pricing Mode</label><select class="fin" id="q-md" onchange="Quotes.toggleMode()"><option value="hourly">Hourly rate</option><option value="fixed">Fixed monthly</option></select></div>'
+      + '</div>'
+      + '<div id="q-hourly-block" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 20px;margin-bottom:16px">'
+      + '<div class="fg"><label class="fl">Hours / week</label><input class="fin" id="q-hw" type="number" min="0" step="0.5" placeholder="e.g. 15" oninput="Quotes.calc()"></div>'
+      + '<div class="fg"><label class="fl">Client rate (&#163;/hr)</label><input class="fin" id="q-cr" type="number" min="0" step="0.5" placeholder="e.g. 22.50" oninput="Quotes.calc()"></div>'
+      + '<div class="fg"><label class="fl">LLW rate (&#163;/hr)</label><input class="fin" id="q-lw" type="number" min="0" step="0.01" value="13.85" oninput="Quotes.calc()"></div>'
+      + '</div>'
+      + '<div id="q-fixed-block" style="display:none;margin-bottom:16px">'
+      + '<div class="fg"><label class="fl">Fixed monthly (&#163;)</label><input class="fin" id="q-fm" type="number" min="0" step="10" placeholder="e.g. 1200" oninput="Quotes.calc()"></div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px">'
+      + '<div class="fg"><label class="fl">Supplies cost (&#163;/mo)</label><input class="fin" id="q-sp" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>'
+      + '<div class="fg"><label class="fl">Other costs (&#163;/mo)</label><input class="fin" id="q-oc" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>'
+      + '</div>'
+      + '<div class="fg" style="margin-bottom:16px"><label class="fl">Notes</label><textarea class="fta" id="q-nt" placeholder="Any additional context&#8230;" style="height:70px"></textarea></div>'
+      + '<div id="q-result" style="margin-bottom:16px"></div>'
+      + '<div style="display:flex;gap:10px;justify-content:flex-end">'
+      + '<button class="btn bo" onclick="Quotes.calc()">&#9654; Recalculate</button>'
+      + '<button class="btn bp" onclick="Quotes.save()">&#10003; Save Quote</button>'
+      + '</div>'
+      + '</div>';
+
+    mc.innerHTML = webHtml + tableHtml + builderHtml;
+    _bindTableClicks();
+    UI.setLoading(false);
+    calc();
   }
 
   function _bindTableClicks() {

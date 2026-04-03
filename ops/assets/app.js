@@ -10,6 +10,7 @@
   API.init();
 
   // ── REGISTER ROUTES ───────────────────────────────────────
+  Router.register('quotes',   Quotes.render);
   Router.register('outreach', Outreach.render);
   Router.register('email',    Email.render);
 
