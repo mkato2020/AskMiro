@@ -176,6 +176,7 @@ function routePost(action, body, auth) {
     case 'outreach.sequence.update':       return updateLeadSequence(body, auth);
     case 'outreach.assist':                return outreachAssistant(body, auth);
     case 'lead.runIntel':                  return runIntelForLead(body, auth);
+    case 'admin.fixSchema':                return fixSheetSchema(auth);
     default:                               return { error: 'Unknown action: ' + action };
   }
 }
@@ -518,9 +519,12 @@ function getQuotes(params, auth) {
     // We check multiple signals because the 'source' column may not exist
     // in older Quotes sheets (appendRow only writes to existing headers).
     var src = (q.source || '').toLowerCase();
+    var rev = parseFloat(q.revenueMonthly) || 0;
     var isWebQuote = src === 'web_form' || src.indexOf('web') !== -1
                    || (q.createdBy || '') === 'INTEL'
-                   || !!(q.intel_directCostPM || q.intel_hoursPerWeek);
+                   || !!(q.intel_directCostPM || q.intel_hoursPerWeek)
+                   // Draft with no revenue = Intel-created, scenario not yet applied
+                   || (q.status === 'Draft' && rev === 0 && !q.hoursPerWeek);
     return {
       id:             q.id,
       version:        q.version,
@@ -559,13 +563,13 @@ function getQuotes(params, auth) {
     var cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
     var webLeads = getTableRows('Leads').filter(function(l) {
       if (quoteLeadIds[l.id]) return false; // already has a quote
-      // Include if source looks like web OR if source is blank/unknown
-      // (Leads sheet may not have a source column — don't silently drop them)
+      // Only skip leads explicitly marked as outreach/manual
       var src = (l.source || '').toLowerCase();
-      var isManual = src === 'manual' || src === 'outreach' || src === 'referral';
-      if (isManual) return false;
-      var d = l.createdAt ? new Date(l.createdAt) : null;
-      return d && d >= cutoff;
+      if (src === 'outreach' || src === 'referral') return false;
+      // If createdAt is missing, include anyway — better to over-show than miss a lead
+      if (!l.createdAt) return true;
+      var d = new Date(l.createdAt);
+      return isNaN(d.getTime()) || d >= cutoff;
     });
 
     webLeads.forEach(function(l) {
@@ -658,6 +662,58 @@ function runIntelForLead(body, auth) {
 
   Logger.log('runIntelForLead: quote ' + quoteId + ' created for lead ' + leadId);
   return { ok: true, quoteId: quoteId, alreadyExists: false };
+}
+
+// ── ADMIN: ensure Quotes + Leads sheets have all required columns ──────────────
+// Run once via POST action=admin.fixSchema to permanently fix missing columns.
+// appendRow() silently drops fields that don't exist as column headers —
+// this function adds any missing headers to the right of existing columns.
+function fixSheetSchema(auth) {
+  requireRole(auth, 'Owner');
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+  var results = {};
+
+  var QUOTES_COLS = [
+    'id','leadId','source','clientName','email','phone','postcode','siteAddress',
+    'facilityType','segment','hoursPerWeek','status','version','notes',
+    'overrideReason','chosenScenario','revenueMonthly','grossMarginPct',
+    'grossMarginGBP','directCost','createdAt','createdBy','updatedAt','updatedBy',
+    'intel_dataQuality','intel_hoursPerWeek','intel_visitsPerWeek',
+    'intel_hoursPerMonth','intel_suppliesPM','intel_directCostPM',
+    'intel_aggressivePM','intel_aggressiveWeekly','intel_aggressiveHourly',
+    'intel_balancedPM','intel_balancedWeekly','intel_balancedHourly',
+    'intel_protectedPM','intel_protectedWeekly','intel_protectedHourly',
+    'intel_sens5PM','intel_sens5Weekly','intel_sens5Hourly',
+    'intel_sens10PM','intel_sens10Weekly','intel_sens10Hourly',
+    'intel_riskCount','intel_riskFlags'
+  ];
+
+  var LEADS_COLS = [
+    'id','version','contactName','companyName','email','phone','postcode',
+    'source','serviceType','facilityType','frequency','premisesSize',
+    'additionalServices','status','annualValue','notes','createdAt','createdBy',
+    'updatedAt','updatedBy'
+  ];
+
+  function addMissingCols(sheetName, cols) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return { error: 'Sheet not found: ' + sheetName };
+    var lastCol  = sheet.getLastColumn();
+    var existing = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+    var missing  = cols.filter(function(c) { return existing.indexOf(c) === -1; });
+    if (missing.length > 0) {
+      sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+    }
+    // Invalidate the sheet cache so next read picks up new structure
+    try { CacheService.getScriptCache().remove('rows_' + sheetName); } catch(e) {}
+    delete _memCache[sheetName];
+    return { added: missing, total: existing.length + missing.length };
+  }
+
+  results.Quotes = addMissingCols('Quotes', QUOTES_COLS);
+  results.Leads  = addMissingCols('Leads',  LEADS_COLS);
+  Logger.log('fixSheetSchema: ' + JSON.stringify(results));
+  return { ok: true, results: results };
 }
 function calculateQuote(body) {
   const hrs      = parseFloat(body.hoursPerWeek  || 0);
