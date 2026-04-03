@@ -150,18 +150,78 @@ export default function LeadModal({lead,onClose}){
               {!intel?(
                 <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:'0.85rem'}}>Loading intelligence data...</div>
               ):(
-                <div>
-                  {intel.summary&&<div style={{fontSize:'0.85rem',color:'var(--text-1)',lineHeight:1.6,marginBottom:16}}>{intel.summary}</div>}
-                  {intel.estimated_value&&<DetailRow label="Estimated Value" value={'£'+Number(intel.estimated_value).toLocaleString()+'/yr'}/>}
-                  {intel.estimated_sqft&&<DetailRow label="Est. Size" value={intel.estimated_sqft+' sqft'}/>}
-                  {intel.competitor_info&&<DetailRow label="Competitor Intel" value={intel.competitor_info}/>}
-                  {intel.decision_maker&&<DetailRow label="Decision Maker" value={intel.decision_maker}/>}
-                  {intel.cleaning_needs&&<DetailRow label="Cleaning Needs" value={intel.cleaning_needs}/>}
-                  {intel.recommended_approach&&(
-                    <div style={{marginTop:16,padding:14,background:'var(--teal)08',border:'1px solid var(--teal)30',borderRadius:'var(--r-sm)'}}>
-                      <div style={{fontSize:'0.72rem',fontWeight:700,color:'var(--teal)',marginBottom:4}}>Recommended Approach</div>
-                      <div style={{fontSize:'0.82rem',color:'var(--text-1)',lineHeight:1.5}}>{intel.recommended_approach}</div>
+                <div style={{display:'flex',flexDirection:'column',gap:18}}>
+
+                  {/* Contacts */}
+                  {(intel.contacts||[]).length>0&&(
+                    <div>
+                      <div style={{fontSize:'0.68rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Contacts</div>
+                      {intel.contacts.map((c,i)=>(
+                        <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+                          <div>
+                            <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)'}}>{c.full_name||'—'}</div>
+                            <div style={{fontSize:'0.72rem',color:'var(--text-muted)'}}>{c.job_title||''}</div>
+                          </div>
+                          <div style={{textAlign:'right',fontSize:'0.72rem',color:'var(--text-muted)'}}>
+                            {c.email&&<div><a href={`mailto:${c.email}`} style={{color:'var(--teal)'}}>{c.email}</a></div>}
+                            {c.phone&&<div>{c.phone}</div>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  {/* Signals */}
+                  {(intel.signals||[]).length>0&&(
+                    <div>
+                      <div style={{fontSize:'0.68rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Signals ({intel.signals.length})</div>
+                      {intel.signals.slice(0,6).map((s,i)=>(
+                        <div key={i} style={{padding:'8px 10px',borderRadius:'var(--r-sm)',background:'var(--bg-base)',border:'1px solid var(--border)',marginBottom:6}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                            <span style={{fontSize:'0.72rem',fontWeight:700,color:'var(--teal)',textTransform:'capitalize'}}>{(s.signal_type||'').replace(/_/g,' ')}</span>
+                            {s.urgency_score&&<span style={{fontSize:'0.65rem',color:'var(--text-muted)'}}>Urgency {Number(s.urgency_score).toFixed(0)}</span>}
+                          </div>
+                          {s.headline&&<div style={{fontSize:'0.78rem',color:'var(--text-1)',fontWeight:600}}>{s.headline}</div>}
+                          {s.detail&&<div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:2,lineHeight:1.4}}>{s.detail}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Renewal Predictions */}
+                  {(intel.renewal_predictions||[]).length>0&&(
+                    <div>
+                      <div style={{fontSize:'0.68rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Renewal Predictions</div>
+                      {intel.renewal_predictions.map((r,i)=>(
+                        <div key={i} style={{padding:'8px 10px',borderRadius:'var(--r-sm)',background:'#FFFBEB',border:'1px solid #FDE68A',marginBottom:6}}>
+                          <div style={{display:'flex',justifyContent:'space-between'}}>
+                            <span style={{fontSize:'0.78rem',fontWeight:700,color:'#92400E'}}>{r.contract_type||'Contract'}</span>
+                            <span style={{fontSize:'0.72rem',color:'#D97706'}}>{r.predicted_renewal_date}</span>
+                          </div>
+                          {r.estimated_value_gbp&&<div style={{fontSize:'0.72rem',color:'#059669',fontWeight:700,marginTop:2}}>£{Number(r.estimated_value_gbp).toLocaleString()}</div>}
+                          {r.recommendation&&<div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:3}}>{r.recommendation}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Council Supply Lists */}
+                  {(intel.council_supply_lists||[]).length>0&&(
+                    <div>
+                      <div style={{fontSize:'0.68rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Council Supply Lists</div>
+                      {intel.council_supply_lists.map((c,i)=>(
+                        <div key={i} style={{padding:'8px 10px',borderRadius:'var(--r-sm)',background:'var(--bg-base)',border:'1px solid var(--border)',marginBottom:6}}>
+                          <div style={{fontSize:'0.78rem',fontWeight:700,color:'var(--text-1)'}}>{c.council_name}</div>
+                          {c.priority_reason&&<div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:2}}>{c.priority_reason}</div>}
+                          {c.comp_beat&&<div style={{fontSize:'0.72rem',color:'#059669',marginTop:2,fontWeight:600}}>{c.comp_beat}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {!(intel.contacts?.length||intel.signals?.length||intel.renewal_predictions?.length||intel.council_supply_lists?.length)&&(
+                    <div style={{textAlign:'center',padding:'32px 0',color:'var(--text-muted)',fontSize:'0.82rem'}}>No intelligence data yet for this account.</div>
                   )}
                 </div>
               )}
