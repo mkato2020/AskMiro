@@ -404,6 +404,12 @@ window.Quotes = (() => {
 
   <div class="modal-foot">
     ${blocked ? `<button class="btn bo" onclick="Quotes.openApprove('${_escHtml(q.id)}')">&#9888; Request Approval</button>` : ''}
+    <a href="${(window.CFG && window.CFG.OS_URL) || 'https://askmiro-api-production.up.railway.app'}" target="_blank" rel="noopener"
+      style="font-size:12px;color:#64748B;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid #E2E8F0;border-radius:7px;transition:all .15s"
+      onmouseover="this.style.borderColor='#0D9488';this.style.color='#0D9488'"
+      onmouseout="this.style.borderColor='#E2E8F0';this.style.color='#64748B'">
+      &#9656; AskMiro OS
+    </a>
     <div style="flex:1"></div>
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
     <button class="btn bo" onclick="Quotes.loadIntoBuilder(${JSON.stringify(JSON.stringify(q))})">&#9998; Edit</button>

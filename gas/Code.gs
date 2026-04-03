@@ -932,7 +932,7 @@ function getQuoteIntel(id, auth) {
   const q = getRowById('Quotes', id);
   if (!q) return { ok: false, error: 'Quote not found' };
   function pf(v) { return parseFloat(v || 0); }
-  return {
+  const intel = {
     ok: true, quoteId: id,
     dataQuality:        q.intel_dataQuality || 'unknown',
     hoursPerWeek:       pf(q.intel_hoursPerWeek),
@@ -950,6 +950,60 @@ function getQuoteIntel(id, auth) {
       wage5pct:  { revenuePerMonth: pf(q.intel_sens5PM),  revenuePerWeek: pf(q.intel_sens5Weekly),  hourlyRate: pf(q.intel_sens5Hourly),  marginPct: 25 },
       wage10pct: { revenuePerMonth: pf(q.intel_sens10PM), revenuePerWeek: pf(q.intel_sens10Weekly), hourlyRate: pf(q.intel_sens10Hourly), marginPct: 25 }
     }
+  };
+  intel.aiRecommendation = _aiQuoteRecommend(intel);
+  return intel;
+}
+
+function _aiQuoteRecommend(intel) {
+  var flags      = (intel.riskFlags || '').split(' | ').filter(Boolean);
+  var highRisks  = flags.filter(function(f) { return f.indexOf('[HIGH]') !== -1; }).length;
+  var isOneOff   = flags.some(function(f) { return f.indexOf('ONE_OFF_CLEAN') !== -1; });
+  var isEstimated = intel.dataQuality !== 'actual';
+
+  var directCost  = intel.directCostPerMonth || 0;
+  var sens10Rev   = intel.sensitivity && intel.sensitivity.wage10pct ? intel.sensitivity.wage10pct.revenuePerMonth : 0;
+  var wageSensitive = sens10Rev > 0 && ((sens10Rev - directCost) / sens10Rev * 100) < 20;
+
+  var scenario, confidence, reasons = [];
+
+  if (isOneOff) {
+    scenario   = 'protected';
+    confidence = 'high';
+    reasons.push('One-off clean — no recurring revenue, Protected floor applies');
+    reasons.push('12% one-off premium already baked into all scenarios');
+  } else if (highRisks >= 2 || wageSensitive) {
+    scenario   = 'protected';
+    confidence = 'high';
+    if (highRisks >= 2) reasons.push(highRisks + ' high-severity risk' + (highRisks > 1 ? 's' : '') + ' detected — Protected margin provides buffer');
+    if (wageSensitive) reasons.push('Wage sensitivity: a 10% wage rise would erode margin below 20%');
+    if (isEstimated)   reasons.push('Estimated site size adds pricing uncertainty — Protected absorbs this');
+  } else if (highRisks === 1 || isEstimated || intel.riskCount > 2) {
+    scenario   = 'balanced';
+    confidence = highRisks === 1 ? 'high' : 'medium';
+    if (highRisks === 1) reasons.push('One high-severity risk — Balanced provides adequate protection');
+    if (isEstimated)     reasons.push('Site size is estimated — Balanced accounts for measurement variance');
+    if (intel.riskCount > 2 && highRisks < 1) reasons.push('Several low/medium risks present — Balanced is prudent');
+    var balContrib = Math.round((intel.scenarios.balanced.revenuePerMonth || 0) - directCost);
+    if (balContrib > 0) reasons.push('Delivers ~\u00a3' + balContrib + '/mo gross contribution at current wage rates');
+  } else {
+    scenario   = 'aggressive';
+    confidence = 'medium';
+    reasons.push('Low-risk profile with clean data — Aggressive pricing maximises win probability');
+    var aggContrib = Math.round((intel.scenarios.aggressive.revenuePerMonth || 0) - directCost);
+    if (aggContrib > 0) reasons.push('\u00a3' + aggContrib + '/mo contribution — still healthy even at 19% margin');
+    reasons.push('Upgrade to Balanced if client negotiates or site size is uncertain');
+  }
+
+  var chosen = intel.scenarios[scenario] || {};
+  return {
+    scenario:       scenario,
+    confidence:     confidence,
+    revenuePerMonth: chosen.revenuePerMonth || 0,
+    revenuePerWeek:  chosen.revenuePerWeek  || 0,
+    hourlyRate:      chosen.hourlyRate      || 0,
+    marginPct:       chosen.marginPct       || 0,
+    reasons:         reasons
   };
 }
 function applyIntelToQuote(body, auth) {

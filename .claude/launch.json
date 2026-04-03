@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "Netlify Dev (full stack — recommended)",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8888", "--directory", "/Users/mike/Downloads/AskMiro-main"],
+      "name": "Netlify Dev (full stack — functions + site)",
+      "runtimeExecutable": "/opt/anaconda3/bin/python3",
+      "runtimeArgs": ["/Users/mike/Downloads/AskMiro-main/start-dev.py"],
       "port": 8888
     },
     {
@@ -12,6 +12,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080
+    },
+    {
+      "name": "AskMiro OS UI",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/mike/Downloads/askmiro_os_finished/react_ui && npx vite --port 5180 --host"],
+      "port": 5180
     }
   ]
 }

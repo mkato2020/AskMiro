@@ -96,6 +96,7 @@
     // ─────────────────────────────────────────────────────────
     function _renderPanel(intel) {
       const risks = _parseRisks(intel.riskFlags || '');
+      const rec   = intel.aiRecommendation || null;
 
       const dq = intel.dataQuality === 'actual' ? 'Actual data' : 'Estimated';
       const dqCls = intel.dataQuality === 'actual' ? 'badge-green' : 'badge-amber';
@@ -112,6 +113,9 @@
           </div>
 
           <div class="intel-body" id="intel-body">
+
+            ${rec ? _renderAiRecommendation(rec) : ''}
+
             <div class="intel-estimates">
               <div class="intel-stat"><div class="stat-label">Hours / week</div><div class="stat-value">${Number(intel.hoursPerWeek || 0).toFixed(1)}</div></div>
               <div class="intel-stat"><div class="stat-label">Visits / week</div><div class="stat-value">${Number(intel.visitsPerWeek || 0).toFixed(0)}</div></div>
@@ -129,9 +133,9 @@
             </div>
 
             <div class="intel-scenarios">
-              ${_renderScenario('aggressive', intel.scenarios && intel.scenarios.aggressive, '&#x1F535; Aggressive', 'Win rate priority')}
-              ${_renderScenario('balanced',   intel.scenarios && intel.scenarios.balanced,   '&#x1F7E2; Balanced',   'Recommended')}
-              ${_renderScenario('protected',  intel.scenarios && intel.scenarios.protected,  '&#x1F7E1; Protected',  'Margin-safe')}
+              ${_renderScenario('aggressive', intel.scenarios && intel.scenarios.aggressive, '&#x1F535; Aggressive', 'Win rate priority', rec && rec.scenario === 'aggressive')}
+              ${_renderScenario('balanced',   intel.scenarios && intel.scenarios.balanced,   '&#x1F7E2; Balanced',   'Recommended',       rec && rec.scenario === 'balanced')}
+              ${_renderScenario('protected',  intel.scenarios && intel.scenarios.protected,  '&#x1F7E1; Protected',  'Margin-safe',       rec && rec.scenario === 'protected')}
             </div>
 
             <div class="intel-apply-row">
@@ -145,7 +149,35 @@
       `;
     }
 
-    function _renderScenario(key, scenario, label, subtitle) {
+    function _renderAiRecommendation(rec) {
+      const confColor = { high: '#059669', medium: '#D97706', low: '#94A3B8' }[rec.confidence] || '#94A3B8';
+      const scLabels  = { aggressive: '&#x1F535; Aggressive', balanced: '&#x1F7E2; Balanced', protected: '&#x1F7E1; Protected' };
+      return `
+        <div class="ai-rec-card" id="ai-rec-card">
+          <div class="ai-rec-header">
+            <span class="ai-rec-star">&#10024;</span>
+            <span class="ai-rec-title">AI Recommendation</span>
+            <span class="ai-rec-conf" style="background:${confColor}">${rec.confidence} confidence</span>
+            <button class="btn-ai-apply" type="button" onclick="IntelPanel._applyRecommendation()">
+              Auto-Apply &#10003;
+            </button>
+          </div>
+          <div class="ai-rec-body">
+            <div class="ai-rec-left">
+              <div class="ai-rec-scenario">${scLabels[rec.scenario] || rec.scenario}</div>
+              <div class="ai-rec-price">&#163;${Math.round(rec.revenuePerMonth || 0)}<span>/mo</span></div>
+              <div class="ai-rec-detail">&#163;${Number(rec.hourlyRate || 0).toFixed(2)}/hr &middot; ${Number(rec.marginPct || 0).toFixed(0)}% margin</div>
+            </div>
+            <div class="ai-rec-reasons">
+              ${(rec.reasons || []).map(function(r) {
+                return '<div class="ai-rec-reason">&#10003; ' + _esc(r) + '</div>';
+              }).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function _renderScenario(key, scenario, label, subtitle, isRecommended) {
       if (!scenario) {
         return `
           <div class="scenario-card" id="scenario-${key}" style="opacity:.6;cursor:not-allowed">
@@ -156,9 +188,10 @@
       }
 
       const margin = (scenario.marginPct != null ? scenario.marginPct : scenario.effectiveMargin);
+      const recBadge = isRecommended ? '<span class="sc-ai-badge">&#10024; AI Pick</span>' : '';
       return `
-        <div class="scenario-card" id="scenario-${key}" onclick="IntelPanel._selectScenario('${key}', this)">
-          <div class="sc-label">${label}</div>
+        <div class="scenario-card${isRecommended ? ' ai-recommended' : ''}" id="scenario-${key}" onclick="IntelPanel._selectScenario('${key}', this)">
+          <div class="sc-label">${label} ${recBadge}</div>
           <div class="sc-sub">${subtitle}</div>
           <div class="sc-price">&#163;${Number(scenario.revenuePerMonth || 0).toFixed(0)}<span>/mo</span></div>
           <div class="sc-detail">&#163;${Number(scenario.revenuePerWeek || 0).toFixed(0)}/wk &middot; &#163;${Number(scenario.hourlyRate || 0).toFixed(2)}/hr &middot; ${Number(margin || 0).toFixed(1)}% margin</div>
@@ -390,7 +423,39 @@
         .replace(/'/g, '&#39;');
     }
 
-    return { init, _selectScenario, _applyScenario, _setWageAdjust, _toggleCollapse };
+    // ─────────────────────────────────────────────────────────
+    // Auto-apply AI recommendation
+    // ─────────────────────────────────────────────────────────
+    function _applyRecommendation() {
+      const rec = _state.intel && _state.intel.aiRecommendation;
+      if (!rec || !rec.scenario) return;
+
+      // Highlight the recommended card and select it
+      const card = document.getElementById('scenario-' + rec.scenario);
+      if (card) {
+        document.querySelectorAll('.scenario-card').forEach(function(c) { c.classList.remove('selected'); });
+        card.classList.add('selected');
+        _state.chosenScenario = rec.scenario;
+      }
+
+      // Update apply label
+      const label = document.getElementById('apply-label');
+      if (label) {
+        label.textContent = '&#163;' + Math.round(rec.revenuePerMonth || 0) + '/mo \u00b7 &#163;' + Number(rec.hourlyRate || 0).toFixed(2) + '/hr';
+      }
+
+      // Animate the AI card
+      const aiCard = document.getElementById('ai-rec-card');
+      if (aiCard) {
+        aiCard.style.boxShadow = '0 0 0 2px #059669';
+        setTimeout(function() { if (aiCard) aiCard.style.boxShadow = ''; }, 1500);
+      }
+
+      // Apply after brief visual confirmation
+      setTimeout(function() { _applyScenario(); }, 200);
+    }
+
+    return { init, _selectScenario, _applyScenario, _applyRecommendation, _setWageAdjust, _toggleCollapse };
   })();
 
   // Expose globally (IMPORTANT)
@@ -457,7 +522,26 @@
     '.loading-dots{letter-spacing:3px;animation:intel-blink 1.2s infinite}',
     '@keyframes intel-blink{0%,100%{opacity:1}50%{opacity:0.3}}',
     '.intel-err-msg{padding:14px 16px;font-size:13px;color:#f87171}',
-    '@media(max-width:700px){.intel-estimates{grid-template-columns:repeat(2,1fr)}.intel-scenarios{grid-template-columns:1fr}}'
+    // AI recommendation card
+    '.ai-rec-card{background:linear-gradient(135deg,#0a2a1e,#0d2420);border:1.5px solid #0D9488;border-radius:10px;padding:14px 16px;margin-bottom:16px;position:relative}',
+    '.ai-rec-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}',
+    '.ai-rec-star{color:#10B981;font-size:14px}',
+    '.ai-rec-title{font-size:12px;font-weight:700;color:#5EEAD4;flex:1;text-transform:uppercase;letter-spacing:.06em}',
+    '.ai-rec-conf{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff;text-transform:uppercase;letter-spacing:.04em}',
+    '.btn-ai-apply{background:#0D9488;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap}',
+    '.btn-ai-apply:hover{background:#0f766e}',
+    '.ai-rec-body{display:flex;gap:16px;align-items:flex-start}',
+    '.ai-rec-left{flex-shrink:0;min-width:110px}',
+    '.ai-rec-scenario{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:4px}',
+    '.ai-rec-price{font-size:24px;font-weight:800;color:#5EEAD4;line-height:1;letter-spacing:-.03em}',
+    '.ai-rec-price span{font-size:12px;font-weight:400;color:#4a6a80}',
+    '.ai-rec-detail{font-size:10px;color:#4a6a80;margin-top:3px}',
+    '.ai-rec-reasons{flex:1}',
+    '.ai-rec-reason{font-size:11px;color:#94A3B8;margin-bottom:4px;line-height:1.5;padding-left:2px}',
+    // AI pick badge on scenario card
+    '.sc-ai-badge{font-size:9px;font-weight:700;background:#0D9488;color:#fff;padding:1px 6px;border-radius:8px;vertical-align:middle;margin-left:4px;letter-spacing:.03em}',
+    '.scenario-card.ai-recommended{border-color:#0D9488;box-shadow:0 0 0 1px rgba(13,148,136,.4)}',
+    '@media(max-width:700px){.intel-estimates{grid-template-columns:repeat(2,1fr)}.intel-scenarios{grid-template-columns:1fr}.ai-rec-body{flex-direction:column}}'
   ].join('');
   document.head.appendChild(style);
 })();
