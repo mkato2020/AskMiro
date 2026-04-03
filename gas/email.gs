@@ -400,6 +400,34 @@ function webhookLead(params) {
     };
     appendRow('Leads', lead);
     auditLog('WEBHOOK', 'CREATE', 'Lead', id, null, lead);
+
+    // ── Run Intelligence Engine + create Draft Quote in OPS ───────────
+    // Every website lead with a service type gets a priced draft quote
+    // so it surfaces immediately in OPS Quotes as a priority request.
+    var quoteId = null;
+    try {
+      var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+      ensureIntelligenceSheets(ss);
+      var leadForIntel = normaliseLead({
+        name:              lead.contactName,
+        email:             lead.email,
+        phone:             lead.phone,
+        postcode:          lead.postcode,
+        facilityType:      params.serviceType || params.sector || params.facilityType || 'other',
+        cleaningFrequency: params.frequency   || params.cleaningFrequency || 'weekly',
+        requirements:      (params.message    || params.requirements || lead.notes || '').trim(),
+        premisesSize:      params.premisesSize || params.areaMq || '',
+        premisesSizeUnit:  params.premisesSizeUnit || 'm2',
+        source:            'web_form'
+      });
+      var intel = runIntelligenceEngine(ss, leadForIntel);
+      intel     = handleOneOffClean(leadForIntel, intel);
+      quoteId   = createDraftQuote(ss, leadForIntel, intel, id);
+      Logger.log('webhookLead: draft quote created → ' + quoteId + ' for lead ' + id);
+    } catch(qErr) {
+      Logger.log('webhookLead: quote creation failed (non-blocking) — ' + qErr.message);
+    }
+
     try {
       const settings = getSettingsObj();
       GmailApp.sendEmail(settings.emailFrom || 'info@askmiro.com',
@@ -412,31 +440,34 @@ function webhookLead(params) {
     try {
       sendInboxAutoReply(email, lead.contactName, 'Your cleaning enquiry');
     } catch(arErr) { Logger.log('Auto-reply failed: ' + arErr.message); }
-    // ── Mirror lead to AskMiro OS (Lead Intelligence) — fire & forget ──
+
+    // ── Mirror lead to AskMiro OS — hardcoded fallback URL so it always fires ──
     try {
       const settings = getSettingsObj();
-      const osUrl = settings.OS_WEBHOOK_URL || '';
-      if (osUrl) {
-        UrlFetchApp.fetchAll([{
-          url: osUrl + '/api/webhook/lead',
-          method: 'post',
-          contentType: 'application/json',
-          payload: JSON.stringify({
-            name:        lead.contactName,
-            email:       lead.email,
-            phone:       lead.phone,
-            business:    lead.companyName,
-            address:     lead.postcode,
-            message:     lead.notes,
-            source:      'website',
-            sector:      lead.serviceType,
-            gas_lead_id: lead.id
-          }),
-          muteHttpExceptions: true
-        }]);
-      }
+      const osUrl = settings.OS_WEBHOOK_URL || 'https://askmiro-api-production.up.railway.app';
+      UrlFetchApp.fetchAll([{
+        url: osUrl + '/api/webhook/lead',
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify({
+          name:         lead.contactName,
+          email:        lead.email,
+          phone:        lead.phone,
+          business:     lead.companyName,
+          address:      lead.postcode,
+          message:      lead.notes,
+          source:       'website',
+          sector:       lead.serviceType,
+          frequency:    params.frequency || '',
+          premisesSize: params.premisesSize || '',
+          gas_lead_id:  lead.id,
+          gas_quote_id: quoteId || ''
+        }),
+        muteHttpExceptions: true
+      }]);
     } catch(osErr) { Logger.log('OS mirror failed (non-blocking): ' + osErr.message); }
-    return { ok: true, id, message: 'Lead created successfully' };
+
+    return { ok: true, id, quoteId: quoteId, message: 'Lead created successfully' };
   } catch(err) { logError(err); return { ok: false, error: err.message }; }
 }
 
