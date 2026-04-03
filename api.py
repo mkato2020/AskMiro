@@ -6727,38 +6727,43 @@ def today_engine():
                     return 0
 
             # ── LEADS TO CONTACT TODAY (top 20 by composite score) ──
-            # High score + not recently contacted + has contact info
+            # Join opportunity_scores directly so we don't depend on view column availability
             result['leads_to_contact'] = _safe_query('leads', """
-                    SELECT vl.entity_id, vl.business_name, vl.borough, vl.sector,
-                           vl.total_score, vl.score_band,
-                           vl.primary_phone as phone, vl.primary_website as website,
-                           vl.primary_email as email,
-                           vl.estimated_monthly_value_gbp,
-                           vl.next_best_action,
-                           vl.hvt,
+                    SELECT e.id AS entity_id, e.canonical_name AS business_name,
+                           a.borough, e.sector,
+                           COALESCE(os.total_score, 0) AS total_score,
+                           os.score_band,
+                           e.primary_phone AS phone, e.primary_website AS website,
+                           e.primary_email AS email,
+                           COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
+                           os.next_best_action,
+                           e.hvt,
                            CASE
-                             WHEN vl.hvt = TRUE AND vl.total_score >= 75 THEN 'High-value target with strong score — contact immediately'
-                             WHEN vl.total_score >= 80 THEN 'Top-scoring lead — priority outreach'
-                             WHEN vl.hvt = TRUE THEN 'High-value target — worth pursuing'
-                             WHEN vl.total_score >= 65 THEN 'Strong lead — ready for contact'
+                             WHEN e.hvt = TRUE AND COALESCE(os.total_score,0) >= 75 THEN 'High-value target with strong score — contact immediately'
+                             WHEN COALESCE(os.total_score,0) >= 80 THEN 'Top-scoring lead — priority outreach'
+                             WHEN e.hvt = TRUE THEN 'High-value target — worth pursuing'
+                             WHEN COALESCE(os.total_score,0) >= 65 THEN 'Strong lead — ready for contact'
                              ELSE 'Good prospect — outreach recommended'
-                           END as reason,
+                           END AS reason,
                            CASE
-                             WHEN vl.primary_phone IS NOT NULL AND vl.primary_phone != '' THEN 'Call directly'
-                             WHEN vl.primary_email IS NOT NULL AND vl.primary_email != '' THEN 'Send outreach email'
-                             WHEN vl.primary_website IS NOT NULL AND vl.primary_website != '' THEN 'Find contact via website'
+                             WHEN e.primary_phone IS NOT NULL AND e.primary_phone != '' THEN 'Call directly'
+                             WHEN e.primary_email IS NOT NULL AND e.primary_email != '' THEN 'Send outreach email'
+                             WHEN e.primary_website IS NOT NULL AND e.primary_website != '' THEN 'Find contact via website'
                              ELSE 'Research contact details'
-                           END as suggested_action
-                    FROM v_lead_board vl
-                    WHERE vl.active = TRUE
-                      AND vl.total_score >= 50
+                           END AS suggested_action
+                    FROM entities e
+                    LEFT JOIN entity_locations el ON el.entity_id = e.id AND el.is_primary = TRUE
+                    LEFT JOIN addresses a ON a.id = el.address_id
+                    LEFT JOIN opportunity_scores os ON os.entity_id = e.id
+                    WHERE e.active = TRUE
                       AND NOT EXISTS (
                           SELECT 1 FROM opportunities o
-                          WHERE o.entity_id = vl.entity_id
-                          AND o.current_stage IN ('won','lost')
+                          WHERE o.entity_id = e.id
+                          AND o.current_stage NOT IN ('lost','dormant')
                       )
                     ORDER BY
-                        (CASE WHEN vl.hvt = TRUE THEN 20 ELSE 0 END) + vl.total_score DESC
+                        (CASE WHEN e.hvt = TRUE THEN 20 ELSE 0 END) +
+                        COALESCE(os.total_score, 0) DESC
                     LIMIT 20
                 """)
 
