@@ -325,7 +325,7 @@ export default function Analytics({openLead,setTab}){
                   <tbody>
                     {safeArr(today.leads_to_contact).slice(0,showAllContacts?50:10).map((lead,i)=>{
                       const sc = Number(lead.score)||0
-                      const isA = sc>=70, isB = sc>=50 && sc<70
+                      const isA = sc>=80, isB = sc>=65 && sc<80
                       const scoreBg = isA?'#ECFDF5':isB?'#F0FDFA':'#FFFBEB'
                       const scoreColor = isA?'#059669':isB?'#0D9488':'#D97706'
                       const scoreBand = isA?'A':isB?'B':'C'

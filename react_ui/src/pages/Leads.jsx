@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 
 /* ── score band colours ── */
-const BAND_COLOURS = { A: '#10b981', B: '#3b82f6', C: '#f59e0b', D: '#ef4444' };
+const BAND_COLOURS = { A: '#059669', B: '#0D9488', C: '#D97706', D: '#DC2626' };
 
 /* ── sortable columns ── */
 const COLUMNS = [

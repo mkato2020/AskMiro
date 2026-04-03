@@ -23,8 +23,9 @@ export default function LeadModal({lead,onClose}){
   // Now safe to return null after all hooks are called
   if(!lead)return null
 
-  const scoreBand=lead.score>=80?'A':lead.score>=60?'B':lead.score>=40?'C':'D'
-  const scoreColor={A:'#10b981',B:'#3b82f6',C:'#f59e0b',D:'#ef4444'}[scoreBand]
+  const sc=lead.score??lead.total_score
+  const scoreBand=sc>=80?'A':sc>=65?'B':sc>=50?'C':'D'
+  const scoreColor={A:'#059669',B:'#0D9488',C:'#D97706',D:'#DC2626'}[scoreBand]
 
   return(
     <div style={{position:'fixed',inset:0,zIndex:1000,display:'flex',justifyContent:'flex-end'}} onClick={onClose}>
@@ -42,7 +43,8 @@ export default function LeadModal({lead,onClose}){
             <div style={{flex:1}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                 <h2 style={{fontSize:'1.15rem',fontWeight:800,color:'var(--text-1)',margin:0}}>{lead.name||'Unknown'}</h2>
-                {lead.score!=null&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontWeight:700,color:scoreColor,background:scoreColor+'18'}}>{scoreBand} ({lead.score})</span>}
+                {sc!=null&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontWeight:700,color:scoreColor,background:scoreColor+'18'}}>{scoreBand} ({sc})</span>}
+                {lead.estimated_monthly_value_gbp&&<span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.7rem',fontWeight:700,color:'#059669',background:'#05996918'}}>£{Number(lead.estimated_monthly_value_gbp).toLocaleString()}/mo</span>}
               </div>
               <div style={{fontSize:'0.8rem',color:'var(--text-muted)'}}>
                 {lead.sector&&<span style={{marginRight:8}}>{lead.sector}</span>}
@@ -67,7 +69,7 @@ export default function LeadModal({lead,onClose}){
           {/* Quick Actions */}
           <div style={{display:'flex',gap:6,marginTop:14}}>
             <ActionBtn label="Generate Outreach" color="var(--teal)" loading={genOutreach.isPending} onClick={()=>genOutreach.mutate()}/>
-            {lead.phone&&<ActionBtn label="Log Call" color="#3b82f6" onClick={()=>setTab('activity')}/>}
+            {lead.phone&&<ActionBtn label="Log Call" color="var(--teal)" onClick={()=>setTab('activity')}/>}
             <ActionBtn label="Archive" color="#ef4444" onClick={()=>{if(confirm('Archive this lead?'))archiveLead.mutate()}}/>
           </div>
         </div>
@@ -88,16 +90,60 @@ export default function LeadModal({lead,onClose}){
           {/* Overview Tab */}
           {tab==='overview'&&(
             <div>
+              {/* Trust Layer — Score · Value · Reason */}
+              {(sc!=null||lead.estimated_monthly_value_gbp||lead.next_best_action)&&(
+                <div style={{marginBottom:18,padding:14,borderRadius:'var(--r-sm)',background:'var(--bg-base)',border:'1px solid var(--border)'}}>
+                  {/* Score + Value headline */}
+                  <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
+                    {sc!=null&&(
+                      <div style={{textAlign:'center',minWidth:52,padding:'6px 0',borderRadius:'var(--r-sm)',background:scoreColor+'18'}}>
+                        <div style={{fontSize:'1.4rem',fontWeight:900,color:scoreColor,lineHeight:1}}>{sc}</div>
+                        <div style={{fontSize:'0.6rem',fontWeight:700,color:scoreColor,textTransform:'uppercase',letterSpacing:'0.06em'}}>Band {scoreBand}</div>
+                      </div>
+                    )}
+                    <div style={{flex:1}}>
+                      {lead.estimated_monthly_value_gbp&&(
+                        <div style={{fontSize:'0.82rem',fontWeight:700,color:'#059669',marginBottom:2}}>
+                          £{Number(lead.estimated_monthly_value_gbp).toLocaleString()} <span style={{fontWeight:400,color:'var(--text-muted)',fontSize:'0.72rem'}}>/month est.</span>
+                        </div>
+                      )}
+                      {lead.next_best_action&&(
+                        <div style={{fontSize:'0.75rem',color:'var(--text-2)',lineHeight:1.4}}>{lead.next_best_action}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Score breakdown bars */}
+                  {(lead.fit_score!=null||lead.buyer_signal_score!=null)&&(
+                    <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                      {[
+                        {label:'Fit',val:lead.fit_score,max:25},
+                        {label:'Facility',val:lead.facility_score,max:20},
+                        {label:'Signals',val:lead.buyer_signal_score,max:25},
+                        {label:'Contact',val:lead.contactability_score,max:15},
+                        {label:'Scale',val:lead.scale_score,max:10},
+                        {label:'Freshness',val:lead.freshness_score,max:5},
+                      ].filter(d=>d.val!=null).map(d=>(
+                        <div key={d.label} style={{display:'flex',alignItems:'center',gap:8}}>
+                          <div style={{width:64,fontSize:'0.65rem',color:'var(--text-muted)',fontWeight:600,textAlign:'right',flexShrink:0}}>{d.label}</div>
+                          <div style={{flex:1,height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                            <div style={{height:'100%',width:`${Math.round((d.val/d.max)*100)}%`,background:'var(--teal)',borderRadius:3,transition:'width .3s'}}/>
+                          </div>
+                          <div style={{width:28,fontSize:'0.65rem',color:'var(--text-muted)',fontWeight:600}}>{d.val}/{d.max}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {lead.address&&<DetailRow label="Address" value={lead.address}/>}
               {lead.formatted_address&&<DetailRow label="Address" value={lead.formatted_address}/>}
               {lead.kind&&<DetailRow label="Type" value={lead.kind}/>}
               {lead.sector&&<DetailRow label="Sector" value={lead.sector}/>}
               {lead.borough&&<DetailRow label="Borough" value={lead.borough}/>}
               {lead.pipeline_stage&&<DetailRow label="Stage" value={lead.pipeline_stage.replace(/_/g,' ')}/>}
-              {lead.score!=null&&<DetailRow label="Score" value={`${lead.score} (${scoreBand})`}/>}
               {lead.last_activity_date&&<DetailRow label="Last Activity" value={new Date(lead.last_activity_date).toLocaleDateString()}/>}
               {lead.created_at&&<DetailRow label="Added" value={new Date(lead.created_at).toLocaleDateString()}/>}
-              {lead.next_best_action&&<DetailRow label="Next Action" value={lead.next_best_action}/>}
 
               {genOutreach.data&&(
                 <div style={{marginTop:20,padding:16,background:'var(--bg-base)',borderRadius:'var(--r-sm)',border:'1px solid var(--border)'}}>
