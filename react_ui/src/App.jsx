@@ -60,7 +60,7 @@ export default function App(){
     <>
       <Sidebar tab={tab} setTab={setTab} user={user}/>
       <main style={{flex:1,overflowY:'auto',background:'var(--bg-base)',display:'flex',flexDirection:'column'}}>
-        {tab==='analytics'&&<Analytics openLead={openLead}/>}
+        {tab==='analytics'&&<Analytics openLead={openLead} setTab={setTab}/>}
         {tab==='leads'&&<Leads openLead={openLead}/>}
         {tab==='pipeline'&&<Pipeline openLead={openLead}/>}
         {tab==='signals'&&<Signals openLead={openLead}/>}

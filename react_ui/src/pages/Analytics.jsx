@@ -113,7 +113,7 @@ function BarChart({data,width=520,height=200}){
 
 /* ── main component ──────────────────────────────────────────────────── */
 
-export default function Analytics({openLead}){
+export default function Analytics({openLead,setTab}){
   const [period,setPeriod]=useState('h1-2026')
   const [showAllContacts,setShowAllContacts]=useState(false)
 
@@ -210,8 +210,10 @@ export default function Analytics({openLead}){
   },[inspections,incidents])
 
   /* ── KPI card ───────────────────────────────────────────────── */
-  const KPI = ({label,value,sub,color,accent}) => (
-    <div style={{...card,flex:1,minWidth:155,position:'relative',overflow:'hidden'}}>
+  const KPI = ({label,value,sub,color,accent,onClick}) => (
+    <div onClick={onClick} style={{...card,flex:1,minWidth:155,position:'relative',overflow:'hidden',cursor:onClick?'pointer':'default',transition:'box-shadow .15s,transform .15s'}}
+      onMouseEnter={e=>{if(onClick){e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';e.currentTarget.style.transform='translateY(-1px)'}}}
+      onMouseLeave={e=>{e.currentTarget.style.boxShadow='';e.currentTarget.style.transform=''}}>
       {accent && <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:accent,borderRadius:'var(--r-lg) var(--r-lg) 0 0'}}/>}
       <div style={{fontSize:'0.68rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8,fontWeight:700}}>{label}</div>
       <div style={{fontSize:'1.55rem',fontWeight:800,color:color||'var(--text-1)',letterSpacing:'-.03em',lineHeight:1}}>{value}</div>
@@ -328,8 +330,9 @@ export default function Analytics({openLead}){
                       const scoreColor = isA?'#059669':isB?'#2563EB':'#D97706'
                       const scoreBand = isA?'A':isB?'B':'C'
                       return(
-                        <tr key={i} style={{borderBottom:'1px solid var(--border)',transition:'background .1s'}}
-                          onMouseEnter={e=>e.currentTarget.style.background='var(--bg-surface-hover,rgba(0,0,0,.02))'}
+                        <tr key={i} onClick={()=>openLead&&(lead.entity_id||lead.place_id)&&openLead(lead.entity_id||lead.place_id)}
+                          style={{borderBottom:'1px solid var(--border)',transition:'background .1s',cursor:openLead&&(lead.entity_id||lead.place_id)?'pointer':'default'}}
+                          onMouseEnter={e=>e.currentTarget.style.background='rgba(13,148,136,.04)'}
                           onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                           <td style={{...tdStyle,color:'var(--text-muted)',fontWeight:600,fontSize:'0.72rem'}}>{i+1}</td>
                           <td style={{...tdStyle,fontWeight:700}}>{lead.business_name||lead.name||'—'}</td>
@@ -391,11 +394,12 @@ export default function Analytics({openLead}){
                     const isCritical = days > 14
                     const isWarn = days > 7
                     return(
-                      <div key={i} style={{
+                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{
                         display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,
                         padding:'10px 14px',borderRadius:'var(--r-sm)',
                         background:isCritical?'#FEF2F2':isWarn?'#FFFBEB':'var(--bg-surface)',
                         border:`1px solid ${isCritical?'#FECACA':isWarn?'#FDE68A':'var(--border)'}`,
+                        cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default',
                       }}>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:2}}>{item.business_name||item.name||'—'}</div>
@@ -434,9 +438,10 @@ export default function Analytics({openLead}){
                     const urgency = (item.urgency||'').toLowerCase()
                     const borderL = urgency==='high'?'#DC2626':urgency==='medium'?'#D97706':'#2563EB'
                     return(
-                      <div key={i} style={{
+                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{
                         padding:'10px 14px',borderRadius:'var(--r-sm)',borderLeft:`3px solid ${borderL}`,
                         background:'var(--bg-surface)',border:'1px solid var(--border)',borderLeftColor:borderL,
+                        cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default',
                       }}>
                         <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:4}}>{item.business_name||item.name||'—'}</div>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
@@ -469,8 +474,8 @@ export default function Analytics({openLead}){
                   {safeArr(today.push_to_visit).map((item,i)=>{
                     const sc = Number(item.score)||0
                     return(
-                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
-                        padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)'}}>
+                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                        padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)',cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default'}}>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
                           <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.borough||''}{item.borough&&sc?' · ':''}{sc?`Score ${sc}`:''}</div>
@@ -498,8 +503,8 @@ export default function Analytics({openLead}){
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {safeArr(today.leads_to_quote).map((item,i)=>(
-                    <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
-                      padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)'}}>
+                    <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+                      padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)',cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default'}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
                         {item.est_value!=null && <div style={{fontSize:'0.72rem',fontWeight:700,color:'#059669'}}>{fmtGBP(item.est_value)}</div>}
@@ -626,7 +631,7 @@ export default function Analytics({openLead}){
             {' '}— Intelligence Engine has pre-priced {webLeads===1?'this quote':'these quotes'}
             {' '}— click to review scenarios and apply pricing
           </div>
-          <button onClick={()=>openLead&&openLead('quotes')} style={{
+          <button onClick={()=>setTab&&setTab('quotes')} style={{
             background:'#fff',color:'#0F766E',border:'none',borderRadius:'var(--r-sm)',
             padding:'9px 22px',fontWeight:700,fontSize:'0.82rem',cursor:'pointer',
             whiteSpace:'nowrap',transition:'opacity .15s',
@@ -638,14 +643,14 @@ export default function Analytics({openLead}){
 
       {/* ─── KPI Cards Row ─────────────────────────────────────── */}
       <div style={{display:'flex',gap:14,marginBottom:28,flexWrap:'wrap'}}>
-        <KPI label="Active Sites" value={fmt(activeSites)} sub={activeSites > 0 ? '\u25B2 Portfolio' : 'No active sites'} accent="var(--teal)"/>
-        <KPI label="Monthly Revenue" value={fmtGBP(monthlyRevenue)} sub={monthlyRevenue > 0 ? '\u25B2 Growing' : 'Awaiting data'} accent="#2563EB"/>
-        <KPI label="Portfolio Margin" value={fmtPct(portfolioMargin)} sub="Net margin" accent="#8B5CF6"/>
+        <KPI label="Active Sites" value={fmt(activeSites)} sub={activeSites > 0 ? '\u25B2 Portfolio' : 'No active sites'} accent="var(--teal)" onClick={()=>setTab&&setTab('operations')}/>
+        <KPI label="Monthly Revenue" value={fmtGBP(monthlyRevenue)} sub={monthlyRevenue > 0 ? '\u25B2 Growing' : 'Awaiting data'} accent="#2563EB" onClick={()=>setTab&&setTab('finance')}/>
+        <KPI label="Portfolio Margin" value={fmtPct(portfolioMargin)} sub="Net margin" accent="#8B5CF6" onClick={()=>setTab&&setTab('finance')}/>
         <KPI label="Avg Audit Score" value={avgScore != null ? fmtPct(avgScore) : '—'} sub="Quality benchmark"
           color={avgScore >= 90 ? '#059669' : avgScore >= 70 ? '#D97706' : avgScore != null ? '#DC2626' : undefined}
-          accent="#F59E0B"/>
+          accent="#F59E0B" onClick={()=>setTab&&setTab('quality')}/>
         <KPI label="Open Incidents" value={fmt(openIncidents)} sub={openIncidents === 0 ? 'All clear' : 'Needs attention'}
-          color={openIncidents > 0 ? '#DC2626' : '#059669'} accent={openIncidents > 0 ? '#DC2626' : '#059669'}/>
+          color={openIncidents > 0 ? '#DC2626' : '#059669'} accent={openIncidents > 0 ? '#DC2626' : '#059669'} onClick={()=>setTab&&setTab('quality')}/>
       </div>
 
       {/* ─── Web Leads to Quote card ───────────────────────────── */}
@@ -653,7 +658,7 @@ export default function Analytics({openLead}){
         <div style={{...card,flex:'0 0 220px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center'}}>
           <div style={{fontSize:'0.68rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:700,marginBottom:8}}>Web Leads to Quote</div>
           <div style={{fontSize:'2rem',fontWeight:800,color:'var(--teal)',letterSpacing:'-.03em',lineHeight:1}}>{webLeads}</div>
-          <button onClick={()=>openLead&&openLead('quotes')} style={{
+          <button onClick={()=>setTab&&setTab('quotes')} style={{
             marginTop:14,background:'none',border:'none',color:'var(--teal)',fontWeight:700,
             fontSize:'0.8rem',cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:4,
           }}>
