@@ -116,6 +116,7 @@ function BarChart({data,width=520,height=200}){
 export default function Analytics({openLead,setTab}){
   const [period,setPeriod]=useState('h1-2026')
   const [showAllContacts,setShowAllContacts]=useState(false)
+  const [focusMode,setFocusMode]=useState('mixed')
 
   /* ── data fetching ──────────────────────────────────────────── */
   const {data:summary,isLoading:lSum}   = useQuery({queryKey:['summary'],queryFn:api.summary,staleTime:120000})
@@ -127,7 +128,7 @@ export default function Analytics({openLead,setTab}){
   const {data:pendingQuotes,isLoading:lQ} = useQuery({queryKey:['quotes-pending'],queryFn:()=>api.quotes('pending'),staleTime:60000})
 
   /* ── Today Engine + Intelligence Alerts ──────────────────── */
-  const {data:today} = useQuery({queryKey:['today-engine'],queryFn:fetchTodayEngine,staleTime:60000,refetchInterval:60000})
+  const {data:today} = useQuery({queryKey:['today-engine',focusMode],queryFn:()=>fetchTodayEngine(focusMode),staleTime:60000,refetchInterval:60000})
   const {data:alerts,refetch:refetchAlerts} = useQuery({queryKey:['intel-alerts'],queryFn:()=>fetchIntelligenceAlerts(false),staleTime:60000,refetchInterval:60000})
   const [dismissedAlerts,setDismissedAlerts] = useState(new Set())
   const handleAck = async(id)=>{
@@ -233,12 +234,33 @@ export default function Analytics({openLead,setTab}){
           <h1 style={{fontSize:'1.6rem',fontWeight:800,letterSpacing:'-.03em',margin:0,color:'var(--text-1)'}}>Executive Dashboard</h1>
           {badge('var(--teal)','#fff','OVERVIEW')}
         </div>
-        <select value={period} onChange={e=>setPeriod(e.target.value)}
-          style={{padding:'8px 14px',borderRadius:'var(--r-sm)',border:'1px solid var(--border)',background:'var(--bg-surface)',
-            color:'var(--text-1)',fontSize:'0.82rem',fontWeight:600,cursor:'pointer'}}>
-          {PERIOD_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {/* Focus mode */}
+          <div style={{display:'flex',gap:4,background:'var(--bg-base)',borderRadius:20,padding:'3px 4px',border:'1px solid var(--border)'}}>
+            {[['mixed','All'],['healthcare','Health'],['property','Property'],['offices','Offices']].map(([m,l])=>(
+              <button key={m} onClick={()=>setFocusMode(m)} style={{
+                padding:'4px 10px',borderRadius:16,border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,
+                background:focusMode===m?'var(--teal)':'transparent',
+                color:focusMode===m?'#fff':'var(--text-muted)',transition:'all .15s',
+              }}>{l}</button>
+            ))}
+          </div>
+          <select value={period} onChange={e=>setPeriod(e.target.value)}
+            style={{padding:'8px 14px',borderRadius:'var(--r-sm)',border:'1px solid var(--border)',background:'var(--bg-surface)',
+              color:'var(--text-1)',fontSize:'0.82rem',fontWeight:600,cursor:'pointer'}}>
+            {PERIOD_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
       </div>
+      {/* Freshness bar */}
+      {today?.refreshed_at && (
+        <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:16,fontSize:'0.68rem',color:'var(--text-muted)'}}>
+          <span>Refreshed {new Date(today.refreshed_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
+          {today.last_scored_at && <span>· Scoring: {new Date(today.last_scored_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>}
+          {today.focus && today.focus !== 'mixed' && <span style={{color:'var(--teal)',fontWeight:700}}>· Focus: {today.focus}</span>}
+          {today?.counts?.pipeline_value_gbp > 0 && <span>· Pipeline: £{Number(today.counts.pipeline_value_gbp).toLocaleString('en-GB',{maximumFractionDigits:0})}/mo</span>}
+        </div>
+      )}
 
       {/* ─── TODAY ENGINE: Command Centre ──────────────────────── */}
       {today ? (
@@ -312,41 +334,60 @@ export default function Analytics({openLead,setTab}){
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead>
                     <tr style={{borderBottom:'2px solid var(--border)'}}>
-                      <th style={{...thStyle,width:30}}>#</th>
-                      <th style={thStyle}>Business Name</th>
-                      <th style={thStyle}>Borough</th>
-                      <th style={thStyle}>Sector</th>
+                      <th style={{...thStyle,width:28}}>#</th>
+                      <th style={thStyle}>Business</th>
+                      <th style={thStyle}>Borough / Sector</th>
                       <th style={{...thStyle,textAlign:'center'}}>Score</th>
-                      <th style={{...thStyle,textAlign:'right'}}>Est. Value</th>
+                      <th style={{...thStyle,textAlign:'center'}}>Conf.</th>
+                      <th style={{...thStyle,textAlign:'right'}}>Value/mo</th>
                       <th style={thStyle}>Reason</th>
+                      <th style={thStyle}>Channel · Owner</th>
+                      <th style={thStyle}>Due</th>
                       <th style={thStyle}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {safeArr(today.leads_to_contact).slice(0,showAllContacts?50:10).map((lead,i)=>{
                       const sc = Number(lead.total_score||lead.score)||0
-                      const isA = sc>=80, isB = sc>=65 && sc<80
-                      const scoreBg = isA?'#ECFDF5':isB?'#F0FDFA':'#FFFBEB'
-                      const scoreColor = isA?'#059669':isB?'#0D9488':'#D97706'
-                      const scoreBand = isA?'A':isB?'B':'C'
+                      const tier = lead.tier || (sc>=90?'A+':sc>=80?'A':sc>=70?'B':sc>=60?'C':'D')
+                      const tierColors = {'A+':['#ECFDF5','#059669'],'A':['#ECFDF5','#059669'],'B':['#F0FDFA','#0D9488'],'C':['#FFFBEB','#D97706'],'D':['#FEF2F2','#DC2626'],'U':['#F1F5F9','#94A3B8']}
+                      const [tcBg,tcFg] = tierColors[tier]||['#F1F5F9','#94A3B8']
+                      const confColor = lead.confidence==='High'?'#059669':lead.confidence==='Medium'?'#D97706':'#DC2626'
+                      const val = lead.estimated_monthly_value_gbp
                       return(
-                        <tr key={i} onClick={()=>openLead&&(lead.entity_id||lead.place_id)&&openLead(lead.entity_id||lead.place_id)}
-                          style={{borderBottom:'1px solid var(--border)',transition:'background .1s',cursor:openLead&&(lead.entity_id||lead.place_id)?'pointer':'default'}}
+                        <tr key={i} onClick={()=>openLead&&(lead.entity_id)&&openLead(lead.entity_id)}
+                          style={{borderBottom:'1px solid var(--border)',transition:'background .1s',cursor:lead.entity_id?'pointer':'default'}}
                           onMouseEnter={e=>e.currentTarget.style.background='rgba(13,148,136,.04)'}
                           onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                          <td style={{...tdStyle,color:'var(--text-muted)',fontWeight:600,fontSize:'0.72rem'}}>{i+1}</td>
-                          <td style={{...tdStyle,fontWeight:700}}>{lead.business_name||lead.name||'—'}</td>
-                          <td style={tdStyle}>{lead.borough||'—'}</td>
-                          <td style={tdStyle}>{lead.sector||'—'}</td>
-                          <td style={{...tdStyle,textAlign:'center'}}>
-                            <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:800,padding:'3px 10px',
-                              borderRadius:20,background:scoreBg,color:scoreColor,minWidth:36,textAlign:'center'}}>{sc} {scoreBand}</span>
+                          <td style={{...tdStyle,color:'var(--text-muted)',fontWeight:700,fontSize:'0.7rem'}}>{lead.rank||i+1}</td>
+                          <td style={{...tdStyle,fontWeight:700,maxWidth:180}}>{lead.business_name||'—'}</td>
+                          <td style={{...tdStyle,fontSize:'0.74rem'}}>
+                            <div style={{color:'var(--text-2)'}}>{lead.borough||'—'}</div>
+                            <div style={{color:'var(--text-muted)',fontSize:'0.68rem'}}>{lead.sector||''}</div>
                           </td>
-                          <td style={{...tdStyle,textAlign:'right',fontWeight:600}}>{lead.estimated_monthly_value_gbp!=null?fmtGBP(lead.estimated_monthly_value_gbp):'—'}</td>
-                          <td style={{...tdStyle,fontSize:'0.74rem',color:'var(--text-muted)',maxWidth:200}}>{lead.reason||'—'}</td>
-                          <td style={tdStyle}>
-                            <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:700,padding:'3px 12px',
-                              borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap'}}>{lead.suggested_action||lead.next_best_action||'Contact'}</span>
+                          <td style={{...tdStyle,textAlign:'center'}}>
+                            <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:800,padding:'3px 8px',
+                              borderRadius:20,background:tcBg,color:tcFg,whiteSpace:'nowrap'}}>{sc} {tier}</span>
+                          </td>
+                          <td style={{...tdStyle,textAlign:'center'}}>
+                            <span style={{fontSize:'0.65rem',fontWeight:700,color:confColor}}>{lead.confidence||'—'}</span>
+                          </td>
+                          <td style={{...tdStyle,textAlign:'right',fontWeight:700,color:'#059669',whiteSpace:'nowrap'}}>
+                            {val>0?fmtGBP(val):'—'}
+                            {lead.value_confidence==='Low'&&val>0&&<span style={{fontSize:'0.6rem',color:'#D97706',marginLeft:3}}>est.</span>}
+                          </td>
+                          <td style={{...tdStyle,fontSize:'0.72rem',color:'var(--text-muted)',maxWidth:220,lineHeight:1.3}}>{lead.reason||'—'}</td>
+                          <td style={{...tdStyle,fontSize:'0.72rem',whiteSpace:'nowrap'}}>
+                            <span style={{fontWeight:700,color:'var(--teal)'}}>{lead.channel||'—'}</span>
+                            {lead.owner&&<span style={{color:'var(--text-muted)'}}> · {lead.owner}</span>}
+                          </td>
+                          <td style={{...tdStyle,fontSize:'0.7rem',fontWeight:700,whiteSpace:'nowrap',color:lead.due_date==='Today'?'#DC2626':'var(--text-muted)'}}>{lead.due_date||'—'}</td>
+                          <td style={{...tdStyle,whiteSpace:'nowrap'}}>
+                            {lead.channel==='Call'&&lead.phone?(
+                              <a href={'tel:'+lead.phone} onClick={e=>e.stopPropagation()} style={{fontSize:'0.65rem',fontWeight:700,padding:'3px 10px',borderRadius:20,background:'#F0FDFA',color:'#0D9488',textDecoration:'none',whiteSpace:'nowrap',display:'inline-block'}}>Call</a>
+                            ):(
+                              <span style={{fontSize:'0.65rem',fontWeight:700,padding:'3px 10px',borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap',display:'inline-block'}}>{lead.suggested_action||lead.next_best_action||'Contact'}</span>
+                            )}
                           </td>
                         </tr>
                       )
@@ -389,34 +430,48 @@ export default function Analytics({openLead,setTab}){
                 <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'12px 0'}}>No follow-ups due. Pipeline is moving.</div>
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {safeArr(today.followups_due).sort((a,b)=>(Number(b.days_stale)||0)-(Number(a.days_stale)||0)).map((item,i)=>{
+                  {safeArr(today.followups_due).map((item,i)=>{
                     const days = Number(item.days_stale)||0
                     const isCritical = days > 14
                     const isWarn = days > 7
+                    const catLabel = {
+                      stale_uncontacted:'Stale — not contacted',
+                      no_response:'No response',
+                      qualified_no_visit:'No site visit',
+                      visit_no_quote:'Quote overdue',
+                      quote_chase:'Chase quote',
+                      stalled_negotiation:'Stalled',
+                      follow_up_due:'Follow-up due',
+                    }[item.category] || 'Follow-up'
                     return(
-                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{
-                        display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,
+                      <div key={i} onClick={()=>openLead&&item.entity_id&&openLead(item.entity_id)} style={{
                         padding:'10px 14px',borderRadius:'var(--r-sm)',
                         background:isCritical?'#FEF2F2':isWarn?'#FFFBEB':'var(--bg-surface)',
                         border:`1px solid ${isCritical?'#FECACA':isWarn?'#FDE68A':'var(--border)'}`,
-                        cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default',
+                        cursor:item.entity_id?'pointer':'default',
                       }}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:2}}>{item.business_name||item.name||'—'}</div>
-                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                            {(item.current_stage||item.stage) && badge(
-                              isCritical?'#FEE2E2':isWarn?'#FEF3C7':'#F1F5F9',
-                              isCritical?'#DC2626':isWarn?'#92400E':'#475569',
-                              item.current_stage||item.stage
-                            )}
-                            <span style={{fontSize:'0.72rem',fontWeight:700,color:isCritical?'#DC2626':isWarn?'#D97706':'var(--text-muted)'}}>{days}d stale</span>
+                        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3,flexWrap:'wrap'}}>
+                              <span style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||'—'}</span>
+                              <span style={{fontSize:'0.6rem',fontWeight:700,padding:'1px 7px',borderRadius:10,
+                                background:isCritical?'#FEE2E2':isWarn?'#FEF3C7':'#F1F5F9',
+                                color:isCritical?'#DC2626':isWarn?'#92400E':'#64748B'}}>{catLabel}</span>
+                              {item.tier && item.tier!=='U' && <span style={{fontSize:'0.6rem',fontWeight:700,color:'var(--teal)'}}>{item.tier}</span>}
+                            </div>
+                            <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.35}}>{item.reason||''}</div>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4,fontSize:'0.68rem',color:'var(--text-muted)'}}>
+                              {item.channel&&<span style={{fontWeight:700,color:'var(--teal)'}}>{item.channel}</span>}
+                              {item.owner&&<span>· {item.owner}</span>}
+                              {item.due_date&&<span>· Due: {item.due_date}</span>}
+                              {item.estimated_monthly_value_gbp>0&&<span style={{color:'#059669',fontWeight:700}}>· {fmtGBP(item.estimated_monthly_value_gbp)}/mo</span>}
+                            </div>
                           </div>
-                          {item.reason && <div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:4,lineHeight:1.3}}>{item.reason}</div>}
+                          {item.suggested_action&&(
+                            <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
+                              background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap',flex:'0 0 auto'}}>{item.suggested_action}</span>
+                          )}
                         </div>
-                        {item.suggested_action && (
-                          <span style={{display:'inline-block',fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',
-                            borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap',marginTop:2,flex:'0 0 auto'}}>{item.suggested_action}</span>
-                        )}
                       </div>
                     )
                   })}
@@ -433,23 +488,28 @@ export default function Analytics({openLead,setTab}){
               {safeArr(today.pipeline_movement).length === 0 ? (
                 <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'12px 0'}}>No pipeline moves recommended.</div>
               ) : (
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {safeArr(today.pipeline_movement).map((item,i)=>{
-                    const urgency = (item.urgency||'').toLowerCase()
-                    const borderL = urgency==='high'?'#DC2626':urgency==='medium'?'#D97706':'#0D9488'
+                    const hasBlocking = !!item.blocking
                     return(
-                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{
-                        padding:'10px 14px',borderRadius:'var(--r-sm)',borderLeft:`3px solid ${borderL}`,
-                        background:'var(--bg-surface)',border:'1px solid var(--border)',borderLeftColor:borderL,
-                        cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default',
+                      <div key={i} onClick={()=>openLead&&item.entity_id&&openLead(item.entity_id)} style={{
+                        padding:'10px 14px',borderRadius:'var(--r-sm)',
+                        borderLeft:`3px solid ${hasBlocking?'#D97706':'#0D9488'}`,
+                        background:'var(--bg-surface)',border:`1px solid ${hasBlocking?'#FDE68A':'var(--border)'}`,
+                        borderLeftColor:hasBlocking?'#D97706':'#0D9488',
+                        cursor:item.entity_id?'pointer':'default',
                       }}>
-                        <div style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)',marginBottom:4}}>{item.business_name||item.name||'—'}</div>
-                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
-                          <span style={{fontSize:'0.68rem',fontWeight:700,padding:'2px 8px',borderRadius:12,background:'#F1F5F9',color:'#475569'}}>{item.from_stage||'—'}</span>
-                          <span style={{fontSize:'0.8rem',color:'var(--teal)',fontWeight:800}}>{'\u2192'}</span>
-                          <span style={{fontSize:'0.68rem',fontWeight:700,padding:'2px 8px',borderRadius:12,background:'#ECFDF5',color:'#059669'}}>{item.to_stage||'—'}</span>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                          <span style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||'—'}</span>
+                          {item.tier&&item.tier!=='U'&&<span style={{fontSize:'0.62rem',fontWeight:700,padding:'1px 7px',borderRadius:10,background:'#F0FDFA',color:'#0D9488'}}>{item.tier}</span>}
                         </div>
-                        {item.recommendation && <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.3}}>{item.recommendation}</div>}
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                          <span style={{fontSize:'0.65rem',fontWeight:700,padding:'2px 8px',borderRadius:10,background:'#F1F5F9',color:'#64748B',textTransform:'uppercase'}}>{(item.from_stage||'').replace(/_/g,' ')}</span>
+                          <span style={{fontSize:'0.75rem',color:'var(--teal)',fontWeight:800}}>{'\u2192'}</span>
+                          <span style={{fontSize:'0.65rem',fontWeight:700,padding:'2px 8px',borderRadius:10,background:'#ECFDF5',color:'#059669',textTransform:'uppercase'}}>{(item.to_stage||'').replace(/_/g,' ')}</span>
+                        </div>
+                        <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.35}}>{item.recommendation||''}</div>
+                        {hasBlocking&&<div style={{fontSize:'0.68rem',color:'#D97706',fontWeight:600,marginTop:3}}>⚠ {item.blocking}</div>}
                       </div>
                     )
                   })}
@@ -474,16 +534,25 @@ export default function Analytics({openLead,setTab}){
                   {safeArr(today.push_to_visit).map((item,i)=>{
                     const sc = Number(item.total_score||item.score)||0
                     return(
-                      <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
-                        padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)',cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default'}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
-                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>{item.borough||''}{item.borough&&sc?' · ':''}{sc?`Score ${sc}`:''}</div>
+                      <div key={i} onClick={()=>openLead&&item.entity_id&&openLead(item.entity_id)} style={{
+                        padding:'10px 14px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',
+                        border:'1px solid var(--border)',cursor:item.entity_id?'pointer':'default'}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
+                          <span style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||'—'}</span>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            {item.tier&&<span style={{fontSize:'0.62rem',fontWeight:700,padding:'1px 7px',borderRadius:10,background:'#F0FDFA',color:'#0D9488'}}>{item.tier}</span>}
+                            {item.estimated_monthly_value_gbp>0&&<span style={{fontSize:'0.7rem',fontWeight:700,color:'#059669'}}>{fmtGBP(item.estimated_monthly_value_gbp)}/mo</span>}
+                          </div>
                         </div>
-                        {(item.suggested_action||item.next_best_action) && (
-                          <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
-                            background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
-                        )}
+                        <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.35,marginBottom:4}}>{item.reason||`${item.borough||''} · Score ${sc}`}</div>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>
+                            {item.channel&&<span style={{fontWeight:700,color:'var(--teal)'}}>{item.channel}</span>}
+                            {item.owner&&<span> · {item.owner}</span>}
+                            {item.due_date&&<span style={{color:item.due_date==='Today'?'#DC2626':'#D97706',fontWeight:600}}> · {item.due_date}</span>}
+                          </div>
+                          <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap'}}>{item.suggested_action||'Propose site visit'}</span>
+                        </div>
                       </div>
                     )
                   })}
@@ -499,20 +568,30 @@ export default function Analytics({openLead,setTab}){
                 {safeArr(today.leads_to_quote).length>0 && badge('#059669','#fff',`${safeArr(today.leads_to_quote).length}`)}
               </div>
               {safeArr(today.leads_to_quote).length === 0 ? (
-                <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'8px 0'}}>No quotes to prepare.</div>
+                <div style={{padding:'12px 0'}}>
+                  <div style={{fontSize:'0.78rem',color:'var(--text-muted)',marginBottom:6}}>No quote-ready leads.</div>
+                  {today?.quote_empty_reason && <div style={{fontSize:'0.72rem',color:'#D97706',lineHeight:1.4}}>{today.quote_empty_reason}</div>}
+                </div>
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {safeArr(today.leads_to_quote).map((item,i)=>(
-                    <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
-                      padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)',cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default'}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:'0.8rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||item.name||'—'}</div>
-                        {item.est_value!=null && <div style={{fontSize:'0.72rem',fontWeight:700,color:'#059669'}}>{fmtGBP(item.est_value)}</div>}
+                    <div key={i} onClick={()=>openLead&&item.entity_id&&openLead(item.entity_id)} style={{
+                      padding:'10px 14px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',
+                      border:'1px solid var(--border)',cursor:item.entity_id?'pointer':'default'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
+                        <span style={{fontSize:'0.82rem',fontWeight:700,color:'var(--text-1)'}}>{item.business_name||'—'}</span>
+                        {item.estimated_monthly_value_gbp>0&&<span style={{fontSize:'0.72rem',fontWeight:800,color:'#059669'}}>{fmtGBP(item.estimated_monthly_value_gbp)}/mo</span>}
                       </div>
-                      {(item.suggested_action||item.next_best_action) && (
-                        <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
-                          background:'#ECFDF5',color:'#059669',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
-                      )}
+                      <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.35,marginBottom:4}}>{item.reason||''}</div>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div style={{fontSize:'0.68rem',color:'var(--text-muted)'}}>
+                          {item.owner&&<span>{item.owner}</span>}
+                          {item.due_date&&<span style={{color:item.due_date==='Today'?'#DC2626':'var(--text-muted)',fontWeight:700}}> · {item.due_date}</span>}
+                        </div>
+                        {item.suggested_action&&(
+                          <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,background:'#ECFDF5',color:'#059669',whiteSpace:'nowrap'}}>{item.suggested_action}</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

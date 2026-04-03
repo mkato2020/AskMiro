@@ -153,8 +153,9 @@ export const api = {
 // ══════════════════════════════════════════════════════════════
 // INTELLIGENCE ENGINE
 // ══════════════════════════════════════════════════════════════
-export async function fetchTodayEngine() {
-  const r = await fetch(`${BASE}/api/today`);
+export async function fetchTodayEngine(focus = '') {
+  const url = focus && focus !== 'mixed' ? `${BASE}/api/today?focus=${focus}` : `${BASE}/api/today`;
+  const r = await fetch(url);
   return r.json();
 }
 export async function fetchIntelligenceAlerts(acknowledged = false) {

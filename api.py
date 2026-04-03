@@ -6688,16 +6688,196 @@ def contract_profit(contract_id: int):
         return {"error": str(e)}
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TODAY ENGINE ENDPOINT
+# TODAY ENGINE — helpers + execution-first command endpoint
 # ══════════════════════════════════════════════════════════════════════════════
 
+_PRIORITY_BOROUGHS = frozenset({
+    'City of London','Westminster','Tower Hamlets','Southwark','Islington','Camden',
+    'Lambeth','Hackney','Wandsworth','Greenwich','Hammersmith and Fulham',
+    'Kensington and Chelsea','Newham','Lewisham','Barnet','Ealing',
+})
+_SECTOR_LABELS = {
+    'healthcare':'Healthcare','education':'Education',
+    'property_management':'Property management','residential_blocks':'Residential blocks',
+    'offices':'Commercial offices','serviced_offices':'Serviced offices',
+    'hospitality':'Hospitality','retail':'Retail','gyms':'Gym/leisure',
+    'gym_leisure':'Gym/leisure','automotive':'Automotive','coworking':'Co-working',
+    'charity':'Charity',
+}
+_BASE_SECTOR_VALUES = {
+    'healthcare':2800,'property_management':3200,'residential_blocks':2500,
+    'offices':2200,'serviced_offices':3500,'education':1800,'hospitality':1500,
+    'retail':900,'gyms':1200,'gym_leisure':1200,'automotive':1100,
+    'coworking':1600,'charity':1000,
+}
+_BOROUGH_PREMIUM = {
+    'City of London':1.40,'Westminster':1.35,'Kensington and Chelsea':1.30,
+    'Tower Hamlets':1.25,'Hammersmith and Fulham':1.20,'Camden':1.15,
+    'Islington':1.15,'Southwark':1.10,'Wandsworth':1.05,'Greenwich':1.05,
+}
+_FOCUS_SECTORS = {
+    'healthcare':["'healthcare'"],
+    'property':["'property_management'","'residential_blocks'"],
+    'offices':["'offices'","'serviced_offices'","'coworking'"],
+    'automotive':["'automotive'"],
+}
+
+def _te_tier(score):
+    if not score: return 'U'
+    if score >= 90: return 'A+'
+    if score >= 80: return 'A'
+    if score >= 70: return 'B'
+    if score >= 60: return 'C'
+    return 'D'
+
+def _te_confidence(row):
+    pts = 0
+    if (row.get('total_score') or 0) > 0: pts += 2
+    if row.get('phone'): pts += 2
+    if row.get('email'): pts += 1
+    if row.get('sector'): pts += 1
+    if (row.get('estimated_monthly_value_gbp') or 0) > 0: pts += 1
+    if row.get('borough'): pts += 1
+    if row.get('entity_kind'): pts += 1
+    if pts >= 7: return 'High'
+    if pts >= 4: return 'Medium'
+    return 'Low'
+
+def _te_channel(row):
+    if row.get('phone'): return 'Call'
+    if row.get('email'): return 'Email'
+    if row.get('website'): return 'Website'
+    return 'Research'
+
+def _te_composite(score, val, days_since_added, hvt, has_contact):
+    s = min(float(score or 0), 100) / 100
+    v = min(float(val or 0), 5000) / 5000
+    u = min(float(days_since_added or 0), 30) / 30
+    c = 1.0 if has_contact else 0.4
+    h = 0.12 if hvt else 0
+    return round((0.35*s + 0.25*v + 0.15*u + 0.15*c + 0.10*h) * 100, 1)
+
+def _te_value(row):
+    val = float(row.get('estimated_monthly_value_gbp') or 0)
+    sector = (row.get('sector') or '').lower().replace(' ', '_')
+    borough = row.get('borough') or ''
+    if val <= 0:
+        base = _BASE_SECTOR_VALUES.get(sector, 1000)
+        prem = _BOROUGH_PREMIUM.get(borough, 1.0)
+        val = round(base * prem, -2)
+        conf = 'Low'
+    elif val < 800:
+        conf = 'Low'
+    elif val < 2000:
+        conf = 'Medium'
+    else:
+        conf = 'High' if (row.get('total_score') or 0) >= 60 else 'Medium'
+    return {'monthly': int(val), 'annual': int(val * 12), 'confidence': conf}
+
+def _te_contact_reason(row):
+    sector = (row.get('sector') or '').lower().replace(' ', '_')
+    borough = row.get('borough') or ''
+    val = float(row.get('estimated_monthly_value_gbp') or _BASE_SECTOR_VALUES.get(sector, 1000))
+    score = float(row.get('total_score') or 0)
+    hvt = row.get('hvt') or False
+    label = _SECTOR_LABELS.get(sector, sector.replace('_', ' ').title() if sector else 'Lead')
+    parts = [label]
+    if borough in _PRIORITY_BOROUGHS:
+        parts.append(f'high-demand borough ({borough})')
+    elif borough:
+        parts.append(borough)
+    if val >= 3000:
+        parts.append(f'£{int(val):,}/mo high-value potential')
+    elif val >= 1500:
+        parts.append(f'£{int(val):,}/mo est. contract')
+    if score >= 85:
+        parts.append('top-tier score')
+    elif score >= 75:
+        parts.append('strong composite score')
+    elif score >= 60:
+        parts.append('above-average fit')
+    if hvt:
+        parts.append('HVT account')
+    return '. '.join(parts[:4]) + '.'
+
+def _te_followup_reason(row):
+    stage = (row.get('current_stage') or '').lower()
+    days = int(row.get('days_stale') or 0)
+    val = float(row.get('estimated_monthly_value_gbp') or 0)
+    stage_desc = {
+        'ready_to_contact': 'Ready — no first touch sent',
+        'contacted': 'Outreach sent',
+        'replied': 'Replied — awaiting qualification step',
+        'meeting_or_site_visit': 'Site visit stage',
+        'quote_prepared': 'Quote prepared — not yet sent',
+        'quote_sent': 'Quote sent — awaiting client response',
+        'negotiating': 'Negotiation in progress',
+    }.get(stage, f'Stage: {stage.replace("_", " ")}')
+    if stage == 'ready_to_contact' and days > 3:
+        cat, urgency = 'stale_uncontacted', f'{days}d in ready state — advance or archive'
+    elif stage == 'contacted' and days > 5:
+        cat, urgency = 'no_response', f'No reply after {days}d — send short follow-up'
+    elif stage == 'replied' and days > 3:
+        cat, urgency = 'qualified_no_visit', f'Replied {days}d ago — propose site visit'
+    elif stage == 'meeting_or_site_visit' and days > 5:
+        cat, urgency = 'visit_no_quote', f'Site visit {days}d ago — prepare quote now'
+    elif stage == 'quote_sent' and days > 3:
+        cat, urgency = 'quote_chase', f'Quote sent {days}d ago — chase for decision'
+    elif stage == 'negotiating' and days > 5:
+        cat, urgency = 'stalled_negotiation', f'Negotiation stalled {days}d — push to close'
+    else:
+        cat, urgency = 'follow_up_due', f'{days}d since last activity'
+    action = {
+        'ready_to_contact': 'Send first outreach',
+        'contacted': 'Call or send follow-up',
+        'replied': 'Propose site visit',
+        'meeting_or_site_visit': 'Prepare and send quote',
+        'quote_prepared': 'Send quote today',
+        'quote_sent': 'Chase for decision',
+        'negotiating': 'Push to close or reassess',
+    }.get(stage, 'Review and advance')
+    val_note = f'£{int(val):,}/mo at stake' if val >= 500 else ''
+    parts = [p for p in [stage_desc, urgency, val_note] if p]
+    return {'category': cat, 'reason': '. '.join(parts[:3]) + '.', 'suggested_action': action}
+
+def _te_movement_reason(from_s, to_s, score, days, sector):
+    base = {
+        ('new', 'contacted'): 'No first touch — send outreach today',
+        ('enriched', 'contacted'): 'Enriched and scored — initiate contact',
+        ('ready_to_contact', 'contacted'): f'Ready {days or 0}d with no outreach — send now',
+        ('contacted', 'replied'): f'Contacted {days or 0}d ago — chase for reply',
+        ('replied', 'meeting_or_site_visit'): 'Engaged — propose site visit to qualify',
+        ('meeting_or_site_visit', 'quote_prepared'): 'Site visit complete — prepare quote now',
+        ('quote_prepared', 'quote_sent'): 'Quote ready — send to client today',
+        ('quote_sent', 'negotiating'): f'Quote sent {days or 0}d ago — follow up and progress',
+        ('negotiating', 'won'): 'Commercial terms align — close this week',
+    }.get((from_s, to_s), f'Move {from_s.replace("_", " ")} → {to_s.replace("_", " ")}')
+    blocking = None
+    if to_s == 'quote_prepared' and (score or 0) < 45:
+        blocking = 'Low score — review serviceability before quoting'
+    if to_s == 'won' and (score or 0) < 40:
+        blocking = 'Weak commercial profile — verify margin before close'
+    sl = _SECTOR_LABELS.get((sector or '').lower().replace(' ', '_'), '')
+    parts = [base]
+    if (score or 0) >= 70:
+        parts.append('strong score')
+    if sl and sl.lower() not in base.lower():
+        parts.append(sl)
+    return {'reason': '. '.join(parts[:2]) + '.', 'blocking': blocking}
+
+
 @app.get("/api/today")
-def today_engine():
-    """The Today Engine — what to do right now."""
+def today_engine(focus: Optional[str] = None):
+    """Today Engine — execution-first daily command layer."""
+    from datetime import datetime as _dt
+    refreshed_at = _dt.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    sf = ''
+    if focus and focus in _FOCUS_SECTORS:
+        sf = 'AND e.sector IN (' + ', '.join(_FOCUS_SECTORS[focus]) + ')'
     try:
         with db_pg.transaction() as conn:
-            result = {}
-            # Helper: run query with savepoint so failures don't abort the transaction
+            result = {'refreshed_at': refreshed_at, 'focus': focus or 'mixed'}
+
             def _safe_query(label, sql, params=None):
                 try:
                     db_pg.execute(conn, "SAVEPOINT sp_%s" % label)
@@ -6705,262 +6885,336 @@ def today_engine():
                     db_pg.execute(conn, "RELEASE SAVEPOINT sp_%s" % label)
                     return [dict(r) for r in rows]
                 except Exception as e:
-                    try:
-                        db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sp_%s" % label)
-                    except Exception:
-                        pass
+                    try: db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sp_%s" % label)
+                    except Exception: pass
                     logger.error("today %s: %s", label, e)
-                    result[f'_debug_{label}_error'] = str(e)
+                    result[f'_err_{label}'] = str(e)
                     return []
+
             def _safe_val(label, sql):
                 try:
-                    db_pg.execute(conn, "SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "SAVEPOINT sv_%s" % label)
                     val = db_pg.fetchval(conn, sql) or 0
-                    db_pg.execute(conn, "RELEASE SAVEPOINT sp_%s" % label)
+                    db_pg.execute(conn, "RELEASE SAVEPOINT sv_%s" % label)
                     return val
                 except Exception as e:
-                    try:
-                        db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sp_%s" % label)
-                    except Exception:
-                        pass
+                    try: db_pg.execute(conn, "ROLLBACK TO SAVEPOINT sv_%s" % label)
+                    except Exception: pass
                     logger.error("today count %s: %s", label, e)
                     return 0
 
-            # ── LEADS TO CONTACT TODAY (top 20 by composite score) ──
-            # Join opportunity_scores directly so we don't depend on view column availability
-            result['leads_to_contact'] = _safe_query('leads', """
-                    SELECT e.id AS entity_id, e.canonical_name AS business_name,
-                           a.borough, e.sector,
-                           COALESCE(os.total_score, 0) AS total_score,
-                           os.score_band,
-                           e.primary_phone AS phone, e.primary_website AS website,
-                           e.primary_email AS email,
-                           COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
-                           os.next_best_action,
-                           e.hvt,
-                           CASE
-                             WHEN e.hvt = TRUE AND COALESCE(os.total_score,0) >= 75 THEN 'High-value target with strong score — contact immediately'
-                             WHEN COALESCE(os.total_score,0) >= 80 THEN 'Top-scoring lead — priority outreach'
-                             WHEN e.hvt = TRUE THEN 'High-value target — worth pursuing'
-                             WHEN COALESCE(os.total_score,0) >= 65 THEN 'Strong lead — ready for contact'
-                             ELSE 'Good prospect — outreach recommended'
-                           END AS reason,
-                           CASE
-                             WHEN e.primary_phone IS NOT NULL AND e.primary_phone != '' THEN 'Call directly'
-                             WHEN e.primary_email IS NOT NULL AND e.primary_email != '' THEN 'Send outreach email'
-                             WHEN e.primary_website IS NOT NULL AND e.primary_website != '' THEN 'Find contact via website'
-                             ELSE 'Research contact details'
-                           END AS suggested_action
-                    FROM entities e
-                    LEFT JOIN entity_locations el ON el.entity_id = e.id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = e.id
-                    WHERE e.active = TRUE
-                      AND NOT EXISTS (
-                          SELECT 1 FROM opportunities o
-                          WHERE o.entity_id = e.id
-                          AND o.current_stage NOT IN ('lost','dormant')
-                      )
-                    ORDER BY
-                        (CASE WHEN e.hvt = TRUE THEN 20 ELSE 0 END) +
-                        COALESCE(os.total_score, 0) DESC
-                    LIMIT 20
-                """)
+            # ── LEADS TO CONTACT ─────────────────────────────────────────
+            raw = _safe_query('leads', f"""
+                SELECT e.id AS entity_id, e.canonical_name AS business_name,
+                       a.borough, e.sector, e.entity_kind,
+                       COALESCE(os.total_score, 0) AS total_score,
+                       os.score_band,
+                       e.hvt,
+                       e.primary_phone AS phone,
+                       e.primary_website AS website,
+                       e.primary_email AS email,
+                       COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
+                       os.next_best_action,
+                       EXTRACT(DAY FROM NOW() - e.created_at)::int AS days_since_added,
+                       os.scored_at
+                FROM entities e
+                LEFT JOIN entity_locations el ON el.entity_id = e.id AND el.is_primary = TRUE
+                LEFT JOIN addresses a ON a.id = el.address_id
+                LEFT JOIN opportunity_scores os ON os.entity_id = e.id
+                WHERE e.active = TRUE {sf}
+                  AND NOT EXISTS (
+                      SELECT 1 FROM opportunities o
+                      WHERE o.entity_id = e.id
+                      AND o.current_stage NOT IN ('lost','dormant')
+                  )
+                ORDER BY
+                    (CASE WHEN e.hvt = TRUE THEN 20 ELSE 0 END) +
+                    COALESCE(os.total_score, 0) DESC
+                LIMIT 40
+            """)
+            processed = []
+            for row in raw:
+                vd = _te_value(row)
+                row['estimated_monthly_value_gbp'] = vd['monthly']
+                row['estimated_annual_value_gbp'] = vd['annual']
+                row['value_confidence'] = vd['confidence']
+                score = row.get('total_score', 0)
+                tier = _te_tier(score)
+                if tier == 'D' and len(processed) >= 20:
+                    continue
+                row['tier'] = tier
+                row['confidence'] = _te_confidence(row)
+                row['channel'] = _te_channel(row)
+                row['composite_rank'] = _te_composite(
+                    score, row['estimated_monthly_value_gbp'],
+                    row.get('days_since_added', 0),
+                    row.get('hvt', False),
+                    bool(row.get('phone') or row.get('email'))
+                )
+                row['reason'] = _te_contact_reason(row)
+                row['owner'] = 'Mike'
+                row['due_date'] = 'Today'
+                processed.append(row)
+                if len(processed) >= 20:
+                    break
+            processed.sort(key=lambda x: x['composite_rank'], reverse=True)
+            for i, row in enumerate(processed):
+                row['rank'] = i + 1
+                if i >= 10:
+                    row['due_date'] = 'Tomorrow'
+            result['leads_to_contact'] = processed
 
-            # ── FOLLOW-UPS DUE (top 10 stale pipeline items) ──
-            result['followups_due'] = _safe_query('followups', """
-                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
-                           o.updated_at, e.canonical_name as business_name,
-                           e.sector,
-                           a.borough,
-                           os.total_score,
-                           os.estimated_monthly_value_gbp,
-                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_stale,
-                           CASE
-                             WHEN EXTRACT(DAY FROM NOW() - o.updated_at) > 14 THEN 'Critical — ' || EXTRACT(DAY FROM NOW() - o.updated_at)::int || ' days with no activity. Risk of losing opportunity.'
-                             WHEN EXTRACT(DAY FROM NOW() - o.updated_at) > 7 THEN 'Overdue — needs follow-up this week'
-                             ELSE 'Due for follow-up — keep momentum'
-                           END as reason,
-                           CASE
-                             WHEN o.current_stage = 'contacted' THEN 'Send follow-up email or call'
-                             WHEN o.current_stage = 'replied' THEN 'Schedule site visit or send quote'
-                             WHEN o.current_stage = 'meeting_or_site_visit' THEN 'Prepare and send quote'
-                             WHEN o.current_stage = 'quote_sent' THEN 'Chase quote response'
-                             WHEN o.current_stage = 'negotiating' THEN 'Push to close'
-                             ELSE 'Review and advance'
-                           END as suggested_action
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    WHERE o.current_stage NOT IN ('won','lost','dormant')
-                      AND o.updated_at < NOW() - INTERVAL '2 days'
-                    ORDER BY
-                        EXTRACT(DAY FROM NOW() - o.updated_at) DESC,
-                        COALESCE(os.total_score, 0) DESC
-                    LIMIT 10
-                """)
+            # ── FOLLOW-UPS DUE ───────────────────────────────────────────
+            raw_fu = _safe_query('followups', f"""
+                SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                       o.updated_at, e.canonical_name as business_name,
+                       e.sector, a.borough,
+                       COALESCE(os.total_score, 0) AS total_score,
+                       COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
+                       e.primary_phone AS phone, e.primary_email AS email,
+                       EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_stale
+                FROM opportunities o
+                JOIN entities e ON e.id = o.entity_id
+                LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                LEFT JOIN addresses a ON a.id = el.address_id
+                WHERE o.current_stage NOT IN ('won','lost','dormant')
+                  AND o.updated_at < NOW() - INTERVAL '2 days' {sf}
+                ORDER BY EXTRACT(DAY FROM NOW() - o.updated_at) DESC,
+                         COALESCE(os.total_score, 0) DESC
+                LIMIT 15
+            """)
+            for row in raw_fu:
+                vd = _te_value(row)
+                row['estimated_monthly_value_gbp'] = vd['monthly']
+                fu = _te_followup_reason(row)
+                row.update(fu)
+                row['tier'] = _te_tier(row.get('total_score', 0))
+                row['confidence'] = _te_confidence(row)
+                row['channel'] = _te_channel(row)
+                row['owner'] = 'Mike'
+                row['due_date'] = 'Today'
+            result['followups_due'] = raw_fu[:10]
 
-            # ── PUSH TO SITE VISIT (top 5 qualified leads ready for site visit) ──
-            result['push_to_visit'] = _safe_query('push_visit', """
-                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
-                           e.canonical_name as business_name, e.sector,
-                           a.borough, a.postcode,
-                           os.total_score, os.estimated_monthly_value_gbp,
-                           'Contacted/replied lead with strong score — push to site visit' as reason,
-                           'Propose site visit or virtual walkthrough' as suggested_action
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    WHERE o.current_stage IN ('contacted','replied')
-                      AND COALESCE(os.total_score, 0) >= 60
-                    ORDER BY COALESCE(os.total_score, 0) DESC, o.updated_at ASC
-                    LIMIT 5
-                """)
+            # ── PUSH TO SITE VISIT ───────────────────────────────────────
+            raw_sv = _safe_query('push_visit', f"""
+                SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                       e.canonical_name as business_name, e.sector,
+                       a.borough, a.postcode,
+                       COALESCE(os.total_score, 0) AS total_score,
+                       COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
+                       e.primary_phone AS phone, e.primary_email AS email,
+                       EXTRACT(DAY FROM NOW() - o.updated_at)::int AS days_in_stage
+                FROM opportunities o
+                JOIN entities e ON e.id = o.entity_id
+                LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                LEFT JOIN addresses a ON a.id = el.address_id
+                WHERE o.current_stage IN ('contacted','replied')
+                  AND COALESCE(os.total_score, 0) >= 50 {sf}
+                ORDER BY COALESCE(os.total_score, 0) DESC, o.updated_at ASC
+                LIMIT 5
+            """)
+            for row in raw_sv:
+                vd = _te_value(row)
+                row['estimated_monthly_value_gbp'] = vd['monthly']
+                row['tier'] = _te_tier(row.get('total_score', 0))
+                row['confidence'] = _te_confidence(row)
+                row['channel'] = _te_channel(row)
+                sector = (row.get('sector') or '').lower().replace(' ', '_')
+                borough = row.get('borough') or 'London'
+                val = row['estimated_monthly_value_gbp']
+                days = int(row.get('days_in_stage') or 0)
+                slabel = _SECTOR_LABELS.get(sector, sector.replace('_', ' ').title())
+                row['reason'] = (
+                    f"{slabel} in {borough} — contacted {days}d ago with "
+                    f"£{val:,}/mo potential. Site visit would qualify scope and unlock quote."
+                )
+                row['suggested_action'] = 'Propose site visit'
+                row['owner'] = 'Mike'
+                row['due_date'] = 'This week'
+            result['push_to_visit'] = raw_sv
 
-            # ── LEADS TO QUOTE (top 3 ready for quote) ──
-            result['leads_to_quote'] = _safe_query('leads_quote', """
-                    SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
-                           e.canonical_name as business_name, e.sector,
-                           a.borough, a.postcode,
-                           os.total_score, os.estimated_monthly_value_gbp,
-                           'Qualified lead ready for quote — act now before competitor moves' as reason,
-                           'Prepare and send quote today' as suggested_action
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    WHERE o.current_stage IN ('meeting_or_site_visit','replied','quote_prepared')
-                      AND COALESCE(os.total_score, 0) >= 55
-                    ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC, os.total_score DESC
-                    LIMIT 3
-                """)
+            # ── LEADS TO QUOTE ───────────────────────────────────────────
+            quote_leads = _safe_query('leads_quote', f"""
+                SELECT o.id as opportunity_id, o.entity_id, o.title, o.current_stage,
+                       e.canonical_name as business_name, e.sector,
+                       a.borough,
+                       COALESCE(os.total_score, 0) AS total_score,
+                       COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp
+                FROM opportunities o
+                JOIN entities e ON e.id = o.entity_id
+                LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
+                LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
+                LEFT JOIN addresses a ON a.id = el.address_id
+                WHERE o.current_stage IN ('meeting_or_site_visit','quote_prepared')
+                  AND COALESCE(os.total_score, 0) >= 45 {sf}
+                ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC,
+                         COALESCE(os.total_score, 0) DESC
+                LIMIT 5
+            """)
+            for row in quote_leads:
+                vd = _te_value(row)
+                row['estimated_monthly_value_gbp'] = vd['monthly']
+                row['estimated_annual_value_gbp'] = vd['annual']
+                row['tier'] = _te_tier(row.get('total_score', 0))
+                stage = row.get('current_stage', '')
+                row['blocking'] = None
+                if stage == 'quote_prepared':
+                    row['reason'] = 'Quote drafted — send to client today'
+                    row['suggested_action'] = 'Send quote'
+                else:
+                    row['reason'] = 'Site visit complete — prepare and send quote'
+                    row['suggested_action'] = 'Prepare and send quote'
+                row['owner'] = 'Mike'
+                row['due_date'] = 'Today'
+            if not quote_leads:
+                blocked = _safe_val('quote_blocked',
+                    "SELECT COUNT(*) FROM opportunities WHERE current_stage IN ('replied','meeting_or_site_visit','quote_prepared')")
+                result['leads_to_quote'] = []
+                result['quote_empty_reason'] = (
+                    f"{int(blocked)} lead(s) near quote stage but none meet readiness (score ≥45, site visit done)."
+                    if blocked > 0 else
+                    "No leads in quote-adjacent stages. Progress contacted leads to site visit first."
+                )
+            else:
+                result['leads_to_quote'] = quote_leads
+                result['quote_empty_reason'] = None
 
-            # ── PIPELINE MOVEMENT RECOMMENDATIONS ──
+            # ── PIPELINE MOVEMENT ────────────────────────────────────────
             try:
-                result['pipeline_movement'] = []
-                # Ready → Contacted: leads sitting in ready/enriched/new with good scores
-                ready_to_contact = db_pg.fetchall(conn, """
-                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
-                           o.current_stage, os.total_score, e.sector, a.borough,
-                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    WHERE o.current_stage IN ('new','enriched','ready_to_contact')
-                      AND COALESCE(os.total_score, 0) >= 50
-                    ORDER BY os.total_score DESC LIMIT 10
-                """)
-                for r in ready_to_contact:
-                    d = dict(r)
-                    d['recommendation'] = 'Move to Contacted — start outreach'
-                    d['from_stage'] = d['current_stage']
-                    d['to_stage'] = 'contacted'
-                    result['pipeline_movement'].append(d)
-
-                # Contacted stale → push forward or flag
-                contacted_stale = db_pg.fetchall(conn, """
-                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
-                           o.current_stage, os.total_score, e.sector, a.borough,
-                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    LEFT JOIN entity_locations el ON el.entity_id = o.entity_id AND el.is_primary = TRUE
-                    LEFT JOIN addresses a ON a.id = el.address_id
-                    WHERE o.current_stage = 'contacted'
-                      AND o.updated_at < NOW() - INTERVAL '5 days'
-                    ORDER BY COALESCE(os.total_score, 0) DESC LIMIT 5
-                """)
-                for r in contacted_stale:
-                    d = dict(r)
-                    d['recommendation'] = f"Stale {d.get('days_in_stage',0)}d — follow up or move to Replied/Lost"
-                    d['from_stage'] = 'contacted'
-                    d['to_stage'] = 'replied'
-                    result['pipeline_movement'].append(d)
-
-                # Quote sent stale → chase
-                quote_stale = db_pg.fetchall(conn, """
-                    SELECT o.id as opportunity_id, e.canonical_name as business_name,
-                           o.current_stage, os.total_score,
-                           os.estimated_monthly_value_gbp,
-                           EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage
-                    FROM opportunities o
-                    JOIN entities e ON e.id = o.entity_id
-                    LEFT JOIN opportunity_scores os ON os.entity_id = o.entity_id
-                    WHERE o.current_stage = 'quote_sent'
-                      AND o.updated_at < NOW() - INTERVAL '3 days'
-                    ORDER BY COALESCE(os.estimated_monthly_value_gbp, 0) DESC LIMIT 5
-                """)
-                for r in quote_stale:
-                    d = dict(r)
-                    d['recommendation'] = f"Quote sent {d.get('days_in_stage',0)}d ago — chase for response"
-                    d['from_stage'] = 'quote_sent'
-                    d['to_stage'] = 'negotiating'
-                    result['pipeline_movement'].append(d)
+                movement = []
+                _mv_queries = [
+                    (f"SELECT o.id as opportunity_id, e.canonical_name as business_name, o.current_stage,"
+                     f" COALESCE(os.total_score,0) AS total_score,"
+                     f" COALESCE(os.estimated_monthly_value_gbp,0) AS estimated_monthly_value_gbp,"
+                     f" e.sector, a.borough,"
+                     f" EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage"
+                     f" FROM opportunities o JOIN entities e ON e.id=o.entity_id"
+                     f" LEFT JOIN opportunity_scores os ON os.entity_id=o.entity_id"
+                     f" LEFT JOIN entity_locations el ON el.entity_id=o.entity_id AND el.is_primary=TRUE"
+                     f" LEFT JOIN addresses a ON a.id=el.address_id"
+                     f" WHERE o.current_stage IN ('new','enriched','ready_to_contact')"
+                     f" AND COALESCE(os.total_score,0) >= 40 {sf}"
+                     f" ORDER BY os.total_score DESC LIMIT 8",
+                     'contacted'),
+                    (f"SELECT o.id as opportunity_id, e.canonical_name as business_name, o.current_stage,"
+                     f" COALESCE(os.total_score,0) AS total_score,"
+                     f" COALESCE(os.estimated_monthly_value_gbp,0) AS estimated_monthly_value_gbp,"
+                     f" e.sector, a.borough,"
+                     f" EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage"
+                     f" FROM opportunities o JOIN entities e ON e.id=o.entity_id"
+                     f" LEFT JOIN opportunity_scores os ON os.entity_id=o.entity_id"
+                     f" WHERE o.current_stage='contacted'"
+                     f" AND o.updated_at < NOW() - INTERVAL '3 days'"
+                     f" ORDER BY COALESCE(os.total_score,0) DESC LIMIT 5",
+                     'replied'),
+                    (f"SELECT o.id as opportunity_id, e.canonical_name as business_name, o.current_stage,"
+                     f" COALESCE(os.total_score,0) AS total_score,"
+                     f" COALESCE(os.estimated_monthly_value_gbp,0) AS estimated_monthly_value_gbp,"
+                     f" e.sector, a.borough,"
+                     f" EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage"
+                     f" FROM opportunities o JOIN entities e ON e.id=o.entity_id"
+                     f" LEFT JOIN opportunity_scores os ON os.entity_id=o.entity_id"
+                     f" WHERE o.current_stage='replied'"
+                     f" ORDER BY COALESCE(os.total_score,0) DESC LIMIT 5",
+                     'meeting_or_site_visit'),
+                    (f"SELECT o.id as opportunity_id, e.canonical_name as business_name, o.current_stage,"
+                     f" COALESCE(os.total_score,0) AS total_score,"
+                     f" COALESCE(os.estimated_monthly_value_gbp,0) AS estimated_monthly_value_gbp,"
+                     f" e.sector, a.borough,"
+                     f" EXTRACT(DAY FROM NOW() - o.updated_at)::int as days_in_stage"
+                     f" FROM opportunities o JOIN entities e ON e.id=o.entity_id"
+                     f" LEFT JOIN opportunity_scores os ON os.entity_id=o.entity_id"
+                     f" WHERE o.current_stage='quote_sent'"
+                     f" AND o.updated_at < NOW() - INTERVAL '3 days'"
+                     f" ORDER BY COALESCE(os.estimated_monthly_value_gbp,0) DESC LIMIT 5",
+                     'negotiating'),
+                ]
+                for sql, to_s in _mv_queries:
+                    rows = db_pg.fetchall(conn, sql)
+                    for r in rows:
+                        d = dict(r)
+                        mr = _te_movement_reason(
+                            d.get('current_stage', ''), to_s,
+                            d.get('total_score', 0), d.get('days_in_stage', 0), d.get('sector')
+                        )
+                        d['from_stage'] = d.get('current_stage', '')
+                        d['to_stage'] = to_s
+                        d['recommendation'] = mr['reason']
+                        d['blocking'] = mr['blocking']
+                        d['tier'] = _te_tier(d.get('total_score', 0))
+                        movement.append(d)
+                result['pipeline_movement'] = movement[:15]
             except Exception as e:
                 logger.error("today pipeline_movement: %s", e)
                 result['pipeline_movement'] = []
 
-            # ── AT-RISK (commercial) ──
+            # ── AT-RISK ──────────────────────────────────────────────────
             try:
                 result['at_risk'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT id, site_name, monthly_value_gbp, margin_pct, risk_flag, staffing_status
                     FROM contracts
-                    WHERE status = 'active' AND (risk_flag IN ('risk','loss') OR margin_pct < 20 OR staffing_status = 'unassigned')
-                    ORDER BY COALESCE(margin_pct, 0) ASC LIMIT 10
+                    WHERE status='active'
+                      AND (risk_flag IN ('risk','loss') OR margin_pct < 20 OR staffing_status='unassigned')
+                    ORDER BY COALESCE(margin_pct,0) ASC LIMIT 10
                 """)]
             except Exception:
                 result['at_risk'] = []
 
-            # ── OVERDUE INVOICES ──
+            # ── OVERDUE INVOICES ─────────────────────────────────────────
             try:
                 result['overdue_invoices'] = [dict(r) for r in db_pg.fetchall(conn, """
                     SELECT id, client_name, amount, due_date,
                            EXTRACT(DAY FROM NOW() - due_date)::int as days_overdue
                     FROM fin_invoices
-                    WHERE status = 'sent' AND due_date < CURRENT_DATE
+                    WHERE status='sent' AND due_date < CURRENT_DATE
                     ORDER BY due_date ASC LIMIT 10
                 """)]
             except Exception:
                 result['overdue_invoices'] = []
 
-            # ── TOP BOROUGHS THIS WEEK ──
+            # ── TOP BOROUGHS ─────────────────────────────────────────────
             try:
                 result['top_boroughs'] = [dict(r) for r in db_pg.fetchall(conn, """
-                    SELECT borough, COUNT(*) as lead_count,
-                           ROUND(AVG(total_score)::NUMERIC, 1) as avg_score,
-                           SUM(CASE WHEN hvt = TRUE THEN 1 ELSE 0 END) as hvt_count,
-                           ROUND(SUM(COALESCE(estimated_monthly_value_gbp,0))::NUMERIC, 0) as total_value
+                    SELECT borough,
+                           COUNT(*) as lead_count,
+                           ROUND(AVG(total_score)::NUMERIC,1) as avg_score,
+                           SUM(CASE WHEN hvt=TRUE THEN 1 ELSE 0 END) as hvt_count,
+                           ROUND(SUM(COALESCE(estimated_monthly_value_gbp,0))::NUMERIC,0) as total_value
                     FROM v_lead_board
-                    WHERE active = TRUE AND borough IS NOT NULL AND borough != '' AND total_score >= 50
-                    GROUP BY borough
-                    HAVING COUNT(*) >= 3
+                    WHERE active=TRUE AND borough IS NOT NULL AND borough!=''
+                      AND total_score >= 50
+                    GROUP BY borough HAVING COUNT(*) >= 3
                     ORDER BY AVG(total_score) DESC LIMIT 10
                 """)]
-            except Exception as e:
+            except Exception:
                 result['top_boroughs'] = []
-                result['_debug_boroughs_error'] = str(e)
 
-            # ── COUNTS (each individually guarded with savepoints) ──
+            # ── COUNTS ───────────────────────────────────────────────────
             counts = {}
             for key, sql in [
-                ('total_leads', "SELECT COUNT(*) FROM v_lead_board WHERE active = TRUE"),
+                ('total_leads',     "SELECT COUNT(*) FROM entities WHERE active=TRUE"),
                 ('active_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant')"),
-                ('won_contracts', "SELECT COUNT(*) FROM contracts WHERE status = 'active'"),
-                ('stale_pipeline', "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant') AND updated_at < NOW() - INTERVAL '3 days'"),
-                ('pending_quotes', "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')"),
-                ('active_cleaners', "SELECT COUNT(*) FROM ops_cleaners WHERE status = 'active'"),
-                ('unstaffed_contracts', "SELECT COUNT(*) FROM contracts WHERE staffing_status = 'unassigned' AND status = 'active'"),
+                ('qualified',       "SELECT COUNT(*) FROM opportunities WHERE current_stage IN ('replied','meeting_or_site_visit')"),
+                ('quote_sent',      "SELECT COUNT(*) FROM opportunities WHERE current_stage='quote_sent'"),
+                ('negotiating',     "SELECT COUNT(*) FROM opportunities WHERE current_stage='negotiating'"),
+                ('won_contracts',   "SELECT COUNT(*) FROM contracts WHERE status='active'"),
+                ('stale_pipeline',  "SELECT COUNT(*) FROM opportunities WHERE current_stage NOT IN ('won','lost','dormant') AND updated_at < NOW() - INTERVAL '3 days'"),
+                ('pending_quotes',  "SELECT COUNT(*) FROM quotes WHERE status IN ('draft','sent')"),
+                ('active_cleaners', "SELECT COUNT(*) FROM ops_cleaners WHERE status='active'"),
+                ('unstaffed_contracts', "SELECT COUNT(*) FROM contracts WHERE staffing_status='unassigned' AND status='active'"),
+                ('pipeline_value_gbp', "SELECT COALESCE(SUM(COALESCE(os.estimated_monthly_value_gbp,0)),0) FROM opportunities o LEFT JOIN opportunity_scores os ON os.entity_id=o.entity_id WHERE o.current_stage NOT IN ('won','lost','dormant')"),
             ]:
                 counts[key] = _safe_val(key, sql)
             result['counts'] = counts
+
+            # ── FRESHNESS ────────────────────────────────────────────────
+            try:
+                last_scored = db_pg.fetchval(conn, "SELECT MAX(scored_at) FROM opportunity_scores")
+                result['last_scored_at'] = last_scored.isoformat() + 'Z' if last_scored else None
+            except Exception:
+                result['last_scored_at'] = None
 
             return result
     except Exception as e:
