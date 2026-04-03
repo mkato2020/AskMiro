@@ -1,18 +1,26 @@
 window.Contracts = (() => {
   let _contracts = [];
   async function render() {
-    try { _contracts = await API.get('contracts'); } catch(e) { _contracts = []; }
-    const rows = _contracts.map(c => `<tr onclick='Contracts.openView(${JSON.stringify(JSON.stringify(c))})'>
-      <td class="tmn">${c.id}</td><td class="tfw">${c.clientName||c.siteId}</td>
-      <td>${UI.fmt(c.revenueMonthly||0)}/mo</td><td>${UI.fmt(c.annualValue||0)}/yr</td>
-      <td>${c.startDate||'&#8212;'}</td><td>${UI.statusPill(c.status)}</td>
-    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ll);padding:24px">No contracts yet</td></tr>`;
-    document.getElementById('main-content').innerHTML = `
-${UI.secHd('Contracts', 'Active Agreements', _contracts.length + ' contracts')}
-<div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap"><table class="tbl">
-  <thead><tr><th>Contract ID</th><th>Client / Site</th><th>Revenue/mo</th><th>Annual Value</th><th>Start Date</th><th>Status</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table></div></div></div>`;
+    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://precious-essence.up.railway.app';
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:40px 48px;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px">🚀</div>
+          <h2 style="margin:0 0 10px;font-size:1.25rem;font-weight:800;color:#0F172A;letter-spacing:-.02em">This module has moved</h2>
+          <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.65">
+            This section is now part of <strong style="color:#0F172A">AskMiro OS</strong> — the unified operations platform on Railway.
+            All your data is there.
+          </p>
+          <a href="${osUrl}" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0DBDAD,#0A9688);color:#fff;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(10,150,136,.3)">
+            Open AskMiro OS →
+          </a>
+          <p style="margin:20px 0 0;font-size:12px;color:#94A3B8">
+            Outreach &amp; Email remain here in Ops.
+          </p>
+        </div>
+      </div>`;
   }
   function openView(jsonStr) {
     const c = JSON.parse(jsonStr);

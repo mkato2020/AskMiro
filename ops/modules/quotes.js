@@ -25,155 +25,26 @@ window.Quotes = (() => {
   }
 
   async function render() {
-    const app = document.getElementById('main-content');
-    try { _quotes = await API.get('quotes'); } catch (e) { _quotes = []; }
-
-    _byId = _quotes.reduce((acc, q) => { acc[q.id] = q; return acc; }, {});
-    updateBadge();
-
-    const webDrafts = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft');
-    const filtered = (_filter === 'web') ? webDrafts : _quotes;
-
-    const rows = (filtered.map(q => {
-      const m = parseFloat(q.grossMarginPct || 0);
-      const isWebDraft = q.source === 'web_form' && q.status === 'Draft';
-
-      return `
-<tr class="q-row" data-qid="${_escHtml(q.id)}" style="${isWebDraft ? 'background:rgba(13,148,136,.04);' : ''}">
-  <td class="tmn">
-    ${_escHtml(q.id)}
-    ${isWebDraft ? ' <span style="font-size:10px;background:#0D9488;color:#fff;padding:1px 6px;border-radius:10px;vertical-align:middle">Intel</span>' : ''}
-  </td>
-  <td>v${_escHtml(q.version || 1)}</td>
-  <td class="tfw">${_escHtml(_safeText(q.clientName, '—'))}</td>
-  <td style="font-size:12px">${_escHtml(_safeText(q.siteAddress, '—'))}</td>
-  <td>${UI.fmt(q.revenueMonthly || 0)}/mo</td>
-  <td>${UI.pill(UI.fmtPct(m), UI.ragCls(m, CFG.MIN_MARGIN_PCT + 5, CFG.MIN_MARGIN_PCT))}</td>
-  <td>${UI.statusPill(q.status)}</td>
-  <td>${q.createdAt ? _escHtml(String(q.createdAt).slice(0, 10)) : '&#8212;'}</td>
-</tr>`.trim();
-    }).join('\n')) || `
-<tr><td colspan="8" style="text-align:center;color:var(--ll);padding:24px">
-  No quotes${_filter === 'web' ? ' from web form' : ''} yet
-</td></tr>`.trim();
-
-    const tabAll = `<button onclick="Quotes.setFilter('all')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='all'?'#0D9488':'var(--bd)'};background:${_filter==='all'?'#0D9488':'transparent'};color:${_filter==='all'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">All (${_quotes.length})</button>`;
-    const tabWeb = `<button onclick="Quotes.setFilter('web')" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid ${_filter==='web'?'#0D9488':'var(--bd)'};background:${_filter==='web'?'#0D9488':'transparent'};color:${_filter==='web'?'#fff':'var(--sl)'};cursor:pointer;font-weight:600">&#9656; Web Leads${webDrafts.length>0?' ('+webDrafts.length+')':''}</button>`;
-
-    app.innerHTML = `
-${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
-<div class="gql">
-  <div>
-    ${UI.secHd('Builder', 'New Quote')}
-    <div class="card mb16"><div class="card-body" style="padding-top:14px">
-      <div class="fr">
-        <div class="fg">
-          <label class="fl">Client Name <span class="req">*</span></label>
-          <input class="fin" id="q-cl" placeholder="Company name" oninput="Quotes.calc()">
+    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://precious-essence.up.railway.app';
+    const mc = document.getElementById('main-content');
+    mc.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:40px 48px;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px">🚀</div>
+          <h2 style="margin:0 0 10px;font-size:1.25rem;font-weight:800;color:#0F172A;letter-spacing:-.02em">This module has moved</h2>
+          <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.65">
+            This section is now part of <strong style="color:#0F172A">AskMiro OS</strong> — the unified operations platform on Railway.
+            All your data is there.
+          </p>
+          <a href="${osUrl}" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0DBDAD,#0A9688);color:#fff;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(10,150,136,.3)">
+            Open AskMiro OS →
+          </a>
+          <p style="margin:20px 0 0;font-size:12px;color:#94A3B8">
+            Outreach &amp; Email remain here in Ops.
+          </p>
         </div>
-        <div class="fg">
-          <label class="fl">Site Address <span class="req">*</span></label>
-          <input class="fin" id="q-sa" placeholder="Building, area" oninput="Quotes.calc()">
-        </div>
-      </div>
-
-      <div class="fr">
-        <div class="fg">
-          <label class="fl">Segment</label>
-          <select class="fse" id="q-sg">
-            <option>Office</option><option>Healthcare</option><option>School</option><option>Gym</option><option>Industrial</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl">Mode</label>
-          <select class="fse" id="q-md" onchange="Quotes.toggleMode()">
-            <option value="hourly">Hourly Rate</option>
-            <option value="fixed">Fixed Monthly</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="q-hourly-block">
-        <div class="fr3">
-          <div class="fg">
-            <label class="fl">Hrs/week</label>
-            <input class="fin" id="q-hw" type="number" value="20" min="1" oninput="Quotes.calc()">
-          </div>
-          <div class="fg">
-            <label class="fl">Days/week</label>
-            <select class="fse" id="q-dw" onchange="Quotes.calc()">
-              <option value="5">5</option><option value="3">3</option><option value="7">7</option><option value="2">2</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label class="fl">Client Rate (&#163;/hr)</label>
-            <input class="fin" id="q-cr" type="number" value="18.50" step="0.50" oninput="Quotes.calc()">
-          </div>
-        </div>
-      </div>
-
-      <div id="q-fixed-block" style="display:none">
-        <div class="fg">
-          <label class="fl">Fixed Monthly Fee (&#163;)</label>
-          <input class="fin" id="q-fm" type="number" placeholder="5000" oninput="Quotes.calc()">
-        </div>
-      </div>
-
-      <div class="fr">
-        <div class="fg">
-          <label class="fl">Supplies/month (&#163;)</label>
-          <input class="fin" id="q-sp" type="number" value="200" oninput="Quotes.calc()">
-        </div>
-        <div class="fg">
-          <label class="fl">Other Costs/month (&#163;)</label>
-          <input class="fin" id="q-oc" type="number" value="0" oninput="Quotes.calc()">
-        </div>
-      </div>
-
-      <div class="fg">
-        <label class="fl">LLW Rate (&#163;/hr) — auto from settings</label>
-        <input class="fin" id="q-lw" type="number" value="13.85" step="0.01" oninput="Quotes.calc()">
-      </div>
-
-      <div class="fg">
-        <label class="fl">Notes</label>
-        <textarea class="fta" id="q-nt" placeholder="Scope, access notes, special requirements&#8230;"></textarea>
-      </div>
-
-      <div class="modal-foot" style="margin-top:0">
-        <button class="btn bp" onclick="Quotes.save()">Save as Draft</button>
-      </div>
-    </div></div>
-
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      ${UI.secHd('History', 'Recent Quotes', filtered.length + ' shown')}
-      <div style="display:flex;gap:6px;flex-shrink:0">${tabAll}${tabWeb}</div>
-    </div>
-
-    <div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap">
-      <table class="tbl" id="quotes-table">
-        <thead>
-          <tr><th>ID</th><th>v</th><th>Client</th><th>Site</th><th>Revenue/mo</th><th>Margin</th><th>Status</th><th>Date</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div></div></div>
-  </div>
-
-  <div>
-    ${UI.secHd('Margin', 'Live Calculator')}
-    <div id="q-result"></div>
-    <div style="margin-top:14px;font-size:12px;color:var(--ll);background:var(--of);padding:10px;border-radius:var(--rs);line-height:1.7">
-      <strong>LLW Rate:</strong> &#163;13.85/hr &nbsp;&middot;&nbsp;
-      <strong>On-costs:</strong> 36% &nbsp;&middot;&nbsp;
-      <strong>Min margin:</strong> ${CFG.MIN_MARGIN_PCT}%<br>
-      <span style="font-size:10.5px">These drive all calculations. Update in Admin &#8594; Settings.</span>
-    </div>
-  </div>
-</div>`;
-
-    _bindTableClicks();
-    setTimeout(calc, 50);
+      </div>`;
   }
 
   function _bindTableClicks() {

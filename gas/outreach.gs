@@ -996,7 +996,26 @@ function sendOutreachEmail(body, auth) {
   try {
     const lead = getTableRows('Leads').find(r => r.id === body.leadId);
     if (!lead) return { error: 'Lead not found' };
-    if (lead.outreachStatus === OS.UNSUBSCRIBED) return { error: 'Lead has unsubscribed' };
+
+    // ── Send safety gate ─────────────────────────────────────
+    // Block any state that should not receive a manual send
+    const TERMINAL_STATES = [
+      OS.UNSUBSCRIBED, OS.REPLIED, OS.QUALIFIED,
+      OS.NOT_INTERESTED, OS.STOPPED, OS.DISQUALIFIED,
+    ];
+    const ACTIVE_STATES = [
+      OS.CONTACTED, OS.FOLLOW_UP_1, OS.FOLLOW_UP_2, OS.FINAL_FOLLOW_UP,
+    ];
+    if (TERMINAL_STATES.includes(lead.outreachStatus)) {
+      return { error: 'Cannot send: lead is ' + lead.outreachStatus + ' — manage via human queue' };
+    }
+    if (ACTIVE_STATES.includes(lead.outreachStatus) && !body.forceOverride) {
+      return { error: 'Lead is already in sequence (' + lead.outreachStatus + '). Set forceOverride:true to confirm.' };
+    }
+    // Check daily cap before sending
+    if (_getSentTodayCount() >= DAILY_SEND_CAP) {
+      return { error: 'Daily send cap reached (' + DAILY_SEND_CAP + '/day). Resets at midnight.' };
+    }
 
     const phase = body.phase || 'initial';
     let { subject, textBody, htmlBody } = _buildEmail(lead, phase);
