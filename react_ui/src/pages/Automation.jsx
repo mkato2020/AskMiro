@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
-import {api} from '../api'
+import {api, generateAlerts} from '../api'
 import {timeAgo,formatDate} from '../utils'
 import Spinner from '../components/Spinner'
 
@@ -91,6 +91,7 @@ export default function Automation(){
             {key:'rescore',label:'Re-score All Entities',desc:'Recompute opportunity scores for every entity (~49k). 30-60s.',fn:api.rescore,icon:'↻'},
             {key:'crm_push',label:'Push to CRM',desc:'Push qualified leads to GAS CRM immediately.',fn:api.crmSync,icon:'🚀'},
             {key:'tasks',label:'Generate Daily Tasks',desc:'Build today\'s prioritised call list from signals + renewals.',fn:api.runDailyTasks,icon:'🗓'},
+            {key:'intel_alerts',label:'Generate Intelligence Alerts',desc:'Scan entities for high-priority signals and push alerts to the dashboard.',fn:generateAlerts,icon:'🔔'},
           ].map(a=>(
             <div key={a.key} style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'16px 18px'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
@@ -189,6 +190,7 @@ export default function Automation(){
           {key:'enrichment',label:'Contact Enrichment',desc:'Extract decision-maker names, roles, and contact details from Companies House + CQC data.',fn:api.runEnrichment,icon:'👤',cost:'Free'},
           {key:'renewals',label:'Renewal Predictions',desc:'Estimate contract renewal windows from CQC registration dates, Companies House filings, and planning permissions.',fn:api.runRenewals,icon:'📅',cost:'Free'},
           {key:'tasks',label:'Generate Daily Tasks',desc:'Build today\'s prioritised call/email list from signals, renewals, pipeline stage, and outreach history.',fn:api.runDailyTasks,icon:'🗓',cost:'Free'},
+          {key:'intel_alerts',label:'Generate Intelligence Alerts',desc:'Scan all entities for high-priority signals and create actionable alerts for the dashboard.',fn:generateAlerts,icon:'🔔',cost:'Free'},
         ].map((job,i)=>(
           <div key={job.key} style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'18px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
             <div style={{display:'flex',alignItems:'center',gap:14,flex:1}}>
@@ -209,7 +211,7 @@ export default function Automation(){
         ))}
       </div>
       <div style={{marginTop:16,padding:'14px 18px',background:'rgba(10,150,136,0.06)',border:'1px solid rgba(10,150,136,0.15)',borderRadius:'var(--r-lg)',fontSize:'0.78rem',color:'var(--text-muted)'}}>
-        💡 <strong>Recommended order:</strong> Re-score → Planning Filter → Contact Enrichment → Renewal Predictions → Daily Tasks. Running all 5 takes ~2-3 minutes.
+        💡 <strong>Recommended order:</strong> Re-score → Planning Filter → Contact Enrichment → Renewal Predictions → Daily Tasks → Intelligence Alerts. Running all 6 takes ~2-3 minutes.
       </div>
     </div>
   )
