@@ -14,6 +14,8 @@ export default function Automation(){
   const [tab,setTab]=useState('overview')
   const [docCatFilter,setDocCatFilter]=useState('')
   const [docStatusFilter,setDocStatusFilter]=useState('')
+  const [docSearch,setDocSearch]=useState('')
+  const [docRequiredFilter,setDocRequiredFilter]=useState('')
   const [editDoc,setEditDoc]=useState(null)
   const [editForm,setEditForm]=useState({})
   const queryClient=useQueryClient()
@@ -339,7 +341,13 @@ export default function Automation(){
     const STATUS_COLORS={current:{bg:'#ECFDF5',color:'#059669'},missing:{bg:'#FEF2F2',color:'#DC2626'},expired:{bg:'#FFF7ED',color:'#EA580C'},draft:{bg:'#EFF6FF',color:'#2563EB'},review:{bg:'#FFFBEB',color:'#D97706'},uploaded:{bg:'#F5F3FF',color:'#7C3AED'}}
 
     const comp=(compData&&typeof compData==='object'&&!Array.isArray(compData))?compData:{}
-    const docs=Array.isArray(compDocs)?compDocs:Array.isArray(compDocs?.documents)?compDocs.documents:[]
+    const allDocs=Array.isArray(compDocs)?compDocs:Array.isArray(compDocs?.documents)?compDocs.documents:[]
+    const docs=allDocs.filter(d=>{
+      if(docSearch&&!(d.name||d.document_name||'').toLowerCase().includes(docSearch.toLowerCase()))return false
+      if(docRequiredFilter==='yes'&&!d.required)return false
+      if(docRequiredFilter==='no'&&d.required)return false
+      return true
+    })
     const expiring=Array.isArray(compExpiring)?compExpiring:Array.isArray(compExpiring?.documents)?compExpiring.documents:[]
     const categories=Array.isArray(comp.categories)?comp.categories:[]
     const urgent=Array.isArray(comp.urgent)?comp.urgent:[]
@@ -404,21 +412,32 @@ export default function Automation(){
       </div>
 
       {/* Actions + Filters */}
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
-        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)'}}>Document Register</div>
-        <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <select value={docCatFilter} onChange={e=>setDocCatFilter(e.target.value)} style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)'}}>
-            <option value="">All Categories</option>
-            {COMPLIANCE_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={docStatusFilter} onChange={e=>setDocStatusFilter(e.target.value)} style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)'}}>
-            <option value="">All Statuses</option>
-            {['current','missing','expired','draft','review','uploaded'].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
-          </select>
-          <button className="btn btn-ghost btn-sm" onClick={()=>generateMut.mutate()} disabled={generateMut.isPending} style={{fontWeight:700}}>
-            {generateMut.isPending?'⏳ Generating…':'⚡ Generate All'}
-          </button>
-        </div>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'0.6rem',letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginRight:4}}>Document Register</div>
+        <input
+          value={docSearch} onChange={e=>setDocSearch(e.target.value)}
+          placeholder="Search documents…"
+          style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)',width:180,outline:'none'}}
+        />
+        <select value={docCatFilter} onChange={e=>setDocCatFilter(e.target.value)} style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)'}}>
+          <option value="">All Categories</option>
+          {COMPLIANCE_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={docStatusFilter} onChange={e=>setDocStatusFilter(e.target.value)} style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)'}}>
+          <option value="">All Statuses</option>
+          {['current','missing','expired','draft','review','uploaded'].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+        </select>
+        <select value={docRequiredFilter} onChange={e=>setDocRequiredFilter(e.target.value)} style={{fontSize:'0.78rem',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg-surface)',color:'var(--text-1)'}}>
+          <option value="">Required: All</option>
+          <option value="yes">Required only</option>
+          <option value="no">Optional only</option>
+        </select>
+        {(docSearch||docCatFilter||docStatusFilter||docRequiredFilter)&&(
+          <button onClick={()=>{setDocSearch('');setDocCatFilter('');setDocStatusFilter('');setDocRequiredFilter('')}} style={{fontSize:'0.72rem',padding:'5px 10px',borderRadius:6,border:'1px solid var(--border)',background:'none',color:'var(--text-muted)',cursor:'pointer'}}>Clear</button>
+        )}
+        <button onClick={()=>generateMut.mutate()} disabled={generateMut.isPending} style={{marginLeft:'auto',fontSize:'0.78rem',padding:'6px 14px',borderRadius:6,border:'none',background:'var(--teal)',color:'#fff',fontWeight:700,cursor:'pointer'}}>
+          {generateMut.isPending?'⏳ Generating…':'⚡ Generate All'}
+        </button>
       </div>
 
       {/* Document Table */}
@@ -426,7 +445,7 @@ export default function Automation(){
         <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-              {['Document Name','Category','Subcategory','Status','Required','Expiry Date','Last Reviewed','Actions'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:'0.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)'}}>{h}</th>)}
+              {['Document Name','Category','Subcategory','Status','Required','Expiry Date','Last Reviewed','Actions'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:'0.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)'}}>{h==='Document Name'?`${h} (${docs.length})`:h}</th>)}
             </tr></thead>
             <tbody>
               {docs.length===0?(
