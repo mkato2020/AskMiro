@@ -8,44 +8,26 @@ window. Router = (() => {
   let _navigating = false;
 
   const PAGE_TITLES = {
-    dashboard: 'Executive Dashboard',
-    crm:       'CRM — Leads & Accounts',
-    outreach:  'Outreach Queue',
-    quotes:    'Quote Builder',
-    contracts: 'Contracts',
-    ops:       'Operations',
-    quality:   'Quality & Compliance',
-    finance:   'Finance & Invoicing',
-    payroll:   'Payroll',
-    admin:     'Admin & Settings',
-    email:     'Email Centre',
-    seo:       'SEO Content Generator',
+    outreach: 'Outreach Queue',
+    email:    'Email Centre',
   };
 
   const PAGE_CTA = {
-    crm:      { label: '+ New Lead',        action: () => CRM.openNewLead()              },
-    outreach: { label: '+ Add Lead',         action: () => Outreach.openAddLead()         },
-    quotes:  { label: '+ New Quote',       action: () => Quotes.openNew()               },
-    quality: { label: '+ Log Inspection',  action: () => Quality.openNewInspection()    },
-    finance: { label: '+ Create Invoice',  action: () => Finance.openCreateInvoice()    },
-    payroll: { label: '+ Log Hours',       action: () => Payroll.openAddEntry()         },
-    admin:   { label: '+ New User',        action: () => Admin.openNewUser()            },
-    email:   { label: '+ Compose',         action: () => Email._switchTab('compose')    },
+    outreach: { label: '+ Add Lead',  action: () => Outreach.openAddLead()      },
+    email:    { label: '+ Compose',   action: () => Email._switchTab('compose') },
   };
 
   // Routes that should prefetch their neighbours on hover
   const PREFETCH_MAP = {
-    dashboard: ['crm', 'finance', 'quality'],
-    crm:       ['quotes', 'outreach'],
-    outreach:  ['crm'],
-    quotes:    ['contracts'],
+    outreach: [],
+    email:    [],
   };
 
   function register(name, fn) { routes[name] = fn; }
 
   function getRoute() {
     const hash = window.location.hash.replace('#/', '').split('?')[0];
-    return (hash && routes[hash]) ? hash : 'dashboard';
+    return (hash && routes[hash]) ? hash : 'outreach';
   }
 
   // ── NAVIGATE ──────────────────────────────────────────────
@@ -95,20 +77,15 @@ window. Router = (() => {
 
     // Prefetch adjacent routes in background
     const toFetch = PREFETCH_MAP[route] || [];
-    toFetch.forEach(r => {
-      // Just warm the API cache — don't render
+    if (toFetch.length) {
       const prefetchActions = {
-        crm:      () => API.prefetch('crm'),
         outreach: () => API.prefetch('outreach.queue'),
-        quotes:   () => API.prefetch('quotes'),
-        finance:  () => API.prefetch('finance'),
-        quality:  () => API.prefetch('quality'),
-        dashboard:() => API.prefetch('dashboard'),
+        email:    () => API.prefetch('email'),
       };
-      if (prefetchActions[r]) {
-        setTimeout(() => prefetchActions[r](), 500);
-      }
-    });
+      toFetch.forEach(r => {
+        if (prefetchActions[r]) setTimeout(() => prefetchActions[r](), 500);
+      });
+    }
   }
 
   // ── ERROR BOUNDARY ────────────────────────────────────────
@@ -128,8 +105,8 @@ window. Router = (() => {
         <button class="btn bp" style="font-size:13px" onclick="Router.navigate('${route}')">
           ↻ Try Again
         </button>
-        <button class="btn bo" style="font-size:13px;margin-left:8px" onclick="Router.navigate('dashboard')">
-          ← Dashboard
+        <button class="btn bo" style="font-size:13px;margin-left:8px" onclick="Router.navigate('outreach')">
+          ← Outreach
         </button>
       </div>`;
   }
