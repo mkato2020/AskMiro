@@ -9,9 +9,6 @@
     const API_URL = (global.CFG && global.CFG.API_BASE) ||
       'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec';
 
-    // Keep as fallback only (secondary)
-    const FALLBACK_TOKEN = 'miro_3344ce9888eb4d63935450f0309b626d';
-
     const TOKEN_KEY = (global.CFG && global.CFG.TOKEN_KEY) || 'askmiro_ops_token';
 
     let _state = { quoteId: null, intel: null, chosenScenario: null, wageAdjust: 0 };
@@ -41,14 +38,17 @@
     }
 
     // ─────────────────────────────────────────────────────────
-    // Token handling (THIS is the main fix)
+    // Token handling — always read from the active session
     // ─────────────────────────────────────────────────────────
     function _getAccessToken() {
-      // Ops token is stored by your sign-in flow
-      const t = (global.localStorage && localStorage.getItem(TOKEN_KEY)) || '';
-      if (t && t.length > 10) return t; // basic sanity
-      // fallback (optional)
-      return FALLBACK_TOKEN || '';
+      // Primary: session token stored by Auth.login()
+      try {
+        const t = localStorage.getItem(TOKEN_KEY) || '';
+        if (t && t.length > 10) return t;
+      } catch (_) {}
+      // Secondary: same key via global reference
+      const t2 = (global.localStorage && global.localStorage.getItem(TOKEN_KEY)) || '';
+      return t2;
     }
 
     function _requireTokenOrThrow() {

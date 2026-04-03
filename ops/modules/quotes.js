@@ -365,8 +365,9 @@ window.Quotes = (() => {
   function openView(q) {
     const m = parseFloat(q.grossMarginPct || 0);
     const col = (m >= CFG.MIN_MARGIN_PCT + 5) ? 'var(--gn)' : (m >= CFG.MIN_MARGIN_PCT) ? 'var(--am)' : 'var(--rd)';
-    const blocked = (m < CFG.MIN_MARGIN_PCT) && !q.overrideReason;
     const isWebDraft = (q.source === 'web_form' && q.status === 'Draft');
+    // Web drafts haven't had a scenario applied yet — no rate means no margin block
+    const blocked = !isWebDraft && (m < CFG.MIN_MARGIN_PCT) && !q.overrideReason;
 
     const hpw = (q.intel_hoursPerWeek !== undefined && q.intel_hoursPerWeek !== null) ? q.intel_hoursPerWeek : q.hoursPerWeek;
     const vpw = (q.intel_visitsPerWeek !== undefined && q.intel_visitsPerWeek !== null) ? q.intel_visitsPerWeek : 1;
@@ -391,9 +392,9 @@ window.Quotes = (() => {
     <div style="padding:14px 18px">
       <div class="mp-row"><span class="mp-lbl">Hours/week</span><span>${_escHtml(_safeText(q.hoursPerWeek, '&#8212;'))}h</span></div>
       ${staffNeeded ? `<div class="mp-row"><span class="mp-lbl">Staff needed</span><span style="font-weight:600">${staffNeeded} cleaner${staffNeeded > 1 ? 's' : ''}</span></div>` : ''}
-      <div class="mp-row"><span class="mp-lbl">Monthly Revenue</span><span class="mp-val">${UI.fmt(q.revenueMonthly || 0)}</span></div>
-      <div class="mp-row"><span class="mp-lbl">Direct Cost</span><span>${UI.fmt(q.directCost || 0)}</span></div>
-      <div class="mp-row"><span class="mp-lbl" style="color:${col}">Gross Margin</span><span style="color:${col};font-weight:700">${UI.fmtPct(m)} (${UI.fmt(q.grossMarginGBP || 0)}/mo)</span></div>
+      <div class="mp-row"><span class="mp-lbl">Monthly Revenue</span><span class="mp-val">${q.revenueMonthly ? UI.fmt(q.revenueMonthly) : (isWebDraft ? '<span style="font-size:12px;color:#94A3B8">Pending Intel — apply a scenario below</span>' : UI.fmt(0))}</span></div>
+      <div class="mp-row"><span class="mp-lbl">Direct Cost</span><span>${q.directCost ? UI.fmt(q.directCost) : (isWebDraft ? '<span style="font-size:12px;color:#94A3B8">—</span>' : UI.fmt(0))}</span></div>
+      <div class="mp-row"><span class="mp-lbl" style="color:${col}">Gross Margin</span><span style="color:${col};font-weight:700">${m > 0 ? UI.fmtPct(m) + ' (' + UI.fmt(q.grossMarginGBP || 0) + '/mo)' : (isWebDraft ? '<span style="font-size:12px;color:#94A3B8">Set by Intel below</span>' : '—')}</span></div>
     </div>
   </div>
 
