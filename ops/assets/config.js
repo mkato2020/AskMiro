@@ -6,7 +6,7 @@
 window.CFG = {
   API_BASE: 'https://script.google.com/macros/s/AKfycbyOkdutI4j-blVoJJRw1UQ2YdYD0Os0GTX0ays08-MgkgPpLPfJ65oEVo5uEVcRbzSV/exec',
   // AskMiro OS (Railway) — all modules except Email + Outreach live here
-  OS_URL: 'https://precious-essence.up.railway.app',
+  OS_URL: 'https://askmiro-api-production.up.railway.app',
   APP_VERSION: '1.0.0',
   MIN_MARGIN_PCT: 20,
 
