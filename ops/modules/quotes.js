@@ -24,9 +24,24 @@ window.Quotes = (() => {
     return (s === null || s === undefined || s === '') ? (fallback || '') : String(s);
   }
 
+  // ── Auto-refresh every 60s while Quotes page is open ─────────
+  let _refreshTimer = null;
+  function _startAutoRefresh() {
+    _stopAutoRefresh();
+    _refreshTimer = setInterval(function() {
+      // Only silently refresh — don't flash loader
+      API.invalidate && API.invalidate('quotes');
+      render();
+    }, 60000);
+  }
+  function _stopAutoRefresh() {
+    if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+  }
+
   async function render() {
     const mc = document.getElementById('main-content');
     UI.setLoading(true);
+    _stopAutoRefresh();
 
     let qs = [];
     try {
@@ -41,8 +56,10 @@ window.Quotes = (() => {
     _byId   = {};
     _quotes.forEach(function(q) { _byId[q.id] = q; });
     updateBadge();
+    _startAutoRefresh();
 
-    const webDrafts   = _quotes.filter(function(q) { return q.source === 'web_form' && q.status === 'Draft'; });
+    // Priority items = web_form Drafts AND raw NEW LEAD entries (no quote yet)
+    const webDrafts   = _quotes.filter(function(q) { return q.source === 'web_form' && (q.status === 'Draft' || q.status === 'NEW LEAD'); });
     const allFiltered = _filter === 'web'  ? webDrafts
                       : _filter === 'all'  ? _quotes
                       : _quotes.filter(function(q) { return (q.status || '') === _filter; });
@@ -58,34 +75,45 @@ window.Quotes = (() => {
         + '</span>'
         + '</div>'
         + webDrafts.map(function(q) {
+            const isNewLead = q.status === 'NEW LEAD' || q._isLeadOnly;
             const dc   = parseFloat(q.intel_directCostPM) || 0;
             const balR = dc > 0 ? Math.round(dc / 0.75) : 0;
             const rc   = parseInt(q.intel_riskCount) || 0;
             const rCol = rc >= 2 ? '#DC2626' : rc === 1 ? '#D97706' : '#059669';
             const rBg  = rc >= 2 ? '#FEF2F2' : rc === 1 ? '#FFFBEB' : '#ECFDF5';
             const rLbl = rc >= 2 ? rc + ' risks' : rc === 1 ? '1 risk' : 'Low risk';
-            return '<div onclick="Quotes.openViewById(\'' + _escHtml(q.id) + '\')" '
-              + 'style="background:#fff;border:1px solid #FED7AA;border-radius:8px;padding:14px 16px;'
-              + 'margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;'
+            const ageBadge = q.createdAt ? '<span style="font-size:10px;color:#94A3B8;margin-left:8px">' + _timeAgo(q.createdAt) + '</span>' : '';
+            const subLine = [
+              q.siteAddress ? _escHtml(q.siteAddress) : '',
+              q.serviceType ? _escHtml(q.serviceType) : '',
+              q.frequency   ? _escHtml(q.frequency)   : '',
+              q.intel_hoursPerWeek ? q.intel_hoursPerWeek + 'h/wk' : ''
+            ].filter(Boolean).join(' &bull; ');
+            const actionBtn = isNewLead
+              ? '<button class="btn bp btn-sm" style="background:#F97316;border-color:#F97316" onclick="event.stopPropagation();Quotes.runIntel(\'' + _escHtml(q.id) + '\')">&#9889; Run Intel</button>'
+              : '<button class="btn bp btn-sm" onclick="event.stopPropagation();Quotes.openViewById(\'' + _escHtml(q.id) + '\')">Review &#8594;</button>';
+            const clickFn = isNewLead ? '' : 'Quotes.openViewById(\'' + _escHtml(q.id) + '\')';
+            return '<div ' + (clickFn ? 'onclick="' + clickFn + '"' : '') + ' '
+              + 'style="background:#fff;border:1.5px solid ' + (isNewLead ? '#FCA5A5' : '#FED7AA') + ';border-radius:8px;padding:14px 16px;'
+              + 'margin-bottom:10px;display:flex;align-items:center;gap:14px;' + (clickFn ? 'cursor:pointer;' : '')
               + 'transition:box-shadow .15s" '
-              + 'onmouseenter="this.style.boxShadow=\'0 4px 16px rgba(249,115,22,.15)\'" '
-              + 'onmouseleave="this.style.boxShadow=\'none\'">'
+              + (clickFn ? 'onmouseenter="this.style.boxShadow=\'0 4px 16px rgba(249,115,22,.15)\'" onmouseleave="this.style.boxShadow=\'none\'"' : '') + '>'
+              + '<div style="flex-shrink:0;width:36px;height:36px;border-radius:8px;background:' + (isNewLead ? '#FEF2F2' : '#FFF7ED') + ';display:flex;align-items:center;justify-content:center;font-size:16px">'
+              + (isNewLead ? '&#128274;' : '&#9889;') + '</div>'
               + '<div style="flex:1;min-width:0">'
-              + '<div style="font-weight:700;font-size:14px;color:#1E293B;margin-bottom:2px">' + _escHtml(_safeText(q.clientName, '(name not provided)')) + '</div>'
-              + '<div style="font-size:12px;color:#64748B">'
-              + _escHtml(_safeText(q.siteAddress, '')) + (q.siteAddress ? ' &bull; ' : '')
-              + (q.intel_hoursPerWeek ? q.intel_hoursPerWeek + 'h/wk' : '')
-              + (q.intel_visitsPerWeek ? ' &bull; ' + q.intel_visitsPerWeek + 'x per week' : '')
+              + '<div style="font-weight:700;font-size:14px;color:#1E293B;margin-bottom:2px">'
+              + _escHtml(_safeText(q.clientName, '(name not provided)'))
+              + (isNewLead ? ' <span style="font-size:10px;background:#DC2626;color:#fff;padding:1px 7px;border-radius:10px;font-weight:700;vertical-align:middle">NEW</span>' : '')
+              + ageBadge + '</div>'
+              + '<div style="font-size:12px;color:#64748B">' + (subLine || 'No details yet') + '</div>'
+              + (isNewLead ? '<div style="font-size:11px;color:#DC2626;font-weight:600;margin-top:3px">&#9888; No Intel quote yet — click Run Intel to price this lead</div>' : '')
               + '</div>'
-              + '</div>'
-              + (balR ? '<div style="text-align:right;margin-right:4px;min-width:90px">'
+              + (balR && !isNewLead ? '<div style="text-align:right;margin-right:4px;min-width:90px">'
                 + '<div style="font-size:10px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Balanced est.</div>'
                 + '<div style="font-size:17px;font-weight:800;color:#0D9488;letter-spacing:-.02em">&#163;' + balR + '<span style="font-size:11px;font-weight:500">/mo</span></div>'
                 + '</div>' : '')
-              + '<div style="min-width:64px;text-align:center">'
-              + '<span style="font-size:11px;font-weight:700;color:' + rCol + ';background:' + rBg + ';padding:3px 9px;border-radius:20px">' + rLbl + '</span>'
-              + '</div>'
-              + '<button class="btn bp btn-sm" onclick="event.stopPropagation();Quotes.openViewById(\'' + _escHtml(q.id) + '\')">Review &#8594;</button>'
+              + (!isNewLead ? '<div style="min-width:64px;text-align:center"><span style="font-size:11px;font-weight:700;color:' + rCol + ';background:' + rBg + ';padding:3px 9px;border-radius:20px">' + rLbl + '</span></div>' : '')
+              + actionBtn
               + '</div>';
           }).join('')
         + '</div>';
@@ -467,8 +495,31 @@ window.Quotes = (() => {
     }
   }
 
+  // ── RUN INTEL — retroactively create a Quote+Intel draft for a raw NEW LEAD ──
+  async function runIntel(leadId) {
+    const btn = document.querySelector('[onclick*="runIntel(\'' + leadId + '\')"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Running…'; }
+    try {
+      const res = await API.post('lead.runIntel', { id: leadId });
+      if (res.alreadyExists) {
+        UI.toast('Quote already exists — refreshing list', 'a');
+      } else {
+        UI.toast('⚡ Intel complete — quote ' + (res.quoteId || '') + ' created!', 'g');
+      }
+      await render();
+      // Auto-open the new quote in the viewer
+      if (res.quoteId && _byId[res.quoteId]) openView(_byId[res.quoteId]);
+    } catch(e) {
+      UI.toast('Intel failed: ' + e.message, 'r');
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Intel'; }
+    }
+  }
+
   function updateBadge() {
-    const n = _quotes.filter(q => q.source === 'web_form' && q.status === 'Draft').length;
+    // Count both Draft web quotes AND raw NEW LEAD items
+    const n = _quotes.filter(function(q) {
+      return q.source === 'web_form' && (q.status === 'Draft' || q.status === 'NEW LEAD');
+    }).length;
     const el = document.getElementById('badge-quotes');
     if (el) {
       el.textContent = n;
@@ -502,7 +553,7 @@ window.Quotes = (() => {
   return {
     render, calc, toggleMode, save, openNew,
     openView, openSend, doSend, openApprove, doApprove,
-    setFilter, openViewById, _sendProposal, loadIntoBuilder,
+    setFilter, openViewById, _sendProposal, loadIntoBuilder, runIntel,
   };
 })();
 

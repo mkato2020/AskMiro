@@ -175,6 +175,7 @@ function routePost(action, body, auth) {
     case 'outreach.resolve-action':        return resolveHumanAction(body, auth);
     case 'outreach.sequence.update':       return updateLeadSequence(body, auth);
     case 'outreach.assist':                return outreachAssistant(body, auth);
+    case 'lead.runIntel':                  return runIntelForLead(body, auth);
     default:                               return { error: 'Unknown action: ' + action };
   }
 }
@@ -505,37 +506,146 @@ function changeLeadStage(body, auth) {
   return { ok: true };
 }
 // ── QUOTES ────────────────────────────────────────────────────
-// getQuotes returns a projection — only columns the list view needs.
-// Full row returned by getQuote(id) when modal opens.
+// Returns all quotes PLUS any recent web leads that have no quote yet.
+// This ensures every website enquiry surfaces in OPS immediately —
+// even if the intelligence engine hasn't run yet.
 function getQuotes(params, auth) {
   requireRole(auth, 'OpsManager');
-  return getTableRows('Quotes').map(q => ({
-    id:             q.id,
-    version:        q.version,
-    clientName:     q.clientName,
-    siteAddress:    q.siteAddress,
-    revenueMonthly: q.revenueMonthly,
-    grossMarginPct: q.grossMarginPct,
-    grossMarginGBP: q.grossMarginGBP,
-    directCost:     q.directCost,
-    status:         q.status,
-    source:         q.source,
-    createdAt:      q.createdAt,
-    hoursPerWeek:   q.hoursPerWeek,
-    notes:          q.notes,
-    overrideReason: q.overrideReason,
-    chosenScenario: q.chosenScenario,
-    intel_hoursPerWeek:  q.intel_hoursPerWeek,
-    intel_visitsPerWeek: q.intel_visitsPerWeek,
-    intel_directCostPM:  q.intel_directCostPM,
-    intel_riskCount:     q.intel_riskCount
-  }));
+
+  // 1. All existing quotes (normal path)
+  var quotes = getTableRows('Quotes').map(function(q) {
+    return {
+      id:             q.id,
+      version:        q.version,
+      clientName:     q.clientName,
+      siteAddress:    q.siteAddress,
+      email:          q.email,
+      phone:          q.phone,
+      revenueMonthly: q.revenueMonthly,
+      grossMarginPct: q.grossMarginPct,
+      grossMarginGBP: q.grossMarginGBP,
+      directCost:     q.directCost,
+      status:         q.status,
+      source:         q.source,
+      createdAt:      q.createdAt,
+      hoursPerWeek:   q.hoursPerWeek,
+      notes:          q.notes,
+      overrideReason: q.overrideReason,
+      chosenScenario: q.chosenScenario,
+      intel_hoursPerWeek:  q.intel_hoursPerWeek,
+      intel_visitsPerWeek: q.intel_visitsPerWeek,
+      intel_directCostPM:  q.intel_directCostPM,
+      intel_riskCount:     q.intel_riskCount
+    };
+  });
+
+  // 2. Recent web leads that have NO quote yet — show as urgent LEAD cards
+  // (covers leads submitted before the auto-quote fix was deployed)
+  try {
+    var quoteLeadIds = {};
+    quotes.forEach(function(q) { if (q.id) quoteLeadIds[q.id] = true; });
+    // Also index by leadId field so we don't double-show
+    getTableRows('Quotes').forEach(function(q) { if (q.leadId) quoteLeadIds[q.leadId] = true; });
+
+    var cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days
+    var webLeads = getTableRows('Leads').filter(function(l) {
+      if (quoteLeadIds[l.id]) return false;                       // already has a quote
+      if ((l.source || '').toLowerCase().indexOf('web') === -1 &&
+          (l.source || '').toLowerCase().indexOf('site') === -1) return false;
+      var d = l.createdAt ? new Date(l.createdAt) : null;
+      return d && d >= cutoff;
+    });
+
+    webLeads.forEach(function(l) {
+      quotes.push({
+        id:            l.id,
+        version:       1,
+        clientName:    l.companyName || l.contactName || '',
+        siteAddress:   l.postcode    || '',
+        email:         l.email       || '',
+        phone:         l.phone       || '',
+        revenueMonthly: 0,
+        grossMarginPct: 0,
+        grossMarginGBP: 0,
+        directCost:     0,
+        status:        'NEW LEAD',
+        source:        'web_form',
+        createdAt:     l.createdAt   || '',
+        hoursPerWeek:  '',
+        notes:         l.notes       || '',
+        overrideReason: '',
+        chosenScenario: '',
+        serviceType:   l.serviceType || '',
+        frequency:     l.frequency   || '',
+        intel_hoursPerWeek: '',
+        intel_visitsPerWeek: '',
+        intel_directCostPM: '',
+        intel_riskCount: 0,
+        _isLeadOnly: true   // flag: no quote exists yet
+      });
+    });
+  } catch(e) {
+    Logger.log('getQuotes: lead merge failed (non-blocking) — ' + e.message);
+  }
+
+  // Sort: newest first so fresh leads are at top
+  quotes.sort(function(a, b) {
+    return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1;
+  });
+
+  return quotes;
 }
 function getQuote(id, auth) {
   requireRole(auth, 'OpsManager');
   const q = getRowById('Quotes', id);
   if (!q) throw new Error('Quote not found: ' + id);
   return q;
+}
+
+// ── RETROACTIVE INTEL: run Intelligence Engine for a raw NEW LEAD ──────────────
+// Called by OPS when the user clicks "Run Intel" on a lead that arrived before
+// the auto-quote fix was deployed, or where quote creation silently failed.
+// POST action=lead.runIntel  body={ id: leadId }
+function runIntelForLead(body, auth) {
+  requireRole(auth, 'OpsManager');
+  var leadId = body.id;
+  if (!leadId) throw new Error('lead.runIntel: id is required');
+
+  // Check if a quote already exists for this lead (idempotent guard)
+  var existingQuotes = getTableRows('Quotes').filter(function(q) {
+    return q.id === leadId || q.leadId === leadId;
+  });
+  if (existingQuotes.length > 0) {
+    return { ok: true, quoteId: existingQuotes[0].id, alreadyExists: true };
+  }
+
+  // Fetch the lead record
+  var lead = getRowById('Leads', leadId);
+  if (!lead) throw new Error('Lead not found: ' + leadId);
+
+  // Run Intelligence Engine (same path as webhookLead)
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+  ensureIntelligenceSheets(ss);
+
+  var leadForIntel = normaliseLead({
+    name:              lead.contactName,
+    email:             lead.email,
+    phone:             lead.phone,
+    postcode:          lead.postcode  || '',
+    facilityType:      lead.serviceType || lead.facilityType || 'other',
+    cleaningFrequency: lead.frequency || 'weekly',
+    requirements:      (lead.notes   || '').trim(),
+    premisesSize:      lead.premisesSize || lead.areaMq || '',
+    premisesSizeUnit:  lead.premisesSizeUnit || 'm2',
+    source:            'web_form'
+  });
+
+  var intel   = runIntelligenceEngine(ss, leadForIntel);
+  intel       = handleOneOffClean(leadForIntel, intel);
+  var quoteId = createDraftQuote(ss, leadForIntel, intel, leadId);
+
+  Logger.log('runIntelForLead: quote ' + quoteId + ' created for lead ' + leadId);
+  return { ok: true, quoteId: quoteId, alreadyExists: false };
 }
 function calculateQuote(body) {
   const hrs      = parseFloat(body.hoursPerWeek  || 0);
