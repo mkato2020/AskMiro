@@ -1592,11 +1592,14 @@ def generate_outreach_endpoint(place_id: str, force: bool = False):
 @app.post("/api/leads/{place_id}/send-email")
 def send_email_endpoint(place_id: str):
     """
-    Fully automated email send for a single lead.
-    1. Pulls lead + outreach package from DB
-    2. Pushes to GAS via outreach.handoff (GAS sends + tracks)
-    3. Logs activity locally
+    RETIRED — outreach is owned by OPS (Netlify/GAS).
+    OS surfaces leads to contact via Today Engine; OPS handles all sending.
+    Use POST outreach.handoff to queue a lead in OPS instead.
     """
+    raise HTTPException(
+        status_code=410,
+        detail="Outreach is managed by OPS. Use askmiro.com/ops to send emails."
+    )
     from crm_sync import _push_one
 
     # Fetch lead from normalized schema
@@ -5629,10 +5632,10 @@ def webhook_lead(body: dict = Body(...)):
             logger.warning("webhook_lead: outreach gen failed for entity %s — %s", entity_id, exc)
             return  # can't auto-send without outreach
 
-        # Step 2: Auto-push to GAS if score >= 65 AND has email (full autopilot)
+        # Step 2: Queue in OPS outreach (handoff only — OPS owns all sending)
+        # OS never sends email directly. GAS autopilot picks this up on next cycle.
         if score >= 65 and email and "@" in email:
             try:
-                # Re-fetch with outreach package from Postgres
                 with db_pg.transaction() as conn:
                     lead_row = db_pg.fetchone(conn,
                         """SELECT lr.*, op.cold_email, op.follow_up_email
@@ -5641,31 +5644,14 @@ def webhook_lead(body: dict = Body(...)):
                            WHERE lr.place_id = %s""",
                         (place_id,)
                     )
-
                 if lead_row and lead_row.get("cold_email"):
                     from crm_sync import _push_one
-                    outcome, err = _push_one(dict(lead_row), force=True)
-                    if outcome == "ok":
-                        logger.info("webhook_lead: AUTO-SENT to GAS for entity %s (%s)", entity_id, email)
-                        # Update stage to contacted
-                        with db_pg.transaction() as conn:
-                            db_pg.execute(conn, """
-                                UPDATE opportunities SET current_stage = 'contacted'::pipeline_stage,
-                                    updated_at = NOW(), last_touched_at = NOW()
-                                WHERE entity_id = %s
-                            """, (entity_id,))
-                            db_pg.execute(conn, """
-                                INSERT INTO activity_log (entity_id, activity_type, actor, subject, body)
-                                VALUES (%s, 'email', 'autopilot', %s, %s)
-                            """, (entity_id,
-                                  f"Auto-sent cold email to {email}",
-                                  f"Website lead scored {score} — auto-outreach triggered"))
-                    else:
-                        logger.warning("webhook_lead: auto-push failed for %s — %s", entity_id, err)
+                    outcome, err = _push_one(dict(lead_row), force=False)
+                    logger.info("webhook_lead: handoff to OPS for entity %s — outcome=%s", entity_id, outcome)
                 else:
-                    logger.info("webhook_lead: no cold_email generated, skipping auto-push for entity %s", entity_id)
+                    logger.info("webhook_lead: no cold_email yet for entity %s — skipping handoff", entity_id)
             except Exception as exc:
-                logger.warning("webhook_lead: auto-push pipeline failed for %s — %s", entity_id, exc)
+                logger.warning("webhook_lead: handoff failed for %s — %s", entity_id, exc)
 
     import threading
     threading.Thread(target=_auto_outreach_pipeline, daemon=True).start()
@@ -5852,11 +5838,11 @@ def email_autorun():
 
 @app.post("/api/email/send")
 def email_send_one(body: dict = Body(...)):
-    """Send a single outreach email via GAS."""
-    result, err = _gas_post_action("outreach.send", body)
-    if err:
-        raise HTTPException(status_code=500, detail=err)
-    return result or {"status": "sent"}
+    """RETIRED — outreach is owned by OPS (Netlify/GAS)."""
+    raise HTTPException(
+        status_code=410,
+        detail="Outreach is managed by OPS. Use askmiro.com/ops to send emails."
+    )
 
 @app.post("/api/email/resolve")
 def email_resolve(body: dict = Body(...)):
