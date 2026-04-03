@@ -10,19 +10,8 @@
   API.init();
 
   // ── REGISTER ROUTES ───────────────────────────────────────
-  Router.register('dashboard', Dashboard.render);
-  Router.register('crm',       CRM.render);
-  Router.register('outreach',  Outreach.render);
-  Router.register('quotes',    Quotes.render);
-  Router.register('contracts', Contracts.render);
-  Router.register('ops',       Ops.render);
-  Router.register('quality',   Quality.render);
-  Router.register('finance',   Finance.render);
-  Router.register('payroll',   Payroll.render);
-  Router.register('email',      Email.render);
-  Router.register('cleaners', Cleaners.render);
-  Router.register('admin',      Admin.render);
-  Router.register('seo',        SEO.render);
+  Router.register('outreach', Outreach.render);
+  Router.register('email',    Email.render);
 
   // ── SIDEBAR NAVIGATION ────────────────────────────────────
   document.addEventListener('click', async (e) => {
