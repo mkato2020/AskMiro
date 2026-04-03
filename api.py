@@ -6733,7 +6733,7 @@ def today_engine():
                            vl.total_score, vl.score_band,
                            vl.primary_phone as phone, vl.primary_website as website,
                            vl.primary_email as email,
-                           vl.quote_value_gbp as estimated_monthly_value_gbp,
+                           vl.estimated_monthly_value_gbp,
                            vl.next_best_action,
                            vl.hvt,
                            CASE

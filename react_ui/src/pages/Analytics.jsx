@@ -324,7 +324,7 @@ export default function Analytics({openLead,setTab}){
                   </thead>
                   <tbody>
                     {safeArr(today.leads_to_contact).slice(0,showAllContacts?50:10).map((lead,i)=>{
-                      const sc = Number(lead.score)||0
+                      const sc = Number(lead.total_score||lead.score)||0
                       const isA = sc>=80, isB = sc>=65 && sc<80
                       const scoreBg = isA?'#ECFDF5':isB?'#F0FDFA':'#FFFBEB'
                       const scoreColor = isA?'#059669':isB?'#0D9488':'#D97706'
@@ -342,7 +342,7 @@ export default function Analytics({openLead,setTab}){
                             <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:800,padding:'3px 10px',
                               borderRadius:20,background:scoreBg,color:scoreColor,minWidth:36,textAlign:'center'}}>{sc} {scoreBand}</span>
                           </td>
-                          <td style={{...tdStyle,textAlign:'right',fontWeight:600}}>{lead.est_value!=null?fmtGBP(lead.est_value):'—'}</td>
+                          <td style={{...tdStyle,textAlign:'right',fontWeight:600}}>{lead.estimated_monthly_value_gbp!=null?fmtGBP(lead.estimated_monthly_value_gbp):'—'}</td>
                           <td style={{...tdStyle,fontSize:'0.74rem',color:'var(--text-muted)',maxWidth:200}}>{lead.reason||'—'}</td>
                           <td style={tdStyle}>
                             <span style={{display:'inline-block',fontSize:'0.65rem',fontWeight:700,padding:'3px 12px',
@@ -472,7 +472,7 @@ export default function Analytics({openLead,setTab}){
               ) : (
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {safeArr(today.push_to_visit).map((item,i)=>{
-                    const sc = Number(item.score)||0
+                    const sc = Number(item.total_score||item.score)||0
                     return(
                       <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
                         padding:'8px 12px',borderRadius:'var(--r-sm)',background:'var(--bg-surface)',border:'1px solid var(--border)',cursor:openLead&&(item.entity_id||item.place_id)?'pointer':'default'}}>
