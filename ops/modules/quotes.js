@@ -66,8 +66,13 @@ window.Quotes = (() => {
     updateBadge();
     _startAutoRefresh();
 
-    // Priority items = web_form Drafts AND raw NEW LEAD entries (no quote yet)
-    const webDrafts   = _quotes.filter(function(q) { return q.source === 'web_form' && (q.status === 'Draft' || q.status === 'NEW LEAD'); });
+    // Priority items = web quotes (Draft or NEW LEAD).
+    // isWebQuote is set server-side using multiple signals in case the
+    // 'source' column doesn't exist in older Quotes sheets.
+    const webDrafts   = _quotes.filter(function(q) {
+      const isWeb = q.isWebQuote || q.source === 'web_form' || q.createdBy === 'INTEL';
+      return isWeb && (q.status === 'Draft' || q.status === 'NEW LEAD');
+    });
     const allFiltered = _filter === 'web'  ? webDrafts
                       : _filter === 'all'  ? _quotes
                       : _quotes.filter(function(q) { return (q.status || '') === _filter; });
@@ -145,7 +150,7 @@ window.Quotes = (() => {
     const rows = allFiltered.length
       ? allFiltered.map(function(q) {
           const m    = parseFloat(q.grossMarginPct) || 0;
-          const isW  = q.source === 'web_form';
+          const isW  = q.isWebQuote || q.source === 'web_form' || q.createdBy === 'INTEL';
           const mCol = m >= CFG.MIN_MARGIN_PCT + 5 ? '#059669' : m >= CFG.MIN_MARGIN_PCT ? '#D97706' : '#94A3B8';
           const sBg  = statusColors[q.status] || '#94A3B8';
           const hwDisplay = q.hoursPerWeek || q.intel_hoursPerWeek;
@@ -524,9 +529,9 @@ window.Quotes = (() => {
   }
 
   function updateBadge() {
-    // Count both Draft web quotes AND raw NEW LEAD items
     const n = _quotes.filter(function(q) {
-      return q.source === 'web_form' && (q.status === 'Draft' || q.status === 'NEW LEAD');
+      const isWeb = q.isWebQuote || q.source === 'web_form' || q.createdBy === 'INTEL';
+      return isWeb && (q.status === 'Draft' || q.status === 'NEW LEAD');
     }).length;
     const el = document.getElementById('badge-quotes');
     if (el) {

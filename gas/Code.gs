@@ -514,6 +514,13 @@ function getQuotes(params, auth) {
 
   // 1. All existing quotes (normal path)
   var quotes = getTableRows('Quotes').map(function(q) {
+    // isWebQuote: true when ANY indicator shows this came from the website.
+    // We check multiple signals because the 'source' column may not exist
+    // in older Quotes sheets (appendRow only writes to existing headers).
+    var src = (q.source || '').toLowerCase();
+    var isWebQuote = src === 'web_form' || src.indexOf('web') !== -1
+                   || (q.createdBy || '') === 'INTEL'
+                   || !!(q.intel_directCostPM || q.intel_hoursPerWeek);
     return {
       id:             q.id,
       version:        q.version,
@@ -526,7 +533,9 @@ function getQuotes(params, auth) {
       grossMarginGBP: q.grossMarginGBP,
       directCost:     q.directCost,
       status:         q.status,
-      source:         q.source,
+      source:         isWebQuote ? 'web_form' : (q.source || 'manual'),
+      createdBy:      q.createdBy || '',
+      isWebQuote:     isWebQuote,
       createdAt:      q.createdAt,
       hoursPerWeek:   q.hoursPerWeek,
       notes:          q.notes,
