@@ -556,11 +556,14 @@ function getQuotes(params, auth) {
     // Also index by leadId field so we don't double-show
     getTableRows('Quotes').forEach(function(q) { if (q.leadId) quoteLeadIds[q.leadId] = true; });
 
-    var cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days
+    var cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
     var webLeads = getTableRows('Leads').filter(function(l) {
-      if (quoteLeadIds[l.id]) return false;                       // already has a quote
-      if ((l.source || '').toLowerCase().indexOf('web') === -1 &&
-          (l.source || '').toLowerCase().indexOf('site') === -1) return false;
+      if (quoteLeadIds[l.id]) return false; // already has a quote
+      // Include if source looks like web OR if source is blank/unknown
+      // (Leads sheet may not have a source column — don't silently drop them)
+      var src = (l.source || '').toLowerCase();
+      var isManual = src === 'manual' || src === 'outreach' || src === 'referral';
+      if (isManual) return false;
       var d = l.createdAt ? new Date(l.createdAt) : null;
       return d && d >= cutoff;
     });
