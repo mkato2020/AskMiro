@@ -16,8 +16,8 @@ const STAGES=[
 const WON_STAGE={key:'won',label:'Won',color:'#059669',icon:'\u2605'}
 const ALL_STAGES=[...STAGES,WON_STAGE]
 
-const STAGE_FILTERS=['All','New','Ready','Contacted','Qualified','Quote Sent','Negotiating','Won']
-const STAGE_FILTER_MAP={'New':'new','Ready':'ready_to_contact','Contacted':'contacted','Qualified':'qualified','Quote Sent':'quote_sent','Negotiating':'negotiating','Won':'won'}
+const STAGE_FILTERS=['All','\u26A1 Inbound','New','Ready','Contacted','Qualified','Quote Sent','Negotiating','Won']
+const STAGE_FILTER_MAP={'\u26A1 Inbound':'_inbound','New':'new','Ready':'ready_to_contact','Contacted':'contacted','Qualified':'qualified','Quote Sent':'quote_sent','Negotiating':'negotiating','Won':'won'}
 
 const TABS=['Pipeline','List','Activity']
 
@@ -127,6 +127,19 @@ function MonthlyValueBadge({lead}){
 }
 
 const CLEANING_FREQ_OPTIONS=['daily','weekly','biweekly','monthly','one_off']
+
+function InboundBadge({lead}){
+  if(!lead.is_inbound)return null
+  return(
+    <span style={{
+      background:'linear-gradient(135deg,#F97316,#EA580C)',
+      color:'#fff',fontSize:'0.58rem',fontWeight:800,
+      padding:'2px 7px',borderRadius:8,
+      textTransform:'uppercase',letterSpacing:'.05em',
+      boxShadow:'0 1px 4px rgba(249,115,22,.4)'
+    }}>&#9889; Inbound</span>
+  )
+}
 
 /* ── Won → Contract Modal ─────────────────────────────── */
 function ContractModal({opportunity,onClose,onSuccess}){
@@ -335,6 +348,7 @@ function LeadCard({lead,onAdvance,onClick,advancing,onCreateContract}){
 
       {/* Tags row */}
       <div style={{display:'flex',gap:5,alignItems:'center',marginTop:8,flexWrap:'wrap'}}>
+        <InboundBadge lead={lead}/>
         <SectorBadge sector={lead.sector}/>
         {lead.pipeline_heat&&(
           <span style={{background:heat.bg,color:heat.color,fontSize:'0.58rem',fontWeight:800,padding:'1px 7px',borderRadius:8,textTransform:'uppercase',letterSpacing:'.04em'}}>{heat.label}</span>
@@ -380,6 +394,17 @@ function LeadCard({lead,onAdvance,onClick,advancing,onCreateContract}){
               Won {'\u2192'}
             </button>
           )}
+          {lead.is_inbound&&(
+            <a
+              href="https://www.askmiro.com/ops#/quotes"
+              target="_blank"
+              rel="noopener"
+              onClick={e=>e.stopPropagation()}
+              style={{fontSize:'0.62rem',fontWeight:700,color:'#F97316',background:'rgba(249,115,22,.08)',border:'1px solid rgba(249,115,22,.25)',borderRadius:6,padding:'3px 10px',cursor:'pointer',textDecoration:'none',transition:'all .15s'}}
+            >
+              Quote &#8594;
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -404,7 +429,8 @@ export default function Pipeline({openLead}){
     let list=Array.isArray(pipeData)?pipeData:(pipeData?.leads||[])
     if(stageFilter!=='All'){
       const key=STAGE_FILTER_MAP[stageFilter]
-      if(key)list=list.filter(l=>l.stage===key)
+      if(key==='_inbound')list=list.filter(l=>l.is_inbound===true)
+      else if(key)list=list.filter(l=>l.stage===key)
     }
     if(search.trim()){
       const q=search.trim().toLowerCase()

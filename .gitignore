@@ -19,3 +19,11 @@ Thumbs.db
 .netlify
 __pycache__/
 *.pyc
+
+node_modules/
+react_ui/node_modules/
+data/
+logs/
+exports/
+*.db
+*.log

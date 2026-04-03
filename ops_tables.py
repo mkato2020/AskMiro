@@ -611,6 +611,15 @@ def ensure_ops_tables(conn):
         except Exception:
             pass
 
+        # Add is_inbound flag to opportunities (inbound website leads)
+        try:
+            db_pg.execute(conn, """
+                ALTER TABLE opportunities
+                ADD COLUMN IF NOT EXISTS is_inbound BOOLEAN DEFAULT FALSE
+            """)
+        except Exception:
+            pass
+
     log.info("All operational tables verified.")
 
 

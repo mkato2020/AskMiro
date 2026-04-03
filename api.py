@@ -1081,6 +1081,14 @@ def list_pipeline(status: Optional[str] = None):
                 " ORDER BY total_score DESC",
                 (status,) if status else ()
             )
+            # Fetch is_inbound flags
+            inbound_ids = set()
+            try:
+                ib_rows = db_pg.fetchall(conn,
+                    "SELECT entity_id FROM opportunities WHERE is_inbound = TRUE")
+                inbound_ids = {r['entity_id'] for r in (ib_rows or [])}
+            except Exception:
+                pass
         result = []
         for r in rows:
             d = dict(r)
@@ -1091,6 +1099,7 @@ def list_pipeline(status: Optional[str] = None):
             d['value'] = d.get('quote_value_gbp') or d.get('estimated_monthly_value_gbp') or 0
             d['updated_at'] = d.get('last_touched_at')
             d['id'] = d.get('entity_id') or d.get('opportunity_id')
+            d['is_inbound'] = d.get('entity_id') in inbound_ids
             score = d.get('total_score') or d.get('priority_score') or 0
             signals = d.get('signals') or []
             has_tender = ('public_procurement' in signals) if isinstance(signals, list) else False
@@ -1102,7 +1111,11 @@ def list_pipeline(status: Optional[str] = None):
                 d['pipeline_heat'] = 'cold'
             result.append(d)
         heat_order = {'hot': 0, 'warm': 1, 'cold': 2}
-        result.sort(key=lambda x: (heat_order.get(x['pipeline_heat'], 3), -(x.get('total_score') or 0)))
+        result.sort(key=lambda x: (
+            0 if x.get('is_inbound') else 1,
+            heat_order.get(x.get('pipeline_heat'), 3),
+            -(x.get('total_score') or 0)
+        ))
         return result
     except Exception as exc:
         logger.error("list_pipeline error: %s", exc)
@@ -5590,13 +5603,13 @@ def webhook_lead(body: dict = Body(...)):
                   'A' if score >= 80 else 'B' if score >= 65 else 'C' if score >= 50 else 'D',
                   'Website enquiry — call to qualify'))
 
-            # 5. Auto-create opportunity if high score
-            if score >= 65:
+            # 5. Auto-create opportunity — all inbound leads get is_inbound=TRUE
+            if score >= 50:
                 db_pg.execute(conn, """
-                    INSERT INTO opportunities (entity_id, title, current_stage, owner)
-                    VALUES (%s, %s, 'new'::pipeline_stage, 'auto')
-                    ON CONFLICT (entity_id) DO NOTHING
-                """, (entity_id, f"Website lead — {biz}"))
+                    INSERT INTO opportunities (entity_id, title, current_stage, owner, is_inbound)
+                    VALUES (%s, %s, 'new'::pipeline_stage, 'auto', TRUE)
+                    ON CONFLICT (entity_id) DO UPDATE SET is_inbound = TRUE
+                """, (entity_id, f"⚡ Inbound — {biz}"))
 
             # 6. Log activity
             db_pg.execute(conn, """
