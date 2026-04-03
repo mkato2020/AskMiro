@@ -83,6 +83,15 @@ async def startup():
             logger.info("ops tables ensured OK")
     except Exception as e:
         logger.warning("ops tables init: %s", e)
+    # Migrate: add site_code column to contracts if missing
+    try:
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, """
+                ALTER TABLE contracts ADD COLUMN IF NOT EXISTS site_code TEXT UNIQUE
+            """)
+            logger.info("site_code column ensured on contracts")
+    except Exception as e:
+        logger.warning("site_code migration: %s", e)
     # Create deliverability tables
     try:
         from services.email_deliverability import ensure_deliverability_tables
@@ -236,11 +245,50 @@ def health():
 
 @app.post("/api/admin/ensure-tables")
 def ensure_tables_endpoint():
-    """Create any missing tables (contracts, intelligence_alerts, etc.)"""
+    """Create any missing tables (contracts, intelligence_alerts, ingest_runs, raw_source_records, etc.)"""
     try:
         with db_pg.transaction() as conn:
             ensure_ops_tables(conn)
-        return {"ok": True, "message": "Tables ensured"}
+            # Ensure connector ingestion tables exist
+            db_pg.execute(conn, """
+                DO $$ BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'source_system') THEN
+                        CREATE TYPE source_system AS ENUM (
+                            'google_maps','companies_house','cqc','contracts_finder',
+                            'charity_commission','planning_applications',
+                            'nhs_ods','london_datastore','openstreetmap','manual'
+                        );
+                    ELSE
+                        -- add planning_applications if missing
+                        BEGIN
+                            ALTER TYPE source_system ADD VALUE IF NOT EXISTS 'planning_applications';
+                        EXCEPTION WHEN others THEN NULL;
+                        END;
+                    END IF;
+                END $$;
+            """)
+            db_pg.execute(conn, """
+                CREATE TABLE IF NOT EXISTS ingest_runs (
+                    id            SERIAL PRIMARY KEY,
+                    source        TEXT NOT NULL,
+                    started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    finished_at   TIMESTAMPTZ,
+                    record_count  INT DEFAULT 0,
+                    notes         TEXT
+                );
+                CREATE TABLE IF NOT EXISTS raw_source_records (
+                    id               BIGSERIAL PRIMARY KEY,
+                    source           TEXT NOT NULL,
+                    source_record_id TEXT NOT NULL,
+                    ingest_run_id    INT REFERENCES ingest_runs(id),
+                    payload          JSONB NOT NULL,
+                    fetched_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    UNIQUE (source, source_record_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_raw_source ON raw_source_records(source);
+                CREATE INDEX IF NOT EXISTS idx_raw_payload ON raw_source_records USING GIN(payload);
+            """)
+        return {"ok": True, "message": "Tables ensured (including ingest_runs + raw_source_records)"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -1233,12 +1281,14 @@ def advance_pipeline(place_id: str, body: AdvanceBody):
             except Exception as qe:
                 logger.warning("advance_pipeline: auto-quote failed — %s", qe)
 
-        # ── AUTO-ASSIGN BEST CLEANER when advancing to won ──────────
+        # ── AUTO-CREATE CONTRACT + SITE CODE + CLEANER MATCH when advancing to won ──
         recommended_cleaner = None
+        site_code = None
+        contract_id = None
         if body.new_status == 'won':
             try:
                 opp_won = db_pg.fetchone(conn, """
-                    SELECT o.entity_id, e.canonical_name, e.sector,
+                    SELECT o.entity_id, o.id as opp_id, e.canonical_name, e.sector,
                            a.postcode, a.borough, a.line1 as address
                     FROM opportunities o
                     JOIN entities e ON e.id = o.entity_id
@@ -1246,38 +1296,93 @@ def advance_pipeline(place_id: str, body: AdvanceBody):
                     LEFT JOIN addresses a ON a.id = el.address_id
                     WHERE o.id = %s
                 """, (opp_id,))
-                if opp_won and opp_won.get('postcode'):
-                    from services.cleaner_matcher import match_cleaners
-                    cm = match_cleaners(opp_won['postcode'], 15, opp_won.get('sector', ''), limit=5)
-                    matches = cm.get('matches', [])
-                    if matches:
-                        best = matches[0]
-                        recommended_cleaner = {
-                            'id': best.get('id'),
-                            'name': best.get('name'),
-                            'distance': best.get('distance'),
-                            'travel_time': best.get('travel_time'),
-                            'match_quality': best.get('match_quality'),
-                            'pay_rate': best.get('pay_rate'),
-                        }
-                        # Log recommendation as activity
-                        all_names = ', '.join(f"{m.get('name','?')} ({m.get('distance','?')} mi)" for m in matches[:3])
-                        db_pg.execute(conn, """
-                            INSERT INTO activity_log (entity_id, activity_type, actor, subject, body)
-                            VALUES (%s, 'note', 'system', %s, %s)
-                        """, (
-                            opp_won['entity_id'],
-                            f"Cleaner recommendation for won contract",
-                            f"Best match: {best.get('name', '?')} — {best.get('distance', '?')} mi from {opp_won['postcode']}\n"
-                            f"Travel: {best.get('travel_time', '?')} min | Rate: £{float(best.get('pay_rate', 0)):.2f}/hr | "
-                            f"Quality: {best.get('match_quality', '?')}\n\n"
-                            f"All candidates: {all_names}"
-                        ))
-                        logger.info("advance_pipeline: won — recommended cleaner %s for opp %s", best.get('name'), opp_id)
-            except Exception as ce:
-                logger.warning("advance_pipeline: cleaner recommendation failed — %s", ce)
+                if opp_won:
+                    borough = opp_won.get('borough', '') or ''
+                    postcode = opp_won.get('postcode', '') or ''
 
-    return {"ok": True, "quote_generated": quote_generated, "recommended_cleaner": recommended_cleaner}
+                    # Generate unique site code
+                    site_code = _generate_site_code(conn, borough, postcode)
+
+                    # Get quote value if one was generated
+                    quote_val = db_pg.fetchone(conn, """
+                        SELECT monthly_revenue, hours_per_week, margin_pct
+                        FROM quotes WHERE opportunity_id = %s
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (opp_id,))
+
+                    monthly_val = float(quote_val['monthly_revenue']) if quote_val and quote_val.get('monthly_revenue') else 0
+                    hours_pw = float(quote_val['hours_per_week']) if quote_val and quote_val.get('hours_per_week') else 0
+                    margin = float(quote_val['margin_pct']) if quote_val and quote_val.get('margin_pct') else 0
+
+                    # Check if contract already exists for this opportunity
+                    existing = db_pg.fetchone(conn, "SELECT id FROM contracts WHERE opportunity_id = %s", (opp_id,))
+                    if not existing:
+                        new_contract = db_pg.fetchone(conn, """
+                            INSERT INTO contracts (
+                                opportunity_id, entity_id, site_name, site_address, site_postcode,
+                                site_code, service_type, hours_per_week,
+                                monthly_value_gbp, annual_value_gbp, margin_pct,
+                                status, staffing_status, launch_readiness, notes
+                            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active','unassigned','pending',%s)
+                            RETURNING id, site_code
+                        """, (
+                            opp_id, opp_won['entity_id'],
+                            opp_won.get('canonical_name', 'Unknown Site'),
+                            opp_won.get('address', ''),
+                            postcode, site_code,
+                            opp_won.get('sector', 'Commercial Cleaning'),
+                            hours_pw, monthly_val, round(monthly_val * 12, 2), margin,
+                            f"Auto-created when pipeline reached Won. Site code: {site_code}"
+                        ))
+                        if new_contract:
+                            contract_id = new_contract['id'] if isinstance(new_contract, dict) else new_contract[0]
+                            site_code = new_contract['site_code'] if isinstance(new_contract, dict) else new_contract[1]
+                            logger.info("advance_pipeline: created contract %s (site_code %s) for opp %s", contract_id, site_code, opp_id)
+                    else:
+                        contract_id = existing['id'] if isinstance(existing, dict) else existing[0]
+                        # Update site code if missing
+                        db_pg.execute(conn, "UPDATE contracts SET site_code = %s WHERE id = %s AND site_code IS NULL", (site_code, contract_id))
+
+                    # Match cleaners
+                    if postcode:
+                        from services.cleaner_matcher import match_cleaners
+                        cm = match_cleaners(postcode, hours_pw or 15, opp_won.get('sector', ''), limit=5)
+                        matches = cm.get('matches', [])
+                        if matches:
+                            best = matches[0]
+                            recommended_cleaner = {
+                                'id': best.get('id'),
+                                'name': best.get('name'),
+                                'distance': best.get('distance'),
+                                'travel_time': best.get('travel_time'),
+                                'match_quality': best.get('match_quality'),
+                                'pay_rate': best.get('pay_rate'),
+                            }
+                            # Log recommendation as activity
+                            all_names = ', '.join(f"{m.get('name','?')} ({m.get('distance','?')} mi)" for m in matches[:3])
+                            db_pg.execute(conn, """
+                                INSERT INTO activity_log (entity_id, activity_type, actor, subject, body)
+                                VALUES (%s, 'note', 'system', %s, %s)
+                            """, (
+                                opp_won['entity_id'],
+                                f"Contract {site_code} created — cleaner recommendation",
+                                f"Site Code: {site_code}\n"
+                                f"Best match: {best.get('name', '?')} — {best.get('distance', '?')} mi from {postcode}\n"
+                                f"Travel: {best.get('travel_time', '?')} min | Rate: £{float(best.get('pay_rate', 0)):.2f}/hr | "
+                                f"Quality: {best.get('match_quality', '?')}\n\n"
+                                f"All candidates: {all_names}"
+                            ))
+                            logger.info("advance_pipeline: won — recommended cleaner %s for contract %s", best.get('name'), site_code)
+            except Exception as ce:
+                logger.warning("advance_pipeline: contract/cleaner creation failed — %s", ce)
+
+    return {
+        "ok": True,
+        "quote_generated": quote_generated,
+        "recommended_cleaner": recommended_cleaner,
+        "site_code": site_code,
+        "contract_id": contract_id,
+    }
 
 
 class ShortlistBody(BaseModel):
@@ -4651,7 +4756,7 @@ def routing_density():
 @app.post("/api/admin/connectors/{source}")
 def run_connector(source: str, limit: Optional[int] = None):
     """Trigger a connector run. Protected by source validation."""
-    valid = ['cqc', 'companies_house', 'contracts_finder', 'charity_commission']
+    valid = ['cqc', 'companies_house', 'contracts_finder', 'charity_commission', 'planning_applications']
     if source not in valid:
         raise HTTPException(status_code=400, detail=f"Unknown source. Use: {valid}")
     try:
@@ -6365,6 +6470,71 @@ def compute_cleaner_cov(cleaner_id: int):
             return {"ok": True, "zones_computed": count}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SITE CODE GENERATOR
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Borough → 3-letter prefix mapping (covers all London boroughs + common areas)
+_BOROUGH_PREFIXES = {
+    'barking': 'BAR', 'barnet': 'BNT', 'bexley': 'BEX', 'brent': 'BRN',
+    'bromley': 'BRM', 'camden': 'CAM', 'croydon': 'CRO', 'ealing': 'EAL',
+    'enfield': 'ENF', 'greenwich': 'GRN', 'hackney': 'HAC', 'hammersmith': 'HAM',
+    'haringey': 'HAR', 'harrow': 'HRW', 'havering': 'HAV', 'hillingdon': 'HIL',
+    'hounslow': 'HOU', 'islington': 'ISL', 'kensington': 'KEN', 'kingston': 'KNG',
+    'lambeth': 'LAM', 'lewisham': 'LEW', 'merton': 'MER', 'newham': 'NEW',
+    'redbridge': 'RED', 'richmond': 'RIC', 'southwark': 'SOU', 'sutton': 'SUT',
+    'tower hamlets': 'TOW', 'waltham forest': 'WAL', 'wandsworth': 'WAN',
+    'westminster': 'WES', 'city of london': 'CTY', 'dagenham': 'BAR',
+    'fulham': 'HAM', 'chelsea': 'KEN', 'stratford': 'NEW', 'canary wharf': 'TOW',
+    'docklands': 'TOW', 'shoreditch': 'HAC', 'brixton': 'LAM', 'peckham': 'SOU',
+    'dulwich': 'SOU', 'battersea': 'WAN', 'clapham': 'LAM', 'tooting': 'WAN',
+    'wimbledon': 'MER', 'streatham': 'LAM', 'ilford': 'RED', 'romford': 'HAV',
+    'uxbridge': 'HIL', 'twickenham': 'RIC', 'croydon': 'CRO',
+}
+
+def _generate_site_code(conn, borough: str, postcode: str) -> str:
+    """
+    Generate a unique site code like BAR-001, HAC-015, etc.
+    Uses borough for the prefix, falls back to postcode area, then 'GEN'.
+    """
+    prefix = None
+    # Try borough match
+    if borough:
+        borough_lower = borough.lower().strip()
+        for key, val in _BOROUGH_PREFIXES.items():
+            if key in borough_lower or borough_lower in key:
+                prefix = val
+                break
+    # Fallback: use first letters of postcode (e.g. E1 → E01, SW1 → SW1, EC2 → EC2)
+    if not prefix and postcode:
+        pc = postcode.strip().upper().split()[0] if postcode else ''
+        # Extract area letters (e.g. SW from SW1A)
+        area = ''.join(c for c in pc if c.isalpha())[:3]
+        if area:
+            prefix = area.upper()
+    if not prefix:
+        prefix = 'GEN'
+
+    # Find the next sequence number for this prefix
+    row = db_pg.fetchone(conn, """
+        SELECT site_code FROM contracts
+        WHERE site_code LIKE %s
+        ORDER BY site_code DESC LIMIT 1
+    """, (f"{prefix}-%",))
+
+    if row and row.get('site_code'):
+        # Extract number from e.g. "BAR-015"
+        try:
+            last_num = int(row['site_code'].split('-')[1])
+        except (IndexError, ValueError):
+            last_num = 0
+        next_num = last_num + 1
+    else:
+        next_num = 1
+
+    return f"{prefix}-{next_num:03d}"
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CONTRACTS LIFECYCLE ENDPOINTS
