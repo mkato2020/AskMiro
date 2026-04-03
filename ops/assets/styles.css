@@ -16,7 +16,7 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; }
-body { font-family: 'DM Sans', sans-serif; background: var(--of); color: var(--ch); display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; color: var(--ch); display: flex; height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
 
 /* ── LOGIN ─────────────────────────────────────────────────── */
 .login-screen { position: fixed; inset: 0; background: var(--ch); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -34,7 +34,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--of); color: var(--c
 #app-shell { display: flex; width: 100%; min-height: 100vh; }
 #app-shell.hidden { display: none; }
 .sidebar { width: var(--nw); background: var(--ch); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; overflow: hidden; }
-.main-wrap { margin-left: var(--nw); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.main-wrap { margin-left: var(--nw); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
 
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sb-logo { display: flex; align-items: center; gap: 10px; padding: 18px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.08); }
@@ -205,8 +205,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--of); color: var(--c
 .mt12 { margin-top: 12px; }
 .mt18 { margin-top: 18px; }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* ── EMAIL MODULE ─────────────────────────────────────────────── */
 .el-layout { display: grid; grid-template-columns: 200px 1fr; gap: 0; height: calc(100vh - 130px); border: 1px solid var(--bd); border-radius: var(--rs); overflow: hidden; background: var(--wh); }
