@@ -62,8 +62,8 @@ function MiniLineChart({data,width=520,height=180}){
       <path d={revLine} fill="none" stroke="var(--teal)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
       {pts.map((p,i)=><circle key={'r'+i} cx={p.x} cy={p.yRev} r={3.5} fill="var(--teal)" stroke="var(--bg-surface)" strokeWidth={2}/>)}
       {/* margin line */}
-      <path d={marLine} fill="none" stroke="#8B5CF6" strokeWidth={2} strokeDasharray="6 3" strokeLinejoin="round" strokeLinecap="round"/>
-      {pts.map((p,i)=><circle key={'m'+i} cx={p.x} cy={p.yMar} r={3} fill="#8B5CF6" stroke="var(--bg-surface)" strokeWidth={1.5}/>)}
+      <path d={marLine} fill="none" stroke="#14B8A6" strokeWidth={2} strokeDasharray="6 3" strokeLinejoin="round" strokeLinecap="round"/>
+      {pts.map((p,i)=><circle key={'m'+i} cx={p.x} cy={p.yMar} r={3} fill="#14B8A6" stroke="var(--bg-surface)" strokeWidth={1.5}/>)}
       {/* x labels */}
       {data.map((d,i)=>(
         <text key={i} x={pts[i].x} y={height-8} textAnchor="middle" fontSize={10} fill="var(--text-muted)">{d.label}</text>
@@ -71,7 +71,7 @@ function MiniLineChart({data,width=520,height=180}){
       {/* legend */}
       <line x1={padL} x2={padL+20} y1={8} y2={8} stroke="var(--teal)" strokeWidth={2.5}/>
       <text x={padL+24} y={11} fontSize={9} fill="var(--text-muted)">Revenue</text>
-      <line x1={padL+80} x2={padL+100} y1={8} y2={8} stroke="#8B5CF6" strokeWidth={2} strokeDasharray="4 2"/>
+      <line x1={padL+80} x2={padL+100} y1={8} y2={8} stroke="#14B8A6" strokeWidth={2} strokeDasharray="4 2"/>
       <text x={padL+104} y={11} fontSize={9} fill="var(--text-muted)">Margin %</text>
     </svg>
   )
@@ -249,8 +249,8 @@ export default function Analytics({openLead,setTab}){
               {visibleAlerts.map(a=>{
                 const sev = (a.severity||'info').toLowerCase()
                 const icon = sev==='critical' ? '\uD83D\uDD34' : sev==='warning' ? '\uD83D\uDFE1' : '\u2139\uFE0F'
-                const borderColor = sev==='critical' ? '#DC2626' : sev==='warning' ? '#D97706' : '#2563EB'
-                const bgColor = sev==='critical' ? '#FEF2F2' : sev==='warning' ? '#FFFBEB' : '#EFF6FF'
+                const borderColor = sev==='critical' ? '#DC2626' : sev==='warning' ? '#D97706' : '#0D9488'
+                const bgColor = sev==='critical' ? '#FEF2F2' : sev==='warning' ? '#FFFBEB' : '#F0FDFA'
                 return(
                   <div key={a.id} onClick={()=>handleAck(a.id)} style={{
                     ...card,padding:'12px 16px',minWidth:220,maxWidth:320,flex:'0 0 auto',cursor:'pointer',
@@ -273,7 +273,7 @@ export default function Analytics({openLead,setTab}){
             const strips = [
               {id:'sec-contacts',icon:'\uD83C\uDFAF',label:'Leads to Contact',count:safeArr(today.leads_to_contact).length,bg:'#0D9488',fg:'#fff'},
               {id:'sec-followups',icon:'\u23F0',label:'Follow-ups Due',count:safeArr(today.followups_due).length,bg:safeArr(today.followups_due).length>0?'#D97706':'#94A3B8',fg:'#fff'},
-              {id:'sec-visits',icon:'\uD83D\uDCCD',label:'Push to Visit',count:safeArr(today.push_to_visit).length,bg:'#2563EB',fg:'#fff'},
+              {id:'sec-visits',icon:'\uD83D\uDCCD',label:'Push to Visit',count:safeArr(today.push_to_visit).length,bg:'#0F766E',fg:'#fff'},
               {id:'sec-quotes',icon:'\uD83D\uDCB0',label:'Quotes to Send',count:safeArr(today.leads_to_quote).length,bg:'#059669',fg:'#fff'},
               {id:'sec-followups',icon:'\u26A0\uFE0F',label:'Stale Pipeline',count:counts.stale_pipeline||0,bg:(counts.stale_pipeline||0)>0?'#DC2626':'#94A3B8',fg:'#fff'},
               {id:'sec-risk',icon:'\uD83D\uDCCB',label:'Unstaffed Contracts',count:counts.unstaffed_contracts||0,bg:(counts.unstaffed_contracts||0)>0?'#DC2626':'#94A3B8',fg:'#fff'},
@@ -326,8 +326,8 @@ export default function Analytics({openLead,setTab}){
                     {safeArr(today.leads_to_contact).slice(0,showAllContacts?50:10).map((lead,i)=>{
                       const sc = Number(lead.score)||0
                       const isA = sc>=70, isB = sc>=50 && sc<70
-                      const scoreBg = isA?'#ECFDF5':isB?'#EFF6FF':'#FFFBEB'
-                      const scoreColor = isA?'#059669':isB?'#2563EB':'#D97706'
+                      const scoreBg = isA?'#ECFDF5':isB?'#F0FDFA':'#FFFBEB'
+                      const scoreColor = isA?'#059669':isB?'#0D9488':'#D97706'
                       const scoreBand = isA?'A':isB?'B':'C'
                       return(
                         <tr key={i} onClick={()=>openLead&&(lead.entity_id||lead.place_id)&&openLead(lead.entity_id||lead.place_id)}
@@ -436,7 +436,7 @@ export default function Analytics({openLead,setTab}){
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   {safeArr(today.pipeline_movement).map((item,i)=>{
                     const urgency = (item.urgency||'').toLowerCase()
-                    const borderL = urgency==='high'?'#DC2626':urgency==='medium'?'#D97706':'#2563EB'
+                    const borderL = urgency==='high'?'#DC2626':urgency==='medium'?'#D97706':'#0D9488'
                     return(
                       <div key={i} onClick={()=>openLead&&(item.entity_id||item.place_id)&&openLead(item.entity_id||item.place_id)} style={{
                         padding:'10px 14px',borderRadius:'var(--r-sm)',borderLeft:`3px solid ${borderL}`,
@@ -465,7 +465,7 @@ export default function Analytics({openLead,setTab}){
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
                 <span style={{fontSize:'0.95rem'}}>{'\uD83D\uDCCD'}</span>
                 <span style={{fontSize:'0.78rem',fontWeight:800,color:'var(--text-1)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Push to Site Visit</span>
-                {safeArr(today.push_to_visit).length>0 && badge('#2563EB','#fff',`${safeArr(today.push_to_visit).length}`)}
+                {safeArr(today.push_to_visit).length>0 && badge('#0F766E','#fff',`${safeArr(today.push_to_visit).length}`)}
               </div>
               {safeArr(today.push_to_visit).length === 0 ? (
                 <div style={{fontSize:'0.8rem',color:'var(--text-muted)',padding:'8px 0'}}>No site visits to push.</div>
@@ -482,7 +482,7 @@ export default function Analytics({openLead,setTab}){
                         </div>
                         {(item.suggested_action||item.next_best_action) && (
                           <span style={{fontSize:'0.62rem',fontWeight:700,padding:'3px 10px',borderRadius:20,
-                            background:'#EFF6FF',color:'#2563EB',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
+                            background:'#F0FDFA',color:'#0D9488',whiteSpace:'nowrap'}}>{item.suggested_action||item.next_best_action}</span>
                         )}
                       </div>
                     )
@@ -589,7 +589,7 @@ export default function Analytics({openLead,setTab}){
                     const totalVal = Number(b.total_value)||0
                     const avgSc = Number(b.avg_score)||0
                     const pct = (totalVal||count)/maxVal*100
-                    const barColor = i<3?'var(--teal)':i<6?'#2563EB':'#64748B'
+                    const barColor = i<3?'var(--teal)':i<6?'#14B8A6':'#64748B'
                     const name = b.borough||b.name||'Unknown'
                     return(
                       <div key={i} style={{display:'flex',alignItems:'center',gap:12}}>
@@ -644,8 +644,8 @@ export default function Analytics({openLead,setTab}){
       {/* ─── KPI Cards Row ─────────────────────────────────────── */}
       <div style={{display:'flex',gap:14,marginBottom:28,flexWrap:'wrap'}}>
         <KPI label="Active Sites" value={fmt(activeSites)} sub={activeSites > 0 ? '\u25B2 Portfolio' : 'No active sites'} accent="var(--teal)" onClick={()=>setTab&&setTab('operations')}/>
-        <KPI label="Monthly Revenue" value={fmtGBP(monthlyRevenue)} sub={monthlyRevenue > 0 ? '\u25B2 Growing' : 'Awaiting data'} accent="#2563EB" onClick={()=>setTab&&setTab('finance')}/>
-        <KPI label="Portfolio Margin" value={fmtPct(portfolioMargin)} sub="Net margin" accent="#8B5CF6" onClick={()=>setTab&&setTab('finance')}/>
+        <KPI label="Monthly Revenue" value={fmtGBP(monthlyRevenue)} sub={monthlyRevenue > 0 ? '\u25B2 Growing' : 'Awaiting data'} accent="#14B8A6" onClick={()=>setTab&&setTab('finance')}/>
+        <KPI label="Portfolio Margin" value={fmtPct(portfolioMargin)} sub="Net margin" accent="#0F766E" onClick={()=>setTab&&setTab('finance')}/>
         <KPI label="Avg Audit Score" value={avgScore != null ? fmtPct(avgScore) : '—'} sub="Quality benchmark"
           color={avgScore >= 90 ? '#059669' : avgScore >= 70 ? '#D97706' : avgScore != null ? '#DC2626' : undefined}
           accent="#F59E0B" onClick={()=>setTab&&setTab('quality')}/>
@@ -673,9 +673,9 @@ export default function Analytics({openLead,setTab}){
             {[
               {label:'Total Leads',value:fmt(s.total_leads),color:'var(--text-1)'},
               {label:'Active Pipeline',value:fmt(s.active_pipeline),color:'var(--teal)'},
-              {label:'HVT Accounts',value:fmt(s.hvt_count),color:'#8B5CF6'},
+              {label:'HVT Accounts',value:fmt(s.hvt_count),color:'#14B8A6'},
               {label:'Won',value:fmt(s.won_count),color:'#059669'},
-              {label:'Pipeline Value',value:fmtGBP(s.pipeline_value_gbp),color:'#2563EB'},
+              {label:'Pipeline Value',value:fmtGBP(s.pipeline_value_gbp),color:'#0F766E'},
             ].map((k,i)=>(
               <div key={i} style={{minWidth:90}}>
                 <div style={{fontSize:'0.65rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom:4}}>{k.label}</div>
@@ -709,7 +709,7 @@ export default function Analytics({openLead,setTab}){
             {pipeline.map((stage,i)=>{
               const total = pipeline.reduce((a,s)=>a+(s.count||0),0)
               const pct = total > 0 ? (stage.count||0)/total*100 : 0
-              const colors = ['#0D9488','#2563EB','#8B5CF6','#F59E0B','#059669','#DC2626','#64748B']
+              const colors = ['#0D9488','#14B8A6','#0F766E','#F59E0B','#059669','#DC2626','#64748B']
               if(pct < 1) return null
               return(
                 <div key={i} style={{flex:`0 0 ${pct}%`,background:colors[i%colors.length],display:'flex',alignItems:'center',
@@ -721,7 +721,7 @@ export default function Analytics({openLead,setTab}){
           </div>
           <div style={{display:'flex',flexWrap:'wrap',gap:12,marginTop:10}}>
             {pipeline.map((stage,i)=>{
-              const colors = ['#0D9488','#2563EB','#8B5CF6','#F59E0B','#059669','#DC2626','#64748B']
+              const colors = ['#0D9488','#14B8A6','#0F766E','#F59E0B','#059669','#DC2626','#64748B']
               return(
                 <div key={i} style={{display:'flex',alignItems:'center',gap:5,fontSize:'0.7rem',color:'var(--text-muted)'}}>
                   <span style={{width:8,height:8,borderRadius:2,background:colors[i%colors.length],display:'inline-block'}}/>
