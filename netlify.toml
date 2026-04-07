@@ -8,6 +8,9 @@
 [functions."seo-generate"]
   timeout = 30
 
+[functions."cnc-insights"]
+  timeout = 30
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
