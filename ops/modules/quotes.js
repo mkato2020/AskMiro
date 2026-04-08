@@ -351,6 +351,7 @@ window.Quotes = (() => {
         + '<div class="mp-row"><span class="mp-lbl">' + vatLabel + '</span><span class="mp-val">' + UI.fmt(calcVat) + '</span></div>'
         + '<div class="mp-row"><span class="mp-lbl" style="font-weight:700">Total</span><span class="mp-val" style="font-weight:700;font-size:15px;color:#0D9488">' + UI.fmt(calcGross) + '</span></div>'
         + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+        + '<button class="btn bp btn-xs" style="background:#0D9488;border-color:#0D9488" onclick="Quotes.sendClientEmail()">&#9992; Send Email</button>'
         + '<button class="btn bo btn-xs" style="border-color:#0D9488;color:#0D9488" onclick="Quotes.previewClientQuote()">&#128196; Preview Quote PDF</button>'
         + '<button class="btn bo btn-xs" style="border-color:#0D9488;color:#0D9488" onclick="Quotes.previewClientEmail()">&#9993; Preview Email</button>'
         + '<button class="btn bo btn-xs" style="border-color:#7C3AED;color:#7C3AED" onclick="Quotes.convertToInvoice()">&#128203; Create Invoice</button>'
@@ -1120,6 +1121,43 @@ window.Quotes = (() => {
     UI.toast('Email downloaded: email-' + d.clientSlug + '.html', 'g');
   }
 
+  // ── Send email via Netlify Resend function ──────────────────
+  async function sendClientEmail() {
+    var d = _collectOneOffData();
+    if (!d.client || d.client === 'Client') { UI.toast('Client name required', 'r'); return; }
+    if (!d.email || !d.email.includes('@')) { UI.toast('Client email required — fill in the email field', 'r'); return; }
+    if (d.gross <= 0) { UI.toast('Add line items or total first', 'r'); return; }
+
+    var ok = confirm('Send booking confirmation to ' + d.email + ' for ' + d.client + '?\n\nService: ' + d.serviceType + '\nTotal: £' + d.gross.toFixed(2));
+    if (!ok) return;
+
+    var html = generateClientEmail(d);
+    var subject = d.serviceType + ' — Booking Confirmation | AskMiro';
+
+    UI.toast('Sending email to ' + d.email + '…', 'w');
+
+    try {
+      var res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: d.email,
+          subject: subject,
+          htmlBody: html,
+          fromName: 'Mike Kato',
+        }),
+      });
+      var result = await res.json();
+      if (result.sent) {
+        UI.toast('Email sent to ' + d.email, 'g');
+      } else {
+        UI.toast('Send failed: ' + (result.error || 'Unknown error'), 'r');
+      }
+    } catch (e) {
+      UI.toast('Send failed: ' + e.message, 'r');
+    }
+  }
+
   // ── LIFECYCLE EMAIL: JOB COMPLETION / THANK YOU ─────────────
   function generateCompletionEmail(d) {
     if (!d) d = _collectOneOffData();
@@ -1391,7 +1429,7 @@ window.Quotes = (() => {
     setFilter, openViewById, _sendProposal, loadIntoBuilder, runIntel,
     previewClientQuote, convertToInvoice, _addLine,
     loadAndPreviewPdf, loadAndConvertInvoice,
-    generateClientEmail, previewClientEmail, downloadClientEmail,
+    generateClientEmail, previewClientEmail, downloadClientEmail, sendClientEmail,
     generateCompletionEmail, previewCompletionEmail,
     generatePaymentEmail, previewPaymentEmail,
     generateReminderEmail, previewReminderEmail,

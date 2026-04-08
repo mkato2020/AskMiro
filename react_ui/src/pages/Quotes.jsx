@@ -320,6 +320,22 @@ export default function Quotes({openLead}){
     URL.revokeObjectURL(url)
   }
 
+  // Send email via Netlify Resend
+  const sendClientEmail=async(f,c)=>{
+    const d=_buildData(f,c)
+    if(!d.client){alert('Client name required');return}
+    if(!d.clientEmail||!d.clientEmail.includes('@')){alert('Client email required');return}
+    if(d.gross<=0){alert('Add line items or total first');return}
+    if(!confirm('Send booking confirmation to '+d.clientEmail+' for '+d.client+'?\n\nService: '+d.serviceType+'\nTotal: £'+d.gross.toFixed(2)))return
+    const html=buildEmailHtml(d)
+    try{
+      const res=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:d.clientEmail,subject:d.serviceType+' — Booking Confirmation | AskMiro',htmlBody:html,fromName:'Mike Kato'})})
+      const result=await res.json()
+      if(result.sent)alert('Email sent to '+d.clientEmail)
+      else alert('Send failed: '+(result.error||'Unknown error'))
+    }catch(e){alert('Send failed: '+e.message)}
+  }
+
   // Lifecycle email previews
   const previewCompletionEmail=(f,c)=>{
     const d=_buildData(f,c)
@@ -464,6 +480,7 @@ export default function Quotes({openLead}){
                 </div>
                 {/* Action buttons */}
                 <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:8}}>
+                  <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'12px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.85rem',fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>✈ Send Email</button>
                   <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'10px',background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>📄 Preview Quote PDF</button>
                   <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--teal)',color:'var(--teal)',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>✉ Preview Email</button>
                   <button onClick={()=>downloadEmail(form,calc)} style={{width:'100%',padding:'8px',background:'transparent',border:'1px solid var(--border)',color:'var(--text-muted)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>⬇ Download Email HTML</button>
