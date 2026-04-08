@@ -338,6 +338,12 @@ window.Quotes = (() => {
         + '<button class="btn bo btn-xs" style="border-color:#7C3AED;color:#7C3AED" onclick="Quotes.convertToInvoice()">&#128203; Create Invoice</button>'
         + '<button class="btn bo btn-xs" onclick="Quotes.downloadClientEmail()">&#11015; Download Email</button>'
         + '</div>'
+        + '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'
+        + '<span style="font-size:10px;font-weight:700;color:#64748B;letter-spacing:1px;text-transform:uppercase;line-height:28px">Lifecycle:</span>'
+        + '<button class="btn bo btn-xs" style="border-color:#16A34A;color:#16A34A" onclick="Quotes.previewCompletionEmail()">&#10004; Job Complete</button>'
+        + '<button class="btn bo btn-xs" style="border-color:#16A34A;color:#16A34A" onclick="Quotes.previewPaymentEmail()">&#128179; Payment Received</button>'
+        + '<button class="btn bo btn-xs" style="border-color:#2563EB;color:#2563EB" onclick="Quotes.previewReminderEmail()">&#128197; Reminder</button>'
+        + '</div>'
         + '</div>';
       return;
     }
@@ -1096,6 +1102,271 @@ window.Quotes = (() => {
     UI.toast('Email downloaded: email-' + d.clientSlug + '.html', 'g');
   }
 
+  // ── LIFECYCLE EMAIL: JOB COMPLETION / THANK YOU ─────────────
+  function generateCompletionEmail(d) {
+    if (!d) d = _collectOneOffData();
+    var firstName = d.client.split(' ')[0];
+    var F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
+    var C = { navy:'#0A1628', charcoal:'#111827', body:'#1F2937', slate:'#4B5563',
+      border:'#E5E7EB', borderLight:'#F3F4F6', offWhite:'#F9FAFB', teal:'#0D9488',
+      tealDark:'#0F766E', tealMid:'#14B8A6', tealLight:'#CCFBF1', tealGhost:'#F0FDFA',
+      greenBg:'#F0FDF4', greenBorder:'#BBF7D0', greenText:'#166534' };
+
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+      + '<meta name="x-apple-disable-message-reformatting"><title>Job Complete — AskMiro</title></head>'
+      + '<body style="margin:0;padding:0;background:#F1F5F9;-webkit-text-size-adjust:100%">'
+      + '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center">'
+      + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">'
+      // Accent bar
+      + '<tr><td style="height:4px;background:linear-gradient(90deg,' + C.teal + ',' + C.tealMid + ');border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>'
+      // Header
+      + '<tr><td style="background:' + C.navy + ';padding:26px 36px">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="padding-right:14px;vertical-align:middle"><img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0"></td>'
+      + '<td style="vertical-align:middle">'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>'
+      + '<div style="font-family:' + F + ';font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>'
+      + '</td></tr></table></td>'
+      + '<td align="right" style="vertical-align:middle"><div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">'
+      + '<span style="font-family:' + F + ';font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">Job Complete</span></div></td>'
+      + '</tr></table></td></tr>'
+      // Body
+      + '<tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ' + C.border + ';border-right:1px solid ' + C.border + '">'
+      // Green success banner
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px"><tr><td style="background:' + C.greenBg + ';border:1px solid ' + C.greenBorder + ';border-radius:10px;padding:18px 22px">'
+      + '<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+      + '<td style="width:32px;vertical-align:top;padding-right:14px;font-size:22px;line-height:1">&#10004;</td>'
+      + '<td><div style="font-family:' + F + ';font-size:15px;font-weight:700;color:' + C.greenText + ';margin-bottom:4px">Your ' + _escHtml(d.serviceType.toLowerCase()) + ' is complete</div>'
+      + '<div style="font-family:' + F + ';font-size:13px;color:' + C.greenText + ';opacity:0.8">' + _escHtml(d.site || 'Your property') + '</div></td></tr></table></td></tr></table>'
+      // Greeting
+      + '<p style="margin:0 0 22px;font-family:' + F + ';font-size:16px;font-weight:600;color:' + C.charcoal + '">Hi ' + _escHtml(firstName) + ',</p>'
+      + '<p style="margin:0 0 20px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">Thank you for trusting AskMiro with your cleaning. Our team has completed all work at your property and everything has been left to the highest standard.</p>'
+      // Summary band
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border-radius:12px;overflow:hidden;background:' + C.navy + '"><tr>'
+      + '<td align="center" style="padding:20px 18px;border-right:1px solid rgba(255,255,255,0.07)">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Service</div>'
+      + '<div style="font-family:' + F + ';font-size:15px;font-weight:700;color:#FFFFFF">' + _escHtml(d.serviceType) + '</div></td>'
+      + '<td align="center" style="padding:20px 18px;border-right:1px solid rgba(255,255,255,0.07)">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Date</div>'
+      + '<div style="font-family:' + F + ';font-size:15px;font-weight:700;color:#FFFFFF">' + _escHtml(d.jobDateShort || 'Today') + '</div></td>'
+      + '<td align="center" style="padding:20px 18px">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Total</div>'
+      + '<div style="font-family:' + F + ';font-size:15px;font-weight:700;color:#FFFFFF">&#163;' + Math.round(d.gross) + '</div></td>'
+      + '</tr></table>'
+      // Scope completed
+      + (d.scopeItems.length ? '<p style="margin:0 0 10px;font-family:' + F + ';font-size:11px;font-weight:700;color:' + C.teal + ';letter-spacing:1.5px;text-transform:uppercase">Work Completed</p>'
+        + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border:1px solid ' + C.border + ';border-radius:10px;overflow:hidden">'
+        + d.scopeItems.map(function(s, i) {
+          var bg = i % 2 === 0 ? '#FFFFFF' : C.offWhite;
+          return '<tr style="background:' + bg + '"><td style="width:44px;padding:12px 0 12px 16px;vertical-align:top;border-bottom:1px solid ' + C.borderLight + '">'
+            + '<div style="width:22px;height:22px;background:' + C.greenBg + ';border:1.5px solid ' + C.greenBorder + ';border-radius:50%;text-align:center;line-height:19px;font-size:12px;color:' + C.greenText + ';font-weight:700">&#10003;</div></td>'
+            + '<td style="padding:12px 18px 12px 10px;font-family:' + F + ';font-size:14px;color:' + C.body + ';line-height:1.6;border-bottom:1px solid ' + C.borderLight + ';text-decoration:line-through;text-decoration-color:' + C.greenBorder + '">' + _escHtml(s) + '</td></tr>';
+        }).join('') + '</table>' : '')
+      // Payment note
+      + (d.paymentLink ? '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px"><tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:18px 22px">'
+        + '<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+        + '<td style="width:28px;vertical-align:top;padding-right:12px;font-size:18px;line-height:1">&#128179;</td>'
+        + '<td><div style="font-family:' + F + ';font-size:14px;font-weight:600;color:#92400E;margin-bottom:4px">Payment Outstanding</div>'
+        + '<div style="font-family:' + F + ';font-size:13px;color:#92400E;opacity:0.8;margin-bottom:12px">Please complete your payment of &#163;' + d.gross.toFixed(2) + ' at your convenience.</div>'
+        + '<a href="' + _escHtml(d.paymentLink) + '" target="_blank" style="display:inline-block;background:' + C.teal + ';color:#FFFFFF;font-family:' + F + ';font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;padding:10px 28px">Pay Now &#8594;</a>'
+        + '</td></tr></table></td></tr></table>' : '')
+      // CTA
+      + '<p style="margin:0 0 20px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">If you have any feedback or would like to book another service, don\'t hesitate to get in touch. We\'d love to hear from you!</p>'
+      + '<table cellpadding="0" cellspacing="0" style="margin:0 0 28px"><tr>'
+      + '<td style="padding-right:10px"><a href="https://www.askmiro.com/contact" style="display:inline-block;background:' + C.navy + ';color:#FFFFFF;font-family:' + F + ';font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;padding:12px 28px">Book Again</a></td>'
+      + '<td><a href="https://www.askmiro.com" style="display:inline-block;background:transparent;color:' + C.navy + ';font-family:' + F + ';font-size:13px;font-weight:600;text-decoration:none;border:1px solid ' + C.border + ';border-radius:8px;padding:11px 24px">Leave a Review</a></td>'
+      + '</tr></table>'
+      + '</td></tr>'
+      // Footer
+      + '<tr><td style="background:' + C.navy + ';padding:24px 36px;border-radius:0 0 12px 12px">'
+      + '<p style="margin:0 0 6px;font-family:' + F + ';font-size:13px;font-weight:600;color:rgba(255,255,255,0.45)">AskMiro Professional Cleaning</p>'
+      + '<p style="margin:0;font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.25)">London, United Kingdom &middot; Fully Insured &middot; DBS Checked</p>'
+      + '</td></tr></table></td></tr></table></body></html>';
+  }
+
+  // ── LIFECYCLE EMAIL: PAYMENT RECEIVED CONFIRMATION ──────────
+  function generatePaymentEmail(d) {
+    if (!d) d = _collectOneOffData();
+    var firstName = d.client.split(' ')[0];
+    var F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
+    var C = { navy:'#0A1628', charcoal:'#111827', body:'#1F2937', slate:'#4B5563',
+      border:'#E5E7EB', borderLight:'#F3F4F6', offWhite:'#F9FAFB', teal:'#0D9488',
+      tealDark:'#0F766E', tealMid:'#14B8A6', tealLight:'#CCFBF1', tealGhost:'#F0FDFA',
+      greenBg:'#F0FDF4', greenBorder:'#BBF7D0', greenText:'#166534' };
+    var today = new Date();
+    var payDate = today.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+      + '<meta name="x-apple-disable-message-reformatting"><title>Payment Received — AskMiro</title></head>'
+      + '<body style="margin:0;padding:0;background:#F1F5F9;-webkit-text-size-adjust:100%">'
+      + '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center">'
+      + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">'
+      // Accent bar
+      + '<tr><td style="height:4px;background:linear-gradient(90deg,' + C.teal + ',' + C.tealMid + ');border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>'
+      // Header
+      + '<tr><td style="background:' + C.navy + ';padding:26px 36px">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="padding-right:14px;vertical-align:middle"><img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0"></td>'
+      + '<td style="vertical-align:middle">'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>'
+      + '<div style="font-family:' + F + ';font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>'
+      + '</td></tr></table></td>'
+      + '<td align="right" style="vertical-align:middle"><div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">'
+      + '<span style="font-family:' + F + ';font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">Payment Receipt</span></div></td>'
+      + '</tr></table></td></tr>'
+      // Body
+      + '<tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ' + C.border + ';border-right:1px solid ' + C.border + '">'
+      // Green paid banner
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px"><tr><td style="background:' + C.greenBg + ';border:1px solid ' + C.greenBorder + ';border-radius:10px;padding:22px 24px;text-align:center">'
+      + '<div style="font-size:28px;margin-bottom:8px">&#10004;</div>'
+      + '<div style="font-family:' + F + ';font-size:18px;font-weight:800;color:' + C.greenText + ';margin-bottom:4px">Payment Received</div>'
+      + '<div style="font-family:' + F + ';font-size:28px;font-weight:800;color:' + C.greenText + ';letter-spacing:-1px">&#163;' + d.gross.toFixed(2) + '</div>'
+      + '</td></tr></table>'
+      // Greeting
+      + '<p style="margin:0 0 22px;font-family:' + F + ';font-size:16px;font-weight:600;color:' + C.charcoal + '">Hi ' + _escHtml(firstName) + ',</p>'
+      + '<p style="margin:0 0 22px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">Thank you for your payment! This email confirms we\'ve received your payment in full. Please keep this email as your receipt.</p>'
+      // Receipt details
+      + '<p style="margin:0 0 10px;font-family:' + F + ';font-size:11px;font-weight:700;color:' + C.teal + ';letter-spacing:1.5px;text-transform:uppercase">Payment Details</p>'
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border:1px solid ' + C.border + ';border-radius:10px;overflow:hidden">'
+      + '<tr style="background:' + C.offWhite + '"><td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.slate + ';border-bottom:1px solid ' + C.borderLight + '">Client</td>'
+      + '<td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.charcoal + ';font-weight:600;text-align:right;border-bottom:1px solid ' + C.borderLight + '">' + _escHtml(d.client) + '</td></tr>'
+      + '<tr><td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.slate + ';border-bottom:1px solid ' + C.borderLight + '">Service</td>'
+      + '<td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.charcoal + ';font-weight:600;text-align:right;border-bottom:1px solid ' + C.borderLight + '">' + _escHtml(d.serviceType) + '</td></tr>'
+      + '<tr style="background:' + C.offWhite + '"><td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.slate + ';border-bottom:1px solid ' + C.borderLight + '">Date Paid</td>'
+      + '<td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.charcoal + ';font-weight:600;text-align:right;border-bottom:1px solid ' + C.borderLight + '">' + payDate + '</td></tr>'
+      + (d.vat > 0 ? '<tr><td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.slate + ';border-bottom:1px solid ' + C.borderLight + '">Subtotal</td>'
+        + '<td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.charcoal + ';text-align:right;border-bottom:1px solid ' + C.borderLight + '">&#163;' + d.subtotal.toFixed(2) + '</td></tr>'
+        + '<tr style="background:' + C.offWhite + '"><td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.slate + ';border-bottom:1px solid ' + C.borderLight + '">VAT (20%)</td>'
+        + '<td style="padding:12px 18px;font-family:' + F + ';font-size:13px;color:' + C.charcoal + ';text-align:right;border-bottom:1px solid ' + C.borderLight + '">&#163;' + d.vat.toFixed(2) + '</td></tr>' : '')
+      + '<tr style="background:' + C.tealGhost + '"><td style="padding:14px 18px;font-family:' + F + ';font-size:14px;font-weight:700;color:' + C.charcoal + '">Total Paid</td>'
+      + '<td style="padding:14px 18px;font-family:' + F + ';font-size:16px;font-weight:800;color:' + C.teal + ';text-align:right">&#163;' + d.gross.toFixed(2) + '</td></tr>'
+      + '</table>'
+      // CTA
+      + '<p style="margin:0 0 20px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">If you need an official invoice or have any questions about this payment, please don\'t hesitate to contact us.</p>'
+      + '<table cellpadding="0" cellspacing="0" style="margin:0 0 28px"><tr>'
+      + '<td><a href="https://www.askmiro.com/contact" style="display:inline-block;background:' + C.navy + ';color:#FFFFFF;font-family:' + F + ';font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;padding:12px 28px">Contact Us</a></td>'
+      + '</tr></table>'
+      + '</td></tr>'
+      // Footer
+      + '<tr><td style="background:' + C.navy + ';padding:24px 36px;border-radius:0 0 12px 12px">'
+      + '<p style="margin:0 0 6px;font-family:' + F + ';font-size:13px;font-weight:600;color:rgba(255,255,255,0.45)">AskMiro Professional Cleaning</p>'
+      + '<p style="margin:0;font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.25)">London, United Kingdom &middot; Fully Insured &middot; DBS Checked</p>'
+      + '</td></tr></table></td></tr></table></body></html>';
+  }
+
+  // ── LIFECYCLE EMAIL: JOB REMINDER (24-48HRS BEFORE) ─────────
+  function generateReminderEmail(d) {
+    if (!d) d = _collectOneOffData();
+    var firstName = d.client.split(' ')[0];
+    var F = '-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif';
+    var C = { navy:'#0A1628', charcoal:'#111827', body:'#1F2937', slate:'#4B5563',
+      border:'#E5E7EB', borderLight:'#F3F4F6', offWhite:'#F9FAFB', teal:'#0D9488',
+      tealDark:'#0F766E', tealMid:'#14B8A6', tealLight:'#CCFBF1', tealGhost:'#F0FDFA',
+      blueBg:'#EFF6FF', blueBorder:'#BFDBFE', blueText:'#1E40AF' };
+
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+      + '<meta name="x-apple-disable-message-reformatting"><title>Upcoming Booking Reminder — AskMiro</title></head>'
+      + '<body style="margin:0;padding:0;background:#F1F5F9;-webkit-text-size-adjust:100%">'
+      + '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center">'
+      + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">'
+      // Accent bar
+      + '<tr><td style="height:4px;background:linear-gradient(90deg,' + C.teal + ',' + C.tealMid + ');border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>'
+      // Header
+      + '<tr><td style="background:' + C.navy + ';padding:26px 36px">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr>'
+      + '<td style="padding-right:14px;vertical-align:middle"><img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0"></td>'
+      + '<td style="vertical-align:middle">'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div>'
+      + '<div style="font-family:' + F + ';font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div>'
+      + '</td></tr></table></td>'
+      + '<td align="right" style="vertical-align:middle"><div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px">'
+      + '<span style="font-family:' + F + ';font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">Booking Reminder</span></div></td>'
+      + '</tr></table></td></tr>'
+      // Body
+      + '<tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid ' + C.border + ';border-right:1px solid ' + C.border + '">'
+      // Blue reminder banner
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px"><tr><td style="background:' + C.blueBg + ';border:1px solid ' + C.blueBorder + ';border-radius:10px;padding:18px 22px">'
+      + '<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+      + '<td style="width:32px;vertical-align:top;padding-right:14px;font-size:22px;line-height:1">&#128197;</td>'
+      + '<td><div style="font-family:' + F + ';font-size:15px;font-weight:700;color:' + C.blueText + ';margin-bottom:4px">Your booking is coming up</div>'
+      + '<div style="font-family:' + F + ';font-size:13px;color:' + C.blueText + ';opacity:0.8">' + _escHtml(d.serviceType) + ' — ' + _escHtml(d.site || 'Your property') + '</div></td></tr></table></td></tr></table>'
+      // Greeting
+      + '<p style="margin:0 0 22px;font-family:' + F + ';font-size:16px;font-weight:600;color:' + C.charcoal + '">Hi ' + _escHtml(firstName) + ',</p>'
+      + '<p style="margin:0 0 22px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">Just a friendly reminder that your ' + _escHtml(d.serviceType.toLowerCase()) + ' is scheduled soon. Here are the details:</p>'
+      // Booking details band
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border-radius:12px;overflow:hidden;background:' + C.navy + '"><tr>'
+      + '<td align="center" style="padding:22px 18px;border-right:1px solid rgba(255,255,255,0.07)">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Date</div>'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">' + _escHtml(d.jobDateShort || 'TBC') + '</div>'
+      + '<div style="font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">' + _escHtml(d.jobDay || '') + '</div></td>'
+      + '<td align="center" style="padding:22px 18px;border-right:1px solid rgba(255,255,255,0.07)">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Time</div>'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">' + _escHtml(d.timeFmt || 'TBC') + '</div>'
+      + '<div style="font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">Start time</div></td>'
+      + '<td align="center" style="padding:22px 18px">'
+      + '<div style="font-family:' + F + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Total</div>'
+      + '<div style="font-family:' + F + ';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">&#163;' + Math.round(d.gross) + '</div>'
+      + '<div style="font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">All-inclusive</div></td>'
+      + '</tr></table>'
+      // Preparation tips
+      + '<p style="margin:0 0 10px;font-family:' + F + ';font-size:11px;font-weight:700;color:' + C.teal + ';letter-spacing:1.5px;text-transform:uppercase">How to Prepare</p>'
+      + '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border:1px solid ' + C.border + ';border-radius:10px;overflow:hidden">'
+      + ['Clear surfaces and countertops where possible', 'Ensure access to water and electricity', 'Secure any valuables or fragile items', 'Let us know about any areas requiring special attention'].map(function(tip, i) {
+        var bg = i % 2 === 0 ? '#FFFFFF' : C.offWhite;
+        return '<tr style="background:' + bg + '"><td style="width:44px;padding:12px 0 12px 16px;vertical-align:top;border-bottom:1px solid ' + C.borderLight + '">'
+          + '<div style="width:22px;height:22px;background:' + C.tealGhost + ';border:1.5px solid ' + C.tealLight + ';border-radius:50%;text-align:center;line-height:22px;font-size:11px;color:' + C.teal + ';font-weight:700">' + (i + 1) + '</div></td>'
+          + '<td style="padding:12px 18px 12px 10px;font-family:' + F + ';font-size:14px;color:' + C.body + ';line-height:1.6;border-bottom:1px solid ' + C.borderLight + '">' + tip + '</td></tr>';
+      }).join('') + '</table>'
+      // Property callout
+      + (d.site || d.propDetails ? '<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px"><tr><td style="background:' + C.tealGhost + ';border:1px solid ' + C.tealLight + ';border-radius:10px;padding:16px 20px">'
+        + '<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+        + '<td style="width:28px;vertical-align:top;padding-right:12px;font-size:18px;line-height:1">&#127968;</td>'
+        + '<td><div style="font-family:' + F + ';font-size:14px;font-weight:600;color:' + C.charcoal + ';margin-bottom:3px">' + _escHtml(d.site) + '</div>'
+        + (d.propDetails ? '<div style="font-family:' + F + ';font-size:13px;color:' + C.slate + ';line-height:1.5">' + _escHtml(d.propDetails) + '</div>' : '')
+        + '</td></tr></table></td></tr></table>' : '')
+      // Need to change?
+      + '<p style="margin:0 0 20px;font-family:' + F + ';font-size:15px;color:' + C.body + ';line-height:1.8">Need to reschedule or have any questions? Please contact us as soon as possible and we\'ll do our best to accommodate.</p>'
+      + '<table cellpadding="0" cellspacing="0" style="margin:0 0 28px"><tr>'
+      + '<td style="padding-right:10px"><a href="https://www.askmiro.com/contact" style="display:inline-block;background:' + C.navy + ';color:#FFFFFF;font-family:' + F + ';font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;padding:12px 28px">Contact Us</a></td>'
+      + '<td><a href="tel:+447000000000" style="display:inline-block;background:transparent;color:' + C.navy + ';font-family:' + F + ';font-size:13px;font-weight:600;text-decoration:none;border:1px solid ' + C.border + ';border-radius:8px;padding:11px 24px">Call Us</a></td>'
+      + '</tr></table>'
+      + '</td></tr>'
+      // Footer
+      + '<tr><td style="background:' + C.navy + ';padding:24px 36px;border-radius:0 0 12px 12px">'
+      + '<p style="margin:0 0 6px;font-family:' + F + ';font-size:13px;font-weight:600;color:rgba(255,255,255,0.45)">AskMiro Professional Cleaning</p>'
+      + '<p style="margin:0;font-family:' + F + ';font-size:11px;color:rgba(255,255,255,0.25)">London, United Kingdom &middot; Fully Insured &middot; DBS Checked</p>'
+      + '</td></tr></table></td></tr></table></body></html>';
+  }
+
+  // Preview/download helpers for lifecycle emails
+  function previewCompletionEmail() {
+    var d = _collectOneOffData();
+    if (!d.client || d.client === 'Client') { UI.toast('Client name required', 'r'); return; }
+    var html = generateCompletionEmail(d);
+    var w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+  function previewPaymentEmail() {
+    var d = _collectOneOffData();
+    if (!d.client || d.client === 'Client') { UI.toast('Client name required', 'r'); return; }
+    var html = generatePaymentEmail(d);
+    var w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+  function previewReminderEmail() {
+    var d = _collectOneOffData();
+    if (!d.client || d.client === 'Client') { UI.toast('Client name required', 'r'); return; }
+    var html = generateReminderEmail(d);
+    var w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+  }
+
   return {
     render, calc, toggleMode, save, openNew,
     openView, openSend, doSend, openApprove, doApprove,
@@ -1103,6 +1374,9 @@ window.Quotes = (() => {
     previewClientQuote, convertToInvoice, _addLine,
     loadAndPreviewPdf, loadAndConvertInvoice,
     generateClientEmail, previewClientEmail, downloadClientEmail,
+    generateCompletionEmail, previewCompletionEmail,
+    generatePaymentEmail, previewPaymentEmail,
+    generateReminderEmail, previewReminderEmail,
   };
 
   function loadAndPreviewPdf(id) {
