@@ -240,10 +240,28 @@ window.Quotes = (() => {
       + '</div>'
       + '</div>';
 
-    mc.innerHTML = webHtml + tableHtml + builderHtml;
-    _bindTableClicks();
-    UI.setLoading(false);
-    calc();
+    // Preserve the builder form across re-renders (auto-refresh)
+    var existingBuilder = document.getElementById('quote-builder-wrap');
+    if (existingBuilder) {
+      // Only update table + priority banner, keep builder intact
+      var tempDiv = document.createElement('div');
+      tempDiv.innerHTML = webHtml + tableHtml;
+      // Replace everything before the builder
+      while (mc.firstChild && mc.firstChild !== existingBuilder) {
+        mc.removeChild(mc.firstChild);
+      }
+      // Insert updated table before builder
+      while (tempDiv.lastChild) {
+        mc.insertBefore(tempDiv.lastChild, existingBuilder);
+      }
+      _bindTableClicks();
+      UI.setLoading(false);
+    } else {
+      mc.innerHTML = webHtml + tableHtml + '<div id="quote-builder-wrap">' + builderHtml + '</div>';
+      _bindTableClicks();
+      UI.setLoading(false);
+      calc();
+    }
   }
 
   function _bindTableClicks() {
