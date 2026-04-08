@@ -1128,28 +1128,39 @@ window.Quotes = (() => {
     if (!d.email || !d.email.includes('@')) { UI.toast('Client email required — fill in the email field', 'r'); return; }
     if (d.gross <= 0) { UI.toast('Add line items or total first', 'r'); return; }
 
-    var ok = confirm('Send booking confirmation to ' + d.email + ' for ' + d.client + '?\n\nService: ' + d.serviceType + '\nTotal: £' + d.gross.toFixed(2));
+    // Show line items in confirm dialog so user can verify
+    var itemList = d.items.map(function(li) { return '  • ' + li.description + ' — £' + li.amount.toFixed(2); }).join('\n');
+    var ok = confirm('Send booking confirmation with PDF to ' + d.email + '?\n\nClient: ' + d.client + '\nService: ' + d.serviceType + '\n\n' + itemList + '\n\nTotal: £' + d.gross.toFixed(2));
     if (!ok) return;
 
-    var html = generateClientEmail(d);
-    var subject = d.serviceType + ' — Booking Confirmation | AskMiro';
-
-    UI.toast('Sending email to ' + d.email + '…', 'w');
+    UI.toast('Generating PDF & sending email…', 'w');
 
     try {
-      var res = await fetch('/api/send-email', {
+      var res = await fetch('/api/send-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: d.email,
-          subject: subject,
-          htmlBody: html,
+          client: d.client,
+          email: d.email,
+          site: d.site,
+          serviceType: d.serviceType,
+          jobDate: d.jobDate,
+          jobTime: d.jobTime,
+          propDetails: d.propDetails,
+          notes: d.notes,
+          payLink: d.payLink,
+          vatRate: d.vatRate,
+          scopeItems: d.scopeItems,
+          items: d.items,
+          subtotal: d.subtotal,
+          vat: d.vat,
+          gross: d.gross,
           fromName: 'Mike Kato',
         }),
       });
       var result = await res.json();
       if (result.sent) {
-        UI.toast('Email sent to ' + d.email, 'g');
+        UI.toast('Email + PDF sent to ' + d.email, 'g');
       } else {
         UI.toast('Send failed: ' + (result.error || 'Unknown error'), 'r');
       }

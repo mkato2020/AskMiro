@@ -326,12 +326,12 @@ export default function Quotes({openLead}){
     if(!d.client){alert('Client name required');return}
     if(!d.clientEmail||!d.clientEmail.includes('@')){alert('Client email required');return}
     if(d.gross<=0){alert('Add line items or total first');return}
-    if(!confirm('Send booking confirmation to '+d.clientEmail+' for '+d.client+'?\n\nService: '+d.serviceType+'\nTotal: £'+d.gross.toFixed(2)))return
-    const html=buildEmailHtml(d)
+    const itemList=d.items.map(li=>'  • '+li.description+' — £'+li.amount.toFixed(2)).join('\n')
+    if(!confirm('Send booking confirmation with PDF to '+d.clientEmail+'?\n\nClient: '+d.client+'\nService: '+d.serviceType+'\n\n'+itemList+'\n\nTotal: £'+d.gross.toFixed(2)))return
     try{
-      const res=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:d.clientEmail,subject:d.serviceType+' — Booking Confirmation | AskMiro',htmlBody:html,fromName:'Mike Kato'})})
+      const res=await fetch('/api/send-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:d.client,email:d.clientEmail,site:d.site||'',serviceType:d.serviceType,jobDate:f.jobDate||'',jobTime:f.jobTime||'',propDetails:d.propDetails||'',notes:f.notes||'',payLink:f.paymentLink||'',vatRate:d.vatPct||0,scopeItems:d.scopeItems,items:d.items,subtotal:d.subtotal,vat:d.vat,gross:d.gross,fromName:'Mike Kato'})})
       const result=await res.json()
-      if(result.sent)alert('Email sent to '+d.clientEmail)
+      if(result.sent)alert('Email + PDF sent to '+d.clientEmail)
       else alert('Send failed: '+(result.error||'Unknown error'))
     }catch(e){alert('Send failed: '+e.message)}
   }
