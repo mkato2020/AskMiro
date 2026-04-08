@@ -899,6 +899,7 @@ ${recurringPanel}
   </table>
   <div class="modal-foot">
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
+    <button class="btn bo" style="border-color:#0D9488;color:#0D9488" onclick="Finance.previewInvoicePdf('${id}')">&#128196; View PDF</button>
     ${st==='Draft'?`<button class="btn bo" onclick="UI.closeModal();Finance._markSent('${id}')">Mark Sent</button>`:''}
     ${st!=='Paid'&&st!=='Void'?`<button class="btn bp" style="background:#059669" onclick="UI.closeModal();Finance.openRecordPayment('${id}','${bal}','${_esc(i.customerName||'')}')">&#10003; Record Payment</button>`:''}
   </div>
@@ -1512,6 +1513,96 @@ ${recurringPanel}
     _renderTab();
   }
 
+  // ── PREMIUM INVOICE PDF (Tesla × Fluent branding) ─────────
+  function previewInvoicePdf(id) {
+    var i = S.invoices.find(function(x) { return x.id === id; });
+    if (!i) { UI.toast('Invoice not found', 'r'); return; }
+    var today = i.invoiceDate || new Date().toISOString().slice(0,10);
+    var due = i.dueDate || '';
+    var todayFmt = new Date(today + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    var dueFmt = due ? new Date(due + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    var net = parseFloat(i.totalAmount || 0);
+    var vatR = parseFloat(S.settings.vatRate || 0);
+    var vatAmt = net * (vatR / (100 + vatR)); // Extract VAT from gross
+    var netAmt = net - vatAmt;
+    var bal = parseFloat(i.balanceDue || i.totalAmount || 0);
+    var isPaid = bal <= 0 || i.status === 'Paid';
+
+    // Parse line items from notes or use single line
+    var lines = [];
+    var noteLines = (i.notes || '').match(/LINE_ITEMS:\s*(\[.+\])/);
+    if (noteLines) { try { lines = JSON.parse(noteLines[1]); } catch(e) {} }
+    if (!lines.length) { lines = [{ description: i.siteId || 'Services rendered', amount: netAmt }]; }
+
+    var lineRows = lines.map(function(li) {
+      return '<tr><td style="padding:14px 16px;border-bottom:1px solid #F1F5F9;font-size:14px;color:#1E293B"><div style="font-weight:600">' + _esc(li.description || '') + '</div></td>'
+        + '<td style="padding:14px 16px;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:600;color:#1E293B;font-size:14px;white-space:nowrap">&#163;' + parseFloat(li.amount || 0).toFixed(2) + '</td></tr>';
+    }).join('');
+
+    var vatLabel = vatR > 0 ? 'VAT (' + vatR + '%)' : 'VAT (0% — below threshold)';
+    var statusColor = isPaid ? '#059669' : '#DC2626';
+    var statusText = isPaid ? 'PAID' : i.status.toUpperCase();
+
+    var html = '<!DOCTYPE html><html lang="en-GB"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+      + '<title>Invoice ' + _esc(i.invoiceNumber || i.id) + ' | AskMiro</title>'
+      + '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+      + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">'
+      + '<style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:"DM Sans",-apple-system,sans-serif; background:#fff; color:#1E293B; line-height:1.6; }'
+      + '@page { size:A4; margin:0; } @media print { .no-print { display:none !important; } body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }'
+      + '.page { max-width:794px; margin:0 auto; padding:48px 56px; }</style></head><body>'
+      + '<div class="no-print" style="background:#0D9488;padding:12px 24px;display:flex;gap:12px;align-items:center;justify-content:center">'
+      + '<button onclick="window.print()" style="background:#fff;color:#0D9488;border:none;padding:10px 32px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Save as PDF</button>'
+      + '<button onclick="window.close()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);padding:10px 32px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit">Close</button></div>'
+      + '<div class="page">'
+      // Header
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:3px solid #0D9488">'
+      + '<div><div style="font-family:Outfit,sans-serif;font-weight:800;font-size:28px;color:#0D9488;letter-spacing:-0.5px">AskMiro</div>'
+      + '<div style="font-size:13px;color:#64748B;margin-top:4px">Managed Cleaning Services</div>'
+      + '<div style="font-size:12px;color:#94A3B8;margin-top:2px">020 8073 0621 &bull; info@askmiro.com &bull; www.askmiro.com</div></div>'
+      + '<div style="text-align:right"><div style="font-family:Outfit,sans-serif;font-weight:700;font-size:22px;color:#1E293B;letter-spacing:-0.3px">INVOICE</div>'
+      + '<div style="font-size:13px;color:#64748B;margin-top:4px">' + _esc(i.invoiceNumber || i.id) + '</div>'
+      + '<div style="font-size:13px;color:#64748B">Date: ' + todayFmt + '</div>'
+      + (dueFmt ? '<div style="font-size:13px;color:#64748B">Due: ' + dueFmt + '</div>' : '')
+      + '<div style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;background:' + statusColor + '">' + statusText + '</div>'
+      + '</div></div>'
+      // Bill To
+      + '<div style="background:#F8FAFC;border-radius:10px;padding:20px;margin-bottom:32px">'
+      + '<div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Bill To</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#1E293B">' + _esc(i.customerName || '') + '</div>'
+      + (i.siteId ? '<div style="font-size:13px;color:#64748B;margin-top:4px">' + _esc(i.siteId) + '</div>' : '')
+      + '</div>'
+      // Line items
+      + '<table style="width:100%;border-collapse:collapse;margin-bottom:24px">'
+      + '<thead><tr><th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid #E2E8F0;background:#F8FAFC">Description</th>'
+      + '<th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid #E2E8F0;background:#F8FAFC">Amount</th></tr></thead>'
+      + '<tbody>' + lineRows + '</tbody></table>'
+      // Totals
+      + '<div style="display:flex;justify-content:flex-end;margin-bottom:32px">'
+      + '<div style="width:300px;background:#F8FAFC;border-radius:10px;padding:16px 20px">'
+      + '<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px"><span style="color:#64748B">Subtotal (net)</span><span style="font-weight:600">&#163;' + netAmt.toFixed(2) + '</span></div>'
+      + '<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px"><span style="color:#64748B">' + vatLabel + '</span><span style="font-weight:600">&#163;' + vatAmt.toFixed(2) + '</span></div>'
+      + '<div style="display:flex;justify-content:space-between;padding:12px 0;margin-top:8px;border-top:2px solid #0D9488;font-size:18px"><span style="font-weight:700;color:#1E293B">Total</span><span style="font-weight:800;color:#0D9488">&#163;' + net.toFixed(2) + '</span></div>'
+      + (isPaid ? '<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px;margin-top:4px"><span style="color:#059669;font-weight:600">Amount Paid</span><span style="font-weight:700;color:#059669">&#163;' + net.toFixed(2) + '</span></div>'
+        : '<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px;margin-top:4px"><span style="color:#DC2626;font-weight:600">Balance Due</span><span style="font-weight:700;color:#DC2626">&#163;' + bal.toFixed(2) + '</span></div>')
+      + '</div></div>'
+      // Payment terms
+      + '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px 20px;margin-bottom:24px">'
+      + '<div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Payment Information</div>'
+      + '<div style="font-size:13px;color:#78350F;line-height:1.7">'
+      + '<strong>Bank Transfer:</strong> Miro Partners Ltd &bull; Tide &bull; Sort Code: available on request<br>'
+      + '<strong>Card Payment:</strong> Secure payment link will be provided separately<br>'
+      + 'Please reference <strong>' + _esc(i.invoiceNumber || i.id) + '</strong> with your payment.</div></div>'
+      // Footer
+      + '<div style="border-top:1px solid #E2E8F0;padding-top:20px;display:flex;justify-content:space-between;align-items:center">'
+      + '<div style="font-size:11px;color:#94A3B8;line-height:1.6">AskMiro Cleaning Services<br>A trading name of Miro Partners Ltd<br>Company registered in England &amp; Wales</div>'
+      + '<div style="font-size:11px;color:#94A3B8;text-align:right;line-height:1.6">Reliable. Thorough. Local.<br>www.askmiro.com<br>020 8073 0621</div></div>'
+      + '</div></body></html>';
+
+    var w = window.open('', '_blank', 'width=850,height=1100');
+    if (w) { w.document.write(html); w.document.close(); }
+    else { UI.toast('Pop-up blocked', 'r'); }
+  }
+
   // ── PUBLIC API ────────────────────────────────────────────────
   return {
     render, _tab, _setMonth, _setFilter, _refresh, _hl,
@@ -1521,6 +1612,7 @@ ${recurringPanel}
     openCreateInvoice, openRecordPayment, openAddExpense, openAddTransaction, openSetupSheets,
     _saveInvoice, _savePayment, _saveExpense, _saveTransaction, _generateRecurring,
     _exportTxnCSV, _exportInvCSV, _exportExpCSV, _exportSnapCSV,
-    _exportTxnPDF, _exportInvPDF, _exportExpPDF, _exportSnapPDF
+    _exportTxnPDF, _exportInvPDF, _exportExpPDF, _exportSnapPDF,
+    previewInvoicePdf,
   };
 })();

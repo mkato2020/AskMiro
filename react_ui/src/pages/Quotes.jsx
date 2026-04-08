@@ -7,6 +7,33 @@ const fmtCur=v=>'£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:
 const fmtPct=v=>(v||0).toFixed(1)+'%'
 const SEGMENTS=['Office','Retail','Medical','Educational','Residential','Industrial','Hospitality','Other']
 const STATUS_COLORS={draft:'#f59e0b',sent:'#3b82f6',won:'#10b981',lost:'#ef4444',expired:'#6b7280'}
+const _e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+
+function buildEmailHtml(d){
+  const F="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+  const lineRows=d.items.map((li,i)=>{const bg=i%2===0?'#FFFFFF':'#F9FAFB';return'<tr style="background:'+bg+'"><td style="font-family:'+F+';font-size:13px;color:#4B5563;padding:12px 18px;border-bottom:1px solid #F3F4F6">'+_e(li.description)+'</td><td style="font-family:'+F+';font-size:13px;color:#111827;font-weight:500;padding:12px 18px;text-align:right;border-bottom:1px solid #F3F4F6">£'+li.amount.toFixed(2)+'</td></tr>'}).join('')
+  const scopeRows=d.scopeItems.map((s,i)=>{const bg=i%2===0?'#FFFFFF':'#F9FAFB';return'<tr style="background:'+bg+'"><td style="width:44px;padding:13px 0 13px 16px;vertical-align:top;border-bottom:1px solid #F3F4F6"><div style="width:22px;height:22px;background:#F0FDFA;border:1.5px solid #CCFBF1;border-radius:50%;text-align:center;line-height:19px;font-size:12px;color:#0D9488;font-weight:700">✓</div></td><td style="padding:13px 18px 13px 10px;font-family:'+F+';font-size:14px;color:#1F2937;line-height:1.6;border-bottom:1px solid #F3F4F6">'+_e(s)+'</td></tr>'}).join('')
+  return'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="x-apple-disable-message-reformatting"><title>AskMiro Cleaning Services</title></head><body style="margin:0;padding:0;background:#F1F5F9"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F1F5F9;padding:32px 16px"><tr><td align="center"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">'
+    +'<tr><td style="height:4px;background:linear-gradient(90deg,#0D9488,#14B8A6);border-radius:12px 12px 0 0;font-size:4px;line-height:4px">&nbsp;</td></tr>'
+    +'<tr><td style="background:#0A1628;padding:26px 36px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle"><table cellpadding="0" cellspacing="0"><tr><td style="padding-right:14px;vertical-align:middle"><img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0"></td><td style="vertical-align:middle"><div style="font-family:'+F+';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">AskMiro</div><div style="font-family:'+F+';font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Professional Cleaning Across London</div></td></tr></table></td><td align="right" style="vertical-align:middle"><div style="display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);border-radius:20px;padding:6px 16px"><span style="font-family:'+F+';font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.6px">Booking Confirmation</span></div></td></tr></table></td></tr>'
+    +'<tr><td style="background:#FFFFFF;padding:44px 40px 36px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB">'
+    +'<p style="margin:0 0 22px;font-family:'+F+';font-size:16px;font-weight:600;color:#111827">Hi '+_e(d.firstName)+',</p>'
+    +'<p style="margin:0 0 6px;font-family:'+F+';font-size:11px;font-weight:700;color:#0D9488;letter-spacing:1.5px;text-transform:uppercase">Your booking is confirmed</p>'
+    +'<h1 style="margin:0 0 6px;font-family:'+F+';font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.8px;line-height:1.15">'+_e(d.serviceType)+'</h1>'
+    +'<p style="margin:0 0 28px;font-family:'+F+';font-size:15px;color:#1F2937;line-height:1.8">Thank you for choosing AskMiro. Everything is locked in for your '+_e(d.serviceType.toLowerCase())+'. Below you\'ll find the full details, scope of work, and your quote breakdown.</p>'
+    +(d.jobDateShort?'<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px;border-radius:12px;overflow:hidden;background:#0A1628"><tr><td align="center" style="padding:22px 18px;border-right:1px solid rgba(255,255,255,0.07)"><div style="font-family:'+F+';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Date</div><div style="font-family:'+F+';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">'+_e(d.jobDateShort)+'</div><div style="font-family:'+F+';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">'+_e(d.jobDay)+'</div></td><td align="center" style="padding:22px 18px;border-right:1px solid rgba(255,255,255,0.07)"><div style="font-family:'+F+';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Time</div><div style="font-family:'+F+';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">'+_e(d.timeFmt)+'</div><div style="font-family:'+F+';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">Start time</div></td><td align="center" style="padding:22px 18px"><div style="font-family:'+F+';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgba(255,255,255,0.35);margin-bottom:6px">Total</div><div style="font-family:'+F+';font-size:20px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1">£'+Math.round(d.gross)+'</div><div style="font-family:'+F+';font-size:11px;color:rgba(255,255,255,0.32);margin-top:5px">All-inclusive</div></td></tr></table>':'')
+    +(d.site?'<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px"><tr><td style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;padding:16px 20px"><table cellpadding="0" cellspacing="0" width="100%"><tr><td style="width:28px;vertical-align:top;padding-right:12px;font-size:18px;line-height:1">🏠</td><td style="font-family:'+F+';font-size:13.5px;color:#0F766E;line-height:1.7"><strong>'+_e(d.site)+'</strong>'+(d.propDetails?'<br>'+_e(d.propDetails):'')+'</td></tr></table></td></tr></table>':'')
+    +'<p style="margin:24px 0 12px;font-family:'+F+';font-size:11px;font-weight:700;color:#111827;letter-spacing:0.8px;text-transform:uppercase">Quote Breakdown</p>'
+    +'<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden">'+lineRows+'<tr style="background:#111827"><td style="font-family:'+F+';font-size:14px;font-weight:700;color:#FFFFFF;padding:16px 18px">Total</td><td style="font-family:'+F+';font-size:22px;font-weight:800;color:#FFFFFF;padding:16px 18px;text-align:right;letter-spacing:-0.5px">£'+d.gross.toFixed(2)+'</td></tr></table>'
+    +(scopeRows?'<p style="margin:24px 0 12px;font-family:'+F+';font-size:11px;font-weight:700;color:#111827;letter-spacing:0.8px;text-transform:uppercase">What\'s included</p><table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden">'+scopeRows+'</table>':'')
+    +'<table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px"><tr><td style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px 20px"><table cellpadding="0" cellspacing="0" width="100%"><tr><td style="width:28px;vertical-align:top;padding-right:12px;font-size:18px;line-height:1">💳</td><td style="font-family:'+F+';font-size:13.5px;color:#92400E;line-height:1.7"><strong>No upfront payment required.</strong> You can settle the £'+d.gross.toFixed(2)+' once the job is completed and you\'re happy with the standard. A full invoice and receipt will be provided on the day.</td></tr></table></td></tr></table>'
+    +(d.paymentLink?'<table cellpadding="0" cellspacing="0" style="margin:28px 0" width="100%"><tr><td align="center"><table cellpadding="0" cellspacing="0"><tr><td style="border-radius:8px;background:#0D9488"><a href="'+_e(d.paymentLink)+'" style="display:block;padding:15px 36px;font-family:'+F+';font-size:14px;font-weight:700;color:#FFFFFF;text-decoration:none;white-space:nowrap">Pay £'+d.gross.toFixed(2)+' — Secure Payment</a></td><td width="12">&nbsp;</td><td style="border-radius:8px;border:1.5px solid #E5E7EB"><a href="tel:02080730621" style="display:block;padding:14px 22px;font-family:'+F+';font-size:13px;font-weight:600;color:#1F2937;text-decoration:none;white-space:nowrap">☎ 020 8073 0621</a></td></tr></table><p style="margin:10px 0 0;font-family:'+F+';font-size:11px;color:#94A3B8">Payment is optional before the job. You can also pay on the day.</p></td></tr></table>':'')
+    +'<p style="margin:0 0 18px;font-family:'+F+';font-size:15px;color:#1F2937;line-height:1.8">If anything changes or you have any questions at all, just reply to this email or give me a call.</p>'
+    +'<p style="margin:0 0 18px;font-family:'+F+';font-size:15px;color:#1F2937;line-height:1.8">Looking forward to getting this done for you.</p>'
+    +'<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:40px"><tr><td style="padding-top:28px;border-top:1px solid #E5E7EB"><table cellpadding="0" cellspacing="0" width="100%"><tr><td style="vertical-align:middle;padding-right:14px;width:34px"><img src="https://www.askmiro.com/favicon-32x32.png" width="30" height="30" alt="AskMiro" style="display:block;border:0;border-radius:6px" border="0"></td><td style="vertical-align:middle"><div style="font-family:'+F+';font-size:15px;font-weight:700;color:#111827;line-height:1.2">Mike Kato</div><div style="font-family:'+F+';font-size:12px;color:#0D9488;font-weight:600;margin-top:2px">Co-founder — AskMiro Cleaning Services</div></td></tr></table><table cellpadding="0" cellspacing="0" style="margin-top:14px"><tr><td style="padding-right:22px"><a href="tel:02080730621" style="font-family:'+F+';font-size:12px;color:#4B5563;text-decoration:none"><span style="color:#0D9488;margin-right:4px">☎</span>020 8073 0621</a></td><td style="padding-right:22px"><a href="mailto:info@askmiro.com" style="font-family:'+F+';font-size:12px;color:#4B5563;text-decoration:none"><span style="color:#0D9488;margin-right:4px">✉</span>info@askmiro.com</a></td><td><a href="https://www.askmiro.com" style="font-family:'+F+';font-size:12px;color:#0D9488;font-weight:600;text-decoration:none">www.askmiro.com</a></td></tr></table><table cellpadding="0" cellspacing="0" width="100%" style="margin-top:16px"><tr><td style="padding:10px 16px;background:#F0FDFA;border:1px solid #CCFBF1;border-radius:8px"><table cellpadding="0" cellspacing="0"><tr><td style="padding-right:18px;font-family:'+F+';font-size:11px;color:#0D9488;font-weight:600">✓ Fully Insured</td><td style="padding-right:18px;font-family:'+F+';font-size:11px;color:#0D9488;font-weight:600">✓ COSHH Compliant</td><td style="padding-right:18px;font-family:'+F+';font-size:11px;color:#0D9488;font-weight:600">✓ ISO Standards</td><td style="font-family:'+F+';font-size:11px;color:#0D9488;font-weight:600">✓ London &amp; UK</td></tr></table></td></tr></table></td></tr></table></td></tr>'
+    +'<tr><td style="background:#111827;border-radius:0 0 12px 12px;padding:22px 36px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="font-family:'+F+';font-size:13px;font-weight:700;color:rgba(255,255,255,0.75)">AskMiro Cleaning Services</div><div style="font-family:'+F+';font-size:11px;color:rgba(255,255,255,0.28);margin-top:3px">A trading name of Miro Partners Ltd • London &amp; UK</div></td><td align="right" style="vertical-align:top"><a href="https://www.askmiro.com" style="font-family:'+F+';font-size:12px;color:#14B8A6;text-decoration:none;font-weight:700">www.askmiro.com</a></td></tr><tr><td colspan="2" style="padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)"><p style="font-family:'+F+';font-size:10px;color:rgba(255,255,255,0.18);margin:14px 0 0;line-height:1.7">Sent by Mike Kato on behalf of AskMiro Cleaning Services. Reply to: info@askmiro.com.<br>We will never share your details with third parties.</p></td></tr></table></td></tr>'
+    +'</table></td></tr></table></body></html>'
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 function scoreColor(v){return v>=70?'#10b981':v>=40?'#f59e0b':'#ef4444'}
@@ -32,7 +59,12 @@ export default function Quotes({openLead}){
   const vatRate=settings?.vat_rate||20
 
   // Form state
-  const [form,setForm]=useState({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:''})
+  const SERVICE_TYPES=['End of Tenancy Clean','Deep Clean','Regular Clean','Move-In Clean','Office Clean','One-Off Clean','Other']
+  const [form,setForm]=useState({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:'',
+    // One-off fields
+    serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',
+    lineItems:[{desc:'',amt:''}],fixedTotal:''
+  })
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}))
 
   // Intelligence state
@@ -41,8 +73,22 @@ export default function Quotes({openLead}){
   const [intelError,setIntelError]=useState(null)
   const [showIntel,setShowIntel]=useState(true)
 
+  const isOneOff=form.mode==='One-off Job'
+
+  // Line item helpers
+  const addLine=()=>setForm(p=>({...p,lineItems:[...p.lineItems,{desc:'',amt:''}]}))
+  const removeLine=(i)=>setForm(p=>({...p,lineItems:p.lineItems.filter((_,idx)=>idx!==i)}))
+  const updLine=(i,k,v)=>setForm(p=>({...p,lineItems:p.lineItems.map((li,idx)=>idx===i?{...li,[k]:v}:li)}))
+
   // Live calculator
   const calc=useMemo(()=>{
+    if(isOneOff){
+      const lineTotal=form.lineItems.reduce((s,li)=>s+Number(li.amt||0),0)
+      const subtotal=Number(form.fixedTotal)||lineTotal
+      const vat=subtotal*(form.vatPct/100)
+      const gross=subtotal+vat
+      return{subtotal,vat,gross,lineTotal,margin:100,revenue:subtotal,monthlyHrs:0,labour:0,totalCosts:0,revenueVat:gross,grossMargin:subtotal}
+    }
     const monthlyHrs=form.hrs*(form.days/5)*4.33
     const labour=monthlyHrs*llw*(1+onCosts/100)
     const totalCosts=labour+Number(form.supplies)+Number(form.other)
@@ -50,8 +96,8 @@ export default function Quotes({openLead}){
     const revenueVat=revenue*(1+vatRate/100)
     const margin=revenue>0?((revenue-totalCosts)/revenue)*100:0
     const grossMargin=revenue-totalCosts
-    return{monthlyHrs,labour,totalCosts,revenue,revenueVat,margin,grossMargin}
-  },[form,llw,onCosts,vatRate])
+    return{monthlyHrs,labour,totalCosts,revenue,revenueVat,margin,grossMargin,subtotal:revenue,vat:revenue*vatRate/100,gross:revenueVat}
+  },[form,llw,onCosts,vatRate,isOneOff])
 
   const marginOk=calc.margin>=minMargin
   const marginColor=marginOk?'#10b981':'#ef4444'
@@ -107,19 +153,29 @@ export default function Quotes({openLead}){
     if(!form.client?.trim()){setSaveMsg({type:'error',text:'Client name is required'});return}
     setSaving(true);setSaveMsg(null)
     try{
-      const res=await fetch('/api/quotes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      const payload=isOneOff?{
+        client_name:form.client,site_address:form.site,site_postcode:form.postcode,
+        sector:form.segment,mode:'one_off',
+        line_items:form.lineItems.filter(li=>li.desc&&li.amt).map(li=>({description:li.desc,amount:Number(li.amt)})),
+        one_off_total:Number(form.fixedTotal)||form.lineItems.reduce((s,li)=>s+Number(li.amt||0),0),
+        client_email:form.clientEmail,job_date:form.jobDate,job_time:form.jobTime,
+        service_type:form.serviceType,prop_details:form.propDetails,
+        vat_rate:String(form.vatPct),scope:form.scope,payment_link:form.paymentLink,
+        notes:form.notes,status:'draft'
+      }:{
         client_name:form.client,site_address:form.site,site_postcode:form.postcode,
         sector:form.segment,mode:form.mode==='Hourly Rate'?'hourly':'fixed',
         hours_per_week:form.hrs,days_per_week:form.days,client_rate:Number(form.rate),
         llw_rate:llw,on_costs_pct:onCosts,supplies_month:Number(form.supplies),
         other_costs_month:Number(form.other),notes:form.notes,status:'draft'
-      })})
+      }
+      const res=await fetch('/api/quotes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
       const data=await res.json()
       if(!res.ok) throw new Error(data.detail||data.error||'Save failed')
       setSaveMsg({type:'success',text:`Quote ${(data.id||'').substring(0,8)} saved`})
       qc.invalidateQueries({queryKey:['quotes']})
       // Reset form
-      setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:''})
+      setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:'',serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',lineItems:[{desc:'',amt:''}],fixedTotal:''})
       setIntel(null)
     }catch(err){
       setSaveMsg({type:'error',text:err.message||'Save failed'})
@@ -145,6 +201,58 @@ export default function Quotes({openLead}){
     setShowBuilder(true)
     setSaveMsg({type:'success',text:`Loaded "${q.client_name||q.client||''}" into builder — edit and save as new version`})
   },[])
+
+  // ── PDF / Email generators (open in new window) ──────────
+  const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  const _buildData=(f,c)=>{
+    const items=f.lineItems.filter(li=>li.desc&&li.amt).map(li=>({description:li.desc,amount:Number(li.amt)}))
+    const firstName=f.client.split(' ')[0]
+    const jobDateFmt=f.jobDate?new Date(f.jobDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):''
+    const jobDateShort=f.jobDate?new Date(f.jobDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''
+    const jobDay=f.jobDate?new Date(f.jobDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long'}):''
+    const timeFmt=f.jobTime?(()=>{const p=f.jobTime.split(':'),h=parseInt(p[0],10),m=p[1]||'00',ap=h>=12?'PM':'AM';return(h>12?h-12:h||12)+(m!=='00'?':'+m:'')+' '+ap})():''
+    const scopeItems=(f.scope||'').split('\n').map(s=>s.trim()).filter(s=>s)
+    const today=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
+    const validUntil=new Date(Date.now()+14*86400000).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
+    return{...f,items,firstName,jobDateFmt,jobDateShort,jobDay,timeFmt,scopeItems,today,validUntil,subtotal:c.subtotal,vat:c.vat,gross:c.gross}
+  }
+
+  const previewQuotePdf=(f,c)=>{
+    const d=_buildData(f,c)
+    const lineRows=d.items.map(li=>'<tr><td style="padding:14px 16px;border-bottom:1px solid #F1F5F9;font-size:14px;color:#1E293B"><div style="font-weight:600">'+_esc(li.description)+'</div></td><td style="padding:14px 16px;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:600;font-size:14px;white-space:nowrap">£'+li.amount.toFixed(2)+'</td></tr>').join('')
+    const scopeHtml=d.scopeItems.length?'<div style="background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:16px 20px;margin-bottom:24px"><div style="font-size:11px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Full Scope of Work</div><ul style="font-size:13px;color:#1E293B;line-height:1.8;padding-left:20px">'+d.scopeItems.map(s=>'<li style="margin-bottom:2px">'+_esc(s)+'</li>').join('')+'</ul></div>':''
+    const vatLabel=d.vatPct>0?'VAT ('+d.vatPct+'%)':'VAT (0% — below threshold)'
+    const html='<!DOCTYPE html><html lang="en-GB"><head><meta charset="UTF-8"><title>Quote — '+_esc(d.client)+'</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"DM Sans",-apple-system,sans-serif;background:#fff;color:#1E293B;line-height:1.6}@page{size:A4;margin:0}@media print{.no-print{display:none!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.page{max-width:794px;margin:0 auto;padding:48px 56px}</style></head><body>'
+      +'<div class="no-print" style="background:#0D9488;padding:12px 24px;display:flex;gap:12px;align-items:center;justify-content:center"><button onclick="window.print()" style="background:#fff;color:#0D9488;border:none;padding:10px 32px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Save as PDF</button><button onclick="window.close()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);padding:10px 32px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit">Close</button></div>'
+      +'<div class="page">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:3px solid #0D9488"><div><div style="font-family:Outfit,sans-serif;font-weight:800;font-size:28px;color:#0D9488;letter-spacing:-0.5px">AskMiro</div><div style="font-size:13px;color:#64748B;margin-top:4px">Managed Cleaning Services</div><div style="font-size:12px;color:#94A3B8;margin-top:2px">020 8073 0621 • info@askmiro.com • www.askmiro.com</div></div><div style="text-align:right"><div style="font-family:Outfit,sans-serif;font-weight:700;font-size:22px;color:#1E293B">QUOTE &amp; BOOKING<br>CONFIRMATION</div><div style="font-size:13px;color:#64748B;margin-top:4px">Date: '+d.today+'</div><div style="font-size:13px;color:#64748B">Valid until: '+d.validUntil+'</div></div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px"><div style="background:#F8FAFC;border-radius:10px;padding:20px"><div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Prepared for</div><div style="font-size:16px;font-weight:700;color:#1E293B">'+_esc(d.client)+'</div>'+(d.site?'<div style="font-size:13px;color:#64748B;margin-top:4px">'+_esc(d.site)+'</div>':'')+(d.clientEmail?'<div style="font-size:13px;color:#64748B;margin-top:2px">'+_esc(d.clientEmail)+'</div>':'')+'</div>'
+      +'<div style="background:#F0FDFA;border-radius:10px;padding:20px"><div style="font-size:10px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Service Details</div><div style="font-size:16px;font-weight:700;color:#1E293B">'+_esc(d.serviceType)+'</div>'+(d.jobDateFmt?'<div style="font-size:13px;font-weight:600;color:#0F766E;margin-top:4px">'+_esc(d.jobDateFmt)+(d.timeFmt?', '+_esc(d.timeFmt):'')+'</div>':'')+(d.propDetails?'<div style="font-size:13px;color:#64748B;margin-top:4px">'+_esc(d.propDetails)+'</div>':'')+'</div></div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:24px"><thead><tr><th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid #E2E8F0;background:#F8FAFC">Description</th><th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid #E2E8F0;background:#F8FAFC">Amount</th></tr></thead><tbody>'+lineRows+'</tbody></table>'
+      +'<div style="display:flex;justify-content:flex-end;margin-bottom:32px"><div style="width:300px;background:#F8FAFC;border-radius:10px;padding:16px 20px"><div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px"><span style="color:#64748B">Subtotal (net)</span><span style="font-weight:600">£'+d.subtotal.toFixed(2)+'</span></div><div style="display:flex;justify-content:space-between;padding:7px 0;font-size:14px"><span style="color:#64748B">'+vatLabel+'</span><span style="font-weight:600">£'+d.vat.toFixed(2)+'</span></div><div style="display:flex;justify-content:space-between;padding:12px 0;margin-top:8px;border-top:2px solid #0D9488;font-size:18px"><span style="font-weight:700;color:#1E293B">Total</span><span style="font-weight:800;color:#0D9488">£'+d.gross.toFixed(2)+'</span></div></div></div>'
+      +scopeHtml
+      +'<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px 20px;margin-bottom:24px"><div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Payment Terms</div><div style="font-size:13px;color:#78350F;line-height:1.7">No upfront payment required. Payment of <strong>£'+d.gross.toFixed(2)+'</strong> is due upon completion of the job, once you are satisfied with the standard of work. A full invoice and receipt will be provided on the day for your records.</div></div>'
+      +(d.paymentLink?'<div style="text-align:center;margin-bottom:32px"><a href="'+_esc(d.paymentLink)+'" target="_blank" style="display:inline-block;background:#0D9488;color:#fff;font-family:Outfit,sans-serif;font-weight:700;font-size:16px;padding:16px 56px;border-radius:10px;text-decoration:none;box-shadow:0 4px 14px rgba(13,148,136,0.35)">Pay Now — £'+d.gross.toFixed(2)+'</a><div style="font-size:11px;color:#94A3B8;margin-top:8px">Secure payment via Tide</div></div>':'')
+      +'<div style="border-top:1px solid #E2E8F0;padding-top:20px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:11px;color:#94A3B8;line-height:1.6">AskMiro Cleaning Services<br>SW11, London<br>Company registered in England &amp; Wales</div><div style="font-size:11px;color:#94A3B8;text-align:right;line-height:1.6">Reliable. Thorough. Local.<br>www.askmiro.com<br>020 8073 0621</div></div></div></body></html>'
+    const w=window.open('','_blank','width=850,height=1100')
+    if(w){w.document.write(html);w.document.close()}
+  }
+
+  const previewEmail=(f,c)=>{
+    const d=_buildData(f,c)
+    const html=buildEmailHtml(d)
+    const w=window.open('','_blank','width=700,height=900')
+    if(w){w.document.write(html);w.document.close()}
+  }
+
+  const downloadEmail=(f,c)=>{
+    const d=_buildData(f,c)
+    const html=buildEmailHtml(d)
+    const blob=new Blob([html],{type:'text/html'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a');a.href=url;a.download='email-'+d.client.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.html';a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const canShowIntel=!!form.postcode?.trim()&&form.hrs>0
 
@@ -183,17 +291,59 @@ export default function Quotes({openLead}){
               <Field label="Site Address *" value={form.site} onChange={v=>upd('site',v)}/>
               <Field label="Postcode *" value={form.postcode} onChange={v=>upd('postcode',v)} placeholder="e.g. SW1A 1AA"/>
               <SelectField label="Segment" value={form.segment} onChange={v=>upd('segment',v)} options={SEGMENTS}/>
-              <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Price']}/>
-              <Field label="Hrs/Week" value={form.hrs} onChange={v=>upd('hrs',Number(v))} type="number"/>
-              <SelectField label="Days/Week" value={form.days} onChange={v=>upd('days',Number(v))} options={[1,2,3,4,5,6,7]}/>
-              <Field label="Client Rate (£/hr)" value={form.rate} onChange={v=>upd('rate',v)} type="number" step="0.5"/>
-              <Field label="Supplies/Month (£)" value={form.supplies} onChange={v=>upd('supplies',v)} type="number"/>
-              <Field label="Other Costs/Month (£)" value={form.other} onChange={v=>upd('other',v)} type="number"/>
+              <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Price','One-off Job']}/>
+              {!isOneOff&&<Field label="Hrs/Week" value={form.hrs} onChange={v=>upd('hrs',Number(v))} type="number"/>}
+              {!isOneOff&&<SelectField label="Days/Week" value={form.days} onChange={v=>upd('days',Number(v))} options={[1,2,3,4,5,6,7]}/>}
+              {!isOneOff&&<Field label="Client Rate (£/hr)" value={form.rate} onChange={v=>upd('rate',v)} type="number" step="0.5"/>}
+              {!isOneOff&&<Field label="Supplies/Month (£)" value={form.supplies} onChange={v=>upd('supplies',v)} type="number"/>}
+              {!isOneOff&&<Field label="Other Costs/Month (£)" value={form.other} onChange={v=>upd('other',v)} type="number"/>}
             </div>
+
+            {/* ── One-off Job Fields ── */}
+            {isOneOff&&(
+              <div style={{marginTop:16}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                  <SelectField label="Service Type" value={form.serviceType} onChange={v=>upd('serviceType',v)} options={SERVICE_TYPES}/>
+                  <Field label="Client Email" value={form.clientEmail} onChange={v=>upd('clientEmail',v)} type="email" placeholder="client@email.com"/>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+                  <Field label="Job Date" value={form.jobDate} onChange={v=>upd('jobDate',v)} type="date"/>
+                  <Field label="Job Time" value={form.jobTime} onChange={v=>upd('jobTime',v)} type="time"/>
+                  <SelectField label="VAT" value={String(form.vatPct)} onChange={v=>upd('vatPct',Number(v))} options={[{v:'0',l:'0% (below threshold)'},{v:'20',l:'20%'}]}/>
+                </div>
+                <Field label="Property Details" value={form.propDetails} onChange={v=>upd('propDetails',v)} placeholder="e.g. 1 bed flat, 1 bath, furnished"/>
+
+                {/* Line Items */}
+                <div style={{background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:14,marginTop:16}}>
+                  <div style={{fontSize:'0.68rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:10}}>Line Items</div>
+                  {form.lineItems.map((li,i)=>(
+                    <div key={i} style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
+                      <input value={li.desc} onChange={e=>updLine(i,'desc',e.target.value)} placeholder="e.g. End of tenancy deep clean" style={{flex:3,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',fontFamily:'inherit'}}/>
+                      <input type="number" value={li.amt} onChange={e=>updLine(i,'amt',e.target.value)} placeholder="£ Amount" step="1" style={{flex:1,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',fontFamily:'inherit'}}/>
+                      <button onClick={()=>removeLine(i)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:16,padding:'0 6px'}}>✕</button>
+                    </div>
+                  ))}
+                  <button onClick={addLine} style={{background:'transparent',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:'6px 14px',fontSize:'0.75rem',fontWeight:600,color:'var(--text-muted)',cursor:'pointer',marginTop:4}}>+ Add Line</button>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+                  <Field label="Fixed Total (£, overrides lines)" value={form.fixedTotal} onChange={v=>upd('fixedTotal',v)} type="number" placeholder="Leave blank to use line item total"/>
+                  <Field label="Payment Link (Tide)" value={form.paymentLink} onChange={v=>upd('paymentLink',v)} placeholder="https://pay.tide.co/..."/>
+                </div>
+
+                <div style={{marginTop:16}}>
+                  <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Scope of Work <span style={{fontWeight:400,color:'var(--text-muted)'}}>(one item per line)</span></label>
+                  <textarea value={form.scope} onChange={e=>upd('scope',e.target.value)} placeholder={"Cobweb removal from ceilings and walls\nSkirting boards, door frames, radiators\nKitchen units deep clean\n..."} style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',minHeight:90,resize:'vertical',fontFamily:'inherit'}}/>
+                </div>
+              </div>
+            )}
+
+            {!isOneOff&&(
             <div style={{marginTop:16}}>
               <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--teal)',textTransform:'uppercase',letterSpacing:'0.05em'}}>LLW Rate (£/hr) — Auto from Settings</label>
               <div style={{marginTop:4,padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.85rem',color:'var(--text-muted)'}}>{llw.toFixed(2)}</div>
             </div>
+            )}
             <div style={{marginTop:16}}>
               <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Notes</label>
               <textarea value={form.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Scope, access notes, special requirements..." style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',minHeight:70,resize:'vertical',fontFamily:'inherit'}}/>
@@ -209,47 +359,73 @@ export default function Quotes({openLead}){
           {/* Live Calculator */}
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:28}}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
-              <span style={{background:marginOk?'#10b981':'#ef4444',color:'white',fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:4,textTransform:'uppercase'}}>Margin</span>
+              <span style={{background:isOneOff?'var(--teal)':marginOk?'#10b981':'#ef4444',color:'white',fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:4,textTransform:'uppercase'}}>{isOneOff?'One-off':'Margin'}</span>
               <span style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)'}}>Live Calculator</span>
             </div>
 
-            <div style={{textAlign:'center',marginBottom:20}}>
-              <div style={{fontSize:'2.8rem',fontWeight:900,color:marginColor,lineHeight:1}}>{fmtPct(calc.margin)}</div>
-              <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>gross margin</div>
-              <div style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)',marginTop:2}}>{fmtCur(calc.revenue)}/mo</div>
-            </div>
+            {isOneOff?(
+              <>
+                <div style={{textAlign:'center',marginBottom:20}}>
+                  <div style={{fontSize:'2.8rem',fontWeight:900,color:'var(--teal)',lineHeight:1}}>£{calc.gross.toFixed(2)}</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>total {form.vatPct>0?'(inc. VAT)':'(no VAT)'}</div>
+                </div>
+                <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
+                  {form.lineItems.filter(li=>li.desc&&li.amt).map((li,i)=>(
+                    <CalcRow key={i} label={li.desc} value={'£'+Number(li.amt).toFixed(2)} muted/>
+                  ))}
+                  <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
+                    <CalcRow label="Subtotal (net)" value={'£'+calc.subtotal.toFixed(2)} bold/>
+                    <CalcRow label={form.vatPct>0?`VAT (${form.vatPct}%)`:'VAT (0% — below threshold)'} value={'£'+calc.vat.toFixed(2)}/>
+                    <CalcRow label="Total" value={<span style={{color:'var(--teal)',fontWeight:800,fontSize:'1.1rem'}}>£{calc.gross.toFixed(2)}</span>} bold/>
+                  </div>
+                </div>
+                {/* Action buttons */}
+                <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:8}}>
+                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'10px',background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>📄 Preview Quote PDF</button>
+                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--teal)',color:'var(--teal)',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>✉ Preview Email</button>
+                  <button onClick={()=>downloadEmail(form,calc)} style={{width:'100%',padding:'8px',background:'transparent',border:'1px solid var(--border)',color:'var(--text-muted)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>⬇ Download Email HTML</button>
+                </div>
+              </>
+            ):(
+              <>
+                <div style={{textAlign:'center',marginBottom:20}}>
+                  <div style={{fontSize:'2.8rem',fontWeight:900,color:marginColor,lineHeight:1}}>{fmtPct(calc.margin)}</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>gross margin</div>
+                  <div style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)',marginTop:2}}>{fmtCur(calc.revenue)}/mo</div>
+                </div>
 
-            <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-              <CalcRow label="Revenue/month (ex. VAT)" value={fmtCur(calc.revenue)}/>
-              <CalcRow label="Revenue/month (inc. VAT)" value={fmtCur(calc.revenueVat)}/>
-              <CalcRow label="Labour cost" value={fmtCur(calc.labour)} muted/>
-              <CalcRow label="Supplies + Other" value={fmtCur(Number(form.supplies)+Number(form.other))} muted/>
-              <CalcRow label="Direct cost total" value={fmtCur(calc.totalCosts)} bold/>
-              <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
-                <CalcRow label="Gross margin" value={<span style={{color:marginColor,fontWeight:700}}>{calc.grossMargin<0?'£-'+Math.abs(Math.round(calc.grossMargin)).toLocaleString():fmtCur(calc.grossMargin)}</span>}/>
-              </div>
-            </div>
+                <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
+                  <CalcRow label="Revenue/month (ex. VAT)" value={fmtCur(calc.revenue)}/>
+                  <CalcRow label="Revenue/month (inc. VAT)" value={fmtCur(calc.revenueVat)}/>
+                  <CalcRow label="Labour cost" value={fmtCur(calc.labour)} muted/>
+                  <CalcRow label="Supplies + Other" value={fmtCur(Number(form.supplies)+Number(form.other))} muted/>
+                  <CalcRow label="Direct cost total" value={fmtCur(calc.totalCosts)} bold/>
+                  <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
+                    <CalcRow label="Gross margin" value={<span style={{color:marginColor,fontWeight:700}}>{calc.grossMargin<0?'£-'+Math.abs(Math.round(calc.grossMargin)).toLocaleString():fmtCur(calc.grossMargin)}</span>}/>
+                  </div>
+                </div>
 
-            {/* ── Margin Guard ── */}
-            {calc.margin<10&&calc.revenue>0&&(
-              <div style={{marginTop:16,padding:'10px 14px',background:'#450a0a',border:'1px solid #dc2626',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#fca5a5',fontWeight:700}}>
-                Critical: This quote has dangerously low margin ({fmtPct(calc.margin)}). Approval required.
-              </div>
-            )}
-            {calc.margin>=10&&calc.margin<20&&calc.revenue>0&&(
-              <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
-                Warning: This quote is below the minimum margin threshold (20%). Review before sending.
-              </div>
-            )}
-            {calc.margin>=20&&!marginOk&&(
-              <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
-                Below {minMargin}% floor — override required to send
-              </div>
+                {/* ── Margin Guard ── */}
+                {calc.margin<10&&calc.revenue>0&&(
+                  <div style={{marginTop:16,padding:'10px 14px',background:'#450a0a',border:'1px solid #dc2626',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#fca5a5',fontWeight:700}}>
+                    Critical: This quote has dangerously low margin ({fmtPct(calc.margin)}). Approval required.
+                  </div>
+                )}
+                {calc.margin>=10&&calc.margin<20&&calc.revenue>0&&(
+                  <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
+                    Warning: This quote is below the minimum margin threshold (20%). Review before sending.
+                  </div>
+                )}
+                {calc.margin>=20&&!marginOk&&(
+                  <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
+                    Below {minMargin}% floor — override required to send
+                  </div>
+                )}
+              </>
             )}
 
             <div style={{marginTop:20,fontSize:'0.68rem',color:'var(--text-muted)',lineHeight:1.6}}>
-              LLW Rate: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%<br/>
-              These drive all calculations. Update in Admin → Settings.
+              {isOneOff?'One-off job pricing — no recurring calculations.':<>LLW Rate: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%<br/>These drive all calculations. Update in Admin → Settings.</>}
             </div>
           </div>
         </div>
@@ -565,7 +741,7 @@ function SelectField({label,value,onChange,options}){
     <div>
       <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{label}</label>
       <select value={value} onChange={e=>onChange(e.target.value)} style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.85rem',color:'var(--text-1)',fontFamily:'inherit'}}>
-        {options.map(o=><option key={o} value={o}>{o}</option>)}
+        {options.map(o=>{const isObj=typeof o==='object';return<option key={isObj?o.v:o} value={isObj?o.v:o}>{isObj?o.l:o}</option>})}
       </select>
     </div>
   )

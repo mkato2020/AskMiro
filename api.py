@@ -2172,27 +2172,73 @@ def list_quotes(status: Optional[str] = None):
 
 @app.post("/api/quotes")
 def create_quote(body: dict = Body(...)):
-    """Save a quote from the quote builder."""
+    """Save a quote from the quote builder. Supports hourly, fixed, and one_off modes."""
     try:
         with db_pg.transaction() as conn:
-            # Calculate financials
-            hrs = float(body.get('hours_per_week') or 0)
-            days = int(body.get('days_per_week') or 5)
-            rate = float(body.get('client_rate') or 18.50)
-            llw = float(body.get('llw_rate') or 13.85)
-            on_costs = float(body.get('on_costs_pct') or 36)
-            supplies = float(body.get('supplies_month') or 0)
-            other = float(body.get('other_costs_month') or 0)
+            mode = body.get('mode', 'hourly')
 
-            monthly_hrs = hrs * (days / 5) * 4.33
-            labour = monthly_hrs * llw * (1 + on_costs / 100)
-            total_cost = labour + supplies + other
-            revenue = monthly_hrs * rate
-            margin = ((revenue - total_cost) / revenue * 100) if revenue > 0 else 0
+            if mode == 'one_off':
+                # One-off job pricing — line items based
+                line_items = body.get('line_items', [])
+                one_off_total = float(body.get('one_off_total') or 0)
+                if one_off_total <= 0:
+                    one_off_total = sum(float(li.get('amount', 0)) for li in line_items)
+                revenue = one_off_total
+                total_cost = 0  # User can add costs later
+                margin = 100.0 if revenue > 0 else 0
+                risk = ''
+                hrs = 0
+                days = 0
+                rate = 0
+                llw = 0
+                on_costs = 0
+                supplies = 0
+                other = 0
 
-            risk = ''
-            if margin < 10: risk = 'critical'
-            elif margin < 20: risk = 'warning'
+                # Store line items and client email in notes as structured data
+                notes_parts = []
+                if body.get('notes'):
+                    notes_parts.append(body['notes'])
+                if body.get('client_email'):
+                    notes_parts.append(f"CLIENT_EMAIL: {body['client_email']}")
+                if body.get('job_date'):
+                    notes_parts.append(f"JOB_DATE: {body['job_date']}")
+                if body.get('job_time'):
+                    notes_parts.append(f"JOB_TIME: {body['job_time']}")
+                if body.get('service_type'):
+                    notes_parts.append(f"SERVICE_TYPE: {body['service_type']}")
+                if body.get('prop_details'):
+                    notes_parts.append(f"PROP_DETAILS: {body['prop_details']}")
+                if body.get('vat_rate'):
+                    notes_parts.append(f"VAT_RATE: {body['vat_rate']}")
+                if body.get('scope'):
+                    scope_items = [s.strip() for s in body['scope'].split('\n') if s.strip()]
+                    notes_parts.append(f"SCOPE: {json.dumps(scope_items)}")
+                if body.get('payment_link'):
+                    notes_parts.append(f"PAYMENT_LINK: {body['payment_link']}")
+                if line_items:
+                    notes_parts.append(f"LINE_ITEMS: {json.dumps(line_items)}")
+                notes = '\n'.join(notes_parts)
+            else:
+                # Standard hourly/fixed calculation
+                hrs = float(body.get('hours_per_week') or 0)
+                days = int(body.get('days_per_week') or 5)
+                rate = float(body.get('client_rate') or 18.50)
+                llw = float(body.get('llw_rate') or 13.85)
+                on_costs = float(body.get('on_costs_pct') or 36)
+                supplies = float(body.get('supplies_month') or 0)
+                other = float(body.get('other_costs_month') or 0)
+
+                monthly_hrs = hrs * (days / 5) * 4.33
+                labour = monthly_hrs * llw * (1 + on_costs / 100)
+                total_cost = labour + supplies + other
+                revenue = monthly_hrs * rate
+                margin = ((revenue - total_cost) / revenue * 100) if revenue > 0 else 0
+
+                risk = ''
+                if margin < 10: risk = 'critical'
+                elif margin < 20: risk = 'warning'
+                notes = body.get('notes', '')
 
             row = db_pg.fetchone(conn, """
                 INSERT INTO quotes (
@@ -2216,12 +2262,12 @@ def create_quote(body: dict = Body(...)):
                 body.get('client_name', ''), body.get('site_address', ''),
                 body.get('site_postcode') or body.get('postcode', ''),
                 body.get('sector') or body.get('segment', ''),
-                body.get('mode', 'hourly'),
+                mode,
                 hrs, days, rate, llw, on_costs, supplies, other,
                 round(revenue, 2), round(total_cost, 2), round(revenue, 2),
                 round(margin, 1),
                 body.get('scenario', 'balanced'), risk,
-                body.get('notes', ''), round(revenue, 2),
+                notes, round(revenue, 2),
                 body.get('status', 'draft'),
             ))
             return dict(row) if row else {"error": "Insert failed"}
