@@ -3,312 +3,314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crown n Cradle &mdash; Production Dashboard</title>
+<title>Crown n Cradle — Production Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f5f5f0;
-  color: #2d2d2d;
-  min-height: 100vh;
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --ivory: #faf8f3; --cream: #f3efe6; --warm-white: #fffdf8;
+  --charcoal: #1c1c1e; --ink: #2d2d2d; --slate: #5a5a5c;
+  --muted: #9a9a9c; --light-border: #e8e4db; --mid-border: #d4d0c7;
+  --gold: #b8963e; --gold-light: #d4b96a; --gold-subtle: #f5edd8;
+  --teal: #2d6a6a; --teal-light: #3d8a8a; --teal-pale: #e8f4f4;
+  --rose: #c4616c; --rose-pale: #fce8ea;
+  --sage: #5a8a6a; --sage-pale: #e6f2ea;
+  --plum: #7a5aa8; --plum-pale: #f0e8fa;
+  --sky: #4a80b4; --sky-pale: #e4eef8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --radius: 16px;
 }
-.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.container { max-width: 1360px; margin: 0 auto; padding: 0 32px; }
 
-/* Header */
-.header { text-align: center; padding: 44px 0 16px; }
-.header h1 {
-  font-size: 14px; letter-spacing: 6px; text-transform: uppercase;
-  color: #666; font-weight: 400; margin-bottom: 8px;
-}
-.header h2 { font-size: 28px; font-weight: 300; color: #1a1a1a; margin-bottom: 14px; }
-.badge {
-  display: inline-block; padding: 6px 20px; border-radius: 20px;
-  border: 1px solid #ccc; font-size: 13px; color: #555;
-}
-.badge .dot {
-  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  margin-right: 8px; vertical-align: middle;
-}
-.dot-green { background: #22c55e; }
+.header { text-align: center; padding: 48px 0 28px; }
+.header .brand { font-family: 'Playfair Display', serif; font-size: 13px; letter-spacing: 8px; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: 6px; }
+.header h1 { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 400; color: var(--charcoal); letter-spacing: 0.5px; margin-bottom: 16px; }
+.status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 22px; border-radius: 24px; background: var(--warm-white); border: 1px solid var(--light-border); font-size: 13px; color: var(--slate); font-weight: 400; box-shadow: var(--shadow-sm); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-live { background: var(--sage); box-shadow: 0 0 0 3px rgba(90,138,106,0.15); animation: pulse 2s infinite; }
+.dot-idle { background: var(--muted); }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(90,138,106,0.15); } 50% { box-shadow: 0 0 0 6px rgba(90,138,106,0.08); } }
 
-/* Stats Row */
-.stats-row {
-  display: flex; justify-content: center; flex-wrap: wrap;
-  margin: 28px 0 36px; gap: 0;
-}
-.stat-box {
-  padding: 20px 30px; text-align: center;
-  border-right: 1px solid #ddd;
-}
-.stat-box:last-child { border-right: none; }
-.stat-box .num { font-size: 32px; font-weight: 700; color: #1a1a1a; }
-.stat-box .lbl {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
-  color: #888; margin-top: 4px;
-}
+.stats-strip { display: flex; justify-content: center; margin: 32px 0 44px; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: var(--radius); box-shadow: var(--shadow-md); overflow: hidden; }
+.stat-cell { flex: 1; padding: 24px 20px; text-align: center; border-right: 1px solid var(--light-border); }
+.stat-cell:last-child { border-right: none; }
+.stat-cell .num { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 600; color: var(--charcoal); line-height: 1; }
+.stat-cell .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); margin-top: 8px; font-weight: 500; }
+.stat-cell.accent .num { color: var(--gold); }
 
-/* Section Title */
-.section-title {
-  font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
-  color: #888; font-weight: 500; margin: 36px 0 14px;
-}
+.section-head { display: flex; align-items: center; gap: 12px; margin: 44px 0 18px; }
+.section-head .line { flex: 1; height: 1px; background: var(--light-border); }
+.section-head .title { font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); font-weight: 500; white-space: nowrap; }
 
-/* Panels */
-.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media (max-width: 900px) { .panels { grid-template-columns: 1fr; } }
-.panel {
-  background: #fff; border: 1px solid #ddd; border-radius: 12px;
-  padding: 24px; position: relative; overflow: hidden;
-}
-.panel .bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-.bar-red { background: #ef4444; }
-.bar-purple { background: #9333ea; }
-.panel h3 {
-  font-size: 16px; font-weight: 500; color: #333;
-  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
-}
-.panel h3 .icon {
-  width: 24px; height: 24px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #fff;
-}
-.icon-yt { background: #ef4444; }
-.icon-ig { background: #9333ea; }
+.cal-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.cal-meta .week-label { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; color: var(--charcoal); }
+.cal-meta .theme-pill { padding: 6px 18px; border-radius: 20px; background: var(--teal-pale); color: var(--teal); font-size: 12px; font-weight: 500; }
 
-/* Mini Stats */
-.mini-stats {
-  display: flex; gap: 0; margin-bottom: 18px;
-  background: #fafaf5; border-radius: 8px; overflow: hidden;
-}
-.mini-stat {
-  flex: 1; text-align: center; padding: 14px 6px;
-  border-right: 1px solid #eee;
-}
-.mini-stat:last-child { border-right: none; }
-.mini-stat .num { font-size: 22px; font-weight: 700; color: #1a1a1a; }
-.mini-stat .lbl {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
-  color: #999; margin-top: 3px;
-}
+.cal-grid { display: grid; grid-template-columns: 90px repeat(5, 1fr); background: var(--warm-white); border: 1px solid var(--light-border); border-radius: var(--radius); box-shadow: var(--shadow-md); overflow: hidden; }
+.cal-corner { background: var(--teal); }
+.cal-day { background: var(--teal); color: #fff; padding: 14px 8px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 2px; }
+.cal-slot { background: var(--cream); padding: 14px 10px; font-size: 11px; color: var(--slate); display: flex; flex-direction: column; justify-content: center; align-items: center; border-top: 1px solid var(--light-border); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+.cal-slot .time { font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.cal-cell { padding: 14px 12px; border-top: 1px solid var(--light-border); border-left: 1px solid var(--light-border); min-height: 78px; transition: background 0.15s; }
+.cal-cell:hover { background: var(--cream); }
+.cal-cell .topic { font-size: 13px; line-height: 1.35; color: var(--ink); margin-bottom: 6px; }
+.cal-cell .status { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+.s-posted { color: var(--sage); }
+.s-pending { color: var(--muted); }
 
-/* Table */
-table { width: 100%; border-collapse: collapse; }
-th {
-  text-align: left; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 1px; color: #999; padding: 8px 10px;
-  border-bottom: 1px solid #eee; font-weight: 500;
-}
-td { padding: 10px; font-size: 13px; border-bottom: 1px solid #f5f5f0; }
-tr:hover { background: #fafaf5; }
-a { color: #3d7d8a; text-decoration: none; }
-a:hover { text-decoration: underline; }
-.green { color: #16a34a; font-weight: 700; }
-.muted { color: #999; font-size: 12px; }
+.week-nav { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.wk-btn { padding: 8px 22px; border-radius: 24px; border: 1px solid var(--light-border); background: var(--warm-white); font-size: 13px; color: var(--slate); cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 400; transition: all 0.2s; }
+.wk-btn:hover { background: var(--cream); border-color: var(--mid-border); }
+.wk-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
 
-/* Tokens */
-.tokens { display: flex; gap: 14px; flex-wrap: wrap; }
-.token {
-  flex: 1; min-width: 200px; background: #fff;
-  border: 1px solid #ddd; border-radius: 10px;
-  padding: 16px 20px; display: flex; align-items: center; gap: 14px;
-}
-.token .tk-icon {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: #fff; font-weight: 700; flex-shrink: 0;
-}
-.tk-yt { background: #ef4444; }
-.tk-ig { background: #9333ea; }
-.tk-fb { background: #1877f2; }
-.token .name { font-size: 14px; font-weight: 500; color: #333; }
-.token .detail { font-size: 11px; color: #999; margin-top: 2px; }
-
-.loading { text-align: center; padding: 20px; color: #aaa; font-size: 13px; }
-
-/* Upload Card */
-.upload-card {
-  background: #fffdf5; border: 1px solid #e8e4d4; border-radius: 12px;
-  padding: 24px;
-}
-.upload-card .empty {
-  text-align: center; color: #999; padding: 20px; font-size: 14px;
-}
-.upload-item {
-  display: flex; align-items: center; padding: 10px 0;
-  border-bottom: 1px solid #f0ece0;
-}
+.uploads-card { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+.uploads-card .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 14px; }
+.upload-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--cream); }
 .upload-item:last-child { border-bottom: none; }
-.upload-item .title { flex: 1; font-size: 14px; }
+.upload-item .title { flex: 1; font-size: 14px; color: var(--ink); font-weight: 400; }
 .upload-item .badges { display: flex; gap: 6px; }
-.p-badge {
-  font-size: 10px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
-}
-.p-yt { background: #fee2e2; color: #dc2626; }
-.p-ig { background: #f3e8ff; color: #9333ea; }
-.upload-item .date { font-size: 12px; color: #999; margin-left: 16px; }
+.p-badge { font-size: 10px; padding: 4px 12px; border-radius: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.p-yt { background: var(--rose-pale); color: var(--rose); }
+.p-ig { background: var(--plum-pale); color: var(--plum); }
+.upload-item .date { font-size: 12px; color: var(--muted); margin-left: 20px; min-width: 70px; text-align: right; }
 
-.footer {
-  text-align: center; padding: 40px 0 28px; font-size: 11px;
-  color: #bbb; letter-spacing: 2px; text-transform: uppercase;
-}
+.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+.insight-panel { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+.insight-panel h3 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: var(--charcoal); margin-bottom: 20px; }
+.insight-panel h3 .plat-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; vertical-align: middle; }
+.yt-dot { background: var(--rose); }
+.ig-dot { background: var(--plum); }
+
+.kpi-row { display: flex; gap: 0; margin-bottom: 20px; background: var(--cream); border-radius: 12px; overflow: hidden; }
+.kpi { flex: 1; text-align: center; padding: 16px 8px; border-right: 1px solid var(--light-border); }
+.kpi:last-child { border-right: none; }
+.kpi .num { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 600; color: var(--charcoal); }
+.kpi .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+.i-table { width: 100%; border-collapse: collapse; }
+.i-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--light-border); font-weight: 500; }
+.i-table td { padding: 10px; font-size: 13px; border-bottom: 1px solid var(--cream); }
+.i-table tr:hover { background: var(--cream); }
+.i-table a { color: var(--teal); text-decoration: none; font-weight: 400; }
+.i-table a:hover { text-decoration: underline; }
+.v-green { color: var(--sage); font-weight: 600; }
+.loading { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+
+.token-bar { display: flex; gap: 16px; flex-wrap: wrap; }
+.token-chip { flex: 1; min-width: 200px; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+.token-chip .icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.tk-yt .icon { background: var(--rose-pale); }
+.tk-ig .icon { background: var(--plum-pale); }
+.tk-fb .icon { background: var(--sky-pale); }
+.token-chip .info { font-size: 13px; color: var(--ink); }
+.token-chip .sub { font-size: 11px; color: var(--muted); }
+
+.footer { text-align: center; padding: 44px 0 32px; }
+.footer .line { width: 40px; height: 1px; background: var(--mid-border); margin: 0 auto 16px; }
+.footer .text { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
 </style>
 </head>
 <body>
 <div class="container">
 
 <div class="header">
-  <h1>CROWN N CRADLE</h1>
-  <h2>Production Dashboard</h2>
-  <div class="badge"><span class="dot dot-green"></span> Live</div>
-</div>
-
-<div class="stats-row" id="stats-row">
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">Subscribers</div></div>
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">YT Videos</div></div>
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">YT Views</div></div>
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">IG Posts</div></div>
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">IG Views</div></div>
-  <div class="stat-box"><div class="num">&mdash;</div><div class="lbl">Total Reach</div></div>
-</div>
-
-<div class="section-title">PLATFORM PERFORMANCE</div>
-<div class="panels">
-  <div class="panel">
-    <div class="bar bar-red"></div>
-    <h3><span class="icon icon-yt">&#9654;</span> YouTube Shorts</h3>
-    <div class="mini-stats" id="yt-stats">
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Subscribers</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Views</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Likes</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Avg / Short</div></div>
-    </div>
-    <div id="yt-table"><div class="loading">Loading YouTube data...</div></div>
-  </div>
-  <div class="panel">
-    <div class="bar bar-purple"></div>
-    <h3><span class="icon icon-ig">&#9673;</span> Instagram Reels</h3>
-    <div class="mini-stats" id="ig-stats">
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Views</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Likes</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Shares</div></div>
-      <div class="mini-stat"><div class="num">&mdash;</div><div class="lbl">Saves</div></div>
-    </div>
-    <div id="ig-table"><div class="loading">Loading Instagram data...</div></div>
+  <div class="brand">Crown n Cradle</div>
+  <h1>Production Dashboard</h1>
+  <div class="status-pill" id="status-pill">
+    <span class="status-dot dot-live"></span>
+    <span>Live</span>
   </div>
 </div>
 
-<div class="section-title">TOP PERFORMING CONTENT</div>
-<div class="upload-card" id="top-content">
-  <div class="loading">Loading...</div>
+<div class="stats-strip" id="stats-strip"></div>
+
+<div class="section-head"><span class="line"></span><span class="title">Content Calendar</span><span class="line"></span></div>
+<div class="cal-meta">
+  <div class="week-label" id="week-label">Week 1 of 4</div>
+  <div class="theme-pill" id="week-theme"></div>
+</div>
+<div class="cal-grid" id="cal-grid"></div>
+<div class="week-nav" id="week-nav"></div>
+
+<div class="section-head"><span class="line"></span><span class="title">Top Content</span><span class="line"></span></div>
+<div class="uploads-card" id="uploads-box"><div class="loading">Loading...</div></div>
+
+<div class="section-head"><span class="line"></span><span class="title">Platform Insights</span><span class="line"></span></div>
+<div class="insights-grid">
+  <div class="insight-panel">
+    <h3><span class="plat-dot yt-dot"></span>YouTube</h3>
+    <div class="kpi-row" id="yt-kpis"></div>
+    <div id="yt-table"><div class="loading">Loading YouTube insights&hellip;</div></div>
+  </div>
+  <div class="insight-panel">
+    <h3><span class="plat-dot ig-dot"></span>Instagram</h3>
+    <div class="kpi-row" id="ig-kpis"></div>
+    <div id="ig-table"><div class="loading">Loading Instagram insights&hellip;</div></div>
+  </div>
 </div>
 
-<div class="section-title">INTEGRATIONS</div>
-<div class="tokens" id="tokens">
-  <div class="token"><div class="tk-icon tk-yt">&#9654;</div><div><div class="name">YouTube</div><div class="detail">Checking...</div></div></div>
-  <div class="token"><div class="tk-icon tk-ig">&#9673;</div><div><div class="name">Instagram</div><div class="detail">Checking...</div></div></div>
-  <div class="token"><div class="tk-icon tk-fb">f</div><div><div class="name">Facebook</div><div class="detail">Via IG auto-share</div></div></div>
-</div>
+<div class="section-head"><span class="line"></span><span class="title">Integrations</span><span class="line"></span></div>
+<div class="token-bar" id="token-bar"></div>
 
-<div class="footer">Auto-refreshes every 30 seconds</div>
+<div class="footer">
+  <div class="line"></div>
+  <div class="text">Auto-refreshes every 30s</div>
+</div>
 
 </div>
 <script>
+var currentWeek = 0, calendarData = null;
+
 function fmt(n) { return (n || 0).toLocaleString(); }
 
-async function loadData() {
+async function loadAll() {
   try {
-    var res = await fetch('/api/cnc-insights');
-    var data = await res.json();
-    if (data.error) return;
+    var r = await fetch('/api/cnc-insights');
+    var d = await r.json();
+    if (d.error) { console.error(d.error); return; }
 
-    var yt = data.youtube || {};
-    var ig = data.instagram || {};
+    var yt = d.youtube || {};
+    var ig = d.instagram || {};
     var ytT = yt.totals || {};
     var igT = ig.totals || {};
     var ch = yt.channel || {};
+    calendarData = d.calendar;
 
-    // Stats row
+    // Stats strip
     var totalReach = (ytT.totalViews || 0) + (igT.totalViews || 0);
-    document.getElementById('stats-row').innerHTML =
-      '<div class="stat-box"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
-      '<div class="stat-box"><div class="num">' + fmt(ch.totalVideos) + '</div><div class="lbl">YT Videos</div></div>' +
-      '<div class="stat-box"><div class="num">' + fmt(ytT.totalViews) + '</div><div class="lbl">YT Views</div></div>' +
-      '<div class="stat-box"><div class="num">' + fmt(igT.totalPosts) + '</div><div class="lbl">IG Posts</div></div>' +
-      '<div class="stat-box"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">IG Views</div></div>' +
-      '<div class="stat-box"><div class="num">' + fmt(totalReach) + '</div><div class="lbl">Total Reach</div></div>';
+    document.getElementById('stats-strip').innerHTML =
+      '<div class="stat-cell"><div class="num">' + fmt(ch.totalVideos) + '</div><div class="lbl">Videos</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ytT.totalViews) + '</div><div class="lbl">YT Views</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(igT.totalPosts) + '</div><div class="lbl">IG Posts</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">IG Views</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(igT.totalSaves) + '</div><div class="lbl">Saves</div></div>' +
+      '<div class="stat-cell accent"><div class="num">' + fmt(totalReach) + '</div><div class="lbl">Total Reach</div></div>' +
+      '<div class="stat-cell accent"><div class="num">ON</div><div class="lbl">Auto-Pilot</div></div>';
 
-    // YouTube panel
-    document.getElementById('yt-stats').innerHTML =
-      '<div class="mini-stat"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(ytT.totalViews) + '</div><div class="lbl">Views</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(ytT.totalLikes) + '</div><div class="lbl">Likes</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(ytT.avgViews) + '</div><div class="lbl">Avg / Short</div></div>';
+    // Calendar
+    renderCalendar();
+
+    // Top content (combined YT + IG sorted by views)
+    var allContent = [];
+    (yt.videos || []).forEach(function(v) {
+      allContent.push({ title: v.title, views: v.views, likes: v.likes, platform: 'yt', url: v.url });
+    });
+    (ig.media || []).forEach(function(m) {
+      allContent.push({ title: m.caption || 'Reel', views: m.views, likes: m.likes, platform: 'ig', url: m.url });
+    });
+    allContent.sort(function(a, b) { return b.views - a.views; });
+    var top = allContent.slice(0, 8);
+
+    if (top.length === 0) {
+      document.getElementById('uploads-box').innerHTML = '<div class="empty">No content data yet. Set environment variables in Netlify to connect.</div>';
+    } else {
+      var topHtml = top.map(function(item) {
+        var badge = item.platform === 'yt'
+          ? '<span class="p-badge p-yt">YouTube</span>'
+          : '<span class="p-badge p-ig">Instagram</span>';
+        return '<div class="upload-item"><div class="title"><a href="' + item.url + '" target="_blank">' + item.title.slice(0, 55) + '</a></div><div class="badges">' + badge + '</div><div class="date">' + fmt(item.views) + ' views</div></div>';
+      }).join('');
+      document.getElementById('uploads-box').innerHTML = topHtml;
+    }
+
+    // YouTube KPIs + table
+    document.getElementById('yt-kpis').innerHTML =
+      '<div class="kpi"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(ytT.totalViews) + '</div><div class="lbl">Total Views</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(ytT.totalLikes) + '</div><div class="lbl">Likes</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(ytT.avgViews) + '</div><div class="lbl">Avg / Short</div></div>';
 
     var ytVids = (yt.videos || []).slice(0, 8);
     if (ytVids.length === 0) {
       document.getElementById('yt-table').innerHTML = '<div class="loading">No videos yet</div>';
     } else {
-      var rows = ytVids.map(function(v) {
-        return '<tr><td><a href="' + v.url + '" target="_blank">' + v.title.slice(0, 45) + '</a></td><td class="green">' + fmt(v.views) + '</td><td>' + fmt(v.likes) + '</td><td class="muted">' + new Date(v.publishedAt).toLocaleDateString() + '</td></tr>';
+      var ytRows = ytVids.map(function(v) {
+        return '<tr><td><a href="' + v.url + '" target="_blank">' + v.title.slice(0, 42) + '</a></td><td class="v-green">' + fmt(v.views) + '</td><td>' + fmt(v.likes) + '</td></tr>';
       }).join('');
-      document.getElementById('yt-table').innerHTML = '<table><thead><tr><th>Title</th><th>Views</th><th>Likes</th><th>Published</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      document.getElementById('yt-table').innerHTML = '<table class="i-table"><thead><tr><th>Title</th><th>Views</th><th>Likes</th></tr></thead><tbody>' + ytRows + '</tbody></table>';
     }
 
-    // Instagram panel
-    document.getElementById('ig-stats').innerHTML =
-      '<div class="mini-stat"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">Views</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(igT.totalLikes) + '</div><div class="lbl">Likes</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(igT.totalShares) + '</div><div class="lbl">Shares</div></div>' +
-      '<div class="mini-stat"><div class="num">' + fmt(igT.totalSaves) + '</div><div class="lbl">Saves</div></div>';
+    // Instagram KPIs + table
+    document.getElementById('ig-kpis').innerHTML =
+      '<div class="kpi"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">Views</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(igT.totalLikes) + '</div><div class="lbl">Likes</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(igT.totalShares) + '</div><div class="lbl">Shares</div></div>' +
+      '<div class="kpi"><div class="num">' + fmt(igT.totalSaves) + '</div><div class="lbl">Saves</div></div>';
 
     var igMedia = (ig.media || []).slice(0, 8);
     if (igMedia.length === 0) {
       document.getElementById('ig-table').innerHTML = '<div class="loading">No Reels yet</div>';
     } else {
       var igRows = igMedia.map(function(m) {
-        return '<tr><td><a href="' + m.url + '" target="_blank">' + (m.caption || 'Reel').slice(0, 40) + '</a></td><td class="green">' + fmt(m.views) + '</td><td>' + fmt(m.likes) + '</td><td>' + fmt(m.saves) + '</td></tr>';
+        return '<tr><td><a href="' + m.url + '" target="_blank">' + (m.caption || 'Reel').slice(0, 38) + '</a></td><td class="v-green">' + fmt(m.views) + '</td><td>' + fmt(m.likes) + '</td><td>' + fmt(m.saves) + '</td></tr>';
       }).join('');
-      document.getElementById('ig-table').innerHTML = '<table><thead><tr><th>Caption</th><th>Views</th><th>Likes</th><th>Saves</th></tr></thead><tbody>' + igRows + '</tbody></table>';
-    }
-
-    // Top performing (combine YT + IG, sort by views)
-    var all = [];
-    ytVids.forEach(function(v) {
-      all.push({ title: v.title.slice(0, 50), views: v.views, likes: v.likes, platform: 'yt', url: v.url });
-    });
-    igMedia.forEach(function(m) {
-      all.push({ title: (m.caption || 'Reel').slice(0, 50), views: m.views, likes: m.likes, platform: 'ig', url: m.url });
-    });
-    all.sort(function(a, b) { return b.views - a.views; });
-    var topItems = all.slice(0, 6);
-
-    if (topItems.length === 0) {
-      document.getElementById('top-content').innerHTML = '<div class="empty">No content yet</div>';
-    } else {
-      var topHtml = topItems.map(function(item) {
-        var badge = item.platform === 'yt'
-          ? '<span class="p-badge p-yt">YouTube</span>'
-          : '<span class="p-badge p-ig">Instagram</span>';
-        return '<div class="upload-item"><div class="title"><a href="' + item.url + '" target="_blank">' + item.title + '</a></div><div class="badges">' + badge + '</div><div class="date">' + fmt(item.views) + ' views</div></div>';
-      }).join('');
-      document.getElementById('top-content').innerHTML = topHtml;
+      document.getElementById('ig-table').innerHTML = '<table class="i-table"><thead><tr><th>Caption</th><th>Views</th><th>Likes</th><th>Saves</th></tr></thead><tbody>' + igRows + '</tbody></table>';
     }
 
     // Tokens
     var ytOk = !yt.error && ch.name;
     var igOk = !ig.error && ig.profile && ig.profile.username;
-    document.getElementById('tokens').innerHTML =
-      '<div class="token"><div class="tk-icon tk-yt">&#9654;</div><div><div class="name">' + (ytOk ? ch.name : 'YouTube') + '</div><div class="detail">' + (ytOk ? 'Connected &middot; ' + fmt(ch.totalVideos) + ' videos' : (yt.error || 'Not connected')) + '</div></div></div>' +
-      '<div class="token"><div class="tk-icon tk-ig">&#9673;</div><div><div class="name">' + (igOk ? '@' + ig.profile.username : 'Instagram') + '</div><div class="detail">' + (igOk ? 'Connected &middot; ' + (ig.profile.media_count || 0) + ' posts' : (ig.error || 'Not connected')) + '</div></div></div>' +
-      '<div class="token"><div class="tk-icon tk-fb">f</div><div><div class="name">Facebook</div><div class="detail">Via Instagram auto-share</div></div></div>';
+    document.getElementById('token-bar').innerHTML =
+      '<div class="token-chip tk-yt"><div class="icon">&#9654;</div><div><div class="info">' + (ytOk ? ch.name : 'YouTube') + '</div><div class="sub">' + (ytOk ? 'Connected &middot; ' + fmt(ch.totalVideos) + ' videos' : (yt.error || 'Not connected')) + '</div></div></div>' +
+      '<div class="token-chip tk-ig"><div class="icon">&#9673;</div><div><div class="info">' + (igOk ? '@' + ig.profile.username : 'Instagram') + '</div><div class="sub">' + (igOk ? 'Connected &middot; ' + (ig.profile.media_count || 0) + ' posts' : (ig.error || 'Not connected')) + '</div></div></div>' +
+      '<div class="token-chip tk-fb"><div class="icon">f</div><div><div class="info">Facebook</div><div class="sub">Via Instagram auto-share</div></div></div>';
+
+    // Update timestamp
+    document.getElementById('status-pill').querySelector('span:last-child').textContent = 'Updated ' + new Date().toLocaleTimeString();
 
   } catch (e) {
     console.error('Load failed:', e);
   }
 }
 
-loadData();
-setInterval(loadData, 30000);
+function renderCalendar() {
+  var cal = calendarData;
+  if (!cal || !cal.weeks) { document.getElementById('cal-grid').innerHTML = '<p style="padding:20px;color:var(--muted)">No calendar data</p>'; return; }
+  var totalWeeks = cal.weeks.length;
+  if (currentWeek >= totalWeeks) currentWeek = 0;
+  var week = cal.weeks[currentWeek];
+  document.getElementById('week-label').textContent = 'Week ' + (currentWeek + 1) + ' of ' + totalWeeks;
+  var theme = week.theme || '';
+  document.getElementById('week-theme').textContent = theme ? 'Theme: ' + theme : '';
+  document.getElementById('week-theme').style.display = theme ? '' : 'none';
+
+  var days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+  var posted = new Set((cal.posted || []).map(function(p) { return p.topic || p; }));
+  var html = '<div class="cal-corner"></div>';
+  days.forEach(function(d) { html += '<div class="cal-day">' + d + '</div>'; });
+
+  var slots = week.slots || [];
+  var morning = slots.filter(function(s) { return s.slot === 'morning'; });
+  var evening = slots.filter(function(s) { return s.slot === 'evening'; });
+
+  html += '<div class="cal-slot">Morning<div class="time">7:00 AM</div></div>';
+  for (var i = 0; i < 5; i++) {
+    var s = morning[i];
+    var ip = s && posted.has(s.topic);
+    html += '<div class="cal-cell">' + (s ? '<div class="topic">' + s.topic + '</div><div class="status ' + (ip ? 's-posted' : 's-pending') + '">' + (ip ? 'POSTED' : 'PENDING') + '</div>' : '') + '</div>';
+  }
+  html += '<div class="cal-slot">Evening<div class="time">7:00 PM</div></div>';
+  for (var i = 0; i < 5; i++) {
+    var s = evening[i];
+    var ip = s && posted.has(s.topic);
+    html += '<div class="cal-cell">' + (s ? '<div class="topic">' + s.topic + '</div><div class="status ' + (ip ? 's-posted' : 's-pending') + '">' + (ip ? 'POSTED' : 'PENDING') + '</div>' : '') + '</div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+
+  var nav = '';
+  for (var w = 0; w < totalWeeks; w++) {
+    nav += '<button class="wk-btn' + (w === currentWeek ? ' active' : '') + '" onclick="currentWeek=' + w + ';renderCalendar()">Week ' + (w + 1) + '</button>';
+  }
+  document.getElementById('week-nav').innerHTML = nav;
+}
+
+loadAll();
+setInterval(loadAll, 30000);
 </script>
 </body>
 </html>
