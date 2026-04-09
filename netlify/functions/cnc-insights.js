@@ -36,6 +36,21 @@ async function getYouTubeAccessToken() {
 
 async function fetchYouTube() {
   if (!YT_CLIENT_ID || !ytRefreshToken) return { error: 'YouTube not configured' };
+
+  // Cache YouTube data for 10 minutes to avoid burning 10K daily quota
+  const store = getStore('cnc-config');
+  const CACHE_KEY = 'yt-cache';
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+  try {
+    const cached = await store.get(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Date.now() - parsed._cachedAt < CACHE_TTL) {
+        return parsed.data;
+      }
+    }
+  } catch (e) {}
+
   const accessToken = await getYouTubeAccessToken();
   if (!accessToken) return { error: 'Failed to refresh YouTube token' };
 
@@ -44,6 +59,7 @@ async function fetchYouTube() {
     const chRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&mine=true',
       { headers: { Authorization: 'Bearer ' + accessToken } });
     const chData = await chRes.json();
+    if (chData.error) return { error: chData.error.message || 'YouTube API error', channel: {}, videos: [], totals: { totalViews: 0, totalLikes: 0, totalComments: 0, avgViews: 0 } };
     if (chData.items && chData.items[0]) {
       const ch = chData.items[0];
       channel = { name: ch.snippet.title, subscribers: parseInt(ch.statistics.subscriberCount || 0),
@@ -75,7 +91,12 @@ async function fetchYouTube() {
     totalComments: videos.reduce((s, v) => s + v.comments, 0),
     avgViews: videos.length ? Math.round(videos.reduce((s, v) => s + v.views, 0) / videos.length) : 0,
   };
-  return { channel, videos, totals };
+  const result = { channel, videos, totals };
+
+  // Cache the result
+  try { await store.set(CACHE_KEY, JSON.stringify({ _cachedAt: Date.now(), data: result })); } catch (e) {}
+
+  return result;
 }
 
 async function fetchInstagram() {
