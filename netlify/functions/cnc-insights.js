@@ -142,12 +142,22 @@ async function fetchApiUsage() {
       const costPerMOutputToken = 15.00; // Claude Sonnet $15/M output
       const inputCost = (data.inputTokens / 1_000_000) * costPerMInputToken;
       const outputCost = (data.outputTokens / 1_000_000) * costPerMOutputToken;
+      // Get stored balance
+      const balRaw = await store.get('balance-anthropic');
+      const balance = balRaw ? JSON.parse(balRaw) : null;
+      const spent = Math.round((inputCost + outputCost) * 100) / 100;
+      const remaining = balance ? Math.max(0, Math.round((balance.amount - spent) * 100) / 100) : null;
       usage.claude = {
         service: 'Claude API',
         calls: data.calls,
         inputTokens: data.inputTokens,
         outputTokens: data.outputTokens,
-        cost: Math.round((inputCost + outputCost) * 100) / 100,
+        spent,
+        cost: spent,
+        balance: balance ? balance.amount : null,
+        remaining,
+        balanceUpdatedAt: balance ? balance.updatedAt : null,
+        lastCall: data.lastCall || null,
         unit: 'USD',
         status: 'active',
         note: 'Script generation + QA',
@@ -232,9 +242,26 @@ async function logApiCall(body) {
   data.calls += 1;
   data.inputTokens += (body.inputTokens || 0);
   data.outputTokens += (body.outputTokens || 0);
+  data.characters = (data.characters || 0) + (body.characters || 0);
   data.lastCall = new Date().toISOString();
 
   await store.set(key, JSON.stringify(data));
+  return data;
+}
+
+// ── Balance management (Anthropic credit balance) ──────────
+async function getBalance(service) {
+  try {
+    const store = getStore('cnc-config');
+    const raw = await store.get('balance-' + service);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+async function setBalance(service, amount) {
+  const store = getStore('cnc-config');
+  const data = { amount: parseFloat(amount), updatedAt: new Date().toISOString() };
+  await store.set('balance-' + service, JSON.stringify(data));
   return data;
 }
 
@@ -282,6 +309,17 @@ export default async (req) => {
       const body = await req.json();
       const data = await logApiCall(body);
       return new Response(JSON.stringify({ logged: true, data }), { status: 200, headers: CORS_HEADERS });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS_HEADERS });
+    }
+  }
+
+  // ── Set balance (manual entry from dashboard) ──
+  if (action === 'set-balance' && req.method === 'POST') {
+    try {
+      const body = await req.json();
+      const data = await setBalance(body.service || 'anthropic', body.amount || 0);
+      return new Response(JSON.stringify({ saved: true, data }), { status: 200, headers: CORS_HEADERS });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS_HEADERS });
     }

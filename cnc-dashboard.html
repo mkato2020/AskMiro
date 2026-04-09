@@ -241,6 +241,101 @@ async function toggleAutopilot() {
   }
 }
 
+async function setClaudeBalance() {
+  var val = prompt('Enter your current Anthropic credit balance (USD):', '6.08');
+  if (val === null) return;
+  var amount = parseFloat(val);
+  if (isNaN(amount) || amount < 0) { alert('Invalid amount'); return; }
+  try {
+    await fetch('/api/cnc-insights?action=set-balance', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'anthropic', amount: amount })
+    });
+    loadAll();
+  } catch (e) { alert('Failed to save: ' + e.message); }
+}
+
+function renderCostPanel(usage) {
+  var costHtml = '<div class="cost-grid">';
+  var totalCost = 0;
+  var svcConfig = {
+    claude:      { icon: 'C', bg: '#f5edd8', color: '#b8963e' },
+    elevenlabs:  { icon: '🔊', bg: '#e8f4f4', color: '#2d6a6a' },
+    youtube:     { icon: '▶', bg: 'var(--rose-pale)', color: 'var(--rose)' },
+    instagram:   { icon: '◉', bg: 'var(--plum-pale)', color: 'var(--plum)' },
+    resend:      { icon: '✉', bg: 'var(--sky-pale)', color: 'var(--sky)' },
+  };
+
+  ['claude', 'elevenlabs', 'youtube', 'instagram', 'resend'].forEach(function(key) {
+    var s = usage[key];
+    if (!s) return;
+    var cfg = svcConfig[key] || { icon: '?', bg: '#eee', color: '#666' };
+    var cost = s.cost || 0;
+    totalCost += cost;
+
+    var meterHtml = '';
+    var balanceHtml = '';
+
+    // Claude — show balance, spent, remaining
+    if (key === 'claude') {
+      if (s.remaining !== null && s.remaining !== undefined) {
+        var pct = s.balance ? Math.round(((s.balance - s.remaining) / s.balance) * 100) : 0;
+        var barColor = pct > 80 ? 'var(--rose)' : pct > 50 ? 'var(--gold)' : 'var(--sage)';
+        var remClass = s.remaining < 1 ? 'cost-warn' : s.remaining < 3 ? 'cost-paid' : 'cost-free';
+        balanceHtml = '<div style="margin:12px 0 4px"><span style="font-family:Playfair Display,serif;font-size:28px;font-weight:600" class="' + remClass + '">$' + s.remaining.toFixed(2) + '</span><span style="font-size:11px;color:var(--muted);margin-left:6px">remaining</span></div>';
+        balanceHtml += '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div><div class="meter-label">$' + (s.spent || 0).toFixed(2) + ' spent of $' + s.balance.toFixed(2) + '</div></div>';
+      } else {
+        balanceHtml = '<div style="margin:8px 0"><button onclick="setClaudeBalance()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--light-border);background:var(--cream);cursor:pointer;font-size:11px;font-family:Inter,sans-serif;color:var(--slate)">Set Balance</button></div>';
+      }
+      if (s.calls) {
+        meterHtml = '<div class="svc-meter" style="margin-top:8px"><div class="meter-label">' + fmt(s.calls) + ' calls &middot; ' + fmt(s.inputTokens) + ' in &middot; ' + fmt(s.outputTokens) + ' out</div></div>';
+      }
+    }
+
+    // ElevenLabs — show character usage meter
+    if (key === 'elevenlabs' && s.percentUsed !== undefined) {
+      var fill = Math.min(s.percentUsed, 100);
+      var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
+      var charClass = fill > 80 ? 'cost-warn' : fill > 50 ? 'cost-paid' : 'cost-free';
+      balanceHtml = '<div style="margin:12px 0 4px"><span style="font-family:Playfair Display,serif;font-size:22px;font-weight:600" class="' + charClass + '">' + fill + '%</span><span style="font-size:11px;color:var(--muted);margin-left:6px">used</span></div>';
+      meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.charactersUsed) + ' / ' + fmt(s.charactersLimit) + ' chars</div></div>';
+      if (s.nextReset) {
+        var resetDate = new Date(s.nextReset);
+        meterHtml += '<div class="meter-label" style="margin-top:2px">Resets ' + resetDate.toLocaleDateString() + '</div>';
+      }
+    }
+
+    // YouTube quota meter
+    if (key === 'youtube' && s.estimatedQuotaUsed !== undefined && s.dailyQuota) {
+      var fill = Math.min(Math.round((s.estimatedQuotaUsed / s.dailyQuota) * 100), 100);
+      var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
+      meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.estimatedQuotaUsed) + ' / ' + fmt(s.dailyQuota) + ' quota units</div></div>';
+    }
+
+    var costClass = cost === 0 ? 'cost-free' : cost > 50 ? 'cost-warn' : 'cost-paid';
+    var costDisplay = cost === 0 ? 'FREE' : '$' + cost.toFixed(2);
+    var detail = s.status || '';
+    if (s.tier) detail = 'Tier: ' + s.tier;
+    if (s.rateLimit) detail = s.rateLimit;
+
+    // For Claude, don't show the small cost number since we show balance instead
+    var costLine = (key === 'claude' && s.remaining !== null && s.remaining !== undefined) ? '' :
+      '<div class="svc-cost ' + costClass + '">' + costDisplay + '</div><div class="svc-unit">' + (s.unit || '') + '</div>';
+
+    costHtml += '<div class="cost-card">' +
+      '<div class="svc-icon" style="background:' + cfg.bg + ';color:' + cfg.color + '">' + cfg.icon + '</div>' +
+      '<div class="svc-name">' + (s.service || key) + '</div>' +
+      '<div class="svc-note">' + (s.note || '') + '</div>' +
+      balanceHtml + costLine + meterHtml +
+      (detail ? '<div class="svc-note" style="margin-top:8px;font-size:10px">' + detail + '</div>' : '') +
+      '</div>';
+  });
+
+  costHtml += '</div>';
+  costHtml += '<div class="cost-summary"><span class="total-label">Est. Monthly Total</span><span class="total-value">' + (totalCost === 0 ? 'FREE' : '$' + totalCost.toFixed(2)) + '</span></div>';
+  document.getElementById('cost-panel').innerHTML = costHtml;
+}
+
 async function loadAll() {
   try {
     var r = await fetch('/api/cnc-insights');
@@ -340,59 +435,7 @@ async function loadAll() {
       '<div class="token-chip tk-fb"><div class="icon">f</div><div><div class="info">Facebook</div><div class="sub">Via Instagram auto-share</div></div></div>';
 
     // API Usage & Cost panel
-    var usage = d.apiUsage || {};
-    var costHtml = '<div class="cost-grid">';
-    var totalCost = 0;
-    var svcConfig = {
-      claude:      { icon: 'C', bg: '#f5edd8', color: '#b8963e' },
-      elevenlabs:  { icon: '🔊', bg: '#e8f4f4', color: '#2d6a6a' },
-      youtube:     { icon: '▶', bg: 'var(--rose-pale)', color: 'var(--rose)' },
-      instagram:   { icon: '◉', bg: 'var(--plum-pale)', color: 'var(--plum)' },
-      resend:      { icon: '✉', bg: 'var(--sky-pale)', color: 'var(--sky)' },
-    };
-
-    ['claude', 'elevenlabs', 'youtube', 'instagram', 'resend'].forEach(function(key) {
-      var s = usage[key];
-      if (!s) return;
-      var cfg = svcConfig[key] || { icon: '?', bg: '#eee', color: '#666' };
-      var cost = s.cost || 0;
-      totalCost += cost;
-      var costClass = cost === 0 ? 'cost-free' : cost > 50 ? 'cost-warn' : 'cost-paid';
-      var costDisplay = cost === 0 ? 'FREE' : '$' + cost.toFixed(2);
-
-      var meterHtml = '';
-      if (s.percentUsed !== undefined) {
-        var fill = Math.min(s.percentUsed, 100);
-        var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
-        meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.charactersUsed) + ' / ' + fmt(s.charactersLimit) + ' chars</div></div>';
-      }
-      if (s.estimatedQuotaUsed !== undefined && s.dailyQuota) {
-        var fill = Math.min(Math.round((s.estimatedQuotaUsed / s.dailyQuota) * 100), 100);
-        var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
-        meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.estimatedQuotaUsed) + ' / ' + fmt(s.dailyQuota) + ' quota units</div></div>';
-      }
-      if (key === 'claude' && s.calls) {
-        meterHtml = '<div class="svc-meter"><div class="meter-label">' + fmt(s.calls) + ' calls &middot; ' + fmt(s.inputTokens) + ' in &middot; ' + fmt(s.outputTokens) + ' out</div></div>';
-      }
-
-      var detail = s.status || '';
-      if (s.tier) detail = 'Tier: ' + s.tier;
-      if (s.rateLimit) detail = s.rateLimit;
-
-      costHtml += '<div class="cost-card">' +
-        '<div class="svc-icon" style="background:' + cfg.bg + ';color:' + cfg.color + '">' + cfg.icon + '</div>' +
-        '<div class="svc-name">' + (s.service || key) + '</div>' +
-        '<div class="svc-note">' + (s.note || '') + '</div>' +
-        '<div class="svc-cost ' + costClass + '">' + costDisplay + '</div>' +
-        '<div class="svc-unit">' + (s.unit || '') + '</div>' +
-        meterHtml +
-        (detail ? '<div class="svc-note" style="margin-top:8px;font-size:10px">' + detail + '</div>' : '') +
-        '</div>';
-    });
-
-    costHtml += '</div>';
-    costHtml += '<div class="cost-summary"><span class="total-label">Est. Monthly Total</span><span class="total-value">' + (totalCost === 0 ? 'FREE' : '$' + totalCost.toFixed(2)) + '</span></div>';
-    document.getElementById('cost-panel').innerHTML = costHtml;
+    renderCostPanel(d.apiUsage || {});
 
     // Update timestamp
     document.getElementById('status-pill').querySelector('span:last-child').textContent = 'Updated ' + new Date().toLocaleTimeString();
