@@ -125,6 +125,119 @@ async function fetchInstagram() {
   return { profile, media: mediaWithInsights, totals };
 }
 
+// ── API Usage & Cost Tracking ────────────────────────────────
+async function fetchApiUsage() {
+  const usage = {};
+
+  // 1. Anthropic — billing via API (api.anthropic.com)
+  const anthropicKey = process.env.CNC_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (anthropicKey) {
+    try {
+      // Anthropic doesn't have a public usage API yet — estimate from production logs
+      // We track calls via blob store instead
+      const store = getStore('cnc-config');
+      const raw = await store.get('api-usage-anthropic');
+      const data = raw ? JSON.parse(raw) : { calls: 0, inputTokens: 0, outputTokens: 0 };
+      const costPerMInputToken = 3.00;  // Claude Sonnet $3/M input
+      const costPerMOutputToken = 15.00; // Claude Sonnet $15/M output
+      const inputCost = (data.inputTokens / 1_000_000) * costPerMInputToken;
+      const outputCost = (data.outputTokens / 1_000_000) * costPerMOutputToken;
+      usage.claude = {
+        service: 'Claude API',
+        calls: data.calls,
+        inputTokens: data.inputTokens,
+        outputTokens: data.outputTokens,
+        cost: Math.round((inputCost + outputCost) * 100) / 100,
+        unit: 'USD',
+        status: 'active',
+        note: 'Script generation + QA',
+      };
+    } catch { usage.claude = { service: 'Claude API', status: 'no data', cost: 0 }; }
+  } else {
+    usage.claude = { service: 'Claude API', status: 'not configured', cost: 0 };
+  }
+
+  // 2. ElevenLabs — character usage via API
+  const elKey = process.env.CNC_ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY;
+  if (elKey) {
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
+        headers: { 'xi-api-key': elKey },
+      });
+      const data = await res.json();
+      usage.elevenlabs = {
+        service: 'ElevenLabs',
+        tier: data.tier || 'unknown',
+        charactersUsed: data.character_count || 0,
+        charactersLimit: data.character_limit || 0,
+        percentUsed: data.character_limit ? Math.round((data.character_count / data.character_limit) * 100) : 0,
+        nextReset: data.next_character_count_reset_unix ? new Date(data.next_character_count_reset_unix * 1000).toISOString() : null,
+        cost: data.tier === 'free' ? 0 : data.tier === 'starter' ? 5 : data.tier === 'creator' ? 22 : data.tier === 'pro' ? 99 : 0,
+        unit: 'USD/mo',
+        status: 'active',
+        note: 'Voiceover generation',
+      };
+    } catch (e) { usage.elevenlabs = { service: 'ElevenLabs', status: 'error: ' + e.message, cost: 0 }; }
+  } else {
+    usage.elevenlabs = { service: 'ElevenLabs', status: 'not configured', cost: 0 };
+  }
+
+  // 3. YouTube Data API — quota (10,000 units/day free)
+  // Upload = 1600 units, search = 100, list = 1 unit
+  // Estimated from video count
+  const ytVideos = 0; // will be filled from main data
+  usage.youtube = {
+    service: 'YouTube Data API',
+    dailyQuota: 10000,
+    costPerUpload: 1600,
+    status: 'active (free tier)',
+    cost: 0,
+    unit: 'FREE',
+    note: 'Upload + metadata',
+  };
+
+  // 4. Instagram Graph API — free, rate limited
+  usage.instagram = {
+    service: 'Instagram Graph API',
+    rateLimit: '200 calls/hr',
+    status: 'active (free)',
+    cost: 0,
+    unit: 'FREE',
+    note: 'Reel publishing',
+  };
+
+  // 5. Resend (email)
+  usage.resend = {
+    service: 'Resend',
+    status: 'active',
+    cost: 0,
+    unit: 'FREE (100/day)',
+    note: 'Notifications',
+  };
+
+  return usage;
+}
+
+// ── Log API call (called by pipeline scripts via POST) ──────
+async function logApiCall(body) {
+  const store = getStore('cnc-config');
+  const service = body.service || 'anthropic';
+  const key = 'api-usage-' + service;
+  let data;
+  try {
+    const raw = await store.get(key);
+    data = raw ? JSON.parse(raw) : { calls: 0, inputTokens: 0, outputTokens: 0 };
+  } catch { data = { calls: 0, inputTokens: 0, outputTokens: 0 }; }
+
+  data.calls += 1;
+  data.inputTokens += (body.inputTokens || 0);
+  data.outputTokens += (body.outputTokens || 0);
+  data.lastCall = new Date().toISOString();
+
+  await store.set(key, JSON.stringify(data));
+  return data;
+}
+
 // ── Autopilot state (persisted via Netlify Blobs) ───────────
 async function getAutopilotState() {
   try {
@@ -163,10 +276,26 @@ export default async (req) => {
     return new Response(JSON.stringify({ autopilot: state }), { status: 200, headers: CORS_HEADERS });
   }
 
+  // ── Log API usage (from pipeline scripts) ──
+  if (action === 'log-usage' && req.method === 'POST') {
+    try {
+      const body = await req.json();
+      const data = await logApiCall(body);
+      return new Response(JSON.stringify({ logged: true, data }), { status: 200, headers: CORS_HEADERS });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS_HEADERS });
+    }
+  }
+
   // ── Main insights endpoint ──
   try {
-    const [youtube, instagram, autopilot] = await Promise.all([fetchYouTube(), fetchInstagram(), getAutopilotState()]);
-    return new Response(JSON.stringify({ youtube, instagram, calendar: CALENDAR, autopilot, updatedAt: new Date().toISOString() }), { status: 200, headers: CORS_HEADERS });
+    const [youtube, instagram, autopilot, apiUsage] = await Promise.all([fetchYouTube(), fetchInstagram(), getAutopilotState(), fetchApiUsage()]);
+    // Fill YouTube video count into usage
+    if (apiUsage.youtube && youtube.channel) {
+      apiUsage.youtube.totalUploads = youtube.channel.totalVideos || 0;
+      apiUsage.youtube.estimatedQuotaUsed = (youtube.channel.totalVideos || 0) * 1600;
+    }
+    return new Response(JSON.stringify({ youtube, instagram, calendar: CALENDAR, autopilot, apiUsage, updatedAt: new Date().toISOString() }), { status: 200, headers: CORS_HEADERS });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
   }

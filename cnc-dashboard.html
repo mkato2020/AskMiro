@@ -100,6 +100,28 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 .v-green { color: var(--sage); font-weight: 600; }
 .loading { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
 
+/* Cost Panel */
+.cost-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+@media (max-width: 1100px) { .cost-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .cost-grid { grid-template-columns: 1fr 1fr; } }
+.cost-card { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 14px; padding: 22px 20px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; }
+.cost-card:hover { box-shadow: var(--shadow-md); }
+.cost-card .svc-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.cost-card .svc-name { font-size: 13px; font-weight: 600; color: var(--charcoal); margin-bottom: 2px; }
+.cost-card .svc-note { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+.cost-card .svc-cost { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; margin-bottom: 2px; }
+.cost-card .svc-unit { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+.cost-card .svc-meter { margin-top: 12px; }
+.cost-card .meter-bar { height: 5px; background: var(--cream); border-radius: 3px; overflow: hidden; }
+.cost-card .meter-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.cost-card .meter-label { font-size: 10px; color: var(--muted); margin-top: 4px; }
+.cost-free { color: var(--sage); }
+.cost-paid { color: var(--gold); }
+.cost-warn { color: var(--rose); }
+.cost-summary { margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 16px 20px; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 12px; }
+.cost-summary .total-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 500; }
+.cost-summary .total-value { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--charcoal); }
+
 /* Autopilot Toggle */
 .autopilot-ctrl { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 24px 0 0; }
 .autopilot-label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; }
@@ -174,6 +196,9 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
     <div id="ig-table"><div class="loading">Loading Instagram insights&hellip;</div></div>
   </div>
 </div>
+
+<div class="section-head"><span class="line"></span><span class="title">API Usage & Costs</span><span class="line"></span></div>
+<div id="cost-panel"></div>
 
 <div class="section-head"><span class="line"></span><span class="title">Integrations</span><span class="line"></span></div>
 <div class="token-bar" id="token-bar"></div>
@@ -313,6 +338,61 @@ async function loadAll() {
       '<div class="token-chip tk-yt"><div class="icon">&#9654;</div><div><div class="info">' + (ytOk ? ch.name : 'YouTube') + '</div><div class="sub">' + (ytOk ? 'Connected &middot; ' + fmt(ch.totalVideos) + ' videos' : (yt.error || 'Not connected')) + '</div></div></div>' +
       '<div class="token-chip tk-ig"><div class="icon">&#9673;</div><div><div class="info">' + (igOk ? '@' + ig.profile.username : 'Instagram') + '</div><div class="sub">' + (igOk ? 'Connected &middot; ' + (ig.profile.media_count || 0) + ' posts' : (ig.error || 'Not connected')) + '</div></div></div>' +
       '<div class="token-chip tk-fb"><div class="icon">f</div><div><div class="info">Facebook</div><div class="sub">Via Instagram auto-share</div></div></div>';
+
+    // API Usage & Cost panel
+    var usage = d.apiUsage || {};
+    var costHtml = '<div class="cost-grid">';
+    var totalCost = 0;
+    var svcConfig = {
+      claude:      { icon: 'C', bg: '#f5edd8', color: '#b8963e' },
+      elevenlabs:  { icon: '🔊', bg: '#e8f4f4', color: '#2d6a6a' },
+      youtube:     { icon: '▶', bg: 'var(--rose-pale)', color: 'var(--rose)' },
+      instagram:   { icon: '◉', bg: 'var(--plum-pale)', color: 'var(--plum)' },
+      resend:      { icon: '✉', bg: 'var(--sky-pale)', color: 'var(--sky)' },
+    };
+
+    ['claude', 'elevenlabs', 'youtube', 'instagram', 'resend'].forEach(function(key) {
+      var s = usage[key];
+      if (!s) return;
+      var cfg = svcConfig[key] || { icon: '?', bg: '#eee', color: '#666' };
+      var cost = s.cost || 0;
+      totalCost += cost;
+      var costClass = cost === 0 ? 'cost-free' : cost > 50 ? 'cost-warn' : 'cost-paid';
+      var costDisplay = cost === 0 ? 'FREE' : '$' + cost.toFixed(2);
+
+      var meterHtml = '';
+      if (s.percentUsed !== undefined) {
+        var fill = Math.min(s.percentUsed, 100);
+        var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
+        meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.charactersUsed) + ' / ' + fmt(s.charactersLimit) + ' chars</div></div>';
+      }
+      if (s.estimatedQuotaUsed !== undefined && s.dailyQuota) {
+        var fill = Math.min(Math.round((s.estimatedQuotaUsed / s.dailyQuota) * 100), 100);
+        var barColor = fill > 80 ? 'var(--rose)' : fill > 50 ? 'var(--gold)' : 'var(--sage)';
+        meterHtml = '<div class="svc-meter"><div class="meter-bar"><div class="meter-fill" style="width:' + fill + '%;background:' + barColor + '"></div></div><div class="meter-label">' + fmt(s.estimatedQuotaUsed) + ' / ' + fmt(s.dailyQuota) + ' quota units</div></div>';
+      }
+      if (key === 'claude' && s.calls) {
+        meterHtml = '<div class="svc-meter"><div class="meter-label">' + fmt(s.calls) + ' calls &middot; ' + fmt(s.inputTokens) + ' in &middot; ' + fmt(s.outputTokens) + ' out</div></div>';
+      }
+
+      var detail = s.status || '';
+      if (s.tier) detail = 'Tier: ' + s.tier;
+      if (s.rateLimit) detail = s.rateLimit;
+
+      costHtml += '<div class="cost-card">' +
+        '<div class="svc-icon" style="background:' + cfg.bg + ';color:' + cfg.color + '">' + cfg.icon + '</div>' +
+        '<div class="svc-name">' + (s.service || key) + '</div>' +
+        '<div class="svc-note">' + (s.note || '') + '</div>' +
+        '<div class="svc-cost ' + costClass + '">' + costDisplay + '</div>' +
+        '<div class="svc-unit">' + (s.unit || '') + '</div>' +
+        meterHtml +
+        (detail ? '<div class="svc-note" style="margin-top:8px;font-size:10px">' + detail + '</div>' : '') +
+        '</div>';
+    });
+
+    costHtml += '</div>';
+    costHtml += '<div class="cost-summary"><span class="total-label">Est. Monthly Total</span><span class="total-value">' + (totalCost === 0 ? 'FREE' : '$' + totalCost.toFixed(2)) + '</span></div>';
+    document.getElementById('cost-panel').innerHTML = costHtml;
 
     // Update timestamp
     document.getElementById('status-pill').querySelector('span:last-child').textContent = 'Updated ' + new Date().toLocaleTimeString();
