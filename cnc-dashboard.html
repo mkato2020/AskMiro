@@ -100,6 +100,21 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 .v-green { color: var(--sage); font-weight: 600; }
 .loading { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
 
+/* Autopilot Toggle */
+.autopilot-ctrl { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 24px 0 0; }
+.autopilot-label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.autopilot-status { font-size: 12px; font-weight: 600; letter-spacing: 1px; min-width: 30px; }
+.ap-on { color: var(--sage); }
+.ap-off { color: var(--rose); }
+.toggle-track { position: relative; width: 52px; height: 28px; border-radius: 14px; cursor: pointer; transition: background 0.3s, box-shadow 0.3s; border: none; padding: 0; outline: none; }
+.toggle-track.on { background: var(--sage); box-shadow: 0 0 0 3px rgba(90,138,106,0.15), 0 2px 8px rgba(90,138,106,0.25); }
+.toggle-track.off { background: var(--mid-border); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.toggle-thumb { position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.toggle-track.on .toggle-thumb { left: 27px; }
+.toggle-track.off .toggle-thumb { left: 3px; }
+.toggle-track:hover { filter: brightness(1.05); }
+.toggle-track:active .toggle-thumb { width: 26px; }
+
 .token-bar { display: flex; gap: 16px; flex-wrap: wrap; }
 .token-chip { flex: 1; min-width: 200px; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
 .token-chip .icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
@@ -121,8 +136,15 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
   <div class="brand">Crown n Cradle</div>
   <h1>Production Dashboard</h1>
   <div class="status-pill" id="status-pill">
-    <span class="status-dot dot-live"></span>
-    <span>Live</span>
+    <span class="status-dot dot-live" id="status-dot"></span>
+    <span id="status-text">Live</span>
+  </div>
+  <div class="autopilot-ctrl">
+    <span class="autopilot-label">Autopilot</span>
+    <button class="toggle-track off" id="ap-toggle" onclick="toggleAutopilot()">
+      <div class="toggle-thumb"></div>
+    </button>
+    <span class="autopilot-status ap-off" id="ap-status">OFF</span>
   </div>
 </div>
 
@@ -163,9 +185,36 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 
 </div>
 <script>
-var currentWeek = 0, calendarData = null;
+var currentWeek = 0, calendarData = null, autopilotOn = false;
 
 function fmt(n) { return (n || 0).toLocaleString(); }
+
+function updateAutopilotUI(on) {
+  autopilotOn = on;
+  var toggle = document.getElementById('ap-toggle');
+  var status = document.getElementById('ap-status');
+  var dot = document.getElementById('status-dot');
+  toggle.className = 'toggle-track ' + (on ? 'on' : 'off');
+  status.textContent = on ? 'ON' : 'OFF';
+  status.className = 'autopilot-status ' + (on ? 'ap-on' : 'ap-off');
+  dot.className = 'status-dot ' + (on ? 'dot-live' : 'dot-idle');
+}
+
+async function toggleAutopilot() {
+  var newState = !autopilotOn;
+  updateAutopilotUI(newState);
+  try {
+    var r = await fetch('/api/cnc-insights?action=autopilot', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: newState })
+    });
+    var d = await r.json();
+    updateAutopilotUI(d.autopilot);
+  } catch (e) {
+    updateAutopilotUI(!newState);
+    console.error('Toggle failed:', e);
+  }
+}
 
 async function loadAll() {
   try {
@@ -180,8 +229,13 @@ async function loadAll() {
     var ch = yt.channel || {};
     calendarData = d.calendar;
 
+    // Autopilot state
+    updateAutopilotUI(d.autopilot !== false);
+
     // Stats strip
     var totalReach = (ytT.totalViews || 0) + (igT.totalViews || 0);
+    var apLabel = d.autopilot !== false ? 'ON' : 'OFF';
+    var apColor = d.autopilot !== false ? 'var(--sage)' : 'var(--rose)';
     document.getElementById('stats-strip').innerHTML =
       '<div class="stat-cell"><div class="num">' + fmt(ch.totalVideos) + '</div><div class="lbl">Videos</div></div>' +
       '<div class="stat-cell"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
@@ -190,7 +244,7 @@ async function loadAll() {
       '<div class="stat-cell"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">IG Views</div></div>' +
       '<div class="stat-cell"><div class="num">' + fmt(igT.totalSaves) + '</div><div class="lbl">Saves</div></div>' +
       '<div class="stat-cell accent"><div class="num">' + fmt(totalReach) + '</div><div class="lbl">Total Reach</div></div>' +
-      '<div class="stat-cell accent"><div class="num">ON</div><div class="lbl">Auto-Pilot</div></div>';
+      '<div class="stat-cell"><div class="num" style="color:' + apColor + '">' + apLabel + '</div><div class="lbl">Auto-Pilot</div></div>';
 
     // Calendar
     renderCalendar();

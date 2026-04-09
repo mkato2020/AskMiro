@@ -1,7 +1,10 @@
 /**
  * Crown n Cradle — Dashboard API (Netlify Function)
  * Returns live YouTube + Instagram insights + calendar data
+ * Supports autopilot toggle via GET/POST ?action=autopilot
  */
+
+import { getStore } from '@netlify/blobs';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -122,16 +125,51 @@ async function fetchInstagram() {
   return { profile, media: mediaWithInsights, totals };
 }
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-
+// ── Autopilot state (persisted via Netlify Blobs) ───────────
+async function getAutopilotState() {
   try {
-    const [youtube, instagram] = await Promise.all([fetchYouTube(), fetchInstagram()]);
-    return {
-      statusCode: 200, headers: CORS_HEADERS,
-      body: JSON.stringify({ youtube, instagram, calendar: CALENDAR, updatedAt: new Date().toISOString() }),
-    };
+    const store = getStore('cnc-config');
+    const val = await store.get('autopilot');
+    if (val === null || val === undefined) return true; // default ON
+    return val === 'true' || val === true;
+  } catch { return true; }
+}
+
+async function setAutopilotState(enabled) {
+  const store = getStore('cnc-config');
+  await store.set('autopilot', String(enabled));
+  return enabled;
+}
+
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+
+  const url = new URL(req.url, 'https://localhost');
+  const action = url.searchParams.get('action');
+
+  // ── Autopilot toggle endpoint ──
+  if (action === 'autopilot') {
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        const enabled = await setAutopilotState(!!body.enabled);
+        return new Response(JSON.stringify({ autopilot: enabled }), { status: 200, headers: CORS_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS_HEADERS });
+      }
+    }
+    // GET — return current state
+    const state = await getAutopilotState();
+    return new Response(JSON.stringify({ autopilot: state }), { status: 200, headers: CORS_HEADERS });
+  }
+
+  // ── Main insights endpoint ──
+  try {
+    const [youtube, instagram, autopilot] = await Promise.all([fetchYouTube(), fetchInstagram(), getAutopilotState()]);
+    return new Response(JSON.stringify({ youtube, instagram, calendar: CALENDAR, autopilot, updatedAt: new Date().toISOString() }), { status: 200, headers: CORS_HEADERS });
   } catch (err) {
-    return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
   }
 };
+
+export const config = { path: '/api/cnc-insights' };
