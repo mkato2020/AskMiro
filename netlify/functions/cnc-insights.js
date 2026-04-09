@@ -40,7 +40,7 @@ async function fetchYouTube() {
   // Cache YouTube data for 10 minutes to avoid burning 10K daily quota
   const store = getStore('cnc-config');
   const CACHE_KEY = 'yt-cache';
-  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+  const CACHE_TTL = 30 * 60 * 1000; // 30 minutes — protects 10K daily quota
   try {
     const cached = await store.get(CACHE_KEY);
     if (cached) {
@@ -55,8 +55,10 @@ async function fetchYouTube() {
   if (!accessToken) return { error: 'Failed to refresh YouTube token' };
 
   let channel = {};
+  let uploadsPlaylistId = null;
   try {
-    const chRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&mine=true',
+    // Request contentDetails to get uploads playlist ID (avoids expensive search.list)
+    const chRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet,contentDetails&mine=true',
       { headers: { Authorization: 'Bearer ' + accessToken } });
     const chData = await chRes.json();
     if (chData.error) return { error: chData.error.message || 'YouTube API error', channel: {}, videos: [], totals: { totalViews: 0, totalLikes: 0, totalComments: 0, avgViews: 0 } };
@@ -64,24 +66,28 @@ async function fetchYouTube() {
       const ch = chData.items[0];
       channel = { name: ch.snippet.title, subscribers: parseInt(ch.statistics.subscriberCount || 0),
         totalViews: parseInt(ch.statistics.viewCount || 0), totalVideos: parseInt(ch.statistics.videoCount || 0) };
+      uploadsPlaylistId = ch.contentDetails?.relatedPlaylists?.uploads;
     }
   } catch (e) {}
 
   let videos = [];
   try {
-    const searchRes = await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&forMine=true&type=video&maxResults=25&order=date',
-      { headers: { Authorization: 'Bearer ' + accessToken } });
-    const searchData = await searchRes.json();
-    const videoIds = (searchData.items || []).map(i => i.id.videoId).filter(Boolean);
-    if (videoIds.length > 0) {
-      const statsRes = await fetch('https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=' + videoIds.join(','),
+    // Use playlistItems.list (1 unit) instead of search.list (100 units)
+    if (uploadsPlaylistId) {
+      const plRes = await fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=' + uploadsPlaylistId + '&maxResults=25',
         { headers: { Authorization: 'Bearer ' + accessToken } });
-      const statsData = await statsRes.json();
-      videos = (statsData.items || []).map(item => ({
-        videoId: item.id, title: item.snippet.title, publishedAt: item.snippet.publishedAt,
-        views: parseInt(item.statistics.viewCount || 0), likes: parseInt(item.statistics.likeCount || 0),
-        comments: parseInt(item.statistics.commentCount || 0), url: 'https://youtube.com/shorts/' + item.id,
-      })).sort((a, b) => b.views - a.views);
+      const plData = await plRes.json();
+      const videoIds = (plData.items || []).map(i => i.contentDetails.videoId).filter(Boolean);
+      if (videoIds.length > 0) {
+        const statsRes = await fetch('https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=' + videoIds.join(','),
+          { headers: { Authorization: 'Bearer ' + accessToken } });
+        const statsData = await statsRes.json();
+        videos = (statsData.items || []).map(item => ({
+          videoId: item.id, title: item.snippet.title, publishedAt: item.snippet.publishedAt,
+          views: parseInt(item.statistics.viewCount || 0), likes: parseInt(item.statistics.likeCount || 0),
+          comments: parseInt(item.statistics.commentCount || 0), url: 'https://youtube.com/shorts/' + item.id,
+        })).sort((a, b) => b.views - a.views);
+      }
     }
   } catch (e) {}
 
