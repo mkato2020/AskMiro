@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>TikTok OAuth Callback — AskMiro</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0A9688">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+  <style>
+    :root {
+      --teal:        #0A9688;
+      --teal-mid:    #0DBDAD;
+      --teal-light:  #14D4C2;
+      --teal-wash:   rgba(13,189,173,0.07);
+      --navy:        #0D1C2E;
+      --navy-mid:    #0e2438;
+      --border-teal: rgba(13,189,173,0.28);
+      --bg-base:     #F4F8FB;
+      --bg-surface:  #FFFFFF;
+      --text-1:      #0D1C2E;
+      --text-2:      #3D5A74;
+      --text-3:      #4E6F8A;
+      --border:      rgba(13,28,46,0.08);
+      --border-md:   rgba(13,28,46,0.13);
+      --error:       #C53030;
+      --error-bg:    rgba(197,48,48,0.08);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+      color: var(--text-1);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    .card {
+      max-width: 640px;
+      width: 100%;
+      background: var(--bg-surface);
+      border-radius: 20px;
+      padding: 48px 44px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+    }
+    @media (max-width: 600px) { .card { padding: 32px 24px; } }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--teal-wash);
+      border: 1px solid var(--border-teal);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: var(--teal);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+      color: var(--text-1);
+    }
+
+    .subtitle {
+      font-size: 0.975rem;
+      color: var(--text-2);
+      margin-bottom: 28px;
+    }
+
+    .code-label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .code-box {
+      background: #0D1C2E;
+      border: 1px solid rgba(13,189,173,0.3);
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8125rem;
+      color: var(--teal-light);
+      word-break: break-all;
+      line-height: 1.6;
+      margin-bottom: 14px;
+      user-select: all;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .code-box.empty {
+      color: var(--text-3);
+      background: #F0F4F8;
+      border-color: var(--border);
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, var(--teal-mid), var(--teal));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      font-family: 'Figtree', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .copy-btn:hover { opacity: 0.88; }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied {
+      background: #10b981;
+    }
+
+    .instructions {
+      background: var(--teal-wash);
+      border: 1px solid var(--border-teal);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-top: 28px;
+    }
+    .instructions h3 {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+    .instructions ol {
+      padding-left: 18px;
+      font-size: 0.9rem;
+      color: var(--text-2);
+    }
+    .instructions li {
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .instructions code {
+      background: rgba(10,150,136,0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      color: var(--teal);
+    }
+
+    .error {
+      background: var(--error-bg);
+      border: 1px solid rgba(197,48,48,0.25);
+      border-radius: 12px;
+      padding: 18px 22px;
+      color: var(--error);
+      font-size: 0.9rem;
+    }
+    .error strong { font-weight: 700; }
+
+    .footer-note {
+      margin-top: 24px;
+      font-size: 0.75rem;
+      color: var(--text-3);
+      text-align: center;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      OAuth Callback
+    </div>
+    <h1 id="title">TikTok authorization received</h1>
+    <p class="subtitle" id="subtitle">Copy the authorization code below and paste it into the terminal running <code>tiktok-auth.mjs</code>.</p>
+
+    <div id="success-view">
+      <span class="code-label">Authorization Code</span>
+      <div class="code-box empty" id="code-box">Waiting for code…</div>
+      <button class="copy-btn" id="copy-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy code
+      </button>
+
+      <div class="instructions" id="instructions" style="display:none">
+        <h3>Next step</h3>
+        <ol>
+          <li>Click <strong>Copy code</strong> above.</li>
+          <li>Switch to the terminal where you ran <code>node scripts/tiktok-auth.mjs</code>.</li>
+          <li>Paste the code at the prompt and press Enter.</li>
+          <li>The script will exchange the code for an access token and save it to <code>tiktok-token.json</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div id="error-view" style="display:none">
+      <div class="error" id="error-msg"></div>
+    </div>
+
+    <div class="footer-note">
+      This page does not store, transmit, or log any part of the authorization code. Everything happens in your browser.
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const error = params.get('error') || params.get('error_description');
+
+      const title = document.getElementById('title');
+      const subtitle = document.getElementById('subtitle');
+      const successView = document.getElementById('success-view');
+      const errorView = document.getElementById('error-view');
+      const errorMsg = document.getElementById('error-msg');
+      const codeBox = document.getElementById('code-box');
+      const copyBtn = document.getElementById('copy-btn');
+      const instructions = document.getElementById('instructions');
+
+      if (error) {
+        successView.style.display = 'none';
+        errorView.style.display = 'block';
+        title.textContent = 'Authorization failed';
+        subtitle.textContent = 'TikTok returned an error instead of an authorization code.';
+        errorMsg.innerHTML = '<strong>Error:</strong> ' + String(error).replace(/[<>]/g, '');
+        return;
+      }
+
+      if (!code) {
+        successView.style.display = 'none';
+        errorView.style.display = 'block';
+        title.textContent = 'No authorization code';
+        subtitle.textContent = 'This page should only be opened from the TikTok OAuth flow.';
+        errorMsg.innerHTML = '<strong>Missing parameter:</strong> no <code>code</code> in the URL. Start the auth flow from the terminal.';
+        return;
+      }
+
+      // Success path
+      codeBox.textContent = code;
+      codeBox.classList.remove('empty');
+      copyBtn.disabled = false;
+      instructions.style.display = 'block';
+
+      // Auto-select the code on load for one-tap copy
+      setTimeout(function () {
+        const range = document.createRange();
+        range.selectNodeContents(codeBox);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }, 200);
+
+      copyBtn.addEventListener('click', async function () {
+        try {
+          await navigator.clipboard.writeText(code);
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+          setTimeout(function () {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy code';
+          }, 2000);
+        } catch (e) {
+          // Fallback: select
+          const range = document.createRange();
+          range.selectNodeContents(codeBox);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          alert('Clipboard blocked. The code is now selected — press Cmd+C to copy.');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -3,6 +3,9 @@ http://askmiro.com/* https://www.askmiro.com/:splat 301!
 http://www.askmiro.com/* https://www.askmiro.com/:splat 301!
 https://askmiro.com/* https://www.askmiro.com/:splat 301!
 
+# TikTok OAuth callback
+/tiktok-callback /tiktok-callback.html 200
+
 # Clean URL rewrites for legal pages
 /terms /terms.html 200
 /terms-of-service /terms.html 200
