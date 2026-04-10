@@ -75,15 +75,18 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 .p-badge { font-size: 10px; padding: 4px 12px; border-radius: 12px; font-weight: 600; letter-spacing: 0.5px; }
 .p-yt { background: var(--rose-pale); color: var(--rose); }
 .p-ig { background: var(--plum-pale); color: var(--plum); }
+.p-tt { background: var(--cream); color: var(--charcoal); }
 .upload-item .date { font-size: 12px; color: var(--muted); margin-left: 20px; min-width: 70px; text-align: right; }
 
-.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-@media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+.insights-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+@media (max-width: 1200px) { .insights-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px)  { .insights-grid { grid-template-columns: 1fr; } }
 .insight-panel { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
 .insight-panel h3 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: var(--charcoal); margin-bottom: 20px; }
 .insight-panel h3 .plat-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; vertical-align: middle; }
 .yt-dot { background: var(--rose); }
 .ig-dot { background: var(--plum); }
+.tt-dot { background: var(--charcoal); }
 
 .kpi-row { display: flex; gap: 0; margin-bottom: 20px; background: var(--cream); border-radius: 12px; overflow: hidden; }
 .kpi { flex: 1; text-align: center; padding: 16px 8px; border-right: 1px solid var(--light-border); }
@@ -101,7 +104,7 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 .loading { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
 
 /* Cost Panel */
-.cost-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.cost-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
 @media (max-width: 1100px) { .cost-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 700px) { .cost-grid { grid-template-columns: 1fr 1fr; } }
 .cost-card { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 14px; padding: 22px 20px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; }
@@ -143,6 +146,7 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
 .tk-yt .icon { background: var(--rose-pale); }
 .tk-ig .icon { background: var(--plum-pale); }
 .tk-fb .icon { background: var(--sky-pale); }
+.tk-tt .icon { background: var(--cream); color: var(--charcoal); }
 .token-chip .info { font-size: 13px; color: var(--ink); }
 .token-chip .sub { font-size: 11px; color: var(--muted); }
 
@@ -189,6 +193,11 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--ivory)
     <h3><span class="plat-dot yt-dot"></span>YouTube</h3>
     <div class="kpi-row" id="yt-kpis"></div>
     <div id="yt-table"><div class="loading">Loading YouTube insights&hellip;</div></div>
+  </div>
+  <div class="insight-panel">
+    <h3><span class="plat-dot tt-dot"></span>TikTok</h3>
+    <div class="kpi-row" id="tt-kpis"></div>
+    <div id="tt-table"><div class="loading">Loading TikTok insights&hellip;</div></div>
   </div>
   <div class="insight-panel">
     <h3><span class="plat-dot ig-dot"></span>Instagram</h3>
@@ -264,9 +273,10 @@ function renderCostPanel(usage) {
     youtube:     { icon: '▶', bg: 'var(--rose-pale)', color: 'var(--rose)' },
     instagram:   { icon: '◉', bg: 'var(--plum-pale)', color: 'var(--plum)' },
     resend:      { icon: '✉', bg: 'var(--sky-pale)', color: 'var(--sky)' },
+    fal:         { icon: '🎬', bg: '#f0e8fa', color: 'var(--plum)' },
   };
 
-  ['claude', 'elevenlabs', 'youtube', 'instagram', 'resend'].forEach(function(key) {
+  ['claude', 'elevenlabs', 'fal', 'youtube', 'instagram', 'resend'].forEach(function(key) {
     var s = usage[key];
     if (!s) return;
     var cfg = svcConfig[key] || { icon: '?', bg: '#eee', color: '#666' };
@@ -303,6 +313,11 @@ function renderCostPanel(usage) {
         var resetDate = new Date(s.nextReset);
         meterHtml += '<div class="meter-label" style="margin-top:2px">Resets ' + resetDate.toLocaleDateString() + '</div>';
       }
+    }
+
+    // fal.ai — show clips generated, video seconds, cost
+    if (key === 'fal' && s.clips !== undefined) {
+      meterHtml = '<div class="svc-meter"><div class="meter-label">' + fmt(s.clips) + ' clips &middot; ' + fmt(s.videoSeconds) + 's video &middot; $0.07/sec</div></div>';
     }
 
     // YouTube quota meter
@@ -344,38 +359,44 @@ async function loadAll() {
 
     var yt = d.youtube || {};
     var ig = d.instagram || {};
+    var tt = d.tiktok  || {};
     var ytT = yt.totals || {};
     var igT = ig.totals || {};
-    var ch = yt.channel || {};
+    var ttT = tt.totals || {};
+    var ch  = yt.channel || {};
+    var ttCh = tt.channel || {};
     calendarData = d.calendar;
 
     // Autopilot state
     updateAutopilotUI(d.autopilot !== false);
 
     // Stats strip
-    var totalReach = (ytT.totalViews || 0) + (igT.totalViews || 0);
+    var totalReach = (ytT.totalViews || 0) + (igT.totalViews || 0) + (ttT.totalViews || 0);
     var apLabel = d.autopilot !== false ? 'ON' : 'OFF';
     var apColor = d.autopilot !== false ? 'var(--sage)' : 'var(--rose)';
     document.getElementById('stats-strip').innerHTML =
-      '<div class="stat-cell"><div class="num">' + fmt(ch.totalVideos) + '</div><div class="lbl">Videos</div></div>' +
-      '<div class="stat-cell"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">Subscribers</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ch.totalVideos) + '</div><div class="lbl">YT Videos</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ch.subscribers) + '</div><div class="lbl">YT Subs</div></div>' +
       '<div class="stat-cell"><div class="num">' + fmt(ytT.totalViews) + '</div><div class="lbl">YT Views</div></div>' +
-      '<div class="stat-cell"><div class="num">' + fmt(igT.totalPosts) + '</div><div class="lbl">IG Posts</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ttCh.subscribers) + '</div><div class="lbl">TT Followers</div></div>' +
+      '<div class="stat-cell"><div class="num">' + fmt(ttT.totalViews) + '</div><div class="lbl">TT Views</div></div>' +
       '<div class="stat-cell"><div class="num">' + fmt(igT.totalViews) + '</div><div class="lbl">IG Views</div></div>' +
-      '<div class="stat-cell"><div class="num">' + fmt(igT.totalSaves) + '</div><div class="lbl">Saves</div></div>' +
       '<div class="stat-cell accent"><div class="num">' + fmt(totalReach) + '</div><div class="lbl">Total Reach</div></div>' +
       '<div class="stat-cell"><div class="num" style="color:' + apColor + '">' + apLabel + '</div><div class="lbl">Auto-Pilot</div></div>';
 
     // Calendar
     renderCalendar();
 
-    // Top content (combined YT + IG sorted by views)
+    // Top content (combined YT + IG + TT sorted by views)
     var allContent = [];
     (yt.videos || []).forEach(function(v) {
       allContent.push({ title: v.title, views: v.views, likes: v.likes, platform: 'yt', url: v.url });
     });
     (ig.media || []).forEach(function(m) {
       allContent.push({ title: m.caption || 'Reel', views: m.views, likes: m.likes, platform: 'ig', url: m.url });
+    });
+    (tt.videos || []).forEach(function(v) {
+      allContent.push({ title: v.title || 'TikTok', views: v.views, likes: v.likes, platform: 'tt', url: v.url });
     });
     allContent.sort(function(a, b) { return b.views - a.views; });
     var top = allContent.slice(0, 8);
@@ -384,9 +405,9 @@ async function loadAll() {
       document.getElementById('uploads-box').innerHTML = '<div class="empty">No content data yet. Set environment variables in Netlify to connect.</div>';
     } else {
       var topHtml = top.map(function(item) {
-        var badge = item.platform === 'yt'
-          ? '<span class="p-badge p-yt">YouTube</span>'
-          : '<span class="p-badge p-ig">Instagram</span>';
+        var badge = item.platform === 'yt' ? '<span class="p-badge p-yt">YouTube</span>'
+                  : item.platform === 'tt' ? '<span class="p-badge p-tt">TikTok</span>'
+                  : '<span class="p-badge p-ig">Instagram</span>';
         return '<div class="upload-item"><div class="title"><a href="' + item.url + '" target="_blank">' + item.title.slice(0, 55) + '</a></div><div class="badges">' + badge + '</div><div class="date">' + fmt(item.views) + ' views</div></div>';
       }).join('');
       document.getElementById('uploads-box').innerHTML = topHtml;
@@ -426,11 +447,34 @@ async function loadAll() {
       document.getElementById('ig-table').innerHTML = '<table class="i-table"><thead><tr><th>Caption</th><th>Views</th><th>Likes</th><th>Saves</th></tr></thead><tbody>' + igRows + '</tbody></table>';
     }
 
+    // TikTok KPIs + table
+    if (tt.error) {
+      document.getElementById('tt-kpis').innerHTML = '';
+      document.getElementById('tt-table').innerHTML = '<div class="loading">' + tt.error + '</div>';
+    } else {
+      document.getElementById('tt-kpis').innerHTML =
+        '<div class="kpi"><div class="num">' + fmt(ttCh.subscribers) + '</div><div class="lbl">Followers</div></div>' +
+        '<div class="kpi"><div class="num">' + fmt(ttT.totalViews) + '</div><div class="lbl">Views</div></div>' +
+        '<div class="kpi"><div class="num">' + fmt(ttCh.totalLikes || ttT.totalLikes) + '</div><div class="lbl">Likes</div></div>' +
+        '<div class="kpi"><div class="num">' + fmt(ttT.avgViews) + '</div><div class="lbl">Avg / Short</div></div>';
+      var ttVids = (tt.videos || []).slice(0, 8);
+      if (ttVids.length === 0) {
+        document.getElementById('tt-table').innerHTML = '<div class="loading">No videos yet</div>';
+      } else {
+        var ttRows = ttVids.map(function(v) {
+          return '<tr><td><a href="' + v.url + '" target="_blank">' + (v.title || 'Untitled').slice(0, 42) + '</a></td><td class="v-green">' + fmt(v.views) + '</td><td>' + fmt(v.likes) + '</td></tr>';
+        }).join('');
+        document.getElementById('tt-table').innerHTML = '<table class="i-table"><thead><tr><th>Title</th><th>Views</th><th>Likes</th></tr></thead><tbody>' + ttRows + '</tbody></table>';
+      }
+    }
+
     // Tokens
     var ytOk = !yt.error && ch.name;
     var igOk = !ig.error && ig.profile && ig.profile.username;
+    var ttOk = !tt.error && ttCh.username;
     document.getElementById('token-bar').innerHTML =
       '<div class="token-chip tk-yt"><div class="icon">&#9654;</div><div><div class="info">' + (ytOk ? ch.name : 'YouTube') + '</div><div class="sub">' + (ytOk ? 'Connected &middot; ' + fmt(ch.totalVideos) + ' videos' : (yt.error || 'Not connected')) + '</div></div></div>' +
+      '<div class="token-chip tk-tt"><div class="icon">&#9835;</div><div><div class="info">' + (ttOk ? '@' + ttCh.username : 'TikTok') + '</div><div class="sub">' + (ttOk ? 'Connected &middot; ' + fmt(ttCh.totalVideos) + ' videos' : (tt.error || 'Not connected')) + '</div></div></div>' +
       '<div class="token-chip tk-ig"><div class="icon">&#9673;</div><div><div class="info">' + (igOk ? '@' + ig.profile.username : 'Instagram') + '</div><div class="sub">' + (igOk ? 'Connected &middot; ' + (ig.profile.media_count || 0) + ' posts' : (ig.error || 'Not connected')) + '</div></div></div>' +
       '<div class="token-chip tk-fb"><div class="icon">f</div><div><div class="info">Facebook</div><div class="sub">Via Instagram auto-share</div></div></div>';
 

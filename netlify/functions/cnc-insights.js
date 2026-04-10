@@ -17,6 +17,9 @@ const YT_CLIENT_SECRET = process.env.CNC_YT_CLIENT_SECRET;
 const ytRefreshToken = process.env.CNC_YT_REFRESH_TOKEN;
 const igAccessToken = process.env.CNC_IG_ACCESS_TOKEN;
 const igUserId = process.env.CNC_IG_USER_ID;
+const TT_CLIENT_KEY = process.env.CNC_TT_CLIENT_KEY;
+const TT_CLIENT_SECRET = process.env.CNC_TT_CLIENT_SECRET;
+const ttRefreshTokenSeed = process.env.CNC_TT_REFRESH_TOKEN;
 
 // Embedded calendar data
 const CALENDAR = {"weeks":[{"week":1,"theme":"sleep","slots":[{"slot":"morning","topic":"Why your baby fights sleep"},{"slot":"evening","topic":"The real reason rocking them to sleep works"},{"slot":"morning","topic":"Letting them cry breaks something inside them"},{"slot":"evening","topic":"Your baby remembers your voice from the womb"},{"slot":"morning","topic":"The Fade Out method"},{"slot":"evening","topic":"Why white noise works like magic"},{"slot":"morning","topic":"What 3am wake-ups are really about"},{"slot":"evening","topic":"One thing to say when they won't stay in bed"},{"slot":"morning","topic":"You're not failing at bedtime"},{"slot":"evening","topic":"Someday they won't need you at bedtime"}]},{"week":2,"theme":"behavior","slots":[{"slot":"morning","topic":"Your child isn't ignoring you"},{"slot":"evening","topic":"Why they always say no first"},{"slot":"morning","topic":"Gentle parenting means no boundaries"},{"slot":"evening","topic":"Your toddler hits because they love too big"},{"slot":"morning","topic":"The Whisper Trick"},{"slot":"evening","topic":"Say this instead of stop crying"},{"slot":"morning","topic":"What their tantrum is really saying"},{"slot":"evening","topic":"The one phrase that ends power struggles"},{"slot":"morning","topic":"You're not raising a difficult child"},{"slot":"evening","topic":"They chose you on their hardest days too"}]},{"week":3,"theme":"feeding","slots":[{"slot":"morning","topic":"Why your toddler suddenly won't eat"},{"slot":"evening","topic":"They eat better when you stop watching"},{"slot":"morning","topic":"If they don't eat their veggies they'll be unhealthy"},{"slot":"evening","topic":"Your picky eater isn't broken"},{"slot":"morning","topic":"The Division of Responsibility"},{"slot":"evening","topic":"Put a safe food on every plate"},{"slot":"morning","topic":"Why they eat the same food every single day"},{"slot":"evening","topic":"How to introduce new foods without a fight"},{"slot":"morning","topic":"You're not a bad parent if dinner is cereal"},{"slot":"evening","topic":"The meal they remember isn't the perfect one"}]},{"week":4,"theme":"you_the_parent","slots":[{"slot":"morning","topic":"Why parenting feels so much harder than it should"},{"slot":"evening","topic":"You don't need to enjoy every moment"},{"slot":"morning","topic":"Good parents don't lose their temper"},{"slot":"evening","topic":"Your kids don't need a perfect parent"},{"slot":"morning","topic":"The Repair Conversation"},{"slot":"evening","topic":"Three words that reset any hard day"},{"slot":"morning","topic":"Why mom rage is actually grief"},{"slot":"evening","topic":"You were someone before you were mom"},{"slot":"morning","topic":"The fact that you worry means you care"},{"slot":"evening","topic":"A letter to the parent reading this at 2am"}]}],"posted":["Why your baby fights sleep","The real reason rocking them to sleep works","Letting them cry breaks something inside them","The Fade Out method","Why white noise works like magic","What 3am wake-ups are really about","One thing to say when they won't stay in bed","You're not failing at bedtime","Someday they won't need you at bedtime","Your baby remembers your voice from the womb","If they don't eat their veggies they'll be unhealthy","Your picky eater isn't broken"]};
@@ -152,6 +155,141 @@ async function fetchInstagram() {
   return { profile, media: mediaWithInsights, totals };
 }
 
+// ── TikTok (Display API v2) ───────────────────────────────────
+// TikTok rotates the refresh_token on every call, so we persist
+// the current one in Netlify Blobs. Bootstrap from env var the
+// first time (CNC_TT_REFRESH_TOKEN), then let blob storage take
+// over so the refresh chain stays healthy indefinitely.
+async function getTikTokAccessToken() {
+  if (!TT_CLIENT_KEY || !TT_CLIENT_SECRET) return null;
+  const store = getStore('cnc-config');
+
+  let stored = null;
+  try {
+    const raw = await store.get('tt-token');
+    if (raw) stored = JSON.parse(raw);
+  } catch {}
+
+  // Reuse existing access token if still valid (>60s buffer)
+  if (stored?.access_token && stored.expires_at && Date.now() < stored.expires_at - 60000) {
+    return stored;
+  }
+
+  const refreshToken = stored?.refresh_token || ttRefreshTokenSeed;
+  if (!refreshToken) return null;
+
+  const body = new URLSearchParams({
+    client_key: TT_CLIENT_KEY,
+    client_secret: TT_CLIENT_SECRET,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  });
+  const res = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  const data = await res.json();
+  if (!data.access_token) return null;
+
+  const saved = {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || refreshToken,
+    expires_at: Date.now() + (data.expires_in || 86400) * 1000,
+    scope: data.scope,
+    open_id: data.open_id,
+    updatedAt: new Date().toISOString(),
+  };
+  try { await store.set('tt-token', JSON.stringify(saved)); } catch {}
+  return saved;
+}
+
+async function fetchTikTok() {
+  if (!TT_CLIENT_KEY || !TT_CLIENT_SECRET || !ttRefreshTokenSeed) {
+    return { error: 'TikTok not configured' };
+  }
+
+  const store = getStore('cnc-config');
+  const CACHE_KEY = 'tt-cache';
+  const CACHE_TTL = 30 * 60 * 1000; // 30 min — TikTok rate limits are tight
+  try {
+    const cached = await store.get(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Date.now() - parsed._cachedAt < CACHE_TTL) return parsed.data;
+    }
+  } catch {}
+
+  const token = await getTikTokAccessToken();
+  if (!token?.access_token) return { error: 'TikTok token refresh failed' };
+
+  const authHeaders = {
+    'Authorization': 'Bearer ' + token.access_token,
+    'Content-Type': 'application/json',
+  };
+
+  // 1. Profile + stats
+  let channel = {};
+  try {
+    const fields = 'open_id,union_id,avatar_url,display_name,username,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count';
+    const pRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=' + fields, { headers: authHeaders });
+    const pData = await pRes.json();
+    if (pData?.error?.code && pData.error.code !== 'ok') {
+      return { error: 'TikTok profile: ' + (pData.error.message || pData.error.code) };
+    }
+    const u = pData?.data?.user || {};
+    channel = {
+      name: u.display_name || u.username || 'TikTok',
+      username: u.username || '',
+      subscribers: u.follower_count || 0,
+      following: u.following_count || 0,
+      totalLikes: u.likes_count || 0,
+      totalVideos: u.video_count || 0,
+      verified: !!u.is_verified,
+      avatar: u.avatar_url || '',
+      url: u.profile_deep_link || '',
+    };
+  } catch (e) { /* continue */ }
+
+  // 2. Video list
+  let videos = [];
+  try {
+    const videoFields = 'id,title,video_description,create_time,cover_image_url,share_url,duration,view_count,like_count,comment_count,share_count';
+    const vRes = await fetch('https://open.tiktokapis.com/v2/video/list/?fields=' + videoFields, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ max_count: 20 }),
+    });
+    const vData = await vRes.json();
+    if (vData?.data?.videos) {
+      videos = vData.data.videos.map(v => ({
+        videoId: v.id,
+        title: (v.title || v.video_description || 'Untitled').slice(0, 80),
+        publishedAt: v.create_time ? new Date(v.create_time * 1000).toISOString() : null,
+        thumbnail: v.cover_image_url,
+        url: v.share_url,
+        views: v.view_count || 0,
+        likes: v.like_count || 0,
+        comments: v.comment_count || 0,
+        shares: v.share_count || 0,
+        duration: v.duration || 0,
+      })).sort((a, b) => b.views - a.views);
+    }
+  } catch (e) { /* continue */ }
+
+  const totals = {
+    totalViews: videos.reduce((s, v) => s + v.views, 0),
+    totalLikes: videos.reduce((s, v) => s + v.likes, 0),
+    totalComments: videos.reduce((s, v) => s + v.comments, 0),
+    totalShares: videos.reduce((s, v) => s + v.shares, 0),
+    avgViews: videos.length ? Math.round(videos.reduce((s, v) => s + v.views, 0) / videos.length) : 0,
+  };
+
+  const result = { channel, videos, totals };
+  try { await store.set(CACHE_KEY, JSON.stringify({ _cachedAt: Date.now(), data: result })); } catch {}
+  return result;
+}
+
 // ── API Usage & Cost Tracking ────────────────────────────────
 async function fetchApiUsage() {
   const usage = {};
@@ -252,6 +390,27 @@ async function fetchApiUsage() {
     note: 'Notifications',
   };
 
+  // 6. fal.ai — Kling video generation (pay-per-use, $0.07/sec)
+  try {
+    const store = getStore('cnc-config');
+    const raw = await store.get('api-usage-fal');
+    const data = raw ? JSON.parse(raw) : { calls: 0, clips: 0, videoSeconds: 0 };
+    const costPerSecond = 0.07;
+    const spent = Math.round(data.videoSeconds * costPerSecond * 100) / 100;
+    usage.fal = {
+      service: 'fal.ai (Kling)',
+      clips: data.clips || 0,
+      videoSeconds: data.videoSeconds || 0,
+      calls: data.calls || 0,
+      cost: spent,
+      spent,
+      unit: 'USD',
+      status: 'active',
+      note: 'Video generation',
+      lastCall: data.lastCall || null,
+    };
+  } catch { usage.fal = { service: 'fal.ai (Kling)', status: 'no data', cost: 0 }; }
+
   return usage;
 }
 
@@ -270,6 +429,9 @@ async function logApiCall(body) {
   data.inputTokens += (body.inputTokens || 0);
   data.outputTokens += (body.outputTokens || 0);
   data.characters = (data.characters || 0) + (body.characters || 0);
+  // fal.ai specific fields
+  data.clips = (data.clips || 0) + (body.clips || 0);
+  data.videoSeconds = (data.videoSeconds || 0) + (body.videoSeconds || 0);
   data.lastCall = new Date().toISOString();
 
   await store.set(key, JSON.stringify(data));
@@ -354,13 +516,23 @@ export default async (req) => {
 
   // ── Main insights endpoint ──
   try {
-    const [youtube, instagram, autopilot, apiUsage] = await Promise.all([fetchYouTube(), fetchInstagram(), getAutopilotState(), fetchApiUsage()]);
+    const [youtube, instagram, tiktok, autopilot, apiUsage] = await Promise.all([
+      fetchYouTube(),
+      fetchInstagram(),
+      fetchTikTok(),
+      getAutopilotState(),
+      fetchApiUsage(),
+    ]);
     // Fill YouTube video count into usage
     if (apiUsage.youtube && youtube.channel) {
       apiUsage.youtube.totalUploads = youtube.channel.totalVideos || 0;
       apiUsage.youtube.estimatedQuotaUsed = (youtube.channel.totalVideos || 0) * 1600;
     }
-    return new Response(JSON.stringify({ youtube, instagram, calendar: CALENDAR, autopilot, apiUsage, updatedAt: new Date().toISOString() }), { status: 200, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({
+      youtube, instagram, tiktok,
+      calendar: CALENDAR, autopilot, apiUsage,
+      updatedAt: new Date().toISOString(),
+    }), { status: 200, headers: CORS_HEADERS });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
   }
