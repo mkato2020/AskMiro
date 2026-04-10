@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <title>Terms &amp; Conditions — AskMiro</title>
+  <meta name="description" content="Terms and conditions for AskMiro cleaning services and digital products provided by Miro Partners Ltd.">
+  <link rel="canonical" href="https://www.askmiro.com/terms.html">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0A9688">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap"></noscript>
+  <style>
+    :root {
+      --teal:        #0A9688;
+      --teal-mid:    #0DBDAD;
+      --teal-light:  #14D4C2;
+      --teal-wash:   rgba(13,189,173,0.07);
+      --navy:        #0D1C2E;
+      --navy-mid:    #0e2438;
+      --border-teal: rgba(13,189,173,0.28);
+      --bg-base:     #F4F8FB;
+      --bg-surface:  #FFFFFF;
+      --bg-raised:   #EBF2F8;
+      --bg-alt:      #F0F7FA;
+      --text-1:      #0D1C2E;
+      --text-2:      #3D5A74;
+      --text-3:      #4E6F8A;
+      --border:      rgba(13,28,46,0.08);
+      --border-md:   rgba(13,28,46,0.13);
+      --r-sm:        10px;
+      --r-md:        14px;
+      --r-lg:        20px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-1);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    .skip-link {
+      position: absolute; top: -40px; left: 0;
+      background: var(--teal); color: #fff;
+      padding: 8px 16px; border-radius: 0 0 8px 0;
+      font-size: 14px; font-weight: 600; z-index: 9999;
+      transition: top .2s;
+    }
+    .skip-link:focus { top: 0; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+      padding: 0 24px;
+      background: transparent;
+      transition: background .3s, box-shadow .3s;
+    }
+    nav.scrolled {
+      background: rgba(255,255,255,0.97);
+      box-shadow: 0 1px 0 var(--border-md);
+      backdrop-filter: blur(12px);
+    }
+    .nav-inner {
+      max-width: 1180px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px;
+    }
+    .nav-logo {
+      font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em;
+      display: flex; align-items: center; gap: 10px;
+      color: #fff; text-decoration: none;
+    }
+    nav.scrolled .nav-logo { color: var(--text-1); }
+    .nav-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--teal-mid), var(--teal));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a {
+      font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.65);
+      text-decoration: none; transition: color .2s;
+      position: relative; padding-bottom: 2px;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 0; height: 1px; background: var(--teal-light);
+      transition: width .25s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a:hover::after { width: 100%; }
+    nav.scrolled .nav-links a { color: var(--text-3); }
+    nav.scrolled .nav-links a:hover { color: var(--text-1); }
+    nav.scrolled .nav-links a::after { background: var(--teal); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--teal-mid), var(--teal)) !important;
+      color: #fff !important; font-weight: 700 !important;
+      padding: 9px 20px; border-radius: var(--r-sm);
+      text-decoration: none; font-size: 0.875rem;
+      transition: opacity .2s;
+    }
+    .nav-cta:hover { opacity: .88; }
+    .nav-cta::after { display: none !important; }
+    @media(max-width:768px) { .nav-links { display: none; } }
+
+    .page-hero {
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 140px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(13,189,173,0.08), transparent);
+      pointer-events: none;
+    }
+    .page-hero-inner {
+      max-width: 760px; margin: 0 auto;
+      position: relative;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(13,189,173,0.12);
+      border: 1px solid rgba(13,189,173,0.28);
+      border-radius: 20px; padding: 5px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; letter-spacing: .12em;
+      color: var(--teal-light); text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero-eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--teal-light);
+    }
+    .page-hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800; letter-spacing: -.03em;
+      color: #fff; line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .page-hero p {
+      font-size: 1.05rem; color: rgba(255,255,255,0.58);
+      max-width: 540px; line-height: 1.7;
+    }
+    .hero-meta {
+      display: flex; align-items: center; gap: 20px;
+      margin-top: 28px; flex-wrap: wrap;
+    }
+    .hero-meta-item {
+      font-size: 0.8rem; color: rgba(255,255,255,0.4);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .hero-meta-item strong { color: rgba(255,255,255,0.65); font-weight: 600; }
+
+    .content-wrap {
+      max-width: 1100px; margin: 0 auto;
+      padding: 64px 24px 100px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 48px;
+      align-items: start;
+    }
+    @media(max-width: 900px) {
+      .content-wrap { grid-template-columns: 1fr; }
+      .sidebar { order: -1; }
+    }
+
+    .policy {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-md);
+      border-radius: var(--r-lg);
+      padding: 48px 52px;
+    }
+    @media(max-width:600px) { .policy { padding: 32px 24px; } }
+
+    .policy h2 {
+      font-size: 1.35rem; font-weight: 800;
+      letter-spacing: -.02em; color: var(--text-1);
+      margin: 40px 0 14px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+    }
+    .policy h2:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+    .policy h3 {
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--text-1); margin: 24px 0 10px;
+    }
+
+    .policy p {
+      font-size: 0.975rem; color: var(--text-2);
+      line-height: 1.8; margin-bottom: 16px;
+    }
+    .policy p:last-child { margin-bottom: 0; }
+
+    .policy ul, .policy ol {
+      padding-left: 20px; margin-bottom: 16px;
+    }
+    .policy li {
+      font-size: 0.975rem; color: var(--text-2);
+      line-height: 1.8; margin-bottom: 6px;
+    }
+
+    .policy a { color: var(--teal); text-decoration: none; }
+    .policy a:hover { text-decoration: underline; }
+
+    .policy-highlight {
+      background: var(--teal-wash);
+      border: 1px solid var(--border-teal);
+      border-radius: var(--r-md);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .policy-highlight p {
+      font-size: 0.9rem; color: var(--text-2);
+      margin: 0; line-height: 1.7;
+    }
+    .policy-highlight strong { color: var(--teal); }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    .sidebar { position: sticky; top: 88px; }
+
+    .sidebar-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-md);
+      border-radius: var(--r-lg);
+      padding: 28px 24px;
+      margin-bottom: 16px;
+    }
+    .sidebar-card h3 {
+      font-size: 0.8125rem; font-weight: 700;
+      color: var(--text-1); letter-spacing: -.01em;
+      margin-bottom: 16px;
+    }
+    .toc { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .toc a {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.8125rem; color: var(--text-3);
+      text-decoration: none; padding: 6px 8px;
+      border-radius: 6px; transition: background .15s, color .15s;
+    }
+    .toc a:hover { background: var(--teal-wash); color: var(--teal); }
+    .toc-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--teal); flex-shrink: 0; opacity: .5;
+    }
+
+    .contact-card {
+      background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+      border-radius: var(--r-lg);
+      padding: 28px 24px;
+    }
+    .contact-card p {
+      font-size: 0.8125rem; color: rgba(255,255,255,0.5);
+      line-height: 1.65; margin-bottom: 16px;
+    }
+    .contact-card a {
+      display: block; font-size: 0.875rem; font-weight: 600;
+      color: var(--teal-light); text-decoration: none;
+      margin-bottom: 6px; transition: color .2s;
+    }
+    .contact-card a:hover { color: #fff; }
+    .contact-card-title {
+      font-size: 0.8125rem; font-weight: 700;
+      color: #fff; margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    footer {
+      background: var(--navy-mid);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 56px 24px 32px;
+    }
+    .footer-inner { max-width: 1180px; margin: 0 auto; }
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px; margin-bottom: 40px;
+    }
+    @media(max-width:900px) { .footer-top { grid-template-columns: 1fr 1fr; } }
+    @media(max-width:560px) { .footer-top { grid-template-columns: 1fr; } }
+
+    .footer-logo {
+      font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em;
+      display: flex; align-items: center; gap: 10px;
+      color: #fff; text-decoration: none; margin-bottom: 12px;
+    }
+    .footer-tagline {
+      font-size: 0.875rem; color: rgba(255,255,255,0.35);
+      line-height: 1.65; max-width: 260px;
+    }
+    .footer-col-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.625rem; letter-spacing: .12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.25);
+      margin-bottom: 16px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-col ul a {
+      font-size: 0.875rem; color: rgba(255,255,255,0.42);
+      text-decoration: none; transition: color .2s;
+    }
+    .footer-col ul a:hover { color: #fff; }
+    .footer-legal {
+      padding-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .footer-legal span, .footer-legal a {
+      font-size: 0.8125rem; color: rgba(255,255,255,0.22);
+      text-decoration: none; transition: color .2s;
+    }
+    .footer-legal a:hover { color: rgba(255,255,255,0.6); }
+    .footer-legal a.active { color: rgba(255,255,255,0.55); }
+    .footer-legal div { display: flex; gap: 20px; }
+  </style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- NAV -->
+<nav id="nav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="AskMiro home">
+      <div class="nav-logo-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 44 44" fill="none">
+          <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      AskMiro
+    </a>
+    <ul class="nav-links" role="list">
+      <li><a href="/#why-askmiro">Why AskMiro</a></li>
+      <li><a href="/#services">Services</a></li>
+      <li><a href="/#how-it-works">How It Works</a></li>
+      <li><a href="/#faqs">FAQs</a></li>
+      <li><a href="/get-quote.html" class="nav-cta">Request a Quote</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+      Legal &amp; Compliance
+    </div>
+    <h1>Terms &amp; Conditions</h1>
+    <p>The terms that govern the use of AskMiro's cleaning services, digital products, and websites — in plain English.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">📅 <strong>Last updated: 1 March 2026</strong></div>
+      <div class="hero-meta-item">🇬🇧 <strong>Governed by the law of England &amp; Wales</strong></div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+  <div class="content-wrap">
+
+    <!-- POLICY BODY -->
+    <article class="policy">
+
+      <div class="policy-highlight">
+        <p><strong>In plain English:</strong> These terms cover everything we provide under the AskMiro name — managed commercial cleaning, and any digital products, tools, dashboards, or brands we operate (including our content automation work). Use of any of them means you agree to the terms below.</p>
+      </div>
+
+      <h2 id="who-we-are">1. Who We Are</h2>
+      <p>These terms are issued by <strong>Miro Partners Ltd</strong>, a company registered in England and Wales, trading as <strong>AskMiro</strong>. Throughout this document, "we", "us", "our" and "AskMiro" refer to Miro Partners Ltd.</p>
+      <p><strong>Contact:</strong> <a href="mailto:info@askmiro.com">info@askmiro.com</a> &nbsp;|&nbsp; <a href="tel:02080730621">020 8073 0621</a><br>
+      <strong>Website:</strong> <a href="https://www.askmiro.com">www.askmiro.com</a></p>
+
+      <h2 id="scope">2. Scope — What These Terms Cover</h2>
+      <p>AskMiro operates a range of services and products under its parent company Miro Partners Ltd. These terms apply to all of them, including but not limited to:</p>
+      <ul>
+        <li><strong>Cleaning services:</strong> Managed commercial cleaning for offices, residential blocks, automotive dealerships, healthcare facilities, retail and other commercial premises.</li>
+        <li><strong>Digital products:</strong> Websites, dashboards, web applications, APIs, automation tools, and any associated software we build, host, or distribute.</li>
+        <li><strong>Content &amp; media brands:</strong> Any social media channels, content automation pipelines, or media properties we operate (including but not limited to Crown n Cradle and similar brands), and any content published to YouTube, Instagram, TikTok, or other platforms.</li>
+        <li><strong>Other products:</strong> Any future physical or digital products, subscriptions, or services we may offer under the AskMiro brand or via Miro Partners Ltd.</li>
+      </ul>
+      <p>By accessing any of these, you agree to be bound by the terms below. If you do not agree, please do not use the services.</p>
+
+      <h2 id="cleaning-services">3. Cleaning Services</h2>
+      <h3>3.1 Quotes &amp; Contracts</h3>
+      <p>Quotes are based on the information you provide and the site details available at the time. Quotes are valid for 30 days unless otherwise stated. A binding contract is formed only when a signed service agreement or written order confirmation is in place.</p>
+
+      <h3>3.2 Service Delivery</h3>
+      <p>We will deliver cleaning services with reasonable care and skill, using trained staff, appropriate equipment and compliant consumables. Scheduling, frequency, access arrangements and scope of work are set out in your individual service agreement.</p>
+
+      <h3>3.3 Access &amp; Safety</h3>
+      <p>You are responsible for providing safe, lawful access to your premises during agreed times, and for notifying us of any site hazards. We comply with applicable COSHH, health &amp; safety and employment legislation.</p>
+
+      <h3>3.4 Payment</h3>
+      <p>Invoices are payable within the timeframe set out in your service agreement (typically 14 or 30 days). Late payments may incur interest under the Late Payment of Commercial Debts (Interest) Act 1998.</p>
+
+      <h3>3.5 Cancellation</h3>
+      <p>Either party may terminate a cleaning contract in accordance with the notice period in the signed agreement. We reserve the right to suspend or terminate services immediately in cases of non-payment, unsafe conditions, or breach of these terms.</p>
+
+      <h2 id="digital-products">4. Digital Products &amp; Websites</h2>
+      <h3>4.1 Use of Our Websites</h3>
+      <p>You may use our websites, dashboards and online tools for lawful purposes only. You agree not to:</p>
+      <ul>
+        <li>Attempt to gain unauthorised access to any system, account or data.</li>
+        <li>Interfere with the operation of the site or any connected service.</li>
+        <li>Use automated tools to scrape, copy, or redistribute content without our written permission.</li>
+        <li>Use the site to transmit malware, spam or unlawful content.</li>
+        <li>Impersonate another person or misrepresent your affiliation with us.</li>
+      </ul>
+
+      <h3>4.2 Accounts &amp; Access</h3>
+      <p>Where a product requires an account, you are responsible for keeping your credentials secure and for all activity that happens under your account. Please notify us immediately if you suspect any unauthorised use.</p>
+
+      <h3>4.3 Availability</h3>
+      <p>We aim to keep our digital services available and functional but do not guarantee uninterrupted operation. We may, from time to time, update, maintain, suspend, or withdraw any digital product without notice.</p>
+
+      <h3>4.4 Third-Party Platforms</h3>
+      <p>Some of our digital products integrate with third-party services (for example, Google, YouTube, Meta, TikTok, Netlify, fal.ai, OpenAI and similar providers). Your use of those platforms is also governed by their own terms. We are not responsible for the content, availability, or practices of third-party services.</p>
+
+      <h2 id="content-brands">5. Content &amp; Media Brands</h2>
+      <p>Where AskMiro operates content brands or social media properties (including Crown n Cradle and any similar parenting, lifestyle, or educational brands), the following applies:</p>
+      <ul>
+        <li><strong>Informational only:</strong> Content published on these channels is provided for general information and entertainment. It is not professional medical, legal, psychological, or parenting advice, and should not be treated as a substitute for guidance from a qualified professional.</li>
+        <li><strong>AI-assisted production:</strong> Some content is produced using AI tools for scripting, narration, imagery, or video generation. We review content for quality before publication but cannot guarantee it is free from error.</li>
+        <li><strong>No liability for reliance:</strong> You act on any information in our content at your own discretion. We accept no liability for decisions made based on content published on our channels.</li>
+        <li><strong>Platform rules:</strong> All content is published under the relevant platform's own terms (YouTube, Instagram, TikTok, etc.) and we comply with their community guidelines and content policies.</li>
+      </ul>
+
+      <h2 id="ip">6. Intellectual Property</h2>
+      <p>All content on our websites, digital products and media brands — including text, graphics, logos, icons, images, audio, video, software and the compilation thereof — is the property of Miro Partners Ltd, its licensors, or the respective creators, and is protected by UK and international copyright and trademark law.</p>
+      <p>The AskMiro name and logo, and the names and logos of any brands we operate, are trademarks of Miro Partners Ltd. You may not use them without our prior written consent.</p>
+      <p>You may view and share individual pages for personal, non-commercial purposes. Any other use — including reproduction, modification, republication, or commercial exploitation — requires our written permission.</p>
+
+      <h2 id="user-content">7. User-Submitted Content</h2>
+      <p>If you submit content to us (for example, through forms, comments, reviews, or uploads), you confirm that:</p>
+      <ul>
+        <li>You own or have the right to share the content.</li>
+        <li>The content does not infringe any third party's rights or applicable law.</li>
+        <li>You grant us a non-exclusive, worldwide, royalty-free licence to use, store, and display the content for the purpose of operating the relevant service.</li>
+      </ul>
+      <p>We reserve the right to remove any user content at our discretion, without notice.</p>
+
+      <h2 id="privacy">8. Privacy &amp; Data</h2>
+      <p>Our handling of personal data is governed by our <a href="/privacy-policy.html">Privacy Policy</a> and our <a href="/cookie-policy.html">Cookie Policy</a>. By using our services, you acknowledge that you have read and understood them.</p>
+
+      <h2 id="liability">9. Limitation of Liability</h2>
+      <p>To the fullest extent permitted by law:</p>
+      <ul>
+        <li>Our services, products and content are provided on an "as is" and "as available" basis, without warranties of any kind except those that cannot be excluded under English law.</li>
+        <li>We are not liable for any indirect, incidental, consequential, or special losses, including loss of profits, revenue, data, goodwill, or business opportunities.</li>
+        <li>Our total aggregate liability in respect of any claim arising out of or in connection with these terms shall not exceed the amount paid by you to us in the twelve months preceding the event giving rise to the claim, or £100, whichever is greater.</li>
+      </ul>
+      <p>Nothing in these terms excludes or limits our liability for death or personal injury caused by negligence, fraud, or any other liability that cannot be excluded by law.</p>
+
+      <h2 id="indemnity">10. Indemnity</h2>
+      <p>You agree to indemnify and hold harmless Miro Partners Ltd, its officers, employees and agents from and against any claims, losses, damages, liabilities and costs (including reasonable legal fees) arising out of your breach of these terms or your misuse of our services or digital products.</p>
+
+      <h2 id="changes">11. Changes to These Terms</h2>
+      <p>We may update these terms from time to time. When we do, we will update the "Last updated" date at the top of this page. Material changes affecting active clients will be communicated directly. Continued use of any AskMiro service or digital product after an update constitutes acceptance of the revised terms.</p>
+
+      <h2 id="governing-law">12. Governing Law &amp; Jurisdiction</h2>
+      <p>These terms are governed by the law of England and Wales. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
+
+      <h2 id="contact">13. Contact</h2>
+      <p>If you have questions about these terms, please contact us:</p>
+      <ul>
+        <li>Email: <a href="mailto:info@askmiro.com">info@askmiro.com</a></li>
+        <li>Phone: <a href="tel:02080730621">020 8073 0621</a></li>
+        <li>Post: Miro Partners Ltd, London, United Kingdom</li>
+      </ul>
+
+    </article>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <div class="sidebar-card">
+        <h3>Contents</h3>
+        <ul class="toc" role="list">
+          <li><a href="#who-we-are"><span class="toc-dot" aria-hidden="true"></span>1. Who We Are</a></li>
+          <li><a href="#scope"><span class="toc-dot" aria-hidden="true"></span>2. Scope</a></li>
+          <li><a href="#cleaning-services"><span class="toc-dot" aria-hidden="true"></span>3. Cleaning Services</a></li>
+          <li><a href="#digital-products"><span class="toc-dot" aria-hidden="true"></span>4. Digital Products</a></li>
+          <li><a href="#content-brands"><span class="toc-dot" aria-hidden="true"></span>5. Content &amp; Media</a></li>
+          <li><a href="#ip"><span class="toc-dot" aria-hidden="true"></span>6. Intellectual Property</a></li>
+          <li><a href="#user-content"><span class="toc-dot" aria-hidden="true"></span>7. User Content</a></li>
+          <li><a href="#privacy"><span class="toc-dot" aria-hidden="true"></span>8. Privacy &amp; Data</a></li>
+          <li><a href="#liability"><span class="toc-dot" aria-hidden="true"></span>9. Liability</a></li>
+          <li><a href="#indemnity"><span class="toc-dot" aria-hidden="true"></span>10. Indemnity</a></li>
+          <li><a href="#changes"><span class="toc-dot" aria-hidden="true"></span>11. Changes</a></li>
+          <li><a href="#governing-law"><span class="toc-dot" aria-hidden="true"></span>12. Governing Law</a></li>
+          <li><a href="#contact"><span class="toc-dot" aria-hidden="true"></span>13. Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Related Policies</h3>
+        <ul class="toc" role="list">
+          <li><a href="/privacy-policy.html"><span class="toc-dot" aria-hidden="true"></span>Privacy Policy</a></li>
+          <li><a href="/cookie-policy.html"><span class="toc-dot" aria-hidden="true"></span>Cookie Policy</a></li>
+        </ul>
+      </div>
+
+      <div class="contact-card">
+        <p class="contact-card-title">Legal Enquiries</p>
+        <p>Questions about these terms or any AskMiro service? Get in touch.</p>
+        <a href="mailto:info@askmiro.com">info@askmiro.com</a>
+        <a href="tel:02080730621">020 8073 0621</a>
+      </div>
+
+    </aside>
+
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <a href="/" class="footer-logo" aria-label="AskMiro home">
+          <div class="nav-logo-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 44 44" fill="none">
+              <path d="M11 29L16.5 15L22 29L27.5 15L33 29" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          AskMiro
+        </a>
+        <p class="footer-tagline">Professional managed cleaning services across London and the UK.</p>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Services</p>
+        <ul role="list">
+          <li><a href="/#services">Office Cleaning</a></li>
+          <li><a href="/#services">Residential Blocks</a></li>
+          <li><a href="/#services">Automotive</a></li>
+          <li><a href="/#services">Medical</a></li>
+          <li><a href="/#services">Retail</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Company</p>
+        <ul role="list">
+          <li><a href="/#why-askmiro">Why AskMiro</a></li>
+          <li><a href="/#how-it-works">How It Works</a></li>
+          <li><a href="/#credentials">Credentials</a></li>
+          <li><a href="/#faqs">FAQs</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Contact</p>
+        <ul role="list">
+          <li><a href="tel:02080730621">020 8073 0621</a></li>
+          <li><a href="mailto:info@askmiro.com">info@askmiro.com</a></li>
+          <li><a href="/get-quote.html">Request a Quote</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-legal">
+      <span>&copy; 2026 Miro Partners Ltd trading as AskMiro</span>
+      <div>
+        <a href="/privacy-policy.html">Privacy Policy</a>
+        <a href="/cookie-policy.html">Cookie Policy</a>
+        <a href="/terms.html" class="active">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+</script>
+
+</body>
+</html>

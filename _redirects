@@ -3,6 +3,14 @@ http://askmiro.com/* https://www.askmiro.com/:splat 301!
 http://www.askmiro.com/* https://www.askmiro.com/:splat 301!
 https://askmiro.com/* https://www.askmiro.com/:splat 301!
 
+# Clean URL rewrites for legal pages
+/terms /terms.html 200
+/terms-of-service /terms.html 200
+/privacy /privacy-policy.html 200
+/privacy-policy /privacy-policy.html 200
+/cookies /cookie-policy.html 200
+/cookie-policy /cookie-policy.html 200
+
 # Clean URL rewrites for SEO articles
 /commercial-cleaning-london /commercial-cleaning-london.html 200
 /office-cleaning-cost-london /office-cleaning-cost-london.html 200
