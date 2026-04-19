@@ -633,8 +633,8 @@ export default function Quotes({openLead}){
 
             </div>
           </div>
-          </div>{/* /inner grid */}
-        </div>{/* /outer wrapper */}
+          </div>
+        </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════
