@@ -131,71 +131,71 @@ function buildInvoiceHtml(d) {
     .page{width:794px;min-height:1123px;margin:0 auto;display:flex;flex-direction:column}
 
     /* HEADER */
-    .hd{background:#0A1628;padding:32px 48px 24px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+    .hd{background:#0A1628;padding:36px 52px 28px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
     .hd-brand{color:#fff}
-    .hd-name{font-family:'Sora',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.5px;line-height:1}
-    .hd-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2.5px;text-transform:uppercase;margin-top:5px}
-    .hd-contact{font-size:11.5px;color:rgba(255,255,255,0.45);margin-top:10px;line-height:1.9}
+    .hd-name{font-family:'Sora',sans-serif;font-size:27px;font-weight:900;letter-spacing:-0.5px;line-height:1}
+    .hd-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2.5px;text-transform:uppercase;margin-top:6px}
+    .hd-contact{font-size:12px;color:rgba(255,255,255,0.45);margin-top:12px;line-height:2}
     .hd-contact a{color:#5EEAD4;text-decoration:none}
     .hd-meta{text-align:right}
     .hd-label{font-size:10px;font-weight:700;color:#5EEAD4;letter-spacing:2.5px;text-transform:uppercase}
-    .hd-ref{font-family:'Sora',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;margin-top:3px;line-height:1}
-    .hd-date{font-size:11.5px;color:rgba(255,255,255,0.4);margin-top:6px}
+    .hd-ref{font-family:'Sora',sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;margin-top:4px;line-height:1}
+    .hd-date{font-size:12px;color:rgba(255,255,255,0.4);margin-top:7px}
 
     /* ACCENT */
     .bar{height:3px;background:linear-gradient(90deg,#0D9488 0%,#14B8A6 50%,#0A1628 100%);flex-shrink:0}
 
     /* BODY */
-    .body{padding:28px 48px 24px;flex:1}
+    .body{padding:32px 52px 28px;flex:1}
 
     /* INFO CARDS */
-    .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
-    .card{border-radius:8px;padding:14px 16px}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+    .card{border-radius:10px;padding:18px 20px}
     .card-a{background:#F8FAFC;border:1px solid #E2E8F0}
     .card-b{background:#F0FDFA;border:1px solid #CCFBF1}
-    .card-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+    .card-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px}
     .card-a .card-lbl{color:#94A3B8}
     .card-b .card-lbl{color:#0D9488}
-    .card-name{font-size:15px;font-weight:700;color:#0F172A;line-height:1.2}
-    .card-detail{font-size:12px;color:#64748B;margin-top:5px;line-height:1.7}
+    .card-name{font-size:15.5px;font-weight:700;color:#0F172A;line-height:1.25}
+    .card-detail{font-size:12.5px;color:#64748B;margin-top:6px;line-height:1.75}
     .card-detail a{color:#0D9488;text-decoration:none}
 
     /* TABLE */
     .tbl{width:100%;border-collapse:collapse;margin-bottom:0}
-    .tbl thead th{padding:8px 14px;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;border-bottom:1.5px solid #E2E8F0;background:#F8FAFC;text-align:left}
+    .tbl thead th{padding:10px 16px;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;border-bottom:1.5px solid #E2E8F0;background:#F8FAFC;text-align:left}
     .tbl thead th.th-r{text-align:right}
-    .td-desc{padding:14px 14px;width:52%}
-    .td-num{padding:14px 14px;width:16%;text-align:right;color:#64748B;font-size:13px}
-    .td-amt{padding:14px 14px;width:16%;text-align:right;font-weight:600;font-size:13px}
-    .item-name{font-size:13.5px;font-weight:600;color:#0F172A}
-    .item-sub{font-size:11.5px;color:#64748B;margin-top:2px}
+    .td-desc{padding:16px 16px;width:52%}
+    .td-num{padding:16px 16px;width:16%;text-align:right;color:#64748B;font-size:13px}
+    .td-amt{padding:16px 16px;width:16%;text-align:right;font-weight:600;font-size:13px}
+    .item-name{font-size:14px;font-weight:600;color:#0F172A}
+    .item-sub{font-size:12px;color:#64748B;margin-top:3px}
     .tbl tbody tr{border-bottom:1px solid #F1F5F9}
 
     /* TOTALS */
-    .sub-row td{padding:7px 14px;border-bottom:1px solid #F8FAFC}
-    .sub-lbl{color:#64748B;text-align:left;font-size:12.5px}
-    .sub-val{text-align:right;font-weight:600;font-size:12.5px}
-    .grand-row td{background:#0A1628;padding:12px 14px;border-bottom:none}
-    .grand-lbl{color:#fff;font-weight:700;font-family:'Sora',sans-serif;font-size:15px;text-align:left}
-    .grand-val{color:#5EEAD4;font-weight:900;font-family:'Sora',sans-serif;font-size:15px;text-align:right;letter-spacing:-0.3px}
+    .sub-row td{padding:8px 16px;border-bottom:1px solid #F8FAFC}
+    .sub-lbl{color:#64748B;text-align:left;font-size:13px}
+    .sub-val{text-align:right;font-weight:600;font-size:13px}
+    .grand-row td{background:#0A1628;padding:14px 16px;border-bottom:none}
+    .grand-lbl{color:#fff;font-weight:700;font-family:'Sora',sans-serif;font-size:15.5px;text-align:left}
+    .grand-val{color:#5EEAD4;font-weight:900;font-family:'Sora',sans-serif;font-size:15.5px;text-align:right;letter-spacing:-0.3px}
 
     /* PAYMENT */
-    .pay-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
-    .pay-box{border-radius:8px;padding:14px 16px}
+    .pay-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+    .pay-box{border-radius:10px;padding:18px 20px}
     .pay-bank{background:#FAFAF5;border:1px solid #E9E9D8}
     .pay-due{background:#F0FDFA;border:1px solid #CCFBF1}
-    .pay-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94A3B8;margin-bottom:10px}
-    .pay-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 16px}
-    .pk{font-size:12px;color:#78716C;padding:2px 0;font-weight:500}
-    .pv{font-size:12px;color:#0F172A;font-weight:700;padding:2px 0;font-family:'Sora',sans-serif;font-size:12.5px}
-    .due-text{font-size:12px;color:#0F766E;line-height:1.7}
+    .pay-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94A3B8;margin-bottom:12px}
+    .pay-grid{display:grid;grid-template-columns:auto 1fr;gap:5px 18px}
+    .pk{font-size:12.5px;color:#78716C;padding:2px 0;font-weight:500}
+    .pv{font-size:12.5px;color:#0F172A;font-weight:700;padding:2px 0;font-family:'Sora',sans-serif}
+    .due-text{font-size:12.5px;color:#0F766E;line-height:1.75}
     .due-text strong{font-weight:700}
 
     /* FOOTER */
-    .ft{background:#0A1628;padding:14px 48px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-top:auto}
-    .ft-l{font-size:10.5px;color:rgba(255,255,255,0.35);line-height:1.7}
-    .ft-r{font-size:10.5px;color:#5EEAD4;font-weight:600;text-align:right}
-    .ft-creds{font-size:9.5px;color:rgba(255,255,255,0.22);margin-top:2px}
+    .ft{background:#0A1628;padding:16px 52px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-top:auto}
+    .ft-l{font-size:11px;color:rgba(255,255,255,0.35);line-height:1.75}
+    .ft-r{font-size:11px;color:#5EEAD4;font-weight:600;text-align:right}
+    .ft-creds{font-size:9.5px;color:rgba(255,255,255,0.22);margin-top:3px}
   </style>
 </head>
 <body>
