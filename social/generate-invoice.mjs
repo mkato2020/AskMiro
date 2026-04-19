@@ -85,267 +85,215 @@ function parseArgs(argv) {
 function buildInvoiceHtml(d) {
   const net     = d.amount || 0;
   const vatRate = d.vat    || 0;
-  const vatAmt  = (net * vatRate / 100);
+  const vatAmt  = net * vatRate / 100;
   const total   = net + vatAmt;
-  const fmtGBP  = n => `£${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  const fmtGBP  = n => `£${Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   const issued  = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const lineItems = [
-    { desc: d.service || 'Cleaning Services', detail: d.address || '', amount: net },
-  ];
+  const lineItems = [{ desc: d.service || 'Cleaning Services', detail: d.address || '', amount: net }];
 
   const rows = lineItems.map(item => `
     <tr>
       <td class="td-desc">
         <div class="item-name">${item.desc}</div>
-        ${item.detail ? `<div class="item-detail">${item.detail}</div>` : ''}
+        ${item.detail ? `<div class="item-sub">${item.detail}</div>` : ''}
       </td>
-      <td class="td-qty">1</td>
-      <td class="td-rate">${fmtGBP(item.amount)}</td>
-      <td class="td-amount">${fmtGBP(item.amount)}</td>
+      <td class="td-num">1</td>
+      <td class="td-num">${fmtGBP(item.amount)}</td>
+      <td class="td-amt">${fmtGBP(item.amount)}</td>
     </tr>`).join('');
 
-  // Only show subtotal + VAT rows when VAT is charged
   const vatRow = vatRate > 0 ? `
-    <tr class="total-row">
-      <td colspan="3" class="total-label">Subtotal (Net)</td>
-      <td class="total-value">${fmtGBP(net)}</td>
-    </tr>
-    <tr class="total-row">
-      <td colspan="3" class="total-label">VAT (${vatRate}%)</td>
-      <td class="total-value">${fmtGBP(vatAmt)}</td>
-    </tr>` : '';
+    <tr class="sub-row"><td colspan="3" class="sub-lbl">Subtotal</td><td class="sub-val">${fmtGBP(net)}</td></tr>
+    <tr class="sub-row"><td colspan="3" class="sub-lbl">VAT (${vatRate}%)</td><td class="sub-val">${fmtGBP(vatAmt)}</td></tr>` : `
+    <tr class="sub-row"><td colspan="3" class="sub-lbl" style="color:#94A3B8;font-size:11px">Not VAT registered — exempt below threshold</td><td class="sub-val" style="color:#94A3B8;font-size:11px">£0.00</td></tr>`;
 
   const notesHtml = d.notes ? `
-  <div class="notes-block">
-    <div class="notes-label">Notes</div>
-    <div class="notes-text">${d.notes}</div>
-  </div>` : '';
+  <tr><td colspan="4" style="padding:0 0 0 0">
+    <div style="background:#F8FAFC;border-top:1px solid #F1F5F9;padding:10px 16px">
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8">Notes: </span>
+      <span style="font-size:12px;color:#475569">${d.notes}</span>
+    </div>
+  </td></tr>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en-GB">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoice ${d.ref} — AskMiro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#1E293B; line-height:1.5; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    @page { size:A4; margin:0; }
-    .page { max-width:794px; margin:0 auto; padding:0; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#0F172A;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:13px}
+    @page{size:A4;margin:0}
+    .page{width:794px;min-height:1123px;margin:0 auto;display:flex;flex-direction:column}
 
-    /* ── Header band ── */
-    .header { background:#0A1628; padding:40px 52px 32px; display:flex; justify-content:space-between; align-items:flex-start; }
-    .brand-name { font-family:'Outfit',sans-serif; font-size:28px; font-weight:900; color:#fff; letter-spacing:-0.5px; }
-    .brand-tag { font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
-    .brand-contact { font-size:12px; color:rgba(255,255,255,0.5); margin-top:8px; line-height:1.8; }
-    .brand-contact a { color:#5EEAD4; text-decoration:none; }
-    .doc-badge { text-align:right; }
-    .doc-type { font-size:11px; font-weight:700; color:#5EEAD4; letter-spacing:2.5px; text-transform:uppercase; }
-    .doc-ref { font-family:'Outfit',sans-serif; font-size:30px; font-weight:900; color:#fff; letter-spacing:-1px; margin-top:4px; }
-    .doc-issued { font-size:12px; color:rgba(255,255,255,0.45); margin-top:6px; }
+    /* HEADER */
+    .hd{background:#0A1628;padding:32px 48px 24px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+    .hd-brand{color:#fff}
+    .hd-name{font-family:'Sora',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.5px;line-height:1}
+    .hd-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2.5px;text-transform:uppercase;margin-top:5px}
+    .hd-contact{font-size:11.5px;color:rgba(255,255,255,0.45);margin-top:10px;line-height:1.9}
+    .hd-contact a{color:#5EEAD4;text-decoration:none}
+    .hd-meta{text-align:right}
+    .hd-label{font-size:10px;font-weight:700;color:#5EEAD4;letter-spacing:2.5px;text-transform:uppercase}
+    .hd-ref{font-family:'Sora',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;margin-top:3px;line-height:1}
+    .hd-date{font-size:11.5px;color:rgba(255,255,255,0.4);margin-top:6px}
 
-    /* ── Accent bar ── */
-    .accent-bar { height:4px; background:linear-gradient(90deg,#0D9488,#14B8A6 40%,#0A1628); }
+    /* ACCENT */
+    .bar{height:3px;background:linear-gradient(90deg,#0D9488 0%,#14B8A6 50%,#0A1628 100%);flex-shrink:0}
 
-    /* ── Body ── */
-    .body { padding:44px 52px; }
+    /* BODY */
+    .body{padding:28px 48px 24px;flex:1}
 
-    /* ── Client + Service grid ── */
-    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:36px; }
-    .info-card { border-radius:10px; padding:20px 22px; }
-    .info-card.client { background:#F8FAFC; border:1px solid #E2E8F0; }
-    .info-card.service { background:#F0FDFA; border:1px solid #CCFBF1; }
-    .info-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
-    .info-card.client .info-label { color:#94A3B8; }
-    .info-card.service .info-label { color:#0D9488; }
-    .info-name { font-size:16px; font-weight:700; color:#1E293B; }
-    .info-detail { font-size:13px; color:#64748B; margin-top:5px; line-height:1.7; }
+    /* INFO CARDS */
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+    .card{border-radius:8px;padding:14px 16px}
+    .card-a{background:#F8FAFC;border:1px solid #E2E8F0}
+    .card-b{background:#F0FDFA;border:1px solid #CCFBF1}
+    .card-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+    .card-a .card-lbl{color:#94A3B8}
+    .card-b .card-lbl{color:#0D9488}
+    .card-name{font-size:15px;font-weight:700;color:#0F172A;line-height:1.2}
+    .card-detail{font-size:12px;color:#64748B;margin-top:5px;line-height:1.7}
+    .card-detail a{color:#0D9488;text-decoration:none}
 
-    /* ── Line items table ── */
-    .items-table { width:100%; border-collapse:collapse; margin-bottom:0; }
-    .items-table thead th { padding:10px 16px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94A3B8; border-bottom:2px solid #E2E8F0; background:#F8FAFC; text-align:left; }
-    .items-table thead th:last-child { text-align:right; }
-    .items-table thead th.td-qty,
-    .items-table thead th.td-rate { text-align:right; }
-    .td-desc { padding:16px; width:55%; }
-    .td-qty  { padding:16px; width:10%; text-align:right; font-size:14px; color:#64748B; }
-    .td-rate { padding:16px; width:17%; text-align:right; font-size:14px; color:#64748B; }
-    .td-amount { padding:16px; width:18%; text-align:right; font-weight:600; font-size:14px; }
-    .item-name { font-size:14px; font-weight:600; color:#1E293B; }
-    .item-detail { font-size:12px; color:#64748B; margin-top:3px; }
-    .items-table tbody tr { border-bottom:1px solid #F1F5F9; }
+    /* TABLE */
+    .tbl{width:100%;border-collapse:collapse;margin-bottom:0}
+    .tbl thead th{padding:8px 14px;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;border-bottom:1.5px solid #E2E8F0;background:#F8FAFC;text-align:left}
+    .tbl thead th.th-r{text-align:right}
+    .td-desc{padding:14px 14px;width:52%}
+    .td-num{padding:14px 14px;width:16%;text-align:right;color:#64748B;font-size:13px}
+    .td-amt{padding:14px 14px;width:16%;text-align:right;font-weight:600;font-size:13px}
+    .item-name{font-size:13.5px;font-weight:600;color:#0F172A}
+    .item-sub{font-size:11.5px;color:#64748B;margin-top:2px}
+    .tbl tbody tr{border-bottom:1px solid #F1F5F9}
 
-    /* ── Totals ── */
-    .totals-wrap { display:flex; justify-content:flex-end; margin-top:0; }
-    .totals-table { width:300px; border-collapse:collapse; }
-    .total-row td { padding:9px 16px; font-size:14px; border-bottom:1px solid #F1F5F9; }
-    .total-label { color:#64748B; text-align:left; }
-    .total-value { font-weight:600; text-align:right; }
-    .total-row.grand td { background:#0A1628; font-size:17px; border-bottom:none; padding:14px 16px; }
-    .total-row.grand .total-label { color:#fff; font-weight:700; font-family:'Outfit',sans-serif; }
-    .total-row.grand .total-value { color:#5EEAD4; font-weight:800; font-family:'Outfit',sans-serif; letter-spacing:-0.5px; }
-    .total-row:first-child td { border-top:2px solid #E2E8F0; }
+    /* TOTALS */
+    .sub-row td{padding:7px 14px;border-bottom:1px solid #F8FAFC}
+    .sub-lbl{color:#64748B;text-align:left;font-size:12.5px}
+    .sub-val{text-align:right;font-weight:600;font-size:12.5px}
+    .grand-row td{background:#0A1628;padding:12px 14px;border-bottom:none}
+    .grand-lbl{color:#fff;font-weight:700;font-family:'Sora',sans-serif;font-size:15px;text-align:left}
+    .grand-val{color:#5EEAD4;font-weight:900;font-family:'Sora',sans-serif;font-size:15px;text-align:right;letter-spacing:-0.3px}
 
-    /* ── Payment callout ── */
-    .payment-callout { margin-top:32px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:20px 24px; }
-    .payment-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#D97706; margin-bottom:12px; }
-    .payment-grid { display:grid; grid-template-columns:auto 1fr; gap:4px 24px; }
-    .payment-key { font-size:13px; color:#92400E; font-weight:500; padding:3px 0; }
-    .payment-val { font-size:13px; color:#1E293B; font-weight:700; padding:3px 0; font-family:'Outfit',sans-serif; }
+    /* PAYMENT */
+    .pay-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+    .pay-box{border-radius:8px;padding:14px 16px}
+    .pay-bank{background:#FAFAF5;border:1px solid #E9E9D8}
+    .pay-due{background:#F0FDFA;border:1px solid #CCFBF1}
+    .pay-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94A3B8;margin-bottom:10px}
+    .pay-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 16px}
+    .pk{font-size:12px;color:#78716C;padding:2px 0;font-weight:500}
+    .pv{font-size:12px;color:#0F172A;font-weight:700;padding:2px 0;font-family:'Sora',sans-serif;font-size:12.5px}
+    .due-text{font-size:12px;color:#0F766E;line-height:1.7}
+    .due-text strong{font-weight:700}
 
-    /* ── Due callout ── */
-    .due-callout { margin-top:16px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:10px; padding:16px 20px; display:flex; align-items:center; gap:14px; }
-    .due-icon { font-size:22px; }
-    .due-text { font-size:13.5px; color:#0F766E; line-height:1.6; }
-
-    /* ── Notes ── */
-    .notes-block { margin-top:20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px 20px; }
-    .notes-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94A3B8; margin-bottom:6px; }
-    .notes-text  { font-size:13px; color:#475569; line-height:1.7; }
-
-    /* ── Signature ── */
-    .sig { margin-top:36px; padding-top:24px; border-top:2px solid #0D9488; display:flex; align-items:flex-start; gap:16px; }
-    .sig-logo { width:40px; height:40px; background:#0D9488; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .sig-name  { font-size:15px; font-weight:700; color:#1E293B; }
-    .sig-role  { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#0D9488; margin-top:3px; }
-    .sig-contact { font-size:12px; color:#64748B; margin-top:6px; line-height:1.8; }
-    .sig-contact a { color:#0D9488; text-decoration:none; }
-    .sig-creds { margin-top:10px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:7px; padding:7px 12px; font-size:10px; color:#94A3B8; }
-
-    /* ── Footer ── */
-    .footer { background:#0A1628; padding:20px 52px; display:flex; justify-content:space-between; align-items:center; }
-    .footer-left { font-size:12px; color:rgba(255,255,255,0.4); line-height:1.6; }
-    .footer-right { font-size:12px; color:#5EEAD4; font-weight:600; }
+    /* FOOTER */
+    .ft{background:#0A1628;padding:14px 48px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-top:auto}
+    .ft-l{font-size:10.5px;color:rgba(255,255,255,0.35);line-height:1.7}
+    .ft-r{font-size:10.5px;color:#5EEAD4;font-weight:600;text-align:right}
+    .ft-creds{font-size:9.5px;color:rgba(255,255,255,0.22);margin-top:2px}
   </style>
 </head>
 <body>
 <div class="page">
 
-  <!-- Header -->
-  <div class="header">
-    <div>
-      <div class="brand-name">AskMiro</div>
-      <div class="brand-tag">Cleaning Services</div>
-      <div class="brand-contact">
-        020 8073 0621<br>
-        <a href="mailto:info@askmiro.com">info@askmiro.com</a><br>
-        www.askmiro.com
+  <div class="hd">
+    <div class="hd-brand">
+      <div class="hd-name">AskMiro</div>
+      <div class="hd-sub">Cleaning Services</div>
+      <div class="hd-contact">
+        020 8073 0621 &nbsp;&bull;&nbsp; <a href="mailto:info@askmiro.com">info@askmiro.com</a> &nbsp;&bull;&nbsp; www.askmiro.com
       </div>
     </div>
-    <div class="doc-badge">
-      <div class="doc-type">Invoice</div>
-      <div class="doc-ref">${d.ref}</div>
-      <div class="doc-issued">Issued ${issued}</div>
+    <div class="hd-meta">
+      <div class="hd-label">Invoice</div>
+      <div class="hd-ref">${d.ref}</div>
+      <div class="hd-date">Issued ${issued}</div>
+      ${d.due && d.due !== 'on completion'
+        ? `<div class="hd-date" style="margin-top:2px;color:rgba(255,255,255,0.5)">Due: ${d.due}</div>`
+        : `<div class="hd-date" style="margin-top:2px;color:rgba(255,255,255,0.5)">Due on completion</div>`}
     </div>
   </div>
-  <div class="accent-bar"></div>
+  <div class="bar"></div>
 
-  <!-- Body -->
   <div class="body">
 
-    <!-- Client + Service info -->
-    <div class="info-grid">
-      <div class="info-card client">
-        <div class="info-label">Bill To</div>
-        <div class="info-name">${d.name || 'Client'}</div>
-        <div class="info-detail">
-          ${d.email ? `<a href="mailto:${d.email}" style="color:#0D9488;text-decoration:none">${d.email}</a><br>` : ''}
-          ${d.address ? d.address : ''}
+    <div class="cards">
+      <div class="card card-a">
+        <div class="card-lbl">Billed To</div>
+        <div class="card-name">${d.name || 'Client'}</div>
+        <div class="card-detail">
+          ${d.email ? `<a href="mailto:${d.email}">${d.email}</a><br>` : ''}
+          ${d.address || ''}
         </div>
       </div>
-      <div class="info-card service">
-        <div class="info-label">Service Details</div>
-        <div class="info-name">${d.service || 'Cleaning Services'}</div>
-        <div class="info-detail">
-          ${d.date ? `Date: <strong>${d.date}</strong><br>` : ''}
-          ${d.address ? `Address: ${d.address}` : ''}
+      <div class="card card-b">
+        <div class="card-lbl">Service</div>
+        <div class="card-name">${d.service || 'Cleaning Services'}</div>
+        <div class="card-detail">
+          ${d.date ? `Date: <strong style="color:#0F172A">${d.date}</strong><br>` : ''}
+          ${d.address || ''}
         </div>
       </div>
     </div>
 
-    <!-- Line items -->
-    <table class="items-table">
+    <table class="tbl">
       <thead>
         <tr>
           <th class="td-desc">Description</th>
-          <th class="td-qty">Qty</th>
-          <th class="td-rate">Rate</th>
-          <th class="td-amount">Amount</th>
+          <th class="th-r" style="width:16%">Qty</th>
+          <th class="th-r" style="width:16%">Rate</th>
+          <th class="th-r" style="width:16%">Amount</th>
         </tr>
       </thead>
       <tbody>
         ${rows}
+        ${notesHtml}
+        ${vatRow}
+        <tr class="grand-row">
+          <td colspan="3" class="grand-lbl">Total Due</td>
+          <td class="grand-val">${fmtGBP(total)}</td>
+        </tr>
       </tbody>
     </table>
 
-    <!-- Totals -->
-    <div class="totals-wrap">
-      <table class="totals-table">
-        <tbody>
-          ${vatRow}
-          <tr class="total-row grand">
-            <td class="total-label">Total Due</td>
-            <td class="total-value">${fmtGBP(total)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Payment details -->
-    <div class="payment-callout">
-      <div class="payment-title">🏦 Payment Details</div>
-      <div class="payment-grid">
-        <span class="payment-key">Account Name</span>  <span class="payment-val">Miro Partners Ltd</span>
-        <span class="payment-key">Sort Code</span>     <span class="payment-val">04-06-05</span>
-        <span class="payment-key">Account Number</span><span class="payment-val">26672911</span>
-        <span class="payment-key">Reference</span>     <span class="payment-val">${d.ref}</span>
-      </div>
-    </div>
-
-    <!-- Due notice -->
-    <div class="due-callout">
-      <div class="due-icon">💳</div>
-      <div class="due-text">
-        Payment is due <strong>${d.due}</strong>. Bank transfer preferred — please use reference <strong>${d.ref}</strong>.
-        For any queries call <strong>020 8073 0621</strong> or email <a href="mailto:info@askmiro.com" style="color:#0D9488">info@askmiro.com</a>.
-      </div>
-    </div>
-
-    ${notesHtml}
-
-    <!-- Signature -->
-    <div class="sig">
-      <div class="sig-logo">
-        <img src="https://www.askmiro.com/favicon-32x32.png" width="28" height="28" alt="AskMiro" style="display:block;border-radius:5px">
-      </div>
-      <div>
-        <div class="sig-name">Mike Kato</div>
-        <div class="sig-role">Co-Founder · AskMiro Cleaning Services</div>
-        <div class="sig-contact">
-          📞 <a href="tel:02080730621">020 8073 0621</a> &nbsp;|&nbsp;
-          ✉ <a href="mailto:info@askmiro.com">info@askmiro.com</a> &nbsp;|&nbsp;
-          <a href="https://www.askmiro.com">www.askmiro.com</a>
+    <div class="pay-wrap">
+      <div class="pay-box pay-bank">
+        <div class="pay-lbl">Bank Transfer</div>
+        <div class="pay-grid">
+          <span class="pk">Account Name</span>  <span class="pv">Miro Partners Ltd</span>
+          <span class="pk">Sort Code</span>      <span class="pv">04-06-05</span>
+          <span class="pk">Account Number</span> <span class="pv">26672911</span>
+          <span class="pk">Reference</span>       <span class="pv">${d.ref}</span>
         </div>
-        <div class="sig-creds">✓ COSHH Compliant &nbsp;&nbsp; ✓ Fully Insured &nbsp;&nbsp; ✓ ISO Quality Standards &nbsp;&nbsp; ✓ London &amp; UK Coverage${vatRate === 0 ? ' &nbsp;&nbsp; ✓ Not VAT registered — no VAT charged' : ''}</div>
+      </div>
+      <div class="pay-box pay-due">
+        <div class="pay-lbl">Payment Terms</div>
+        <div class="due-text">
+          Payment is due <strong>${d.due}</strong>.<br>
+          Please use reference <strong>${d.ref}</strong> when paying by bank transfer.<br><br>
+          Queries: <strong>020 8073 0621</strong> or <a href="mailto:info@askmiro.com" style="color:#0D9488;font-weight:600">info@askmiro.com</a>
+        </div>
       </div>
     </div>
 
-  </div><!-- /body -->
+  </div>
 
-  <!-- Footer -->
-  <div class="footer">
-    <div class="footer-left">
-      AskMiro Cleaning Services &bull; A trading name of Miro Partners Ltd<br>
+  <div class="ft">
+    <div class="ft-l">
+      AskMiro Cleaning Services &bull; A trading name of Miro Partners Ltd &bull; London &amp; UK<br>
       ${vatRate > 0
-        ? `VAT Reg: ${d.vatNumber || 'Pending'} &bull; `
-        : 'Not VAT registered &bull; '}
-      London &amp; UK
+        ? `VAT Registration No: ${d.vatNumber || 'Pending'}`
+        : 'Not VAT registered — below compulsory registration threshold. No VAT charged.'}
     </div>
-    <div class="footer-right">www.askmiro.com</div>
+    <div class="ft-r">
+      www.askmiro.com
+      <div class="ft-creds">COSHH Compliant &bull; Fully Insured &bull; ISO Standards</div>
+    </div>
   </div>
 
 </div>

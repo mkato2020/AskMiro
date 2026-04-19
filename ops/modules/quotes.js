@@ -383,6 +383,13 @@ window.Quotes = (() => {
     var e = document.getElementById(id);
     if (e) e.textContent = val;
   }
+  // Currency formatter — returns actual £ char (not &#163; entity)
+  // so it works correctly with both textContent and innerHTML
+  function _cur(n) {
+    var v = parseFloat(n) || 0;
+    var abs = Math.abs(Math.round(v));
+    return (v < 0 ? '-' : '') + '\u00a3' + abs.toLocaleString('en-GB');
+  }
   function _setStyle(id, prop, val) {
     var e = document.getElementById(id);
     if (e) e.style[prop] = val;
@@ -418,16 +425,16 @@ window.Quotes = (() => {
       _setTxt('q-margin-display', 'ONE-OFF');
       _setStyle('q-margin-display', 'fontSize', '22px');
       _setStyle('q-margin-display', 'color', '#14B8A6');
-      _setTxt('q-rev-display', '\u00a3' + calcGross.toFixed(2) + ' total');
+      _setTxt('q-rev-display', _cur(calcGross) + ' total');
 
       // Breakdown rows
       _setHtml('q-breakdown',
-        '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Net (ex. VAT)</span><span style="color:#fff;font-weight:600">' + UI.fmt(total) + '</span></div>'
-        + '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">' + vatLabel + '</span><span style="color:#fff;font-weight:600">' + UI.fmt(calcVat) + '</span></div>'
+        '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Net (ex. VAT)</span><span style="color:#fff;font-weight:600">' + _cur(total) + '</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">' + vatLabel + '</span><span style="color:#fff;font-weight:600">' + _cur(calcVat) + '</span></div>'
         + (items.length > 0 ? items.map(function(li) {
-            return '<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:rgba(255,255,255,0.35)">' + _escHtml(li.description || 'Item') + '</span><span style="color:rgba(255,255,255,0.6)">' + UI.fmt(li.amount) + '</span></div>';
+            return '<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:rgba(255,255,255,0.35)">' + _escHtml(li.description || 'Item') + '</span><span style="color:rgba(255,255,255,0.6)">' + _cur(li.amount) + '</span></div>';
           }).join('') : '')
-        + '<div style="display:flex;justify-content:space-between;font-size:14px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15)"><span style="color:rgba(255,255,255,0.7);font-weight:700">Total</span><span style="color:#14B8A6;font-weight:800">' + UI.fmt(calcGross) + '</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:14px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15)"><span style="color:rgba(255,255,255,0.7);font-weight:700">Total</span><span style="color:#14B8A6;font-weight:800">' + _cur(calcGross) + '</span></div>'
       );
 
       _setHtml('q-alert-box',
@@ -478,13 +485,13 @@ window.Quotes = (() => {
     _setTxt('q-margin-display', (rev > 0 ? gmPct.toFixed(1) + '%' : '--'));
     _setStyle('q-margin-display', 'color', rev > 0 ? col : 'rgba(255,255,255,0.2)');
     _setStyle('q-margin-display', 'fontSize', '40px');
-    _setTxt('q-rev-display', rev > 0 ? ('\u00a3' + UI.fmt(rev).replace('\u00a3','') + '/mo') : '\u00a30/mo');
+    _setTxt('q-rev-display', rev > 0 ? (_cur(rev) + '/mo') : '\u00a30/mo');
 
-    _setTxt('q-r-net', UI.fmt(rev));
-    _setTxt('q-r-lab', UI.fmt(labour));
-    _setTxt('q-r-sup', UI.fmt(supplies + other));
-    _setTxt('q-r-dct', UI.fmt(direct));
-    _setTxt('q-r-gm', UI.fmt(gm));
+    _setTxt('q-r-net', _cur(rev));
+    _setTxt('q-r-lab', _cur(labour));
+    _setTxt('q-r-sup', _cur(supplies + other));
+    _setTxt('q-r-dct', _cur(direct));
+    _setTxt('q-r-gm', _cur(gm));
     _setStyle('q-r-gm', 'color', rev > 0 ? col : '#fff');
 
     _setHtml('q-alert-box', rev > 0
