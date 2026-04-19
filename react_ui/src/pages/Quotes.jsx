@@ -171,7 +171,8 @@ export default function Quotes({openLead}){
       const margin=revenue>0?((grossMargin)/revenue)*100:0
       return{monthlyHrs:0,labour:0,totalCosts,revenue,revenueVat,margin,grossMargin,subtotal:revenue,vat:revenue*vatRate/100,gross:revenueVat}
     }
-    const monthlyHrs=form.hrs*(form.days/5)*4.33
+    const wpm=52/12  // weeks per month — matches Ops calc exactly
+    const monthlyHrs=form.hrs*wpm
     const labour=monthlyHrs*llw*(1+onCosts/100)
     const totalCosts=labour+Number(form.supplies)+Number(form.other)
     const revenue=monthlyHrs*Number(form.rate)
@@ -381,21 +382,34 @@ export default function Quotes({openLead}){
         </div>
       </div>
 
-      {/* Builder */}
+      {/* Builder — matches Ops layout: dark header + Save, form left, calc right */}
       {showBuilder&&(
-        <div style={{display:'grid',gridTemplateColumns:'1fr 380px',gap:20,marginBottom:28}}>
-          {/* Form */}
-          <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:28}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
-              <span style={{background:'#3b82f6',color:'white',fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:4,textTransform:'uppercase'}}>Builder</span>
-              <span style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)'}}>New Quote</span>
+        <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden',marginBottom:28}}>
+          {/* Dark header — same as Ops */}
+          <div style={{background:'#0A1628',padding:'14px 22px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontSize:'0.55rem',fontWeight:700,color:'#14B8A6',letterSpacing:'2px',textTransform:'uppercase'}}>QUOTES</div>
+              <div style={{fontSize:'1rem',fontWeight:800,color:'#fff',marginTop:2,letterSpacing:'-0.3px'}}>Quote Builder</div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <button onClick={saveQuote} disabled={saving} style={{background:'#14B8A6',color:'white',border:'none',borderRadius:6,padding:'8px 18px',fontSize:'0.78rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
+                {saving?'Saving…':'✓ Save Quote'}
+              </button>
+            </div>
+          </div>
+          {saveMsg&&<div style={{padding:'6px 22px',fontSize:'0.73rem',fontWeight:600,background:saveMsg.type==='success'?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)',color:saveMsg.type==='success'?'#10b981':'#ef4444',borderBottom:'1px solid var(--border)'}}>{saveMsg.text}</div>}
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:0}}>
+          {/* Form */}
+          <div style={{padding:'20px 24px',borderRight:'1px solid var(--border)'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:14}}>
               <Field label="Client Name *" value={form.client} onChange={v=>upd('client',v)}/>
               <Field label="Site Address *" value={form.site} onChange={v=>upd('site',v)}/>
-              <Field label="Postcode *" value={form.postcode} onChange={v=>upd('postcode',v)} placeholder="e.g. SW1A 1AA"/>
+              <Field label="Postcode" value={form.postcode} onChange={v=>upd('postcode',v)} placeholder="e.g. SW1A 1AA"/>
               <SelectField label="Segment" value={form.segment} onChange={v=>upd('segment',v)} options={SEGMENTS}/>
-              <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Monthly','One-off Job']}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <SelectField label="Pricing Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Monthly','One-off Job']}/>
             </div>
 
             {/* ── Hourly Rate fields (4-col grid matching Ops) ── */}
@@ -468,25 +482,8 @@ export default function Quotes({openLead}){
             </div>
           </div>
 
-          {/* Live Calculator — dark navy panel matching Ops builder */}
-          <div style={{background:'#0A1628',borderRadius:'var(--r-lg)',overflow:'hidden',display:'flex',flexDirection:'column'}}>
-            {/* Panel header */}
-            <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div>
-                <div style={{fontSize:'0.55rem',fontWeight:700,color:'#14B8A6',letterSpacing:'2px',textTransform:'uppercase'}}>
-                  {isOneOff?'ONE-OFF':'MARGIN'}
-                </div>
-                <div style={{fontSize:'0.9rem',fontWeight:700,color:'#fff',marginTop:2}}>Live Calculator</div>
-              </div>
-              <span style={{fontSize:'0.6rem',fontWeight:700,padding:'3px 9px',borderRadius:20,
-                background:isOneOff?'rgba(13,148,136,0.2)':marginOk?'rgba(16,185,129,0.18)':'rgba(239,68,68,0.18)',
-                color:isOneOff?'#2DD4BF':marginOk?'#34D399':'#F87171',
-                border:`1px solid ${isOneOff?'rgba(13,148,136,0.35)':marginOk?'rgba(16,185,129,0.35)':'rgba(239,68,68,0.35)'}`
-              }}>
-                {isOneOff?'Job':marginOk?'Healthy':'Below floor'}
-              </span>
-            </div>
-
+          {/* Live Calculator — dark navy, same as Ops */}
+          <div style={{background:'#0A1628',display:'flex',flexDirection:'column'}}>
             <div style={{padding:'20px',flex:1,display:'flex',flexDirection:'column'}}>
 
             {isOneOff?(
@@ -525,27 +522,24 @@ export default function Quotes({openLead}){
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:7}}>
-                  <button onClick={saveQuote} disabled={saving} style={{width:'100%',padding:'11px',background:'rgba(255,255,255,0.08)',color:'#fff',border:'1px solid rgba(255,255,255,0.18)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
-                    {saving?'Saving…':'✓ Save Quote'}
+                {/* Action buttons — one-off (matches Ops: Send → Preview PDF → Create Invoice → Lifecycle) */}
+                <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:6}}>
+                  <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'10px',background:'#14B8A6',color:'white',border:'none',borderRadius:6,fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>
+                    ✈ Send Quote Email
                   </button>
-                  <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'11px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>
-                    ✈ Send Booking Email
+                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.18)',borderRadius:6,fontSize:'0.78rem',fontWeight:600,cursor:'pointer'}}>
+                    Preview PDF
                   </button>
-                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'rgba(20,184,166,0.12)',color:'#14B8A6',border:'1.5px solid rgba(20,184,166,0.35)',borderRadius:'var(--r-sm)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer'}}>
-                    Preview Quote PDF
+                  <button style={{width:'100%',padding:'9px',background:'transparent',color:'#A78BFA',border:'1px solid rgba(124,58,237,0.45)',borderRadius:6,fontSize:'0.78rem',fontWeight:600,cursor:'pointer'}}
+                    onClick={()=>alert('Create Invoice — wire to Finance.openCreateInvoice()')}>
+                    Create Invoice
                   </button>
-                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.65)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>
-                    Preview Email
-                  </button>
-                  {saveMsg&&<div style={{fontSize:'0.72rem',fontWeight:600,textAlign:'center',color:saveMsg.type==='success'?'#34D399':'#F87171'}}>{saveMsg.text}</div>}
-                  <div style={{marginTop:8,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
-                    <div style={{fontSize:'0.6rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:7}}>Lifecycle</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5}}>
-                      <button onClick={()=>previewCompletionEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(22,163,74,0.12)',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>✔ Done</button>
-                      <button onClick={()=>previewPaymentEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(22,163,74,0.12)',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>Paid</button>
-                      <button onClick={()=>previewReminderEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(37,99,235,0.12)',border:'1px solid rgba(37,99,235,0.3)',color:'#60A5FA',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>Remind</button>
+                  <div style={{marginTop:6,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
+                    <div style={{fontSize:'0.58rem',fontWeight:700,color:'rgba(255,255,255,0.28)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>Lifecycle</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      <button onClick={()=>previewCompletionEmail(form,calc)} style={{padding:'6px',background:'transparent',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:6,fontSize:'0.72rem',fontWeight:600,cursor:'pointer'}}>✔ Job Complete</button>
+                      <button onClick={()=>previewPaymentEmail(form,calc)} style={{padding:'6px',background:'transparent',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:6,fontSize:'0.72rem',fontWeight:600,cursor:'pointer'}}>Payment Received</button>
+                      <button onClick={()=>previewReminderEmail(form,calc)} style={{padding:'6px',background:'transparent',border:'1px solid rgba(37,99,235,0.3)',color:'#93C5FD',borderRadius:6,fontSize:'0.72rem',fontWeight:600,cursor:'pointer'}}>Reminder</button>
                     </div>
                   </div>
                 </div>
@@ -613,19 +607,21 @@ export default function Quotes({openLead}){
                   </div>
                 )}
 
-                {/* Action buttons — recurring contract */}
-                <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:7}}>
-                  <button onClick={saveQuote} disabled={saving} style={{width:'100%',padding:'11px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
-                    {saving?'Saving…':'✓ Save Quote'}
-                  </button>
-                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'rgba(20,184,166,0.12)',color:'#14B8A6',border:'1.5px solid rgba(20,184,166,0.35)',borderRadius:'var(--r-sm)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer'}}>
-                    Preview Proposal PDF
-                  </button>
-                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.65)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>
-                    Preview Email
-                  </button>
-                  {saveMsg&&<div style={{fontSize:'0.72rem',fontWeight:600,textAlign:'center',color:saveMsg.type==='success'?'#34D399':'#F87171'}}>{saveMsg.text}</div>}
-                </div>
+                {/* Action buttons — recurring (matches Ops: Send → Preview PDF → Create Invoice) */}
+                {calc.revenue>0&&(
+                  <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:6}}>
+                    <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'10px',background:'#14B8A6',color:'white',border:'none',borderRadius:6,fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>
+                      ✈ Send Quote Email
+                    </button>
+                    <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.18)',borderRadius:6,fontSize:'0.78rem',fontWeight:600,cursor:'pointer'}}>
+                      Preview PDF
+                    </button>
+                    <button style={{width:'100%',padding:'9px',background:'transparent',color:'#A78BFA',border:'1px solid rgba(124,58,237,0.45)',borderRadius:6,fontSize:'0.78rem',fontWeight:600,cursor:'pointer'}}
+                      onClick={()=>alert('Create Invoice — wire to Finance.openCreateInvoice()')}>
+                      Create Invoice
+                    </button>
+                  </div>
+                )}
               </>
             )}
 
@@ -637,7 +633,8 @@ export default function Quotes({openLead}){
 
             </div>
           </div>
-        </div>
+          </div>{/* /inner grid */}
+        </div>{/* /outer wrapper */}
       )}
 
       {/* ══════════════════════════════════════════════════════════
