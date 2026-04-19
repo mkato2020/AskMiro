@@ -183,62 +183,120 @@ window.Quotes = (() => {
       + '<tbody>' + rows + '</tbody>'
       + '</table></div></div>';
 
-    // ── QUOTE BUILDER ──────────────────────────────────────────
-    const builderHtml = '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px;margin-bottom:24px">'
-      + '<h3 style="margin:0 0 18px;font-size:14px;font-weight:700;color:#1E293B">&#9998; Quote Builder <span style="font-size:12px;font-weight:500;color:#94A3B8;margin-left:6px">Manual / follow-up pricing</span></h3>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px">'
-      + '<div class="fg"><label class="fl">Client Name <span class="req">*</span></label><input class="fin" id="q-cl" placeholder="e.g. Soho Media Ltd" oninput="Quotes.calc()"></div>'
-      + '<div class="fg"><label class="fl">Site Address</label><input class="fin" id="q-sa" placeholder="e.g. 14 Dean Street, London W1D 3RR"></div>'
-      + '<div class="fg"><label class="fl">Segment</label><select class="fin" id="q-sg"><option value="">— select —</option><option>Commercial Office</option><option>Retail</option><option>Medical / Dental</option><option>Education</option><option>Industrial / Warehouse</option><option>Residential Block</option><option>Other</option></select></div>'
-      + '<div class="fg"><label class="fl">Pricing Mode</label><select class="fin" id="q-md" onchange="Quotes.toggleMode()"><option value="hourly">Hourly rate</option><option value="fixed">Fixed monthly</option><option value="one_off">One-off job</option></select></div>'
-      + '</div>'
-      + '<div id="q-hourly-block" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 20px;margin-bottom:16px">'
-      + '<div class="fg"><label class="fl">Hours / week</label><input class="fin" id="q-hw" type="number" min="0" step="0.5" placeholder="e.g. 15" oninput="Quotes.calc()"></div>'
-      + '<div class="fg"><label class="fl">Client rate (&#163;/hr)</label><input class="fin" id="q-cr" type="number" min="0" step="0.5" placeholder="e.g. 22.50" oninput="Quotes.calc()"></div>'
-      + '<div class="fg"><label class="fl">LLW rate (&#163;/hr)</label><input class="fin" id="q-lw" type="number" min="0" step="0.01" value="13.85" oninput="Quotes.calc()"></div>'
-      + '</div>'
-      + '<div id="q-fixed-block" style="display:none;margin-bottom:16px">'
-      + '<div class="fg"><label class="fl">Fixed monthly (&#163;)</label><input class="fin" id="q-fm" type="number" min="0" step="10" placeholder="e.g. 1200" oninput="Quotes.calc()"></div>'
-      + '</div>'
-      + '<div id="q-oneoff-block" style="display:none;margin-bottom:16px">'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px">'
-      + '<div class="fg"><label class="fl">Service Type</label><select class="fin" id="q-stype"><option value="End of Tenancy Clean">End of Tenancy Clean</option><option value="Deep Clean">Deep Clean</option><option value="Regular Clean">Regular Clean</option><option value="Move-In Clean">Move-In Clean</option><option value="Office Clean">Office Clean</option><option value="One-Off Clean">One-Off Clean</option><option value="Other">Other</option></select></div>'
-      + '<div class="fg"><label class="fl">Client Email</label><input class="fin" id="q-email" type="email" placeholder="client@email.com"></div>'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 20px;margin-bottom:12px">'
-      + '<div class="fg"><label class="fl">Job Date</label><input class="fin" id="q-jdate" type="date"></div>'
-      + '<div class="fg"><label class="fl">Job Time</label><input class="fin" id="q-jtime" type="time" value="10:00"></div>'
-      + '<div class="fg"><label class="fl">VAT</label><select class="fin" id="q-vat" onchange="Quotes.calc()"><option value="0">0% (below threshold)</option><option value="20">20%</option></select></div>'
-      + '</div>'
-      + '<div class="fg" style="margin-bottom:12px"><label class="fl">Property Details</label><input class="fin" id="q-prop" placeholder="e.g. 1 bed flat, 1 bath, furnished"></div>'
-      + '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:12px">'
-      + '<div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:10px">Line Items</div>'
-      + '<div id="q-lines">'
-      + '<div class="fr" style="margin-bottom:6px;align-items:center">'
-      + '<div class="fg" style="flex:3"><input class="fin" style="font-size:12px" placeholder="e.g. End of tenancy deep clean" data-ql="desc"></div>'
-      + '<div class="fg" style="flex:1"><input class="fin" type="number" step="1" style="font-size:12px" placeholder="&#163; Amount" data-ql="amt" oninput="Quotes.calc()"></div>'
-      + '<button type="button" onclick="this.closest(\'.fr\').remove();Quotes.calc()" style="padding:0 8px;background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px">&#x2715;</button>'
-      + '</div>'
-      + '</div>'
-      + '<button class="btn bo btn-xs" type="button" onclick="Quotes._addLine()">+ Add Line</button>'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px">'
-      + '<div class="fg"><label class="fl">Fixed total (&#163;, overrides line items)</label><input class="fin" id="q-oo-total" type="number" min="0" step="1" placeholder="Leave blank to use line item total" oninput="Quotes.calc()"></div>'
-      + '<div class="fg"><label class="fl">Payment Link (Tide / Stripe)</label><input class="fin" id="q-paylink" placeholder="https://pay.tide.co/..."></div>'
-      + '</div>'
-      + '<div class="fg" style="margin-bottom:12px"><label class="fl">Scope of Work <span style="font-weight:400;color:#94A3B8">(one item per line)</span></label><textarea class="fta" id="q-scope" placeholder="Cobweb removal from ceilings and walls&#10;Skirting boards, door frames, radiators&#10;Kitchen units deep clean&#10;..." style="height:90px"></textarea></div>'
-      + '</div>'
-      + '<div id="q-cost-block" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px">'
-      + '<div class="fg"><label class="fl">Supplies cost (&#163;/mo)</label><input class="fin" id="q-sp" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>'
-      + '<div class="fg"><label class="fl">Other costs (&#163;/mo)</label><input class="fin" id="q-oc" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>'
-      + '</div>'
-      + '<div class="fg" style="margin-bottom:16px"><label class="fl">Notes</label><textarea class="fta" id="q-nt" placeholder="Any additional context&#8230;" style="height:70px"></textarea></div>'
-      + '<div id="q-result" style="margin-bottom:16px"></div>'
-      + '<div style="display:flex;gap:10px;justify-content:flex-end">'
-      + '<button class="btn bo" onclick="Quotes.calc()">&#9654; Recalculate</button>'
-      + '<button class="btn bp" onclick="Quotes.save()">&#10003; Save Quote</button>'
-      + '</div>'
-      + '</div>';
+    // ── QUOTE BUILDER (upgraded — matches OS live calculator quality) ─────────
+    const builderHtml = `
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;margin-bottom:24px">
+
+  <!-- Header -->
+  <div style="background:#0A1628;padding:16px 24px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <span style="font-size:11px;font-weight:700;color:#14B8A6;letter-spacing:2px;text-transform:uppercase">QUOTES</span>
+      <h3 style="margin:4px 0 0;font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.3px">Quote Builder</h3>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bo btn-xs" style="border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7)" onclick="Quotes.calc()">&#9654; Recalc</button>
+      <button class="btn bp btn-xs" style="background:#14B8A6;border-color:#14B8A6" onclick="Quotes.save()">&#10003; Save Quote</button>
+    </div>
+  </div>
+
+  <!-- Two-column layout: Form + Live Calculator -->
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:0">
+
+    <!-- LEFT: Form -->
+    <div style="padding:20px 24px;border-right:1px solid #E2E8F0">
+
+      <!-- Client + Site -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
+        <div class="fg"><label class="fl">Client Name <span class="req">*</span></label><input class="fin" id="q-cl" placeholder="e.g. Soho Media Ltd" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">Site Address <span class="req">*</span></label><input class="fin" id="q-sa" placeholder="e.g. 14 Dean Street, London W1D 3RR"></div>
+        <div class="fg"><label class="fl">Postcode</label><input class="fin" id="q-pc" placeholder="e.g. SW1A 1AA" style="text-transform:uppercase" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">Segment</label><select class="fin" id="q-sg" onchange="Quotes.calc()"><option value="">— select —</option><option>Commercial Office</option><option>Retail</option><option>Medical / Dental</option><option>Education</option><option>Industrial / Warehouse</option><option>Residential Block</option><option>Other</option></select></div>
+      </div>
+
+      <!-- Mode selector -->
+      <div class="fg" style="margin-bottom:14px">
+        <label class="fl">Pricing Mode</label>
+        <select class="fin" id="q-md" onchange="Quotes.toggleMode()">
+          <option value="hourly">Hourly Rate</option>
+          <option value="fixed">Fixed Monthly</option>
+          <option value="one_off">One-off Job</option>
+        </select>
+      </div>
+
+      <!-- Hourly block -->
+      <div id="q-hourly-block" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px 16px;margin-bottom:14px">
+        <div class="fg"><label class="fl">Hrs / Week</label><input class="fin" id="q-hw" type="number" min="0" step="0.5" placeholder="e.g. 20" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">Days / Week</label><input class="fin" id="q-dw" type="number" min="1" max="7" step="1" value="5" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">Client Rate (&#163;/hr)</label><input class="fin" id="q-cr" type="number" min="0" step="0.5" placeholder="e.g. 18.50" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">LLW Rate (&#163;/hr)</label><input class="fin" id="q-lw" type="number" min="0" step="0.01" value="13.85" oninput="Quotes.calc()"></div>
+      </div>
+
+      <!-- Fixed block -->
+      <div id="q-fixed-block" style="display:none;margin-bottom:14px">
+        <div class="fg"><label class="fl">Fixed Monthly (&#163;)</label><input class="fin" id="q-fm" type="number" min="0" step="10" placeholder="e.g. 1200" oninput="Quotes.calc()"></div>
+      </div>
+
+      <!-- One-off block -->
+      <div id="q-oneoff-block" style="display:none;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:10px">
+          <div class="fg"><label class="fl">Service Type</label><select class="fin" id="q-stype"><option value="End of Tenancy Clean">End of Tenancy Clean</option><option value="Deep Clean">Deep Clean</option><option value="Regular Clean">Regular Clean</option><option value="Move-In Clean">Move-In Clean</option><option value="Office Clean">Office Clean</option><option value="After-Builders Clean">After-Builders Clean</option><option value="Airbnb Changeover">Airbnb Changeover</option><option value="One-Off Clean">One-Off Clean</option><option value="Other">Other</option></select></div>
+          <div class="fg"><label class="fl">Client Email</label><input class="fin" id="q-email" type="email" placeholder="client@email.com"></div>
+          <div class="fg"><label class="fl">Job Date</label><input class="fin" id="q-jdate" type="date"></div>
+          <div class="fg"><label class="fl">Job Time</label><input class="fin" id="q-jtime" type="time" value="10:00"></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label class="fl">Property Details</label><input class="fin" id="q-prop" placeholder="e.g. 1 bed flat, 1 bath, furnished"></div>
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:8px">Line Items</div>
+          <div id="q-lines">
+            <div class="fr" style="margin-bottom:6px;align-items:center">
+              <div class="fg" style="flex:3"><input class="fin" style="font-size:12px" placeholder="e.g. End of tenancy deep clean" data-ql="desc"></div>
+              <div class="fg" style="flex:1"><input class="fin" type="number" step="1" style="font-size:12px" placeholder="&#163;" data-ql="amt" oninput="Quotes.calc()"></div>
+              <button type="button" onclick="this.closest('.fr').remove();Quotes.calc()" style="padding:0 8px;background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px">&#x2715;</button>
+            </div>
+          </div>
+          <button class="btn bo btn-xs" type="button" onclick="Quotes._addLine()">+ Add Line</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:10px">
+          <div class="fg"><label class="fl">Fixed Total (&#163;, overrides lines)</label><input class="fin" id="q-oo-total" type="number" min="0" step="1" placeholder="Leave blank to use line total" oninput="Quotes.calc()"></div>
+          <div class="fg"><label class="fl">Payment Link (Tide / Stripe)</label><input class="fin" id="q-paylink" placeholder="https://pay.tide.co/..."></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label class="fl">Scope of Work <span style="font-weight:400;color:#94A3B8">(one item per line — appears in quote PDF)</span></label><textarea class="fta" id="q-scope" placeholder="Cobweb removal from ceilings and walls&#10;Skirting boards, door frames, radiators&#10;Kitchen units deep clean&#10;..." style="height:80px"></textarea></div>
+      </div>
+
+      <!-- Costs + Notes -->
+      <div id="q-cost-block" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
+        <div class="fg"><label class="fl">Supplies (&#163;/mo)</label><input class="fin" id="q-sp" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>
+        <div class="fg"><label class="fl">Other Costs (&#163;/mo)</label><input class="fin" id="q-oc" type="number" min="0" step="1" placeholder="0" oninput="Quotes.calc()"></div>
+      </div>
+      <div class="fg" style="margin-bottom:4px">
+        <label class="fl">Notes</label>
+        <textarea class="fta" id="q-nt" placeholder="Any additional context…" style="height:60px"></textarea>
+      </div>
+
+    </div><!-- /LEFT -->
+
+    <!-- RIGHT: Live Calculator -->
+    <div id="q-result" style="background:#0A1628;padding:20px;display:flex;flex-direction:column;gap:0;min-height:320px">
+      <div style="font-size:10px;font-weight:700;color:#14B8A6;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px">MARGIN</div>
+      <div style="font-size:40px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1" id="q-margin-display">--</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;margin-bottom:20px">gross margin</div>
+      <div style="font-size:18px;font-weight:800;color:#14B8A6;margin-bottom:20px" id="q-rev-display">£0/mo</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;display:flex;flex-direction:column;gap:8px" id="q-breakdown">
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Revenue (ex. VAT)</span><span style="color:#fff;font-weight:600" id="q-r-net">£0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Labour cost</span><span style="color:#fff;font-weight:600" id="q-r-lab">£0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Supplies + Other</span><span style="color:#fff;font-weight:600" id="q-r-sup">£0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08)"><span style="color:rgba(255,255,255,0.5)">Direct cost total</span><span style="color:#fff;font-weight:600" id="q-r-dct">£0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08)"><span style="color:rgba(255,255,255,0.7);font-weight:600">Gross margin</span><span style="font-weight:800" id="q-r-gm">£0</span></div>
+      </div>
+      <div style="margin-top:16px" id="q-alert-box">
+        <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:11px;color:rgba(255,255,255,0.4)">Enter client name, hours &amp; rate to see live margin</div>
+      </div>
+      <div style="margin-top:auto;padding-top:16px;display:flex;flex-direction:column;gap:6px" id="q-actions" style="display:none">
+      </div>
+    </div><!-- /RIGHT -->
+
+  </div><!-- /grid -->
+</div>`;
 
     // Preserve the builder form across re-renders (auto-refresh)
     var existingBuilder = document.getElementById('quote-builder-wrap');
@@ -320,53 +378,83 @@ window.Quotes = (() => {
     return items;
   }
 
+  // ── helpers for the right-panel elements ─────────────────────
+  function _setTxt(id, val) {
+    var e = document.getElementById(id);
+    if (e) e.textContent = val;
+  }
+  function _setStyle(id, prop, val) {
+    var e = document.getElementById(id);
+    if (e) e.style[prop] = val;
+  }
+  function _setHtml(id, html) {
+    var e = document.getElementById(id);
+    if (e) e.innerHTML = html;
+  }
+
   function calc() {
     const modeEl = document.getElementById('q-md');
     const mode = modeEl ? modeEl.value : 'hourly';
 
-    const el = document.getElementById('q-result');
-    if (!el) return;
+    // Verify right-panel is present (new layout)
+    const marginEl = document.getElementById('q-margin-display');
+    if (!marginEl) {
+      // Fallback: old layout — write nothing (shouldn't happen after upgrade)
+      return;
+    }
 
+    // ── ONE-OFF mode ─────────────────────────────────────────
     if (mode === 'one_off') {
       const items = _getLineItems();
       const lineTotal = items.reduce(function(s, li) { return s + li.amount; }, 0);
       const overrideTotal = parseFloat((document.getElementById('q-oo-total') || {}).value) || 0;
       const total = overrideTotal > 0 ? overrideTotal : lineTotal;
-      const vat = total * 0.2;
-      const gross = total + vat;
+      const vatPct = parseInt(UI.gv('q-vat') || '0', 10);
+      const calcVat = total * (vatPct / 100);
+      const calcGross = total + calcVat;
+      const vatLabel = vatPct > 0 ? 'VAT (' + vatPct + '%)' : 'Not VAT registered';
 
-      var vatPct = parseInt(UI.gv('q-vat') || '0', 10);
-      var calcVat = total * (vatPct / 100);
-      var calcGross = total + calcVat;
-      var vatLabel = vatPct > 0 ? 'VAT (' + vatPct + '%)' : 'VAT (0% — below threshold)';
-      el.innerHTML = '<div class="mp">'
-        + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">'
-        + '<span style="font-size:24px;font-weight:800;color:#0D9488">&#163;' + calcGross.toFixed(2) + '</span>'
-        + '<span style="font-size:12px;color:var(--ll)">one-off total</span>'
-        + '</div>'
+      // Right panel — one-off summary
+      _setTxt('q-margin-display', 'ONE-OFF');
+      _setStyle('q-margin-display', 'fontSize', '22px');
+      _setStyle('q-margin-display', 'color', '#14B8A6');
+      _setTxt('q-rev-display', '\u00a3' + calcGross.toFixed(2) + ' total');
+
+      // Breakdown rows
+      _setHtml('q-breakdown',
+        '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">Net (ex. VAT)</span><span style="color:#fff;font-weight:600">' + UI.fmt(total) + '</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:rgba(255,255,255,0.5)">' + vatLabel + '</span><span style="color:#fff;font-weight:600">' + UI.fmt(calcVat) + '</span></div>'
         + (items.length > 0 ? items.map(function(li) {
-            return '<div class="mp-row"><span class="mp-lbl">' + _escHtml(li.description || 'Item') + '</span><span class="mp-val">' + UI.fmt(li.amount) + '</span></div>';
+            return '<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:rgba(255,255,255,0.35)">' + _escHtml(li.description || 'Item') + '</span><span style="color:rgba(255,255,255,0.6)">' + UI.fmt(li.amount) + '</span></div>';
           }).join('') : '')
-        + '<div class="mp-row" style="border-top:1px solid #E2E8F0;padding-top:6px;margin-top:4px"><span class="mp-lbl">Subtotal (net)</span><span class="mp-val" style="font-weight:700">' + UI.fmt(total) + '</span></div>'
-        + '<div class="mp-row"><span class="mp-lbl">' + vatLabel + '</span><span class="mp-val">' + UI.fmt(calcVat) + '</span></div>'
-        + '<div class="mp-row"><span class="mp-lbl" style="font-weight:700">Total</span><span class="mp-val" style="font-weight:700;font-size:15px;color:#0D9488">' + UI.fmt(calcGross) + '</span></div>'
-        + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
-        + '<button class="btn bp btn-xs" style="background:#0D9488;border-color:#0D9488" onclick="Quotes.sendClientEmail()">&#9992; Send Email</button>'
-        + '<button class="btn bo btn-xs" style="border-color:#0D9488;color:#0D9488" onclick="Quotes.previewClientQuote()">&#128196; Preview Quote PDF</button>'
-        + '<button class="btn bo btn-xs" style="border-color:#0D9488;color:#0D9488" onclick="Quotes.previewClientEmail()">&#9993; Preview Email</button>'
-        + '<button class="btn bo btn-xs" style="border-color:#7C3AED;color:#7C3AED" onclick="Quotes.convertToInvoice()">&#128203; Create Invoice</button>'
-        + '<button class="btn bo btn-xs" onclick="Quotes.downloadClientEmail()">&#11015; Download Email</button>'
+        + '<div style="display:flex;justify-content:space-between;font-size:14px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15)"><span style="color:rgba(255,255,255,0.7);font-weight:700">Total</span><span style="color:#14B8A6;font-weight:800">' + UI.fmt(calcGross) + '</span></div>'
+      );
+
+      _setHtml('q-alert-box',
+        '<div style="background:rgba(20,184,166,0.15);border-radius:8px;padding:10px 12px;font-size:11px;color:rgba(255,255,255,0.6)">'
+        + (total > 0 ? '&#10003; Job priced — save then send quote' : 'Add line items and amounts above')
         + '</div>'
-        + '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'
-        + '<span style="font-size:10px;font-weight:700;color:#64748B;letter-spacing:1px;text-transform:uppercase;line-height:28px">Lifecycle:</span>'
-        + '<button class="btn bo btn-xs" style="border-color:#16A34A;color:#16A34A" onclick="Quotes.previewCompletionEmail()">&#10004; Job Complete</button>'
-        + '<button class="btn bo btn-xs" style="border-color:#16A34A;color:#16A34A" onclick="Quotes.previewPaymentEmail()">&#128179; Payment Received</button>'
-        + '<button class="btn bo btn-xs" style="border-color:#2563EB;color:#2563EB" onclick="Quotes.previewReminderEmail()">&#128197; Reminder</button>'
-        + '</div>'
-        + '</div>';
+      );
+
+      // Action buttons in footer panel
+      _setHtml('q-actions',
+        '<button class="btn bp btn-xs" style="background:#14B8A6;border-color:#14B8A6;width:100%" onclick="Quotes.sendClientEmail()">&#9992; Send Quote Email</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);width:100%" onclick="Quotes.previewClientQuote()">&#128196; Preview PDF</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(124,58,237,0.6);color:#A78BFA;width:100%" onclick="Quotes.convertToInvoice()">&#128203; Create Invoice</button>'
+        + '<div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;margin-top:4px">'
+        + '<div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Lifecycle</div>'
+        + '<div style="display:flex;flex-direction:column;gap:4px">'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(22,163,74,0.4);color:#4ADE80" onclick="Quotes.previewCompletionEmail()">&#10004; Job Complete</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(22,163,74,0.4);color:#4ADE80" onclick="Quotes.previewPaymentEmail()">&#128179; Payment Received</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(37,99,235,0.4);color:#93C5FD" onclick="Quotes.previewReminderEmail()">&#128197; Reminder</button>'
+        + '</div></div>'
+      );
+      var actEl = document.getElementById('q-actions');
+      if (actEl) actEl.style.display = '';
       return;
     }
 
+    // ── HOURLY / FIXED mode ───────────────────────────────────
     const hrs = parseFloat((document.getElementById('q-hw') || {}).value) || 0;
     const rate = parseFloat((document.getElementById('q-cr') || {}).value) || 0;
     const llw = parseFloat((document.getElementById('q-lw') || {}).value) || 13.85;
@@ -378,40 +466,47 @@ window.Quotes = (() => {
     const labour = hrs * wpm * llw * 1.36;
     const rev = (mode === 'fixed') ? fixedMonthly : (hrs * wpm * rate);
     const direct = labour + supplies + other;
-
     const gm = rev - direct;
     const gmPct = rev > 0 ? (gm / rev * 100) : 0;
 
-    const col = (gmPct >= CFG.MIN_MARGIN_PCT + 5) ? 'var(--gn)'
-      : (gmPct >= CFG.MIN_MARGIN_PCT) ? 'var(--am)' : 'var(--rd)';
+    const col = (gmPct >= CFG.MIN_MARGIN_PCT + 5) ? '#4ADE80'
+      : (gmPct >= CFG.MIN_MARGIN_PCT) ? '#FCD34D' : '#F87171';
 
     const blocked = gmPct < CFG.MIN_MARGIN_PCT;
 
-    el.innerHTML = `
-<div class="mp">
-  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-    <span class="mp-pct" style="color:${col}">${gmPct.toFixed(1)}%</span>
-    <span style="font-size:12px;color:var(--ll)">gross margin</span>
-    <span style="margin-left:auto;font-weight:700">${UI.fmt(rev)}/mo</span>
-  </div>
+    // Update right-panel elements
+    _setTxt('q-margin-display', (rev > 0 ? gmPct.toFixed(1) + '%' : '--'));
+    _setStyle('q-margin-display', 'color', rev > 0 ? col : 'rgba(255,255,255,0.2)');
+    _setStyle('q-margin-display', 'fontSize', '40px');
+    _setTxt('q-rev-display', rev > 0 ? ('\u00a3' + UI.fmt(rev).replace('\u00a3','') + '/mo') : '\u00a30/mo');
 
-  <div class="mp-bar-wrap">
-    <div class="mp-bar" style="width:${Math.min(Math.max(gmPct / 60 * 100, 0), 100).toFixed(1)}%;background:${col}"></div>
-  </div>
+    _setTxt('q-r-net', UI.fmt(rev));
+    _setTxt('q-r-lab', UI.fmt(labour));
+    _setTxt('q-r-sup', UI.fmt(supplies + other));
+    _setTxt('q-r-dct', UI.fmt(direct));
+    _setTxt('q-r-gm', UI.fmt(gm));
+    _setStyle('q-r-gm', 'color', rev > 0 ? col : '#fff');
 
-  <div class="mp-row"><span class="mp-lbl">Revenue/month (ex. VAT)</span><span class="mp-val">${UI.fmt(rev)}</span></div>
-  <div class="mp-row"><span class="mp-lbl">Revenue/month (inc. VAT)</span><span class="mp-val" style="color:#64748B">${UI.fmt(rev * 1.2)}</span></div>
-  <div class="mp-row"><span class="mp-lbl">Labour cost</span><span class="mp-val">${UI.fmt(labour)}</span></div>
-  <div class="mp-row"><span class="mp-lbl">Supplies + Other</span><span class="mp-val">${UI.fmt(supplies + other)}</span></div>
-  <div class="mp-row"><span class="mp-lbl">Direct cost total</span><span class="mp-val">${UI.fmt(direct)}</span></div>
-  <div class="mp-row"><span class="mp-lbl" style="color:${col}">Gross margin</span><span class="mp-val" style="color:${col}">${UI.fmt(gm)}</span></div>
+    _setHtml('q-alert-box', rev > 0
+      ? (blocked
+          ? '<div style="background:rgba(248,113,113,0.15);border-radius:8px;padding:10px 12px;font-size:11px;color:#FCA5A5">&#10007; Below ' + CFG.MIN_MARGIN_PCT + '% floor \u2014 override required to send</div>'
+          : '<div style="background:rgba(74,222,128,0.12);border-radius:8px;padding:10px 12px;font-size:11px;color:#86EFAC">&#10003; Above minimum margin \u2014 ready to send</div>'
+        )
+      : '<div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:11px;color:rgba(255,255,255,0.4)">Enter client name, hours &amp; rate to see live margin</div>'
+    );
 
-  <div style="margin-top:10px">
-    ${blocked
-      ? `<div class="alert alert-r" style="margin:0">&#10007; Below ${CFG.MIN_MARGIN_PCT}% floor &#8212; override required to send</div>`
-      : `<div class="alert alert-g" style="margin:0">&#10003; Above minimum margin &#8212; ready to send</div>`}
-  </div>
-</div>`.trim();
+    // Show action buttons only when priced
+    var actEl = document.getElementById('q-actions');
+    if (rev > 0) {
+      _setHtml('q-actions',
+        '<button class="btn bp btn-xs" style="background:#14B8A6;border-color:#14B8A6;width:100%" onclick="Quotes.sendClientEmail()">&#9992; Send Quote Email</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);width:100%" onclick="Quotes.previewClientQuote()">&#128196; Preview PDF</button>'
+        + '<button class="btn bo btn-xs" style="border-color:rgba(124,58,237,0.6);color:#A78BFA;width:100%" onclick="Quotes.convertToInvoice()">&#128203; Create Invoice</button>'
+      );
+      if (actEl) actEl.style.display = '';
+    } else {
+      if (actEl) actEl.style.display = 'none';
+    }
   }
 
   async function save() {
@@ -420,18 +515,20 @@ window.Quotes = (() => {
     const mode = modeEl ? modeEl.value : 'hourly';
 
     const body = {
-      clientName: UI.gv('q-cl'),
-      siteAddress: UI.gv('q-sa'),
-      segment: UI.gv('q-sg'),
-      mode: mode,
+      clientName:   UI.gv('q-cl'),
+      siteAddress:  UI.gv('q-sa'),
+      postcode:     UI.gv('q-pc'),
+      segment:      UI.gv('q-sg'),
+      mode:         mode,
       hoursPerWeek: UI.gv('q-hw'),
-      hourlyRate: UI.gv('q-cr'),
+      daysPerWeek:  UI.gv('q-dw'),
+      hourlyRate:   UI.gv('q-cr'),
       fixedMonthly: UI.gv('q-fm'),
       suppliesCost: UI.gv('q-sp'),
-      otherCosts: UI.gv('q-oc'),
-      llwRate: UI.gv('q-lw'),
-      oncostPct: 0.36,
-      notes: UI.gv('q-nt')
+      otherCosts:   UI.gv('q-oc'),
+      llwRate:      UI.gv('q-lw'),
+      oncostPct:    0.36,
+      notes:        UI.gv('q-nt')
     };
 
     if (mode === 'one_off') {
@@ -478,9 +575,11 @@ window.Quotes = (() => {
     const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
     set('q-cl', q.clientName);
     set('q-sa', q.siteAddress);
+    set('q-pc', q.postcode   || q.sitePostcode || '');
     set('q-sg', q.segment);
     set('q-md', q.mode || 'hourly');
     set('q-hw', q.hoursPerWeek);
+    set('q-dw', q.daysPerWeek || 5);
     set('q-cr', q.hourlyRate);
     set('q-fm', q.fixedMonthly);
     set('q-sp', q.suppliesCost);

@@ -2,6 +2,7 @@ import {useState,useEffect,useMemo,useCallback,useRef} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
 import {fetchQuoteIntelligence,fetchCleanerMatch,fetchFeasibility} from '../api'
+import {gasClient,quoteFormToGas} from '../gasClient'
 
 const fmtCur=v=>'£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})
 const fmtPct=v=>(v||0).toFixed(1)+'%'
@@ -109,20 +110,21 @@ function riskColor(margin){return margin>=30?'#10b981':margin>=20?'#f59e0b':'#ef
 
 export default function Quotes({openLead}){
   const qc=useQueryClient()
-  const {data:quotesRaw,isLoading}=useQuery({queryKey:['quotes'],queryFn:()=>api.quotes()})
+  // ── DATA FROM GAS (single source of truth) ───────────────
+  const {data:quotesRaw,isLoading}=useQuery({queryKey:['quotes'],queryFn:()=>gasClient.quotes.list()})
   const quotes=Array.isArray(quotesRaw)?quotesRaw:(quotesRaw?.quotes||[])
-  const {data:settings}=useQuery({queryKey:['fin-settings'],queryFn:api.financeSettings,staleTime:300000})
+  const {data:settings}=useQuery({queryKey:['fin-settings'],queryFn:gasClient.finance.settings,staleTime:300000})
   const [tab,setTab]=useState('all')
   const [showBuilder,setShowBuilder]=useState(true)
   const [saving,setSaving]=useState(false)
   const [saveMsg,setSaveMsg]=useState(null)
   const [selectedQuote,setSelectedQuote]=useState(null)
 
-  // Settings with defaults
+  // Settings with defaults (GAS returns mapped snake_case aliases via gasClient)
   const llw=settings?.llw_rate||13.85
   const onCosts=settings?.on_costs_pct||36
   const minMargin=settings?.min_margin_pct||20
-  const vatRate=settings?.vat_rate||20
+  const vatRate=settings?.vat_rate||0  // Company not VAT registered below threshold
 
   // Form state
   const SERVICE_TYPES=['End of Tenancy Clean','Deep Clean','Regular Clean','Move-In Clean','Office Clean','One-Off Clean','Other']
@@ -219,26 +221,12 @@ export default function Quotes({openLead}){
     if(!form.client?.trim()){setSaveMsg({type:'error',text:'Client name is required'});return}
     setSaving(true);setSaveMsg(null)
     try{
-      const payload=isOneOff?{
-        client_name:form.client,site_address:form.site,site_postcode:form.postcode,
-        sector:form.segment,mode:'one_off',
-        line_items:form.lineItems.filter(li=>li.desc&&li.amt).map(li=>({description:li.desc,amount:Number(li.amt)})),
-        one_off_total:Number(form.fixedTotal)||form.lineItems.reduce((s,li)=>s+Number(li.amt||0),0),
-        client_email:form.clientEmail,job_date:form.jobDate,job_time:form.jobTime,
-        service_type:form.serviceType,prop_details:form.propDetails,
-        vat_rate:String(form.vatPct),scope:form.scope,payment_link:form.paymentLink,
-        notes:form.notes,status:'draft'
-      }:{
-        client_name:form.client,site_address:form.site,site_postcode:form.postcode,
-        sector:form.segment,mode:form.mode==='Hourly Rate'?'hourly':'fixed',
-        hours_per_week:form.hrs,days_per_week:form.days,client_rate:Number(form.rate),
-        llw_rate:llw,on_costs_pct:onCosts,supplies_month:Number(form.supplies),
-        other_costs_month:Number(form.other),notes:form.notes,status:'draft'
-      }
-      const res=await fetch('/api/quotes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-      const data=await res.json()
-      if(!res.ok) throw new Error(data.detail||data.error||'Save failed')
-      setSaveMsg({type:'success',text:`Quote ${(data.id||'').substring(0,8)} saved`})
+      // Build GAS-compatible payload (camelCase, matches Quotes sheet schema)
+      const payload=quoteFormToGas(form,calc,llw,onCosts,isOneOff)
+      // ── Save to GAS (single source of truth for quotes) ──
+      const data=await gasClient.quotes.save(payload)
+      if(!data?.ok&&!data?.id) throw new Error(data?.error||'Save failed')
+      setSaveMsg({type:'success',text:`Quote ${(data.id||'').substring(0,8)} saved to GAS`})
       qc.invalidateQueries({queryKey:['quotes']})
       // Reset form
       setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:'',serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',lineItems:[{desc:'',amt:''}],fixedTotal:''})
