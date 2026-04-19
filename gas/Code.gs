@@ -161,6 +161,7 @@ function routePost(action, body, auth) {
     case 'finance.recalculateSnapshots':   return recalculateFinanceSnapshots(body, auth);
     case 'finance.assistant':              return financeAssistant(body, auth);
     case 'finance.setupSheets':            return setupFinanceSheets(body, auth);
+    case 'finance.updateSetting':          return updateFinanceSetting(body, auth);
     case 'labour.createEntry':             return createLabourEntry(body, auth);
     case 'labour.updateEntry':             return updateLabourEntry(body, auth);
     case 'labour.approvePayroll':          return approveLabourPayroll(body, auth);

@@ -195,6 +195,47 @@ function getFinanceSettings(params, auth) {
   return out;
 }
 
+// ── POST: Update Finance Setting ─────────────────────────────
+// Body: { key: 'vatRate', value: '0' }  or  { settings: { vatRate:0, invoicePrefix:'AM' } }
+function updateFinanceSetting(body, auth) {
+  requireRole(auth, 'Finance');
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+  var sh = ss.getSheetByName(FINANCE_SETT);
+  if (!sh) throw new Error('Finance_Settings sheet not found — run Setup Finance Sheets first');
+
+  // Build map of updates: support single {key,value} or bulk {settings:{}}
+  var updates = {};
+  if (body.settings && typeof body.settings === 'object') {
+    updates = body.settings;
+  } else if (body.key !== undefined) {
+    updates[body.key] = body.value;
+  }
+
+  var data    = sh.getDataRange().getValues();
+  var updated = [];
+
+  Object.keys(updates).forEach(function(k) {
+    var found = false;
+    for (var i = 0; i < data.length; i++) {
+      if (data[i][0] === k) {
+        sh.getRange(i + 1, 2).setValue(updates[k]);   // col B = value
+        sh.getRange(i + 1, 3).setValue(new Date().toISOString()); // col C = updatedAt
+        updated.push(k);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // Key doesn't exist yet — append new row
+      sh.appendRow([k, updates[k], new Date().toISOString()]);
+      updated.push(k + ' (new)');
+    }
+  });
+
+  invalidateCache();
+  return { ok: true, updated: updated };
+}
+
 // ── GET: Finance Categories ───────────────────────────────────
 function getFinanceCategories(params, auth) {
   requireRole(auth, 'Finance');
