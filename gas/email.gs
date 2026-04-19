@@ -112,15 +112,24 @@ function buildEmailTemplate(tmpl, f, subject) {
   }
   // ── INVOICE ──────────────────────────────────────────────
   if (tmpl === 'Invoice') {
-    var net = parseFloat(amount || 0), vatAmt = (net * 0.2).toFixed(2), total = (net * 1.2).toFixed(2);
+    var net = parseFloat(amount || 0);
+    var vatPct = parseFloat(f.vatRate || 0);
+    var vatAmt = (net * vatPct / 100).toFixed(2);
+    var total = (net + parseFloat(vatAmt)).toFixed(2);
     var invNum = f.invNum || '&mdash;', period = f.period || '&mdash;';
     var issueDate = f.issueDate || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd MMMM yyyy');
+    var tableRows = [['Invoice Number', invNum],['Service Period', period],['Site', site],['Issue Date', issueDate],['Payment Due', f.dueDate || '30 days from invoice date']];
+    if (vatPct > 0) {
+      tableRows.push(['Subtotal', amount ? '&pound;' + net.toFixed(2) : '&mdash;']);
+      tableRows.push(['VAT (' + vatPct + '%)', amount ? '&pound;' + vatAmt : '&mdash;']);
+    }
     return wrap('Invoice', navy,
       h('Invoice ' + invNum + '.') + sub(period + (site ? ' &mdash; ' + site : '')) + gr(name)
-      + p('Please find below your invoice for cleaning services at <strong>' + site + '</strong> for <strong>' + period + '</strong>.')
-      + dataTable([['Invoice Number', invNum],['Service Period', period],['Site', site],['Issue Date', issueDate],['Payment Due', f.dueDate || '&mdash;'],['Subtotal', amount ? '&pound;' + net.toFixed(2) : '&mdash;'],['VAT (20%)', amount ? '&pound;' + vatAmt : '&mdash;']], ['Total Due', amount ? '&pound;' + total : '&mdash;'])
-      + amber('<strong>&#127974; Bank Transfer Details</strong><br><br><table cellpadding="0" cellspacing="0"><tr><td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:24px;line-height:2">Account Name<br>Sort Code<br>Account Number<br>Reference</td><td style="font-family:Arial,sans-serif;font-size:13px;color:' + charcoal + ';font-weight:700;line-height:2">' + accName + '<br>' + sortCode + '<br>' + accNum + '<br>' + invNum + '</td></tr></table>')
+      + p('Please find attached your invoice for cleaning services at <strong>' + site + '</strong> for <strong>' + period + '</strong>. Your PDF invoice is attached to this email.')
+      + dataTable(tableRows, ['Total Due', amount ? '&pound;' + total : '&mdash;'])
+      + amber('<strong>Bank Transfer Details</strong><br><br><table cellpadding="0" cellspacing="0"><tr><td style="font-family:Arial,sans-serif;font-size:13px;color:#92400E;padding-right:24px;line-height:2">Account Name<br>Sort Code<br>Account Number<br>Reference</td><td style="font-family:Arial,sans-serif;font-size:13px;color:' + charcoal + ';font-weight:700;line-height:2">' + accName + '<br>' + sortCode + '<br>' + accNum + '<br>' + invNum + '</td></tr></table>')
       + p('Payment is due within <strong>30 days</strong>. For queries please reply or call ' + phone + '.')
+      + (vatPct === 0 ? sm('Not VAT registered &mdash; no VAT is charged on this invoice. AskMiro Cleaning Services is below the compulsory VAT registration threshold.') : '')
       + divider() + sm('Late payments may be subject to statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998.')
     );
   }

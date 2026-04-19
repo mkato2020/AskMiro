@@ -227,6 +227,7 @@ function mapQuote(q) {
  * Called from Quotes.jsx saveQuote callback.
  */
 export function quoteFormToGas(form, calc, llw, onCosts, isOneOff) {
+  const isFixed = form.mode === 'Fixed Monthly'
   const base = {
     clientName:  form.client?.trim(),
     siteAddress: form.site?.trim(),
@@ -260,11 +261,12 @@ export function quoteFormToGas(form, calc, llw, onCosts, isOneOff) {
   }
   return {
     ...base,
-    mode:           form.mode === 'Hourly Rate' ? 'hourly' : 'fixed',
-    hoursPerWeek:   Number(form.hrs),
-    daysPerWeek:    Number(form.days),
-    hourlyRate:     Number(form.rate),
-    llwRate:        llw,
+    mode:           isFixed ? 'fixed' : 'hourly',
+    hoursPerWeek:   isFixed ? 0 : Number(form.hrs),
+    daysPerWeek:    isFixed ? 0 : Number(form.days),
+    hourlyRate:     isFixed ? 0 : Number(form.rate),
+    llwRate:        isFixed ? 0 : (Number(form.llw) || llw),
+    fixedMonthly:   isFixed ? Number(form.fixedMonthly) : 0,
     oncostPct:      onCosts,
     suppliesCost:   Number(form.supplies),
     otherCosts:     Number(form.other),

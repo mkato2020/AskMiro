@@ -121,19 +121,24 @@ export default function Quotes({openLead}){
   const [selectedQuote,setSelectedQuote]=useState(null)
 
   // Settings with defaults (GAS returns mapped snake_case aliases via gasClient)
-  const llw=settings?.llw_rate||13.85
+  const llwDefault=settings?.llw_rate||13.85
   const onCosts=settings?.on_costs_pct||36
   const minMargin=settings?.min_margin_pct||20
   const vatRate=settings?.vat_rate||0  // Company not VAT registered below threshold
 
-  // Form state
+  // Form state — llw is editable per-quote (override from settings)
   const SERVICE_TYPES=['End of Tenancy Clean','Deep Clean','Regular Clean','Move-In Clean','Office Clean','One-Off Clean','Other']
-  const [form,setForm]=useState({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:'',
+  const [form,setForm]=useState({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,llw:llwDefault,fixedMonthly:0,supplies:200,other:0,notes:'',
     // One-off fields
     serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',
     lineItems:[{desc:'',amt:''}],fixedTotal:''
   })
   const upd=(k,v)=>setForm(p=>({...p,[k]:v}))
+  // Keep llw in sync with settings on first load (only if user hasn't changed it)
+  const llw=Number(form.llw)||llwDefault
+  useEffect(()=>{
+    if(settings?.llw_rate&&form.llw===13.85) upd('llw',settings.llw_rate)
+  },[settings?.llw_rate]) // eslint-disable-line
 
   // Intelligence state
   const [intel,setIntel]=useState(null)
@@ -142,6 +147,7 @@ export default function Quotes({openLead}){
   const [showIntel,setShowIntel]=useState(true)
 
   const isOneOff=form.mode==='One-off Job'
+  const isFixed=form.mode==='Fixed Monthly'
 
   // Line item helpers
   const addLine=()=>setForm(p=>({...p,lineItems:[...p.lineItems,{desc:'',amt:''}]}))
@@ -157,6 +163,14 @@ export default function Quotes({openLead}){
       const gross=subtotal+vat
       return{subtotal,vat,gross,lineTotal,margin:100,revenue:subtotal,monthlyHrs:0,labour:0,totalCosts:0,revenueVat:gross,grossMargin:subtotal}
     }
+    if(isFixed){
+      const revenue=Number(form.fixedMonthly)||0
+      const revenueVat=revenue*(1+vatRate/100)
+      const totalCosts=Number(form.supplies)+Number(form.other)
+      const grossMargin=revenue-totalCosts
+      const margin=revenue>0?((grossMargin)/revenue)*100:0
+      return{monthlyHrs:0,labour:0,totalCosts,revenue,revenueVat,margin,grossMargin,subtotal:revenue,vat:revenue*vatRate/100,gross:revenueVat}
+    }
     const monthlyHrs=form.hrs*(form.days/5)*4.33
     const labour=monthlyHrs*llw*(1+onCosts/100)
     const totalCosts=labour+Number(form.supplies)+Number(form.other)
@@ -165,7 +179,7 @@ export default function Quotes({openLead}){
     const margin=revenue>0?((revenue-totalCosts)/revenue)*100:0
     const grossMargin=revenue-totalCosts
     return{monthlyHrs,labour,totalCosts,revenue,revenueVat,margin,grossMargin,subtotal:revenue,vat:revenue*vatRate/100,gross:revenueVat}
-  },[form,llw,onCosts,vatRate,isOneOff])
+  },[form,llw,onCosts,vatRate,isOneOff,isFixed])
 
   const marginOk=calc.margin>=minMargin
   const marginColor=marginOk?'#10b981':'#ef4444'
@@ -229,7 +243,7 @@ export default function Quotes({openLead}){
       setSaveMsg({type:'success',text:`Quote ${(data.id||'').substring(0,8)} saved to GAS`})
       qc.invalidateQueries({queryKey:['quotes']})
       // Reset form
-      setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,supplies:200,other:0,notes:'',serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',lineItems:[{desc:'',amt:''}],fixedTotal:''})
+      setForm({client:'',site:'',postcode:'',segment:'Office',mode:'Hourly Rate',hrs:20,days:5,rate:18.50,llw:llwDefault,fixedMonthly:0,supplies:200,other:0,notes:'',serviceType:'End of Tenancy Clean',clientEmail:'',jobDate:'',jobTime:'10:00',propDetails:'',paymentLink:'',vatPct:0,scope:'',lineItems:[{desc:'',amt:''}],fixedTotal:''})
       setIntel(null)
     }catch(err){
       setSaveMsg({type:'error',text:err.message||'Save failed'})
@@ -238,15 +252,18 @@ export default function Quotes({openLead}){
 
   // ── Load into builder ────────────────────────────────────
   const loadIntoBuilder=useCallback((q)=>{
+    const mode=q.mode==='fixed'?'Fixed Monthly':q.mode==='one_off'?'One-off Job':'Hourly Rate'
     setForm({
       client:q.client_name||q.client||q.customer||'',
       site:q.site_address||q.site||q.address||'',
       postcode:q.site_postcode||q.postcode||'',
       segment:q.sector||q.segment||'Office',
-      mode:q.mode==='fixed'?'Fixed Price':'Hourly Rate',
+      mode,
       hrs:Number(q.hours_per_week||q.hoursPerWeek||20),
       days:Number(q.days_per_week||q.daysPerWeek||5),
       rate:Number(q.client_rate||q.hourlyRate||18.50),
+      llw:Number(q.llw_rate||q.llwRate||llwDefault),
+      fixedMonthly:Number(q.fixed_monthly||q.fixedMonthly||0),
       supplies:Number(q.supplies_month||q.suppliesCost||200),
       other:Number(q.other_costs_month||q.otherCosts||0),
       notes:q.notes||''
@@ -378,13 +395,33 @@ export default function Quotes({openLead}){
               <Field label="Site Address *" value={form.site} onChange={v=>upd('site',v)}/>
               <Field label="Postcode *" value={form.postcode} onChange={v=>upd('postcode',v)} placeholder="e.g. SW1A 1AA"/>
               <SelectField label="Segment" value={form.segment} onChange={v=>upd('segment',v)} options={SEGMENTS}/>
-              <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Price','One-off Job']}/>
-              {!isOneOff&&<Field label="Hrs/Week" value={form.hrs} onChange={v=>upd('hrs',Number(v))} type="number"/>}
-              {!isOneOff&&<SelectField label="Days/Week" value={form.days} onChange={v=>upd('days',Number(v))} options={[1,2,3,4,5,6,7]}/>}
-              {!isOneOff&&<Field label="Client Rate (£/hr)" value={form.rate} onChange={v=>upd('rate',v)} type="number" step="0.5"/>}
-              {!isOneOff&&<Field label="Supplies/Month (£)" value={form.supplies} onChange={v=>upd('supplies',v)} type="number"/>}
-              {!isOneOff&&<Field label="Other Costs/Month (£)" value={form.other} onChange={v=>upd('other',v)} type="number"/>}
+              <SelectField label="Mode" value={form.mode} onChange={v=>upd('mode',v)} options={['Hourly Rate','Fixed Monthly','One-off Job']}/>
             </div>
+
+            {/* ── Hourly Rate fields (4-col grid matching Ops) ── */}
+            {!isOneOff&&!isFixed&&(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginTop:16}}>
+                <Field label="Hrs / Week" value={form.hrs} onChange={v=>upd('hrs',Number(v))} type="number"/>
+                <SelectField label="Days / Week" value={form.days} onChange={v=>upd('days',Number(v))} options={[1,2,3,4,5,6,7]}/>
+                <Field label="Client Rate (£/hr)" value={form.rate} onChange={v=>upd('rate',v)} type="number" step="0.5"/>
+                <Field label="LLW Rate (£/hr)" value={form.llw} onChange={v=>upd('llw',v)} type="number" step="0.01"/>
+              </div>
+            )}
+
+            {/* ── Fixed Monthly field ── */}
+            {isFixed&&(
+              <div style={{marginTop:16}}>
+                <Field label="Fixed Monthly (£)" value={form.fixedMonthly} onChange={v=>upd('fixedMonthly',v)} type="number" step="10"/>
+              </div>
+            )}
+
+            {/* ── Shared cost fields (supplies/other) for hourly + fixed ── */}
+            {!isOneOff&&(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:16}}>
+                <Field label="Supplies / Month (£)" value={form.supplies} onChange={v=>upd('supplies',v)} type="number"/>
+                <Field label="Other Costs / Month (£)" value={form.other} onChange={v=>upd('other',v)} type="number"/>
+              </div>
+            )}
 
             {/* ── One-off Job Fields ── */}
             {isOneOff&&(
@@ -425,108 +462,175 @@ export default function Quotes({openLead}){
               </div>
             )}
 
-            {!isOneOff&&(
-            <div style={{marginTop:16}}>
-              <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--teal)',textTransform:'uppercase',letterSpacing:'0.05em'}}>LLW Rate (£/hr) — Auto from Settings</label>
-              <div style={{marginTop:4,padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.85rem',color:'var(--text-muted)'}}>{llw.toFixed(2)}</div>
-            </div>
-            )}
             <div style={{marginTop:16}}>
               <label style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Notes</label>
               <textarea value={form.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Scope, access notes, special requirements..." style={{marginTop:4,width:'100%',padding:'10px 14px',background:'var(--bg-base)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',color:'var(--text-1)',minHeight:70,resize:'vertical',fontFamily:'inherit'}}/>
             </div>
-            <div style={{marginTop:20,textAlign:'center'}}>
-              <button onClick={saveQuote} disabled={saving} style={{background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',padding:'10px 32px',fontSize:'0.85rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
-                {saving?'Saving…':'Save as Draft'}
-              </button>
-              {saveMsg&&<div style={{marginTop:8,fontSize:'0.78rem',fontWeight:600,color:saveMsg.type==='success'?'#10b981':'#ef4444'}}>{saveMsg.text}</div>}
-            </div>
           </div>
 
-          {/* Live Calculator */}
-          <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:28}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
-              <span style={{background:isOneOff?'var(--teal)':marginOk?'#10b981':'#ef4444',color:'white',fontSize:'0.6rem',fontWeight:700,padding:'2px 8px',borderRadius:4,textTransform:'uppercase'}}>{isOneOff?'One-off':'Margin'}</span>
-              <span style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)'}}>Live Calculator</span>
+          {/* Live Calculator — dark navy panel matching Ops builder */}
+          <div style={{background:'#0A1628',borderRadius:'var(--r-lg)',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+            {/* Panel header */}
+            <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:'0.55rem',fontWeight:700,color:'#14B8A6',letterSpacing:'2px',textTransform:'uppercase'}}>
+                  {isOneOff?'ONE-OFF':'MARGIN'}
+                </div>
+                <div style={{fontSize:'0.9rem',fontWeight:700,color:'#fff',marginTop:2}}>Live Calculator</div>
+              </div>
+              <span style={{fontSize:'0.6rem',fontWeight:700,padding:'3px 9px',borderRadius:20,
+                background:isOneOff?'rgba(13,148,136,0.2)':marginOk?'rgba(16,185,129,0.18)':'rgba(239,68,68,0.18)',
+                color:isOneOff?'#2DD4BF':marginOk?'#34D399':'#F87171',
+                border:`1px solid ${isOneOff?'rgba(13,148,136,0.35)':marginOk?'rgba(16,185,129,0.35)':'rgba(239,68,68,0.35)'}`
+              }}>
+                {isOneOff?'Job':marginOk?'Healthy':'Below floor'}
+              </span>
             </div>
+
+            <div style={{padding:'20px',flex:1,display:'flex',flexDirection:'column'}}>
 
             {isOneOff?(
               <>
-                <div style={{textAlign:'center',marginBottom:20}}>
-                  <div style={{fontSize:'2.8rem',fontWeight:900,color:'var(--teal)',lineHeight:1}}>£{calc.gross.toFixed(2)}</div>
-                  <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>total {form.vatPct>0?'(inc. VAT)':'(no VAT)'}</div>
-                </div>
-                <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-                  {form.lineItems.filter(li=>li.desc&&li.amt).map((li,i)=>(
-                    <CalcRow key={i} label={li.desc} value={'£'+Number(li.amt).toFixed(2)} muted/>
-                  ))}
-                  <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
-                    <CalcRow label="Subtotal (net)" value={'£'+calc.subtotal.toFixed(2)} bold/>
-                    <CalcRow label={form.vatPct>0?`VAT (${form.vatPct}%)`:'VAT (0% — below threshold)'} value={'£'+calc.vat.toFixed(2)}/>
-                    <CalcRow label="Total" value={<span style={{color:'var(--teal)',fontWeight:800,fontSize:'1.1rem'}}>£{calc.gross.toFixed(2)}</span>} bold/>
+                {/* Big total */}
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:'2.6rem',fontWeight:900,color:'#14B8A6',letterSpacing:'-1px',lineHeight:1}}>
+                    £{calc.gross.toFixed(2)}
+                  </div>
+                  <div style={{fontSize:'0.7rem',color:'rgba(255,255,255,0.4)',marginTop:4}}>
+                    total {form.vatPct>0?'(inc. VAT)':'(no VAT)'}
                   </div>
                 </div>
+
+                {/* Breakdown */}
+                <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:14,display:'flex',flexDirection:'column',gap:7}}>
+                  {form.lineItems.filter(li=>li.desc&&li.amt).map((li,i)=>(
+                    <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
+                      <span style={{color:'rgba(255,255,255,0.45)'}}>{li.desc}</span>
+                      <span style={{color:'rgba(255,255,255,0.7)',fontWeight:600}}>£{Number(li.amt).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',marginTop:4,paddingTop:8,display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.78rem'}}>
+                      <span style={{color:'rgba(255,255,255,0.5)'}}>Subtotal (net)</span>
+                      <span style={{color:'#fff',fontWeight:700}}>£{calc.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.78rem'}}>
+                      <span style={{color:'rgba(255,255,255,0.5)'}}>{form.vatPct>0?`VAT (${form.vatPct}%)`:'VAT (0% — below threshold)'}</span>
+                      <span style={{color:'rgba(255,255,255,0.6)',fontWeight:600}}>£{calc.vat.toFixed(2)}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.9rem',paddingTop:6,borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                      <span style={{color:'#fff',fontWeight:700}}>Total</span>
+                      <span style={{color:'#14B8A6',fontWeight:900}}>£{calc.gross.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Action buttons */}
-                <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:8}}>
-                  <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'12px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.85rem',fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>✈ Send Email</button>
-                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'10px',background:'var(--teal)',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>📄 Preview Quote PDF</button>
-                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--teal)',color:'var(--teal)',borderRadius:'var(--r-sm)',fontSize:'0.8rem',fontWeight:700,cursor:'pointer'}}>✉ Preview Email</button>
-                  <button onClick={()=>downloadEmail(form,calc)} style={{width:'100%',padding:'8px',background:'transparent',border:'1px solid var(--border)',color:'var(--text-muted)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>⬇ Download Email HTML</button>
-                  <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
-                    <div style={{fontSize:'0.65rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Lifecycle Emails</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
-                      <button onClick={()=>previewCompletionEmail(form,calc)} style={{padding:'8px 6px',background:'transparent',border:'1.5px solid #16A34A',color:'#16A34A',borderRadius:'var(--r-sm)',fontSize:'0.72rem',fontWeight:700,cursor:'pointer'}}>✔ Complete</button>
-                      <button onClick={()=>previewPaymentEmail(form,calc)} style={{padding:'8px 6px',background:'transparent',border:'1.5px solid #16A34A',color:'#16A34A',borderRadius:'var(--r-sm)',fontSize:'0.72rem',fontWeight:700,cursor:'pointer'}}>💳 Paid</button>
-                      <button onClick={()=>previewReminderEmail(form,calc)} style={{padding:'8px 6px',background:'transparent',border:'1.5px solid #2563EB',color:'#2563EB',borderRadius:'var(--r-sm)',fontSize:'0.72rem',fontWeight:700,cursor:'pointer'}}>📅 Reminder</button>
+                <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:7}}>
+                  <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'11px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>
+                    ✈ Send Booking Email
+                  </button>
+                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'rgba(20,184,166,0.12)',color:'#14B8A6',border:'1.5px solid rgba(20,184,166,0.35)',borderRadius:'var(--r-sm)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer'}}>
+                    Preview Quote PDF
+                  </button>
+                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.65)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>
+                    Preview Email
+                  </button>
+                  <div style={{marginTop:8,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
+                    <div style={{fontSize:'0.6rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:7}}>Lifecycle</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5}}>
+                      <button onClick={()=>previewCompletionEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(22,163,74,0.12)',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>✔ Done</button>
+                      <button onClick={()=>previewPaymentEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(22,163,74,0.12)',border:'1px solid rgba(22,163,74,0.3)',color:'#4ADE80',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>Paid</button>
+                      <button onClick={()=>previewReminderEmail(form,calc)} style={{padding:'7px 4px',background:'rgba(37,99,235,0.12)',border:'1px solid rgba(37,99,235,0.3)',color:'#60A5FA',borderRadius:'var(--r-sm)',fontSize:'0.68rem',fontWeight:700,cursor:'pointer'}}>Remind</button>
                     </div>
                   </div>
                 </div>
               </>
             ):(
               <>
-                <div style={{textAlign:'center',marginBottom:20}}>
-                  <div style={{fontSize:'2.8rem',fontWeight:900,color:marginColor,lineHeight:1}}>{fmtPct(calc.margin)}</div>
-                  <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>gross margin</div>
-                  <div style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)',marginTop:2}}>{fmtCur(calc.revenue)}/mo</div>
+                {/* Big margin % */}
+                <div style={{marginBottom:18}}>
+                  <div style={{fontSize:'3rem',fontWeight:900,letterSpacing:'-1.5px',lineHeight:1,
+                    color:calc.margin<0?'#F87171':calc.margin<minMargin?'#FBBF24':'#34D399'}}>
+                    {fmtPct(calc.margin)}
+                  </div>
+                  <div style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.4)',marginTop:3}}>gross margin</div>
+                  <div style={{fontSize:'1.1rem',fontWeight:800,color:'#14B8A6',marginTop:6,letterSpacing:'-0.3px'}}>
+                    {fmtCur(calc.revenue)}/mo
+                  </div>
                 </div>
 
-                <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-                  <CalcRow label={vatRate>0?"Revenue/month (ex. VAT)":"Revenue/month"} value={fmtCur(calc.revenue)}/>
-                  {vatRate>0&&<CalcRow label="Revenue/month (inc. VAT)" value={fmtCur(calc.revenueVat)}/>}
-                  <CalcRow label="Labour cost" value={fmtCur(calc.labour)} muted/>
-                  <CalcRow label="Supplies + Other" value={fmtCur(Number(form.supplies)+Number(form.other))} muted/>
-                  <CalcRow label="Direct cost total" value={fmtCur(calc.totalCosts)} bold/>
-                  <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
-                    <CalcRow label="Gross margin" value={<span style={{color:marginColor,fontWeight:700}}>{calc.grossMargin<0?'£-'+Math.abs(Math.round(calc.grossMargin)).toLocaleString():fmtCur(calc.grossMargin)}</span>}/>
+                {/* Breakdown */}
+                <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:14,display:'flex',flexDirection:'column',gap:7}}>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
+                    <span style={{color:'rgba(255,255,255,0.45)'}}>Revenue (ex. VAT)</span>
+                    <span style={{color:'#fff',fontWeight:600}}>{fmtCur(calc.revenue)}</span>
+                  </div>
+                  {vatRate>0&&(
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
+                      <span style={{color:'rgba(255,255,255,0.45)'}}>Revenue (inc. VAT {vatRate}%)</span>
+                      <span style={{color:'#fff',fontWeight:600}}>{fmtCur(calc.revenueVat)}</span>
+                    </div>
+                  )}
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
+                    <span style={{color:'rgba(255,255,255,0.45)'}}>Labour cost</span>
+                    <span style={{color:'rgba(255,255,255,0.7)',fontWeight:600}}>{fmtCur(calc.labour)}</span>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
+                    <span style={{color:'rgba(255,255,255,0.45)'}}>Supplies + Other</span>
+                    <span style={{color:'rgba(255,255,255,0.7)',fontWeight:600}}>{fmtCur(Number(form.supplies)+Number(form.other))}</span>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem',paddingTop:6,borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                    <span style={{color:'rgba(255,255,255,0.6)',fontWeight:600}}>Direct cost total</span>
+                    <span style={{color:'#fff',fontWeight:700}}>{fmtCur(calc.totalCosts)}</span>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.82rem',paddingTop:6,borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                    <span style={{color:'rgba(255,255,255,0.8)',fontWeight:700}}>Gross margin</span>
+                    <span style={{fontWeight:800,color:calc.margin<0?'#F87171':calc.margin<minMargin?'#FBBF24':'#34D399'}}>
+                      {calc.grossMargin<0?'£-'+Math.abs(Math.round(calc.grossMargin)).toLocaleString('en-GB'):fmtCur(calc.grossMargin)}
+                    </span>
                   </div>
                   {vatRate===0&&calc.revenue>0&&(
-                    <div style={{marginTop:10,fontSize:'0.7rem',color:'var(--text-muted)',fontStyle:'italic'}}>
+                    <div style={{marginTop:6,fontSize:'0.65rem',color:'rgba(255,255,255,0.3)',fontStyle:'italic'}}>
                       Not VAT registered — no VAT charged
                     </div>
                   )}
                 </div>
 
-                {/* ── Margin Guard ── */}
-                {calc.margin<10&&calc.revenue>0&&(
-                  <div style={{marginTop:16,padding:'10px 14px',background:'#450a0a',border:'1px solid #dc2626',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#fca5a5',fontWeight:700}}>
-                    Critical: This quote has dangerously low margin ({fmtPct(calc.margin)}). Approval required.
+                {/* Margin guard alerts */}
+                {calc.margin<0&&calc.revenue>0&&(
+                  <div style={{marginTop:12,padding:'9px 12px',background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'var(--r-sm)',fontSize:'0.73rem',color:'#FCA5A5',fontWeight:700}}>
+                    Critical: negative margin ({fmtPct(calc.margin)}). Raise rate or reduce cost.
                   </div>
                 )}
-                {calc.margin>=10&&calc.margin<20&&calc.revenue>0&&(
-                  <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
-                    Warning: This quote is below the minimum margin threshold (20%). Review before sending.
+                {calc.margin>=0&&calc.margin<minMargin&&calc.revenue>0&&(
+                  <div style={{marginTop:12,padding:'9px 12px',background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.25)',borderRadius:'var(--r-sm)',fontSize:'0.73rem',color:'#FCD34D',fontWeight:600}}>
+                    Below {minMargin}% floor — review before sending.
                   </div>
                 )}
-                {calc.margin>=20&&!marginOk&&(
-                  <div style={{marginTop:16,padding:'10px 14px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'var(--r-sm)',fontSize:'0.78rem',color:'#dc2626',fontWeight:600}}>
-                    Below {minMargin}% floor — override required to send
-                  </div>
-                )}
+
+                {/* Action buttons — recurring contract */}
+                <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:7}}>
+                  <button onClick={saveQuote} disabled={saving} style={{width:'100%',padding:'11px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
+                    {saving?'Saving…':'✓ Save Quote'}
+                  </button>
+                  <button onClick={()=>previewQuotePdf(form,calc)} style={{width:'100%',padding:'9px',background:'rgba(20,184,166,0.12)',color:'#14B8A6',border:'1.5px solid rgba(20,184,166,0.35)',borderRadius:'var(--r-sm)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer'}}>
+                    Preview Proposal PDF
+                  </button>
+                  <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.65)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>
+                    Preview Email
+                  </button>
+                  {saveMsg&&<div style={{fontSize:'0.72rem',fontWeight:600,textAlign:'center',color:saveMsg.type==='success'?'#34D399':'#F87171'}}>{saveMsg.text}</div>}
+                </div>
               </>
             )}
 
-            <div style={{marginTop:20,fontSize:'0.68rem',color:'var(--text-muted)',lineHeight:1.6}}>
-              {isOneOff?'One-off job pricing — no recurring calculations.':<>LLW Rate: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%{vatRate===0?' · Not VAT registered':` · VAT: ${vatRate}%`}<br/>These drive all calculations. Update in Admin → Settings.</>}
+            {/* Footer hint */}
+            <div style={{marginTop:16,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:'0.62rem',color:'rgba(255,255,255,0.25)',lineHeight:1.6}}>
+              {isOneOff?'One-off job pricing — no recurring calculations.'
+                :<>LLW: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%{vatRate===0?' · Not VAT reg':` · VAT: ${vatRate}%`}</>}
+            </div>
+
             </div>
           </div>
         </div>
