@@ -1094,10 +1094,14 @@ function sendCustomEmail(body, auth) {
   validate(body, ['to', 'subject'], 'EmailSend');
   var fields = {};
   try { fields = body.fields ? JSON.parse(body.fields) : {}; } catch(_) {}
+  // Support pre-built HTML (htmlBody) — used by send-email CLI and reminder scripts
+  var builtHtml = body.htmlBody && body.htmlBody.trim().length > 0
+    ? body.htmlBody
+    : buildEmailTemplate(body.template || '', fields, body.subject);
   GmailApp.sendEmail(body.to, body.subject, '', {
     from:     'office@askmiro.com',
     name:     'AskMiro Cleaning Services',
-    htmlBody: buildEmailTemplate(body.template || '', fields, body.subject),
+    htmlBody: builtHtml,
     replyTo:  'info@askmiro.com'
   });
   var id = genId('EMAIL');
