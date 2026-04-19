@@ -895,58 +895,54 @@ window.Quotes = (() => {
     const items  = _getLineItems();
     const overrideTotal = parseFloat((document.getElementById('q-oo-total') || {}).value) || 0;
     const lineTotal = items.reduce(function(s, li) { return s + li.amount; }, 0);
-    const subtotal = overrideTotal > 0 ? overrideTotal : lineTotal;
-    const notes  = UI.gv('q-nt') || '';
+    const subtotal  = overrideTotal > 0 ? overrideTotal : lineTotal;
+    const svcType   = UI.gv('q-stype') || '';
+    const notes     = UI.gv('q-nt') || '';
 
-    if (!client) { UI.toast('Client name required', 'r'); return; }
-    if (subtotal <= 0) { UI.toast('Add line items or total first', 'r'); return; }
+    if (!client)       { UI.toast('Client name required', 'r'); return; }
+    if (subtotal <= 0) { UI.toast('Add line items or a total amount first', 'r'); return; }
 
-    // Store data for Finance module to pick up
-    window._invoicePrefill = {
-      customerName: client,
-      siteId: site,
-      lineItems: items.length > 0 ? items : [{ description: 'End of tenancy clean', amount: subtotal }],
-      subtotal: subtotal,
-      notes: notes
-    };
+    // Open the invoice modal directly — no navigation needed
+    // The Finance.openCreateInvoice() modal works from any page
+    if (typeof Finance === 'undefined' || !Finance.openCreateInvoice) {
+      UI.toast('Finance module not loaded — refresh the page', 'r');
+      return;
+    }
 
-    if (window.Router) Router.navigate('finance');
+    Finance.openCreateInvoice();
 
-    // Wait for finance page to render, then open create invoice modal with prefill
+    // Prefill after modal animation
     setTimeout(function() {
-      if (typeof Finance !== 'undefined' && Finance.openCreateInvoice) {
-        Finance.openCreateInvoice();
-        // Prefill after modal opens
-        setTimeout(function() {
-          var pf = window._invoicePrefill;
-          if (!pf) return;
-          var custEl = document.getElementById('ci-cust');
-          var siteEl = document.getElementById('ci-site');
-          var notesEl = document.getElementById('ci-notes');
-          if (custEl) custEl.value = pf.customerName;
-          if (siteEl) siteEl.value = pf.siteId;
-          if (notesEl) notesEl.value = pf.notes;
-          // Add line items
-          var linesEl = document.getElementById('ci-lines');
-          if (linesEl && pf.lineItems) {
-            linesEl.innerHTML = '';
-            pf.lineItems.forEach(function(li) {
-              var d = document.createElement('div');
-              d.className = 'fr';
-              d.style.marginBottom = '6px';
-              d.innerHTML = '<div class="fg" style="flex:3"><input class="fin" style="font-size:12px" value="' + _escHtml(li.description) + '" data-line="desc"></div>'
-                + '<div class="fg" style="flex:1"><input class="fin" type="number" step="0.01" style="font-size:12px" value="' + li.amount.toFixed(2) + '" data-line="net" oninput="Finance._calcLineTotal(this)"></div>'
-                + '<button type="button" onclick="this.closest(\'.fr\').remove();Finance._calcInvTotal()" style="padding:0 8px;background:none;border:none;color:var(--ll);cursor:pointer;font-size:16px">&#x2715;</button>';
-              linesEl.appendChild(d);
-            });
-            if (Finance._calcInvTotal) Finance._calcInvTotal();
-          }
-          window._invoicePrefill = null;
-        }, 200);
-      }
-    }, 300);
+      const custEl  = document.getElementById('ci-cust');
+      const siteEl  = document.getElementById('ci-site');
+      const notesEl = document.getElementById('ci-notes');
+      if (custEl)  custEl.value  = client;
+      if (siteEl)  siteEl.value  = site;
+      if (notesEl) notesEl.value = (svcType ? svcType + (notes ? ' — ' + notes : '') : notes);
 
-    UI.toast('Opening Finance with invoice pre-filled', 'g');
+      // Populate line items
+      const lineItems = items.length > 0
+        ? items
+        : [{ description: svcType || 'Cleaning service', amount: subtotal }];
+
+      const linesEl = document.getElementById('ci-lines');
+      if (linesEl) {
+        linesEl.innerHTML = '';
+        lineItems.forEach(function(li) {
+          const d = document.createElement('div');
+          d.className = 'fr';
+          d.style.marginBottom = '6px';
+          d.innerHTML = '<div class="fg" style="flex:3"><input class="fin" style="font-size:12px" value="'
+            + _escHtml(li.description) + '" data-line="desc"></div>'
+            + '<div class="fg" style="flex:1"><input class="fin" type="number" step="0.01" style="font-size:12px" value="'
+            + Number(li.amount).toFixed(2) + '" data-line="net" oninput="Finance._calcLineTotal(this)"></div>'
+            + '<button type="button" onclick="this.closest(\'.fr\').remove();Finance._calcInvTotal()"'
+            + ' style="padding:0 8px;background:none;border:none;color:var(--ll);cursor:pointer;font-size:16px">&#x2715;</button>';
+          linesEl.appendChild(d);
+        });
+        if (Finance._calcInvTotal) Finance._calcInvTotal();
+      }
+    }, 150);
   }
 
   // ── PREMIUM CLIENT EMAIL GENERATOR (Tesla × Fluent) ───────

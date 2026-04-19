@@ -73,9 +73,10 @@ function parseArgs(argv) {
     if (a === '--amount')  { args.amount  = parseFloat(argv[++i]); continue; }
     if (a === '--vat')     { args.vat     = parseFloat(argv[++i]); continue; }
     if (a === '--due')     { args.due     = argv[++i]; continue; }
-    if (a === '--notes')   { args.notes   = argv[++i]; continue; }
-    if (a === '--open')    { args.open    = true; continue; }
-    if (a === '--output')  { args.outputDir = argv[++i]; continue; }
+    if (a === '--notes')     { args.notes     = argv[++i]; continue; }
+    if (a === '--open')      { args.open      = true; continue; }
+    if (a === '--output')    { args.outputDir = argv[++i]; continue; }
+    if (a === '--vatNumber') { args.vatNumber = argv[++i]; continue; }
   }
   return args;
 }
@@ -104,7 +105,12 @@ function buildInvoiceHtml(d) {
       <td class="td-amount">${fmtGBP(item.amount)}</td>
     </tr>`).join('');
 
+  // Only show subtotal + VAT rows when VAT is charged
   const vatRow = vatRate > 0 ? `
+    <tr class="total-row">
+      <td colspan="3" class="total-label">Subtotal (Net)</td>
+      <td class="total-value">${fmtGBP(net)}</td>
+    </tr>
     <tr class="total-row">
       <td colspan="3" class="total-label">VAT (${vatRate}%)</td>
       <td class="total-value">${fmtGBP(vatAmt)}</td>
@@ -280,10 +286,6 @@ function buildInvoiceHtml(d) {
     <div class="totals-wrap">
       <table class="totals-table">
         <tbody>
-          <tr class="total-row">
-            <td class="total-label">Subtotal</td>
-            <td class="total-value">${fmtGBP(net)}</td>
-          </tr>
           ${vatRow}
           <tr class="total-row grand">
             <td class="total-label">Total Due</td>
@@ -328,7 +330,7 @@ function buildInvoiceHtml(d) {
           ✉ <a href="mailto:info@askmiro.com">info@askmiro.com</a> &nbsp;|&nbsp;
           <a href="https://www.askmiro.com">www.askmiro.com</a>
         </div>
-        <div class="sig-creds">✓ COSHH Compliant &nbsp;&nbsp; ✓ Fully Insured &nbsp;&nbsp; ✓ ISO Quality Standards &nbsp;&nbsp; ✓ London &amp; UK Coverage</div>
+        <div class="sig-creds">✓ COSHH Compliant &nbsp;&nbsp; ✓ Fully Insured &nbsp;&nbsp; ✓ ISO Quality Standards &nbsp;&nbsp; ✓ London &amp; UK Coverage${vatRate === 0 ? ' &nbsp;&nbsp; ✓ Not VAT registered — no VAT charged' : ''}</div>
       </div>
     </div>
 
@@ -338,7 +340,10 @@ function buildInvoiceHtml(d) {
   <div class="footer">
     <div class="footer-left">
       AskMiro Cleaning Services &bull; A trading name of Miro Partners Ltd<br>
-      VAT Reg: TBC &bull; London &amp; UK
+      ${vatRate > 0
+        ? `VAT Reg: ${d.vatNumber || 'Pending'} &bull; `
+        : 'Not VAT registered &bull; '}
+      London &amp; UK
     </div>
     <div class="footer-right">www.askmiro.com</div>
   </div>
