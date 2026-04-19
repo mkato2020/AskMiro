@@ -527,6 +527,9 @@ export default function Quotes({openLead}){
 
                 {/* Action buttons */}
                 <div style={{marginTop:'auto',paddingTop:20,display:'flex',flexDirection:'column',gap:7}}>
+                  <button onClick={saveQuote} disabled={saving} style={{width:'100%',padding:'11px',background:'rgba(255,255,255,0.08)',color:'#fff',border:'1px solid rgba(255,255,255,0.18)',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:saving?'wait':'pointer',opacity:saving?0.7:1}}>
+                    {saving?'Saving…':'✓ Save Quote'}
+                  </button>
                   <button onClick={()=>sendClientEmail(form,calc)} style={{width:'100%',padding:'11px',background:'#0D9488',color:'white',border:'none',borderRadius:'var(--r-sm)',fontSize:'0.82rem',fontWeight:700,cursor:'pointer',letterSpacing:'0.02em'}}>
                     ✈ Send Booking Email
                   </button>
@@ -536,6 +539,7 @@ export default function Quotes({openLead}){
                   <button onClick={()=>previewEmail(form,calc)} style={{width:'100%',padding:'9px',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.65)',borderRadius:'var(--r-sm)',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>
                     Preview Email
                   </button>
+                  {saveMsg&&<div style={{fontSize:'0.72rem',fontWeight:600,textAlign:'center',color:saveMsg.type==='success'?'#34D399':'#F87171'}}>{saveMsg.text}</div>}
                   <div style={{marginTop:8,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.07)'}}>
                     <div style={{fontSize:'0.6rem',fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:7}}>Lifecycle</div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5}}>
