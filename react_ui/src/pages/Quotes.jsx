@@ -491,14 +491,19 @@ export default function Quotes({openLead}){
                 </div>
 
                 <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-                  <CalcRow label="Revenue/month (ex. VAT)" value={fmtCur(calc.revenue)}/>
-                  <CalcRow label="Revenue/month (inc. VAT)" value={fmtCur(calc.revenueVat)}/>
+                  <CalcRow label={vatRate>0?"Revenue/month (ex. VAT)":"Revenue/month"} value={fmtCur(calc.revenue)}/>
+                  {vatRate>0&&<CalcRow label="Revenue/month (inc. VAT)" value={fmtCur(calc.revenueVat)}/>}
                   <CalcRow label="Labour cost" value={fmtCur(calc.labour)} muted/>
                   <CalcRow label="Supplies + Other" value={fmtCur(Number(form.supplies)+Number(form.other))} muted/>
                   <CalcRow label="Direct cost total" value={fmtCur(calc.totalCosts)} bold/>
                   <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
                     <CalcRow label="Gross margin" value={<span style={{color:marginColor,fontWeight:700}}>{calc.grossMargin<0?'£-'+Math.abs(Math.round(calc.grossMargin)).toLocaleString():fmtCur(calc.grossMargin)}</span>}/>
                   </div>
+                  {vatRate===0&&calc.revenue>0&&(
+                    <div style={{marginTop:10,fontSize:'0.7rem',color:'var(--text-muted)',fontStyle:'italic'}}>
+                      Not VAT registered — no VAT charged
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Margin Guard ── */}
@@ -521,7 +526,7 @@ export default function Quotes({openLead}){
             )}
 
             <div style={{marginTop:20,fontSize:'0.68rem',color:'var(--text-muted)',lineHeight:1.6}}>
-              {isOneOff?'One-off job pricing — no recurring calculations.':<>LLW Rate: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%<br/>These drive all calculations. Update in Admin → Settings.</>}
+              {isOneOff?'One-off job pricing — no recurring calculations.':<>LLW Rate: £{llw.toFixed(2)}/hr · On-costs: {onCosts}% · Min margin: {minMargin}%{vatRate===0?' · Not VAT registered':` · VAT: ${vatRate}%`}<br/>These drive all calculations. Update in Admin → Settings.</>}
             </div>
           </div>
         </div>
