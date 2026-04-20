@@ -342,10 +342,67 @@
   .footer-bar span { font-size: 9px; color: rgba(255,255,255,0.4); }
   .footer-bar .teal { color: #14B8A6; font-weight: 600; }
 
+  /* DOWNLOAD BAR */
+  .download-bar {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 999;
+  }
+  .dl-btn {
+    background: #14B8A6;
+    color: #0A1628;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    transition: transform 0.15s;
+  }
+  .dl-btn:hover { transform: translateY(-1px); }
+  .dl-btn.secondary {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .dl-hint {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,22,40,0.95);
+    color: #fff;
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(20,184,166,0.4);
+    z-index: 998;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .dl-hint .teal { color: #14B8A6; font-weight: 700; }
+
   @media print {
     body { background: white; padding: 0; }
     .page { box-shadow: none; border-radius: 0; max-width: 100%; }
     .header, .footer-bar, .payment, .pay-cta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .download-bar, .dl-hint { display: none !important; }
+  }
+  @media (max-width: 560px) {
+    .download-bar { top: 8px; right: 8px; }
+    .dl-btn { font-size: 12px; padding: 9px 14px; }
+    .dl-btn.secondary { display: none; }
+    .dl-hint { font-size: 10px; bottom: 8px; padding: 7px 12px; }
   }
   @media (max-width: 560px) {
     .parties, .payment { grid-template-columns: 1fr; }
@@ -359,6 +416,17 @@
 </style>
 </head>
 <body>
+
+<!-- DOWNLOAD BAR -->
+<div class="download-bar">
+  <button class="dl-btn" onclick="window.print()">⬇ Download PDF</button>
+  <a class="dl-btn secondary" href="https://pay.tide.co/8094cc08-55ce-4ce1-a280-9edb8f2f80a7" target="_blank" rel="noopener">💳 Pay Now</a>
+</div>
+
+<div class="dl-hint">
+  Tap <span class="teal">Download PDF</span> → Save to your device. On mobile, choose <span class="teal">"Save to Files"</span> or <span class="teal">"Print → Save as PDF"</span>.
+</div>
+
 <div class="page">
 
   <!-- HEADER -->
