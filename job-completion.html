@@ -624,6 +624,38 @@ pre{
       <div id="reportStatusSummary"></div>
     </div>
 
+    <!-- INVOICE GATE — only shows when job is completed -->
+    <div class="card" id="invoiceGate" style="display:none;border:1.5px solid #14B8A6;background:rgba(20,184,166,0.06);">
+      <div class="card-title" style="color:#14B8A6;">💳 Send Invoice to Customer</div>
+      <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.6;">
+        ✅ Job is marked as completed. Invoice is now ready to send.
+      </p>
+      <div class="field">
+        <label>Invoice Link (share with customer)</label>
+        <input type="text" id="invoiceLinkField" readonly value="https://askmiro.com/eot-invoice.html" onclick="this.select()" style="font-size:12px;">
+      </div>
+      <div class="field">
+        <label>Tide Payment Link</label>
+        <input type="text" id="payLinkField" readonly value="https://pay.tide.co/8094cc08-55ce-4ce1-a280-9edb8f2f80a7" onclick="this.select()" style="font-size:12px;">
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-primary" onclick="copyInvoiceMessage()">📋 Copy Full Message</button>
+        <button class="btn btn-outline" onclick="sendWhatsApp()">💬 WhatsApp</button>
+      </div>
+      <button class="btn btn-success" onclick="openInvoice()" style="margin-top:10px;">🔗 Open Invoice</button>
+    </div>
+
+    <!-- INVOICE LOCK — shows when job NOT complete -->
+    <div class="card" id="invoiceLock" style="display:none;border:1.5px dashed var(--amber);background:var(--amber-dim);">
+      <div class="card-title" style="color:var(--amber);">🔒 Invoice Locked</div>
+      <p style="font-size:13px;color:var(--text);line-height:1.6;">
+        Invoice cannot be sent until the job is marked as <strong>Completed</strong> or <strong>Completed with Issues</strong>.
+        <br><br>
+        Complete the checklist, then go to <strong>🏁 Status</strong> tab and mark the job done.
+      </p>
+      <button class="btn btn-amber" onclick="showTab('status')" style="margin-top:10px;">Go to Status →</button>
+    </div>
+
     <div class="card">
       <div class="card-title">📱 Customer Follow-Up Message</div>
       <div class="msg-box" id="reportCustomerMsg"></div>
@@ -1225,6 +1257,11 @@ Thank you for choosing AskMiro Cleaning Services 🙏
 
   document.getElementById('reportCustomerMsg').textContent = customerMsg;
 
+  // INVOICE GATE — only unlocked when job is done
+  const jobIsDone = s.jobStatus === 'completed' || s.jobStatus === 'completed-issues';
+  document.getElementById('invoiceGate').style.display = jobIsDone ? 'block' : 'none';
+  document.getElementById('invoiceLock').style.display = jobIsDone ? 'none' : 'block';
+
   // Internal log
   const now = new Date().toLocaleString('en-GB');
   const internalMsg = `JOB LOG — AskMiro Cleaning Services
@@ -1279,6 +1316,48 @@ function copyText(id) {
   const el = document.getElementById(id);
   const text = el.textContent || el.innerText;
   navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard ✓'));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// INVOICE HANDLERS (gated — only when job is done)
+// ─────────────────────────────────────────────────────────────────
+function buildInvoiceMessage() {
+  const s = state;
+  const name = s.customerName ? s.customerName.split(' ')[0] : 'there';
+  const invoiceUrl = document.getElementById('invoiceLinkField').value;
+  const payUrl = document.getElementById('payLinkField').value;
+  return `Hi ${name} 👋
+
+Your ${s.serviceType || 'clean'} at ${s.address || 'the property'} is complete ✅
+
+Here's your invoice — you can download it as PDF or pay directly:
+📄 ${invoiceUrl}
+💳 ${payUrl}
+
+Payment of £220.00 is due on completion. Any questions, just reply here or call 020 8073 0621.
+
+Thank you for choosing AskMiro 🙏
+– The AskMiro Team`;
+}
+
+function copyInvoiceMessage() {
+  const jobIsDone = state.jobStatus === 'completed' || state.jobStatus === 'completed-issues';
+  if (!jobIsDone) { showToast('⛔ Job must be completed first'); return; }
+  const msg = buildInvoiceMessage();
+  navigator.clipboard.writeText(msg).then(() => showToast('Invoice message copied 📋'));
+}
+
+function sendWhatsApp() {
+  const jobIsDone = state.jobStatus === 'completed' || state.jobStatus === 'completed-issues';
+  if (!jobIsDone) { showToast('⛔ Job must be completed first'); return; }
+  const msg = encodeURIComponent(buildInvoiceMessage());
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+function openInvoice() {
+  const jobIsDone = state.jobStatus === 'completed' || state.jobStatus === 'completed-issues';
+  if (!jobIsDone) { showToast('⛔ Job must be completed first'); return; }
+  window.open(document.getElementById('invoiceLinkField').value, '_blank');
 }
 
 // ─────────────────────────────────────────────────────────────────
