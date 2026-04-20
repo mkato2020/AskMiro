@@ -77,6 +77,9 @@ function parseArgs(argv) {
     if (a === '--open')      { args.open      = true; continue; }
     if (a === '--output')    { args.outputDir = argv[++i]; continue; }
     if (a === '--vatNumber') { args.vatNumber = argv[++i]; continue; }
+    if (a === '--paymentLink') { args.paymentLink = argv[++i]; continue; }
+    if (a === '--jobRef')      { args.jobRef      = argv[++i]; continue; }
+    if (a === '--clientCity')  { args.clientCity  = argv[++i]; continue; }
   }
   return args;
 }
@@ -116,184 +119,482 @@ function buildInvoiceHtml(d) {
     </div>
   </td></tr>` : '';
 
+  // Escape helper for safe URL display
+  const payLink   = d.paymentLink || '';
+  const payHost   = payLink ? payLink.replace(/^https?:\/\//i, '').replace(/\/$/, '') : '';
+  const jobRef    = d.jobRef || d.ref;
+  const clientCity= d.clientCity || 'London, United Kingdom';
+  const dueLabel  = (d.due || 'on completion');
+  const dueDisplay= /completion/i.test(dueLabel) ? 'Upon Completion' : dueLabel;
+
+  const itemRowsHtml = lineItems.map(item => `
+      <div class="line-item">
+        <div>
+          <div class="item-name">${item.desc}</div>
+          ${item.detail ? `<div class="item-desc">${item.detail}</div>` : ''}
+        </div>
+        <div class="item-qty">1</div>
+        <div class="item-rate">${net.toFixed(2)}</div>
+        <div class="item-total">${net.toFixed(2)}</div>
+      </div>`).join('');
+
+  const payCtaHtml = payLink ? `
+  <!-- PAY NOW CTA -->
+  <div class="pay-cta">
+    <span class="pay-cta-label">Pay Securely Online</span>
+    <div class="pay-cta-amount">${fmtGBP(total)}</div>
+    <a href="${payLink}" class="pay-btn" target="_blank" rel="noopener">Pay Now via Tide</a>
+    <div class="pay-cta-note">
+      Secure card payment processed via Tide.<br>
+      Link: <a href="${payLink}" target="_blank" rel="noopener">${payHost}</a>
+    </div>
+  </div>` : '';
+
+  const notesBlock = d.notes ? `
+  <!-- NOTES -->
+  <div class="notes">
+    <strong>Notes</strong>
+    ${d.notes}
+  </div>` : '';
+
   return `<!DOCTYPE html>
 <html lang="en-GB">
 <head>
-  <meta charset="UTF-8">
-  <title>Invoice ${d.ref} — AskMiro</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@700;800;900&display=swap" rel="stylesheet">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#0F172A;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:13px}
-    @page{size:A4;margin:0}
-    .page{width:794px;min-height:1123px;margin:0 auto;display:flex;flex-direction:column}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskMiro — Invoice ${d.ref}${d.name ? ` — ${d.name}` : ''}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-    /* HEADER */
-    .hd{background:#0A1628;padding:36px 52px 28px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
-    .hd-brand{color:#fff}
-    .hd-name{font-family:'Sora',sans-serif;font-size:27px;font-weight:900;letter-spacing:-0.5px;line-height:1}
-    .hd-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:2.5px;text-transform:uppercase;margin-top:6px}
-    .hd-contact{font-size:12px;color:rgba(255,255,255,0.45);margin-top:12px;line-height:2}
-    .hd-contact a{color:#5EEAD4;text-decoration:none}
-    .hd-meta{text-align:right}
-    .hd-label{font-size:10px;font-weight:700;color:#5EEAD4;letter-spacing:2.5px;text-transform:uppercase}
-    .hd-ref{font-family:'Sora',sans-serif;font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;margin-top:4px;line-height:1}
-    .hd-date{font-size:12px;color:rgba(255,255,255,0.4);margin-top:7px}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* ACCENT */
-    .bar{height:3px;background:linear-gradient(90deg,#0D9488 0%,#14B8A6 50%,#0A1628 100%);flex-shrink:0}
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #060D1A;
+    padding: 28px 20px;
+    min-height: 100vh;
+    color: #0A1628;
+  }
 
-    /* BODY */
-    .body{padding:32px 52px 28px;flex:1}
+  .page {
+    background: #FFFFFF;
+    max-width: 760px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
 
-    /* INFO CARDS */
-    .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
-    .card{border-radius:10px;padding:18px 20px}
-    .card-a{background:#F8FAFC;border:1px solid #E2E8F0}
-    .card-b{background:#F0FDFA;border:1px solid #CCFBF1}
-    .card-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px}
-    .card-a .card-lbl{color:#94A3B8}
-    .card-b .card-lbl{color:#0D9488}
-    .card-name{font-size:15.5px;font-weight:700;color:#0F172A;line-height:1.25}
-    .card-detail{font-size:12.5px;color:#64748B;margin-top:6px;line-height:1.75}
-    .card-detail a{color:#0D9488;text-decoration:none}
+  /* HEADER */
+  .header {
+    background: #0A1628;
+    padding: 28px 36px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #14B8A6;
+  }
+  .brand h1 {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.4px;
+  }
+  .brand h1 span { color: #14B8A6; }
+  .brand p {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+  .inv-meta { text-align: right; }
+  .inv-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(20,184,166,0.8);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .inv-number {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.5px;
+  }
+  .inv-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
 
-    /* TABLE */
-    .tbl{width:100%;border-collapse:collapse;margin-bottom:0}
-    .tbl thead th{padding:10px 16px;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;border-bottom:1.5px solid #E2E8F0;background:#F8FAFC;text-align:left}
-    .tbl thead th.th-r{text-align:right}
-    .td-desc{padding:16px 16px;width:52%}
-    .td-num{padding:16px 16px;width:16%;text-align:right;color:#64748B;font-size:13px}
-    .td-amt{padding:16px 16px;width:16%;text-align:right;font-weight:600;font-size:13px}
-    .item-name{font-size:14px;font-weight:600;color:#0F172A}
-    .item-sub{font-size:12px;color:#64748B;margin-top:3px}
-    .tbl tbody tr{border-bottom:1px solid #F1F5F9}
+  /* PARTIES */
+  .parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid #EEF3F5;
+  }
+  .party { padding: 22px 36px; }
+  .party:first-child { border-right: 1px solid #EEF3F5; }
+  .party-label {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #14B8A6;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .party h3 {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0A1628;
+    margin-bottom: 5px;
+  }
+  .party p {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.7;
+  }
 
-    /* TOTALS */
-    .sub-row td{padding:8px 16px;border-bottom:1px solid #F8FAFC}
-    .sub-lbl{color:#64748B;text-align:left;font-size:13px}
-    .sub-val{text-align:right;font-weight:600;font-size:13px}
-    .grand-row td{background:#0A1628;padding:14px 16px;border-bottom:none}
-    .grand-lbl{color:#fff;font-weight:700;font-family:'Sora',sans-serif;font-size:15.5px;text-align:left}
-    .grand-val{color:#5EEAD4;font-weight:900;font-family:'Sora',sans-serif;font-size:15.5px;text-align:right;letter-spacing:-0.3px}
+  /* STATUS STRIP */
+  .status-strip {
+    padding: 12px 36px;
+    background: #F5FEFF;
+    border-bottom: 1px solid #D4EEE9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(20,184,166,0.12);
+    border: 1px solid rgba(20,184,166,0.35);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0D9182;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .status-badge::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background: #14B8A6;
+    border-radius: 50%;
+  }
+  .status-strip .inv-ref { font-size: 10px; color: #888; }
+  .status-strip .inv-ref strong { color: #0A1628; }
 
-    /* PAYMENT */
-    .pay-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
-    .pay-box{border-radius:10px;padding:18px 20px}
-    .pay-bank{background:#FAFAF5;border:1px solid #E9E9D8}
-    .pay-due{background:#F0FDFA;border:1px solid #CCFBF1}
-    .pay-lbl{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94A3B8;margin-bottom:12px}
-    .pay-grid{display:grid;grid-template-columns:auto 1fr;gap:5px 18px}
-    .pk{font-size:12.5px;color:#78716C;padding:2px 0;font-weight:500}
-    .pv{font-size:12.5px;color:#0F172A;font-weight:700;padding:2px 0;font-family:'Sora',sans-serif}
-    .due-text{font-size:12.5px;color:#0F766E;line-height:1.75}
-    .due-text strong{font-weight:700}
+  /* LINE ITEMS */
+  .items { padding: 24px 36px 0; }
+  .items-header {
+    display: grid;
+    grid-template-columns: 1fr 60px 90px 90px;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #0A1628;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0A1628;
+  }
+  .items-header .ta-right { text-align: right; }
+  .line-item {
+    display: grid;
+    grid-template-columns: 1fr 60px 90px 90px;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid #EEF3F5;
+    align-items: start;
+  }
+  .line-item:last-child { border-bottom: none; }
+  .item-name { font-size: 13px; font-weight: 600; color: #0A1628; }
+  .item-desc { font-size: 10px; color: #888; margin-top: 3px; line-height: 1.5; }
+  .item-qty, .item-rate, .item-total { font-size: 13px; text-align: right; padding-top: 1px; }
+  .item-qty { color: #444; }
+  .item-rate { color: #444; }
+  .item-total { color: #0A1628; font-weight: 700; }
 
-    /* FOOTER */
-    .ft{background:#0A1628;padding:16px 52px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-top:auto}
-    .ft-l{font-size:11px;color:rgba(255,255,255,0.35);line-height:1.75}
-    .ft-r{font-size:11px;color:#5EEAD4;font-weight:600;text-align:right}
-    .ft-creds{font-size:9.5px;color:rgba(255,255,255,0.22);margin-top:3px}
-  </style>
+  /* TOTALS */
+  .totals { padding: 16px 36px 24px; }
+  .totals-inner { margin-left: auto; width: 280px; }
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px solid #EEF3F5;
+  }
+  .totals-row:last-child { border-bottom: none; }
+  .totals-row.total {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0A1628;
+    padding: 12px 0 6px;
+    border-top: 2px solid #0A1628;
+    border-bottom: none;
+    margin-top: 4px;
+  }
+  .totals-row.total .amount { color: #14B8A6; }
+
+  /* PAY NOW CTA */
+  .pay-cta {
+    background: linear-gradient(135deg, #14B8A6 0%, #0D9182 100%);
+    padding: 28px 36px;
+    text-align: center;
+  }
+  .pay-cta-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .pay-cta-amount {
+    font-size: 36px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -1px;
+    margin-bottom: 14px;
+  }
+  .pay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #FFFFFF;
+    color: #0A1628;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 14px 36px;
+    border-radius: 10px;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  }
+  .pay-btn::after { content: '→'; font-size: 18px; font-weight: 700; }
+  .pay-cta-note {
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .pay-cta-note a { color: #FFFFFF; text-decoration: underline; }
+
+  /* PAYMENT INFO */
+  .payment {
+    background: #F8FFFE;
+    border-top: 1px solid #D4EEE9;
+    padding: 20px 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .pay-block-label {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #14B8A6;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .pay-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #444;
+    margin-bottom: 5px;
+    line-height: 1.5;
+    gap: 10px;
+  }
+  .pay-row strong { color: #0A1628; font-weight: 700; text-align: right; }
+  .due-date-box {
+    background: rgba(20,184,166,0.08);
+    border: 1px solid rgba(20,184,166,0.3);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .due-date-box .ddb-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #0D9182;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .due-date-box .ddb-date {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0A1628;
+  }
+  .due-date-box .ddb-note {
+    font-size: 9px;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* NOTES */
+  .notes {
+    padding: 16px 36px;
+    border-top: 1px solid #EEF3F5;
+    font-size: 10px;
+    color: #888;
+    line-height: 1.7;
+  }
+  .notes strong { color: #0A1628; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 4px; }
+
+  /* FOOTER */
+  .footer-bar {
+    background: #0A1628;
+    padding: 14px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-bar span { font-size: 9px; color: rgba(255,255,255,0.4); }
+  .footer-bar .teal { color: #14B8A6; font-weight: 600; }
+
+  @media print {
+    body { background: white; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+    .header, .footer-bar, .payment, .pay-cta, .status-strip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media (max-width: 560px) {
+    .parties, .payment { grid-template-columns: 1fr; }
+    .party:first-child { border-right: none; border-bottom: 1px solid #EEF3F5; }
+    .header, .status-strip, .items, .totals, .pay-cta, .payment, .notes, .footer-bar { padding-left: 20px; padding-right: 20px; }
+    .items-header, .line-item { grid-template-columns: 1fr 50px 70px 80px; gap: 6px; font-size: 11px; }
+    .item-name { font-size: 12px; }
+    .pay-cta-amount { font-size: 30px; }
+    .pay-btn { padding: 12px 24px; font-size: 14px; }
+  }
+</style>
 </head>
 <body>
 <div class="page">
 
-  <div class="hd">
-    <div class="hd-brand">
-      <div class="hd-name">AskMiro</div>
-      <div class="hd-sub">Cleaning Services</div>
-      <div class="hd-contact">
-        020 8073 0621 &nbsp;&bull;&nbsp; <a href="mailto:info@askmiro.com">info@askmiro.com</a> &nbsp;&bull;&nbsp; www.askmiro.com
-      </div>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <h1>Ask<span>Miro</span></h1>
+      <p>
+        Managed Cleaning Services<br>
+        020 8073 0621 &nbsp;&middot;&nbsp; info@askmiro.com &nbsp;&middot;&nbsp; askmiro.com
+      </p>
     </div>
-    <div class="hd-meta">
-      <div class="hd-label">Invoice</div>
-      <div class="hd-ref">${d.ref}</div>
-      <div class="hd-date">Issued ${issued}</div>
-      ${d.due && d.due !== 'on completion'
-        ? `<div class="hd-date" style="margin-top:2px;color:rgba(255,255,255,0.5)">Due: ${d.due}</div>`
-        : `<div class="hd-date" style="margin-top:2px;color:rgba(255,255,255,0.5)">Due on completion</div>`}
+    <div class="inv-meta">
+      <span class="inv-label">Invoice</span>
+      <div class="inv-number">${d.ref}</div>
+      <div class="inv-date">
+        Issued: ${issued}<br>
+        Tax Point: ${d.date || issued}<br>
+        Due: ${dueDisplay}
+      </div>
     </div>
   </div>
-  <div class="bar"></div>
 
-  <div class="body">
-
-    <div class="cards">
-      <div class="card card-a">
-        <div class="card-lbl">Billed To</div>
-        <div class="card-name">${d.name || 'Client'}</div>
-        <div class="card-detail">
-          ${d.email ? `<a href="mailto:${d.email}">${d.email}</a><br>` : ''}
-          ${d.address || ''}
-        </div>
-      </div>
-      <div class="card card-b">
-        <div class="card-lbl">Service</div>
-        <div class="card-name">${d.service || 'Cleaning Services'}</div>
-        <div class="card-detail">
-          ${d.date ? `Date: <strong style="color:#0F172A">${d.date}</strong><br>` : ''}
-          ${d.address || ''}
-        </div>
-      </div>
+  <!-- PARTIES -->
+  <div class="parties">
+    <div class="party">
+      <span class="party-label">From</span>
+      <h3>AskMiro Cleaning Services</h3>
+      <p>
+        SW11, London, United Kingdom<br>
+        020 8073 0621<br>
+        info@askmiro.com &nbsp;&middot;&nbsp; askmiro.com<br>
+        <em style="font-size:10px;color:#888;">A trading name of Miro Partners Ltd &mdash; registered in England &amp; Wales</em>
+      </p>
     </div>
-
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th class="td-desc">Description</th>
-          <th class="th-r" style="width:16%">Qty</th>
-          <th class="th-r" style="width:16%">Rate</th>
-          <th class="th-r" style="width:16%">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-        ${notesHtml}
-        ${vatRow}
-        <tr class="grand-row">
-          <td colspan="3" class="grand-lbl">Total Due</td>
-          <td class="grand-val">${fmtGBP(total)}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="pay-wrap">
-      <div class="pay-box pay-bank">
-        <div class="pay-lbl">Bank Transfer</div>
-        <div class="pay-grid">
-          <span class="pk">Account Name</span>  <span class="pv">Miro Partners Ltd</span>
-          <span class="pk">Sort Code</span>      <span class="pv">04-06-05</span>
-          <span class="pk">Account Number</span> <span class="pv">26672911</span>
-          <span class="pk">Reference</span>       <span class="pv">${d.ref}</span>
-        </div>
-      </div>
-      <div class="pay-box pay-due">
-        <div class="pay-lbl">Payment Terms</div>
-        <div class="due-text">
-          Payment is due <strong>${d.due}</strong>.<br>
-          Please use reference <strong>${d.ref}</strong> when paying by bank transfer.<br><br>
-          Queries: <strong>020 8073 0621</strong> or <a href="mailto:info@askmiro.com" style="color:#0D9488;font-weight:600">info@askmiro.com</a>
-        </div>
-      </div>
+    <div class="party">
+      <span class="party-label">Bill To</span>
+      <h3>${d.name || 'Client'}</h3>
+      <p>
+        ${d.address ? `${d.address}<br>` : ''}
+        ${clientCity}<br>
+        ${d.email ? `<a href="mailto:${d.email}" style="color:#0D9182;text-decoration:none">${d.email}</a>` : ''}
+      </p>
     </div>
-
   </div>
 
-  <div class="ft">
-    <div class="ft-l">
-      AskMiro Cleaning Services &bull; A trading name of Miro Partners Ltd &bull; London &amp; UK<br>
-      ${vatRate > 0
-        ? `VAT Registration No: ${d.vatNumber || 'Pending'}`
-        : 'Not VAT registered — below compulsory registration threshold. No VAT charged.'}
+  <!-- STATUS -->
+  <div class="status-strip">
+    <span class="status-badge">${dueDisplay}</span>
+    <span class="inv-ref">Job Ref: <strong>${jobRef}</strong></span>
+  </div>
+
+  <!-- LINE ITEMS -->
+  <div class="items">
+    <div class="items-header">
+      <span>Description</span>
+      <span class="ta-right">Qty</span>
+      <span class="ta-right">Rate (&pound;)</span>
+      <span class="ta-right">Amount (&pound;)</span>
     </div>
-    <div class="ft-r">
-      www.askmiro.com
-      <div class="ft-creds">COSHH Compliant &bull; Fully Insured &bull; ISO Standards</div>
+${itemRowsHtml}
+  </div>
+
+  <!-- TOTALS -->
+  <div class="totals">
+    <div class="totals-inner">
+      <div class="totals-row">
+        <span>Subtotal (net)</span>
+        <span>${fmtGBP(net)}</span>
+      </div>
+      <div class="totals-row">
+        <span>VAT (${vatRate > 0 ? `${vatRate}%` : '0% &mdash; below threshold'})</span>
+        <span>${fmtGBP(vatAmt)}</span>
+      </div>
+      <div class="totals-row total">
+        <span>Total</span>
+        <span class="amount">${fmtGBP(total)}</span>
+      </div>
     </div>
+  </div>
+${payCtaHtml}
+  <!-- PAYMENT INFO -->
+  <div class="payment">
+    <div>
+      <span class="pay-block-label">Payment Terms</span>
+      <p style="font-size:11px;color:#444;line-height:1.7;">
+        Payment of <strong>${fmtGBP(total)}</strong> is due <strong>${dueLabel}</strong>.
+        <br><br>
+        <strong>Methods:</strong> ${payLink ? 'Card payment via the Tide link above, or bank transfer.' : 'Bank transfer (details below).'}
+        <br><br>
+        <strong>Bank Transfer:</strong><br>
+        Miro Partners Ltd &middot; Sort 04-06-05 &middot; Acc 26672911<br>
+        Reference: <strong>${d.ref}</strong>
+      </p>
+    </div>
+    <div>
+      <span class="pay-block-label">Payment Due</span>
+      <div class="due-date-box">
+        <span class="ddb-label">Due Date</span>
+        <div class="ddb-date">${dueDisplay}</div>
+        <div class="ddb-note">Queries: 020 8073 0621 or info@askmiro.com. Receipt issued upon payment.</div>
+      </div>
+    </div>
+  </div>
+${notesBlock}
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <span>AskMiro Cleaning Services &nbsp;&middot;&nbsp; SW11, London &nbsp;&middot;&nbsp; <span class="teal">askmiro.com</span></span>
+    <span>${vatRate > 0 ? `VAT Reg: ${d.vatNumber || 'Pending'}` : 'Not VAT registered &mdash; below threshold'} &nbsp;&middot;&nbsp; Invoice ${d.ref} &nbsp;&middot;&nbsp; ${issued}</span>
   </div>
 
 </div>

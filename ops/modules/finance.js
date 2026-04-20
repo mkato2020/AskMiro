@@ -990,6 +990,7 @@ ${recurringPanel}
     <div class="fg"><label class="fl">VAT Amount</label><input class="fin" id="ci-vat" type="number" step="0.01" placeholder="0.00" readonly style="background:#F8FAFC"></div>
     <div class="fg"><label class="fl">Total (Gross) <span class="req">*</span></label><input class="fin" id="ci-total" type="number" step="0.01" placeholder="0.00" oninput="Finance._calcFromGross()"></div>
   </div>
+  <div class="fg"><label class="fl">Payment Link (Tide / Stripe URL)</label><input class="fin" id="ci-paylink" type="url" placeholder="https://pay.tide.co/..."></div>
   <div class="fg"><label class="fl">Notes / Payment Instructions</label><textarea class="fin" id="ci-notes" rows="2" placeholder="e.g. Payment due on completion. Bank transfer ref: INVOICE-NUMBER"></textarea></div>
   <div class="modal-foot">
     <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
@@ -1073,7 +1074,8 @@ ${recurringPanel}
         totalAmount:     UI.gv('ci-total'),
         notes:           UI.gv('ci-notes'),
         lineItemsJson:   JSON.stringify(lineItems),
-        paymentTerms:    UI.gv('ci-terms')
+        paymentTerms:    UI.gv('ci-terms'),
+        paymentLink:     UI.gv('ci-paylink')
       });
       UI.closeModal(); UI.toast('Invoice created', 'g');
       await _refresh();
