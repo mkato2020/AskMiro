@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskMiro — End of Tenancy Cleaning Checklist</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    color: #1a1a1a;
+    background: #060D1A;
+    padding: 28px 20px;
+    min-height: 100vh;
+  }
+
+  .page {
+    background: #FFFFFF;
+    max-width: 900px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+
+  /* TOP BAR */
+  .top-bar {
+    background: #0A1628;
+    padding: 20px 28px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #14B8A6;
+  }
+  .brand-block h1 {
+    font-size: 20px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.4px;
+  }
+  .brand-block h1 span { color: #14B8A6; }
+  .brand-block p {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
+  .doc-badge {
+    background: rgba(20,184,166,0.15);
+    border: 1px solid rgba(20,184,166,0.4);
+    border-radius: 6px;
+    padding: 6px 14px;
+    text-align: right;
+  }
+  .doc-badge .badge-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #14B8A6;
+    display: block;
+  }
+  .doc-badge .badge-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin-top: 2px;
+  }
+
+  /* JOB INFO STRIP */
+  .job-strip {
+    background: #F8FFFE;
+    border-bottom: 1px solid #E8F8F6;
+    padding: 12px 28px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .jf-label {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #14B8A6;
+    margin-bottom: 4px;
+  }
+  .jf-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0A1628;
+    border-bottom: 1.5px dashed #C8EDE9;
+    padding-bottom: 3px;
+    min-height: 16px;
+  }
+
+  /* CONTENT AREA */
+  .content { padding: 20px 28px 24px; }
+
+  /* SECTION TITLES */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 10px;
+  }
+  .section-title .s-num {
+    background: #0A1628;
+    color: #14B8A6;
+    font-size: 9px;
+    font-weight: 800;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title .s-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: #0A1628;
+  }
+  .section-title .s-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #14B8A6, transparent);
+  }
+  .section-title.red .s-num { background: #C0392B; color: #fff; }
+  .section-title.red .s-label { color: #C0392B; }
+  .section-title.red .s-line { background: linear-gradient(90deg, #C0392B, transparent); }
+  .section-title.green .s-num { background: #0D7A52; color: #fff; }
+  .section-title.green .s-label { color: #0D7A52; }
+  .section-title.green .s-line { background: linear-gradient(90deg, #0D7A52, transparent); }
+  .section-title.amber .s-num { background: #B7770D; color: #fff; }
+  .section-title.amber .s-label { color: #B7770D; }
+  .section-title.amber .s-line { background: linear-gradient(90deg, #B7770D, transparent); }
+
+  /* GRID LAYOUT */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* ROLES */
+  .role-box {
+    border: 1.5px solid #E2EFF3;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #FAFEFF;
+  }
+  .role-box h3 {
+    font-size: 10px;
+    font-weight: 800;
+    color: #0A1628;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid #D4EEE9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .role-box h3::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #14B8A6;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .role-box ul {
+    list-style: none;
+    font-size: 10px;
+    line-height: 1.9;
+    color: #444;
+  }
+  .role-box ul li::before {
+    content: '→ ';
+    color: #14B8A6;
+    font-weight: 700;
+  }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th {
+    background: #0A1628;
+    color: #14B8A6;
+    border: 1px solid #0D1F3C;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  td {
+    border: 1px solid #E8F0F2;
+    padding: 6px 10px;
+    vertical-align: top;
+    line-height: 1.5;
+    color: #333;
+  }
+  tr:nth-child(even) td { background: #F5FEFF; }
+  .time-col {
+    font-weight: 700;
+    color: #0A1628;
+    white-space: nowrap;
+    width: 95px;
+    font-size: 9px;
+  }
+  .joint-cell {
+    text-align: center;
+    font-weight: 700;
+    color: #0A1628;
+    background: #EBF9F7 !important;
+    border-left: 3px solid #14B8A6 !important;
+  }
+
+  /* ROOMS */
+  .rooms-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .room {
+    border: 1.5px solid #E2EFF3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #FAFEFF;
+  }
+  .room-title {
+    background: #0A1628;
+    color: #14B8A6;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 6px 10px;
+  }
+  .room ul { list-style: none; padding: 8px 10px; }
+  .room ul li {
+    font-size: 10px;
+    line-height: 1.75;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    color: #333;
+  }
+  .room ul li::before {
+    content: '☐';
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 0px;
+    color: #14B8A6;
+  }
+
+  /* CRITICAL */
+  .critical-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .critical-box {
+    border: 1.5px solid #F0C0BB;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #FEF9F8;
+  }
+  .critical-box ul li::before { content: '☐'; font-size: 12px; flex-shrink: 0; color: #C0392B; }
+  .qc-box {
+    border: 1.5px solid #B8E4D4;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #F5FEFA;
+  }
+  .qc-box ul li::before { content: '☐'; font-size: 12px; flex-shrink: 0; color: #0D7A52; }
+  .critical-box ul, .qc-box ul { list-style: none; }
+  .critical-box ul li, .qc-box ul li {
+    font-size: 10px;
+    line-height: 1.85;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    color: #333;
+  }
+
+  /* SIGN-OFF */
+  .sig-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 10px; }
+  .sig-item {}
+  .sig-line {
+    border-bottom: 1.5px solid #0A1628;
+    padding-bottom: 20px;
+    margin-bottom: 5px;
+  }
+  .sig-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+  }
+
+  /* FOOTER */
+  .footer-bar {
+    background: #0A1628;
+    padding: 12px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-bar span {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.3px;
+  }
+  .footer-bar .teal { color: #14B8A6; font-weight: 600; }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+    .top-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-title .s-num, .room-title, th, .footer-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="brand-block">
+      <h1>Ask<span>Miro</span> Cleaning Services</h1>
+      <p>OPERATIONS DIVISION &nbsp;·&nbsp; askmiro.com &nbsp;·&nbsp; London & UK</p>
+    </div>
+    <div class="doc-badge">
+      <span class="badge-label">Document Type</span>
+      <span class="badge-title">End of Tenancy Checklist</span>
+    </div>
+  </div>
+
+  <!-- JOB INFO STRIP -->
+  <div class="job-strip">
+    <div>
+      <div class="jf-label">Date</div>
+      <div class="jf-value">20 April 2026</div>
+    </div>
+    <div>
+      <div class="jf-label">Property</div>
+      <div class="jf-value">301 Lumiere Apts, 58 St. John's Hill SW11 1AD</div>
+    </div>
+    <div>
+      <div class="jf-label">Client</div>
+      <div class="jf-value">Tiana Tasevska</div>
+    </div>
+    <div>
+      <div class="jf-label">Start / End</div>
+      <div class="jf-value">10:00 &nbsp;→&nbsp; ______</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- TEAM ROLES -->
+    <div class="section-title">
+      <div class="s-num">1</div>
+      <div class="s-label">Team Roles</div>
+      <div class="s-line"></div>
+    </div>
+    <div class="grid-2">
+      <div class="role-box">
+        <h3>Cleaner A — Wet Zones + Appliances</h3>
+        <ul>
+          <li>Kitchen: appliances, units, worktops, sink</li>
+          <li>Bathroom(s): full deep clean, tiles, grout</li>
+          <li>WC: toilet, sink, fixtures</li>
+          <li>All hard floors: sweep + steam mop</li>
+          <li>Steam cleaning: carpets (coordinate with B)</li>
+        </ul>
+      </div>
+      <div class="role-box">
+        <h3>Cleaner B — Dry Zones + Surfaces</h3>
+        <ul>
+          <li>All rooms: cobwebs (ceiling/walls/corners)</li>
+          <li>Bedrooms: surfaces, under beds, wardrobe</li>
+          <li>Living areas: dust all surfaces, skirting</li>
+          <li>All windows: internal + accessible external</li>
+          <li>Door frames, radiators, light fittings, lampshades</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- TIME PLAN -->
+    <div class="section-title">
+      <div class="s-num">2</div>
+      <div class="s-label">Time Block Plan</div>
+      <div class="s-line"></div>
+    </div>
+    <table>
+      <tr>
+        <th style="width:95px">Time</th>
+        <th>Cleaner A</th>
+        <th>Cleaner B</th>
+      </tr>
+      <tr>
+        <td class="time-col">0:00 – 0:20</td>
+        <td>Unpack equipment · walk-through · photo record</td>
+        <td>Cobwebs all rooms — start top, work down</td>
+      </tr>
+      <tr>
+        <td class="time-col">0:20 – 1:20</td>
+        <td>Kitchen: fridge, freezer, washing machine, dishwasher, units, sink</td>
+        <td>Bedrooms: surfaces, wardrobe, under bed, skirting, radiator</td>
+      </tr>
+      <tr>
+        <td class="time-col">1:20 – 2:20</td>
+        <td>Bathroom: tiles, grout, bath/shower, taps, plughole, toilet, WC</td>
+        <td>Living room + hallway: surfaces, skirting, radiators, light fittings, windows</td>
+      </tr>
+      <tr>
+        <td class="time-col">2:20 – 3:30</td>
+        <td>Steam mop all hard floors (kitchen → hall → bathroom)</td>
+        <td>Steam clean all carpets (bedroom → living room)</td>
+      </tr>
+      <tr>
+        <td class="time-col">3:30 – 4:20</td>
+        <td>Kitchen window + external windows (safe access only)</td>
+        <td>Bedroom windows + all internal windowsills final wipe</td>
+      </tr>
+      <tr>
+        <td class="time-col">4:20 – 5:00</td>
+        <td colspan="2" class="joint-cell">⬡ JOINT QC WALKTHROUGH — Room by room · Photograph · Issue invoice</td>
+      </tr>
+    </table>
+
+    <!-- ROOM CHECKLISTS -->
+    <div class="section-title">
+      <div class="s-num">3</div>
+      <div class="s-label">Room-by-Room Checklist</div>
+      <div class="s-line"></div>
+    </div>
+    <div class="rooms-grid">
+
+      <div class="room">
+        <div class="room-title">Kitchen</div>
+        <ul>
+          <li>Cobwebs removed</li>
+          <li>Tops of all wall units — degreased</li>
+          <li>Unit doors + handles wiped</li>
+          <li>Worktops + splashback</li>
+          <li>Sink bowl + taps descaled</li>
+          <li>Plughole cleared</li>
+          <li>Fridge: shelves out, interior, seals, exterior</li>
+          <li>Freezer: defrosted, interior, seals, exterior</li>
+          <li>Washing machine: drum, seal, tray, exterior</li>
+          <li>Dishwasher: filter, arms, seal, tray, exterior</li>
+          <li>Skirting boards wiped</li>
+          <li>Light fitting dusted</li>
+          <li>Floor swept + steam mopped</li>
+        </ul>
+      </div>
+
+      <div class="room">
+        <div class="room-title">Bathroom</div>
+        <ul>
+          <li>Cobwebs removed</li>
+          <li>Bath scrubbed inside + rim</li>
+          <li>Shower screen: limescale + soap scum removed</li>
+          <li>Tiles: full scrub</li>
+          <li>Grout: scrubbed</li>
+          <li>Mildew: treated</li>
+          <li>Taps + shower fittings descaled</li>
+          <li>Plughole cleared</li>
+          <li>Sink bowl + taps descaled</li>
+          <li>Mirror: streak-free</li>
+          <li>Radiator / towel rail wiped</li>
+          <li>Skirting boards</li>
+          <li>Extractor fan wiped</li>
+          <li>Floor scrubbed + steam mopped</li>
+        </ul>
+      </div>
+
+      <div class="room">
+        <div class="room-title">WC (Toilet + Sink)</div>
+        <ul>
+          <li>Cobwebs removed</li>
+          <li>Toilet bowl: bleached + scrubbed</li>
+          <li>Toilet seat: both sides</li>
+          <li>Toilet rim + behind</li>
+          <li>Toilet base + floor around</li>
+          <li>Sink bowl + taps descaled</li>
+          <li>Plughole cleared</li>
+          <li>Mirror: streak-free</li>
+          <li>Skirting boards</li>
+          <li>Door frame wiped</li>
+          <li>Floor scrubbed + mopped</li>
+        </ul>
+      </div>
+
+      <div class="room">
+        <div class="room-title">Bedroom</div>
+        <ul>
+          <li>Cobwebs — ceiling + corners</li>
+          <li>Under bed: cleared + vacuumed + mopped</li>
+          <li>Wardrobe: interior shelves + rails + exterior</li>
+          <li>All surfaces dusted + wiped</li>
+          <li>Skirting boards</li>
+          <li>Door frame wiped</li>
+          <li>Radiator wiped</li>
+          <li>Light fitting + lampshade dusted</li>
+          <li>Windows — internal (streak-free)</li>
+          <li>External windows (if safe access)</li>
+          <li>Windowsills wiped</li>
+          <li>Carpet steam cleaned</li>
+        </ul>
+      </div>
+
+      <div class="room">
+        <div class="room-title">Living Room</div>
+        <ul>
+          <li>Cobwebs — ceiling + corners</li>
+          <li>All surfaces dusted + wiped</li>
+          <li>Skirting boards</li>
+          <li>Door frame wiped</li>
+          <li>Radiator(s) wiped</li>
+          <li>Light fitting + lampshade dusted</li>
+          <li>Windows — internal (streak-free)</li>
+          <li>External windows (if safe access)</li>
+          <li>Windowsills wiped</li>
+          <li>Hard floor swept + steam mopped</li>
+          <li>Any carpet areas steam cleaned</li>
+        </ul>
+      </div>
+
+      <div class="room">
+        <div class="room-title">Hallway + Entrance</div>
+        <ul>
+          <li>Cobwebs — ceiling + corners</li>
+          <li>Skirting boards full length</li>
+          <li>Door frame + front door wiped</li>
+          <li>Light fitting dusted</li>
+          <li>Any mirrors streak-free</li>
+          <li>Radiator wiped</li>
+          <li>Windowsill (if any)</li>
+          <li>Hard floor swept + steam mopped</li>
+          <li>Any carpet steam cleaned</li>
+          <li>All internal doors: handles + frames wiped</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- CRITICAL -->
+    <div class="section-title red">
+      <div class="s-num">4</div>
+      <div class="s-label">Critical — Must Not Be Missed</div>
+      <div class="s-line"></div>
+    </div>
+    <div class="critical-grid">
+      <div class="critical-box">
+        <ul>
+          <li>Freezer fully defrosted before leaving</li>
+          <li>Washing machine rubber seal — mould fully removed</li>
+          <li>Dishwasher filter cleaned</li>
+          <li>Grout lines scrubbed (all bathroom tiles)</li>
+          <li>Under beds: cleared + hoovered + mopped</li>
+        </ul>
+      </div>
+      <div class="critical-box">
+        <ul>
+          <li>Tops of kitchen units degreased</li>
+          <li>All plug holes cleared + clean</li>
+          <li>Shower screen limescale fully removed</li>
+          <li>Mildew treated in bathroom</li>
+          <li>No cleaning product residue left on surfaces</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- QC -->
+    <div class="section-title green">
+      <div class="s-num">5</div>
+      <div class="s-label">Final QC — Landlord/Agent Inspection Standard</div>
+      <div class="s-line"></div>
+    </div>
+    <div class="critical-grid">
+      <div class="qc-box">
+        <ul>
+          <li>No cobwebs visible in any room</li>
+          <li>All mirrors + glass streak-free</li>
+          <li>All taps chrome-bright, zero limescale</li>
+          <li>Fridge + freezer: empty, odour-free, clean</li>
+          <li>All appliance seals: no mould, no residue</li>
+          <li>Carpets visibly clean, no stains</li>
+          <li>Hard floors streak-free, no residue</li>
+        </ul>
+      </div>
+      <div class="qc-box">
+        <ul>
+          <li>No dust on tops of units or fittings</li>
+          <li>All windowsills clean</li>
+          <li>All skirting boards clean</li>
+          <li>All internal doors + handles wiped</li>
+          <li>Property aired — no chemical smell</li>
+          <li>All rubbish removed from property</li>
+          <li><strong style="color:#0D7A52">Invoice issued to client ✓</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SIGN-OFF -->
+    <div class="section-title amber">
+      <div class="s-num">6</div>
+      <div class="s-label">Sign-Off</div>
+      <div class="s-line"></div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-item">
+        <div class="sig-line"></div>
+        <div class="sig-label">Cleaner A — Name + Signature</div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-line"></div>
+        <div class="sig-label">Cleaner B — Name + Signature</div>
+      </div>
+      <div class="sig-item">
+        <div class="sig-line"></div>
+        <div class="sig-label">Client Signature (job complete + satisfied)</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER BAR -->
+  <div class="footer-bar">
+    <span>AskMiro Cleaning Services &nbsp;·&nbsp; <span class="teal">askmiro.com</span> &nbsp;·&nbsp; Managed Commercial Cleaning London & UK</span>
+    <span>Confidential — Internal Operations</span>
+  </div>
+
+</div>
+</body>
+</html>

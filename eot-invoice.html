@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskMiro — Invoice — Tiana Tasevska</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #060D1A;
+    padding: 28px 20px;
+    min-height: 100vh;
+  }
+
+  .page {
+    background: #FFFFFF;
+    max-width: 760px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+
+  /* HEADER */
+  .header {
+    background: #0A1628;
+    padding: 28px 36px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #14B8A6;
+  }
+  .brand h1 {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.4px;
+  }
+  .brand h1 span { color: #14B8A6; }
+  .brand p {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+  .inv-meta {
+    text-align: right;
+  }
+  .inv-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(20,184,166,0.8);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .inv-number {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.5px;
+  }
+  .inv-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+
+  /* PARTIES */
+  .parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid #EEF3F5;
+  }
+  .party {
+    padding: 22px 36px;
+  }
+  .party:first-child {
+    border-right: 1px solid #EEF3F5;
+  }
+  .party-label {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #14B8A6;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .party h3 {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0A1628;
+    margin-bottom: 5px;
+  }
+  .party p {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.7;
+  }
+
+  /* STATUS BADGE */
+  .status-strip {
+    padding: 12px 36px;
+    background: #F5FEFF;
+    border-bottom: 1px solid #D4EEE9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(20,184,166,0.12);
+    border: 1px solid rgba(20,184,166,0.35);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0D9182;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .status-badge::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background: #14B8A6;
+    border-radius: 50%;
+  }
+  .status-strip .inv-ref {
+    font-size: 10px;
+    color: #888;
+  }
+  .status-strip .inv-ref strong { color: #0A1628; }
+
+  /* LINE ITEMS */
+  .items { padding: 24px 36px 0; }
+  .items-header {
+    display: grid;
+    grid-template-columns: 1fr 60px 90px 90px;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #0A1628;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0A1628;
+  }
+  .items-header .ta-right { text-align: right; }
+
+  .line-item {
+    display: grid;
+    grid-template-columns: 1fr 60px 90px 90px;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid #EEF3F5;
+    align-items: start;
+  }
+  .line-item:last-child { border-bottom: none; }
+  .item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0A1628;
+  }
+  .item-desc {
+    font-size: 10px;
+    color: #888;
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+  .item-qty, .item-rate, .item-total {
+    font-size: 13px;
+    text-align: right;
+    padding-top: 1px;
+  }
+  .item-qty { color: #444; }
+  .item-rate { color: #444; }
+  .item-total { color: #0A1628; font-weight: 700; }
+
+  /* TOTALS */
+  .totals { padding: 16px 36px 24px; }
+  .totals-inner {
+    margin-left: auto;
+    width: 280px;
+  }
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px solid #EEF3F5;
+  }
+  .totals-row:last-child { border-bottom: none; }
+  .totals-row.total {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0A1628;
+    padding: 12px 0 6px;
+    border-top: 2px solid #0A1628;
+    border-bottom: none;
+    margin-top: 4px;
+  }
+  .totals-row.total .amount { color: #14B8A6; }
+
+  /* PAY NOW CTA */
+  .pay-cta {
+    background: linear-gradient(135deg, #14B8A6 0%, #0D9182 100%);
+    padding: 28px 36px;
+    text-align: center;
+  }
+  .pay-cta-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .pay-cta-amount {
+    font-size: 36px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -1px;
+    margin-bottom: 14px;
+  }
+  .pay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #FFFFFF;
+    color: #0A1628;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 14px 36px;
+    border-radius: 10px;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    transition: transform 0.15s;
+  }
+  .pay-btn:hover { transform: translateY(-1px); }
+  .pay-btn::after {
+    content: '→';
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .pay-cta-note {
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .pay-cta-note a { color: #FFFFFF; text-decoration: underline; }
+
+  /* PAYMENT INFO */
+  .payment {
+    background: #F8FFFE;
+    border-top: 1px solid #D4EEE9;
+    padding: 20px 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .pay-block-label {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #14B8A6;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .pay-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #444;
+    margin-bottom: 5px;
+    line-height: 1.5;
+    gap: 10px;
+  }
+  .pay-row strong { color: #0A1628; font-weight: 700; text-align: right; }
+  .due-date-box {
+    background: rgba(20,184,166,0.08);
+    border: 1px solid rgba(20,184,166,0.3);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .due-date-box .ddb-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #0D9182;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .due-date-box .ddb-date {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0A1628;
+  }
+  .due-date-box .ddb-note {
+    font-size: 9px;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* NOTES */
+  .notes {
+    padding: 16px 36px;
+    border-top: 1px solid #EEF3F5;
+    font-size: 10px;
+    color: #888;
+    line-height: 1.7;
+  }
+  .notes strong { color: #0A1628; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 4px; }
+
+  /* FOOTER */
+  .footer-bar {
+    background: #0A1628;
+    padding: 14px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-bar span { font-size: 9px; color: rgba(255,255,255,0.4); }
+  .footer-bar .teal { color: #14B8A6; font-weight: 600; }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+    .header, .footer-bar, .payment, .pay-cta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media (max-width: 560px) {
+    .parties, .payment { grid-template-columns: 1fr; }
+    .party:first-child { border-right: none; border-bottom: 1px solid #EEF3F5; }
+    .header, .status-strip, .items, .totals, .pay-cta, .payment, .notes, .footer-bar { padding-left: 20px; padding-right: 20px; }
+    .items-header, .line-item { grid-template-columns: 1fr 50px 70px 80px; gap: 6px; font-size: 11px; }
+    .item-name { font-size: 12px; }
+    .pay-cta-amount { font-size: 30px; }
+    .pay-btn { padding: 12px 24px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <h1>Ask<span>Miro</span></h1>
+      <p>
+        Managed Cleaning Services<br>
+        020 8073 0621 &nbsp;·&nbsp; info@askmiro.com &nbsp;·&nbsp; askmiro.com
+      </p>
+    </div>
+    <div class="inv-meta">
+      <span class="inv-label">Invoice</span>
+      <div class="inv-number">#INV-2026-001</div>
+      <div class="inv-date">
+        Issued: 20 April 2026<br>
+        Due: Upon Completion
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTIES -->
+  <div class="parties">
+    <div class="party">
+      <span class="party-label">From</span>
+      <h3>AskMiro Cleaning Services</h3>
+      <p>
+        SW11, London, United Kingdom<br>
+        020 8073 0621<br>
+        info@askmiro.com &nbsp;·&nbsp; askmiro.com<br>
+        <em style="font-size:10px;color:#888;">Company registered in England &amp; Wales</em>
+      </p>
+    </div>
+    <div class="party">
+      <span class="party-label">Bill To</span>
+      <h3>Tiana Tasevska</h3>
+      <p>
+        52 Wallis Close<br>
+        London, United Kingdom<br>
+        mkato.ug@gmail.com
+      </p>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-strip">
+    <span class="status-badge">Due on Completion</span>
+    <span class="inv-ref">Job Ref: <strong>EOT-20APR26-TASEVSKA</strong></span>
+  </div>
+
+  <!-- LINE ITEMS -->
+  <div class="items">
+    <div class="items-header">
+      <span>Description</span>
+      <span class="ta-right">Qty</span>
+      <span class="ta-right">Rate (£)</span>
+      <span class="ta-right">Amount (£)</span>
+    </div>
+
+    <div class="line-item">
+      <div>
+        <div class="item-name">End of Tenancy Clean</div>
+        <div class="item-desc">
+          1-bedroom flat, furnished — 52 Wallis Close, London.<br>
+          Full property deep clean to landlord/agent inspection standard. Includes all rooms, kitchen appliances, bathroom, carpets and hard floors. Same-day single visit.
+        </div>
+      </div>
+      <div class="item-qty">1</div>
+      <div class="item-rate">220.00</div>
+      <div class="item-total">220.00</div>
+    </div>
+
+  </div>
+
+  <!-- TOTALS -->
+  <div class="totals">
+    <div class="totals-inner">
+      <div class="totals-row">
+        <span>Subtotal (net)</span>
+        <span>£ 220.00</span>
+      </div>
+      <div class="totals-row">
+        <span>VAT (0% — below threshold)</span>
+        <span>£ 0.00</span>
+      </div>
+      <div class="totals-row total">
+        <span>Total</span>
+        <span class="amount">£ 220.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAY NOW CTA -->
+  <div class="pay-cta">
+    <span class="pay-cta-label">Pay Securely Online</span>
+    <div class="pay-cta-amount">£220.00</div>
+    <a href="https://pay.tide.co/8094cc08-55ce-4ce1-a280-9edb8f2f80a7" class="pay-btn" target="_blank" rel="noopener">Pay Now via Tide</a>
+    <div class="pay-cta-note">
+      Secure card payment processed via Tide.<br>
+      Link: <a href="https://pay.tide.co/8094cc08-55ce-4ce1-a280-9edb8f2f80a7" target="_blank" rel="noopener">pay.tide.co/8094cc08-55ce-4ce1-a280-9edb8f2f80a7</a>
+    </div>
+  </div>
+
+  <!-- PAYMENT INFO -->
+  <div class="payment">
+    <div>
+      <span class="pay-block-label">Payment Terms</span>
+      <p style="font-size:11px;color:#444;line-height:1.7;">
+        No upfront payment required. Payment of <strong>£220.00</strong> is due upon completion of the job, once you are satisfied with the standard of work.
+        <br><br>
+        <strong>Methods:</strong> Card payment via the Tide link above, or bank transfer (details on request).
+        <br><br>
+        <strong>Reference:</strong> EOT-20APR26-TASEVSKA
+      </p>
+    </div>
+    <div>
+      <span class="pay-block-label">Payment Due</span>
+      <div class="due-date-box">
+        <span class="ddb-label">Due Date</span>
+        <div class="ddb-date">Upon Completion</div>
+        <div class="ddb-note">Payment on day of service, upon client sign-off. Receipt will be issued upon payment.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="notes">
+    <strong>Notes</strong>
+    Thank you for choosing AskMiro Cleaning Services. This invoice covers the end of tenancy clean at 52 Wallis Close on 20 April 2026. For queries, please contact info@askmiro.com or call 020 8073 0621. Reliable. Thorough. Local.
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <span>AskMiro Cleaning Services &nbsp;·&nbsp; SW11, London &nbsp;·&nbsp; <span class="teal">askmiro.com</span></span>
+    <span>Invoice #INV-2026-001 &nbsp;·&nbsp; 20 April 2026</span>
+  </div>
+
+</div>
+</body>
+</html>

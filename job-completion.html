@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AskMiro — Job Completion</title>
+<style>
+:root {
+  --bg: #060D1A;
+  --surface: #0E1C31;
+  --surface2: #142236;
+  --border: rgba(255,255,255,0.07);
+  --teal: #14B8A6;
+  --teal-dim: rgba(20,184,166,0.12);
+  --teal-border: rgba(20,184,166,0.3);
+  --white: #FFFFFF;
+  --muted: rgba(255,255,255,0.45);
+  --text: rgba(255,255,255,0.88);
+  --red: #E05252;
+  --red-dim: rgba(224,82,82,0.1);
+  --amber: #F59E0B;
+  --amber-dim: rgba(245,158,11,0.1);
+  --green: #10B981;
+  --green-dim: rgba(16,185,129,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:15px;
+  line-height:1.5;
+  padding-bottom:80px;
+}
+/* TOPBAR */
+.topbar{
+  background:var(--surface);
+  border-bottom:1.5px solid var(--teal);
+  padding:14px 16px 12px;
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-logo{font-size:18px;font-weight:900;color:#fff;letter-spacing:-0.3px;}
+.topbar-logo span{color:var(--teal);}
+.topbar-doc{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);background:var(--teal-dim);border:1px solid var(--teal-border);border-radius:20px;padding:3px 10px;}
+.save-indicator{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.save-dot.unsaved{background:var(--amber);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* NAV TABS */
+.nav-tabs{
+  display:flex;overflow-x:auto;gap:4px;padding:12px 16px 0;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  scrollbar-width:none;position:sticky;top:57px;z-index:99;
+}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex-shrink:0;padding:7px 14px;font-size:12px;font-weight:600;
+  color:var(--muted);border:none;background:transparent;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--teal-dim);}
+.tab-btn .tab-count{
+  display:inline-block;background:var(--teal);color:#000;
+  font-size:9px;font-weight:800;border-radius:10px;
+  padding:1px 5px;margin-left:4px;
+}
+.tab-btn .tab-warn{
+  display:inline-block;background:var(--red);color:#fff;
+  font-size:9px;font-weight:800;border-radius:10px;
+  padding:1px 5px;margin-left:4px;
+}
+
+/* PANELS */
+.panel{display:none;padding:16px;}
+.panel.active{display:block;}
+
+/* CARD */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 16px;margin-bottom:14px;
+}
+.card-title{
+  font-size:11px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--teal);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.card-title::before{content:'';display:block;width:3px;height:14px;background:var(--teal);border-radius:2px;}
+
+/* FORM */
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--white);font-size:15px;
+  padding:11px 13px;outline:none;font-family:inherit;transition:border 0.2s;
+  -webkit-appearance:none;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);}
+.field textarea{resize:vertical;min-height:80px;}
+.field select option{background:#1a2940;}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2314B8A6' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+/* RADIO/BOOL */
+.bool-group{display:flex;gap:8px;}
+.bool-btn{
+  flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;
+  color:var(--muted);
+}
+.bool-btn.selected-yes{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.bool-btn.selected-no{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+
+/* CHECKLIST */
+.checklist-section{margin-bottom:18px;}
+.checklist-section-title{
+  font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:8px 0 8px;border-bottom:1px solid var(--border);
+  margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;
+}
+.checklist-section-title span{color:var(--text);}
+.checklist-progress{font-size:10px;color:var(--teal);font-weight:700;}
+.check-item{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.check-item:last-child{border-bottom:none;}
+.check-item label{flex:1;font-size:14px;color:var(--text);cursor:pointer;}
+.check-item label.done{color:var(--muted);text-decoration:line-through;}
+.check-item label.na{color:var(--muted);font-style:italic;}
+.check-box{
+  width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
+  background:var(--surface2);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;transition:all 0.15s;
+}
+.check-box.checked{background:var(--teal);border-color:var(--teal);}
+.check-box.checked::after{content:'✓';color:#000;font-size:12px;font-weight:900;}
+.check-box.na-box{background:var(--surface2);border-color:var(--amber);}
+.check-box.na-box::after{content:'N/A';color:var(--amber);font-size:8px;font-weight:800;}
+.na-toggle{
+  font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;
+  padding:3px 7px;border:1px solid var(--border);border-radius:4px;
+  white-space:nowrap;transition:all 0.15s;flex-shrink:0;
+}
+.na-toggle.active{color:var(--amber);border-color:var(--amber);background:var(--amber-dim);}
+
+/* PROGRESS BAR */
+.progress-bar{
+  background:var(--surface2);border-radius:10px;height:6px;overflow:hidden;
+  margin-bottom:16px;
+}
+.progress-fill{height:100%;background:var(--teal);border-radius:10px;transition:width 0.3s;}
+
+/* STATUS BADGE */
+.status-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.status-badge.not-started{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.status-badge.in-progress{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);}
+.status-badge.completed{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+.status-badge.completed-issues{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);}
+.status-badge.not-asked{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.status-badge.customer-happy{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+.status-badge.has-concerns{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
+.status-badge.no-response{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+
+/* VALIDATION MSG */
+.validation-msg{
+  font-size:12px;padding:10px 13px;border-radius:var(--radius-sm);
+  margin-top:8px;display:none;
+}
+.validation-msg.error{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
+.validation-msg.success{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+.validation-msg.show{display:block;}
+
+/* BUTTONS */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;border-radius:var(--radius-sm);font-size:15px;
+  font-weight:700;border:none;cursor:pointer;transition:all 0.2s;
+  font-family:inherit;letter-spacing:0.2px;
+}
+.btn-primary{background:var(--teal);color:#000;}
+.btn-primary:hover{background:#0ea899;}
+.btn-outline{background:transparent;border:1.5px solid var(--teal);color:var(--teal);}
+.btn-outline:hover{background:var(--teal-dim);}
+.btn-danger{background:var(--red-dim);border:1.5px solid var(--red);color:var(--red);}
+.btn-success{background:var(--green-dim);border:1.5px solid var(--green);color:var(--green);}
+.btn-amber{background:var(--amber-dim);border:1.5px solid var(--amber);color:var(--amber);}
+.btn-sm{padding:9px 14px;font-size:13px;width:auto;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* REPORT */
+.report-block{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;
+}
+.report-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.report-text{font-size:13px;line-height:1.7;color:var(--text);}
+.report-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;}
+.report-row:last-child{border-bottom:none;}
+.report-row .rk{color:var(--muted);}
+.report-row .rv{font-weight:600;text-align:right;color:var(--white);}
+pre{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px;font-size:11px;
+  color:var(--teal);overflow-x:auto;white-space:pre-wrap;
+  word-break:break-all;line-height:1.6;
+}
+.msg-box{
+  background:var(--surface2);border:1px solid var(--teal-border);
+  border-radius:var(--radius-sm);padding:14px;
+  font-size:13px;line-height:1.7;color:var(--text);
+  white-space:pre-wrap;font-family:inherit;
+}
+.copy-btn{
+  display:flex;align-items:center;gap:6px;margin-top:8px;
+  font-size:12px;font-weight:700;color:var(--teal);background:none;
+  border:1px solid var(--teal-border);border-radius:6px;
+  padding:5px 11px;cursor:pointer;
+}
+.copy-btn:hover{background:var(--teal-dim);}
+
+/* SECTION DIVIDER */
+.divider{height:1px;background:var(--border);margin:16px 0;}
+
+/* OVERALL STATUS STRIP */
+.status-strip{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;gap:10px;flex-wrap:wrap;
+}
+.status-strip-item{display:flex;flex-direction:column;gap:3px;}
+.status-strip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--teal);color:#000;font-size:13px;font-weight:700;
+  padding:10px 20px;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,0.4);
+  opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;}
+
+/* BOTTOM ACTION BAR */
+.bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:10px 16px;display:flex;gap:8px;z-index:98;
+}
+.bottom-bar .btn{flex:1;padding:12px;font-size:13px;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 16px;color:var(--muted);}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px;}
+.empty-state p{font-size:14px;}
+
+/* MOBILE UTILS */
+@media(max-width:420px){
+  .field-row{grid-template-columns:1fr;}
+  .field-row-3{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-logo">Ask<span>Miro</span></span>
+    <span class="topbar-doc">Job Completion</span>
+  </div>
+  <div class="save-indicator">
+    <div class="save-dot" id="saveDot"></div>
+    <span id="saveLabel">Saved</span>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs" id="navTabs">
+  <button class="tab-btn active" onclick="showTab('job')">📋 Job</button>
+  <button class="tab-btn" onclick="showTab('checklist')">✅ Checklist <span class="tab-count" id="checkCount">0</span></button>
+  <button class="tab-btn" onclick="showTab('evidence')">📸 Evidence</button>
+  <button class="tab-btn" onclick="showTab('status')">🏁 Status</button>
+  <button class="tab-btn" onclick="showTab('satisfaction')">⭐ Satisfaction</button>
+  <button class="tab-btn" onclick="showTab('notes')">📝 Notes</button>
+  <button class="tab-btn" onclick="showTab('report')">📊 Report</button>
+</div>
+
+<!-- ===================== PANEL: JOB ===================== -->
+<div class="panel active" id="panel-job">
+  <div class="card">
+    <div class="card-title">Customer & Property</div>
+    <div class="field">
+      <label>Customer Name</label>
+      <input type="text" id="f_customerName" placeholder="e.g. Tiana Tasevska" oninput="fieldChanged()">
+    </div>
+    <div class="field">
+      <label>Property Address</label>
+      <input type="text" id="f_address" placeholder="e.g. 301 Lumiere Apts, SW11 1AD" oninput="fieldChanged()">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Service Type</label>
+        <select id="f_serviceType" onchange="fieldChanged()">
+          <option value="">Select...</option>
+          <option value="End of tenancy">End of tenancy</option>
+          <option value="Deep clean">Deep clean</option>
+          <option value="Regular clean">Regular clean</option>
+          <option value="Commercial">Commercial</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Property Type</label>
+        <select id="f_propertyType" onchange="fieldChanged()">
+          <option value="">Select...</option>
+          <option value="Studio">Studio</option>
+          <option value="1-bed">1-bed</option>
+          <option value="2-bed">2-bed</option>
+          <option value="3+ bed">3+ bed</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Furnished?</label>
+        <div class="bool-group">
+          <div class="bool-btn" id="furnished_yes" onclick="setBool('furnished','yes')">Yes</div>
+          <div class="bool-btn" id="furnished_no" onclick="setBool('furnished','no')">No</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Bathrooms</label>
+        <input type="number" id="f_bathrooms" min="0" max="10" placeholder="0" oninput="fieldChanged()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Separate WCs</label>
+      <input type="number" id="f_wcs" min="0" max="10" placeholder="0" oninput="fieldChanged()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Schedule & Team</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Cleaning Date</label>
+        <input type="date" id="f_date" oninput="fieldChanged()">
+      </div>
+      <div class="field">
+        <label>Team Size</label>
+        <input type="number" id="f_teamSize" min="1" max="20" placeholder="2" oninput="fieldChanged()">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Start Time</label>
+        <input type="time" id="f_startTime" oninput="fieldChanged()">
+      </div>
+      <div class="field">
+        <label>End Time</label>
+        <input type="time" id="f_endTime" oninput="fieldChanged()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cleaner Names</label>
+      <input type="text" id="f_cleanerNames" placeholder="e.g. Mike, Sarah" oninput="fieldChanged()">
+    </div>
+    <div class="field">
+      <label>Parking / Access Notes</label>
+      <textarea id="f_parking" rows="2" placeholder="e.g. Free parking on street, building code 1234" oninput="fieldChanged()"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL: CHECKLIST ===================== -->
+<div class="panel" id="panel-checklist">
+  <div class="card">
+    <div class="card-title">Completion Progress</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);">
+      <span id="progressLabel">0 of 0 items done</span>
+      <span id="progressPct" style="color:var(--teal);font-weight:700;">0%</span>
+    </div>
+  </div>
+
+  <div class="card" id="checklistCard">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- ===================== PANEL: EVIDENCE ===================== -->
+<div class="panel" id="panel-evidence">
+  <div class="card">
+    <div class="card-title">Photo Evidence</div>
+    <div class="field">
+      <label>Before Photos Taken?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="beforePhotos_yes" onclick="setBool('beforePhotos','yes')">Yes</div>
+        <div class="bool-btn" id="beforePhotos_no" onclick="setBool('beforePhotos','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>After Photos Taken?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="afterPhotos_yes" onclick="setBool('afterPhotos','yes')">Yes</div>
+        <div class="bool-btn" id="afterPhotos_no" onclick="setBool('afterPhotos','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Number of Photos</label>
+      <input type="number" id="f_photoCount" min="0" placeholder="0" oninput="fieldChanged()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Issues & Damage</div>
+    <div class="field">
+      <label>Issues Found During Clean</label>
+      <textarea id="f_issues" rows="3" placeholder="Describe any issues found..." oninput="fieldChanged()"></textarea>
+    </div>
+    <div class="field">
+      <label>Pre-Existing Damage Noted</label>
+      <textarea id="f_preExistingDamage" rows="3" placeholder="Describe any pre-existing damage..." oninput="fieldChanged()"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Invoice</div>
+    <div class="field">
+      <label>Invoice Issued?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="invoiceIssued_yes" onclick="setBool('invoiceIssued','yes')">Yes</div>
+        <div class="bool-btn" id="invoiceIssued_no" onclick="setBool('invoiceIssued','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Invoice Reference Number</label>
+      <input type="text" id="f_invoiceRef" placeholder="e.g. INV-2026-001" oninput="fieldChanged()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Signatures</div>
+    <div class="field">
+      <label>Cleaner Signature (type full name)</label>
+      <input type="text" id="f_cleanerSig" placeholder="Type name as signature" oninput="fieldChanged()">
+    </div>
+    <div class="field">
+      <label>Supervisor Signature (type full name)</label>
+      <input type="text" id="f_supervisorSig" placeholder="Type name as signature" oninput="fieldChanged()">
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL: STATUS ===================== -->
+<div class="panel" id="panel-status">
+  <div class="card">
+    <div class="card-title">Job Status</div>
+    <div class="field">
+      <label>Current Status</label>
+      <select id="f_jobStatus" onchange="onJobStatusChange()">
+        <option value="not-started">Not Started</option>
+        <option value="in-progress">In Progress</option>
+        <option value="completed">Completed</option>
+        <option value="completed-issues">Completed with Issues</option>
+      </select>
+    </div>
+    <div class="validation-msg" id="statusValidation"></div>
+    <div style="margin-top:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Current Status</div>
+      <div id="jobStatusBadge" class="status-badge not-started"><div class="status-dot"></div> Not Started</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Checklist Summary</div>
+    <div id="statusCheckSummary" style="font-size:13px;color:var(--muted);">Loading...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Mark Job Complete</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">This will validate the checklist and lock in the completion status. Checklist must be fully ticked or N/A.</p>
+    <button class="btn btn-success" onclick="markCompleted()">✅ Mark Job Completed</button>
+    <button class="btn btn-amber" onclick="markCompletedIssues()" style="margin-top:10px;">⚠️ Completed with Issues</button>
+    <div class="validation-msg" id="completeValidation"></div>
+  </div>
+</div>
+
+<!-- ===================== PANEL: SATISFACTION ===================== -->
+<div class="panel" id="panel-satisfaction">
+  <div class="card" style="border-color:rgba(20,184,166,0.2);background:rgba(20,184,166,0.04);">
+    <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:6px;">⚠️ SEPARATE SYSTEM</div>
+    <p style="font-size:12px;color:var(--muted);">Customer satisfaction is recorded independently. A completed job does not mean a satisfied customer — these are separate records.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Satisfaction Status</div>
+    <div class="field">
+      <label>Customer Satisfaction</label>
+      <select id="f_satisfaction" onchange="onSatisfactionChange()">
+        <option value="not-asked">Not Yet Asked</option>
+        <option value="customer-happy">Customer Happy</option>
+        <option value="has-concerns">Customer Has Concerns</option>
+        <option value="no-response">No Response</option>
+      </select>
+    </div>
+    <div class="validation-msg" id="satisfactionValidation"></div>
+    <div style="margin-top:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Current Status</div>
+      <div id="satisfactionBadge" class="status-badge not-asked"><div class="status-dot"></div> Not Yet Asked</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Handover Details</div>
+    <div class="field">
+      <label>Customer Present at Handover?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="customerPresent_yes" onclick="setBool('customerPresent','yes')">Yes</div>
+        <div class="bool-btn" id="customerPresent_no" onclick="setBool('customerPresent','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Verbal Confirmation Received?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="verbalConfirm_yes" onclick="setBool('verbalConfirm','yes')">Yes</div>
+        <div class="bool-btn" id="verbalConfirm_no" onclick="setBool('verbalConfirm','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Written Confirmation Received?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="writtenConfirm_yes" onclick="setBool('writtenConfirm','yes')">Yes</div>
+        <div class="bool-btn" id="writtenConfirm_no" onclick="setBool('writtenConfirm','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Customer Comments</label>
+      <textarea id="f_customerComments" rows="3" placeholder="Any feedback from the customer..." oninput="fieldChanged()"></textarea>
+    </div>
+    <div class="field">
+      <label>Follow-up Required?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="followUp_yes" onclick="setBool('followUp','yes')">Yes</div>
+        <div class="bool-btn" id="followUp_no" onclick="setBool('followUp','no')">No</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Update Satisfaction</div>
+    <button class="btn btn-primary" onclick="saveSatisfaction()">💾 Update Customer Status</button>
+    <div class="validation-msg" id="saveSatValidation"></div>
+  </div>
+</div>
+
+<!-- ===================== PANEL: NOTES ===================== -->
+<div class="panel" id="panel-notes">
+  <div class="card">
+    <div class="card-title">Internal Notes</div>
+    <div class="field">
+      <label>Missed Areas</label>
+      <textarea id="f_missedAreas" rows="3" placeholder="Any areas not completed or skipped..." oninput="fieldChanged()"></textarea>
+    </div>
+    <div class="field">
+      <label>Return Visit Needed?</label>
+      <div class="bool-group">
+        <div class="bool-btn" id="returnVisit_yes" onclick="setBool('returnVisit','yes')">Yes</div>
+        <div class="bool-btn" id="returnVisit_no" onclick="setBool('returnVisit','no')">No</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Materials Used</label>
+      <textarea id="f_materials" rows="3" placeholder="Products and materials used during the job..." oninput="fieldChanged()"></textarea>
+    </div>
+    <div class="field">
+      <label>Staff Notes</label>
+      <textarea id="f_staffNotes" rows="4" placeholder="Any other operational notes for the team..." oninput="fieldChanged()"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL: REPORT ===================== -->
+<div class="panel" id="panel-report">
+  <div class="card">
+    <div class="card-title">Generate Report</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Generates a full structured report plus auto-drafted messages for customer follow-up and internal records.</p>
+    <button class="btn btn-primary" onclick="generateReport()">📊 Generate Report</button>
+  </div>
+
+  <div id="reportOutput" style="display:none;">
+
+    <div class="card">
+      <div class="card-title">Job Summary</div>
+      <div id="reportJobSummary"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Checklist Summary</div>
+      <div id="reportChecklistSummary"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Status Overview</div>
+      <div id="reportStatusSummary"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📱 Customer Follow-Up Message</div>
+      <div class="msg-box" id="reportCustomerMsg"></div>
+      <button class="copy-btn" onclick="copyText('reportCustomerMsg')">📋 Copy</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗂️ Internal Log Summary</div>
+      <div class="msg-box" id="reportInternalMsg"></div>
+      <button class="copy-btn" onclick="copyText('reportInternalMsg')">📋 Copy</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Raw JSON Data</div>
+      <button class="btn btn-outline btn-sm" onclick="toggleJson()" style="margin-bottom:10px;width:auto;">Toggle JSON</button>
+      <pre id="reportJson" style="display:none;"></pre>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM ACTION BAR -->
+<div class="bottom-bar">
+  <button class="btn btn-outline" onclick="saveDraft()">💾 Save</button>
+  <button class="btn btn-primary" onclick="showTab('report');generateReport()">📊 Report</button>
+  <button class="btn btn-danger btn-sm" onclick="confirmReset()" style="width:44px;flex:0 0 44px;padding:12px 0;font-size:16px;" title="Reset">🗑️</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// CHECKLIST DEFINITION
+// ─────────────────────────────────────────────────────────────────
+const CHECKLIST = [
+  { section: 'General Areas', items: [
+    { id: 'gen_cobwebs', label: 'Cobwebs removed (ceilings, walls, corners)' },
+    { id: 'gen_skirting', label: 'Skirting boards cleaned' },
+    { id: 'gen_doorframes', label: 'Door frames cleaned' },
+    { id: 'gen_lightfittings', label: 'Light fittings cleaned' },
+    { id: 'gen_radiators', label: 'Radiators / heaters cleaned' },
+    { id: 'gen_lampshades', label: 'Lampshades cleaned' },
+  ]},
+  { section: 'Kitchen', items: [
+    { id: 'kit_unittops', label: 'Tops of kitchen units cleaned' },
+    { id: 'kit_cabinets', label: 'Cabinets (internal + external)' },
+    { id: 'kit_oven', label: 'Oven cleaned' },
+    { id: 'kit_hob', label: 'Hob cleaned' },
+    { id: 'kit_extractor', label: 'Extractor fan cleaned' },
+    { id: 'kit_fridge', label: 'Fridge cleaned (inside + outside + seals)' },
+    { id: 'kit_freezer', label: 'Freezer cleaned + defrosted' },
+    { id: 'kit_sink', label: 'Sink + taps cleaned + descaled' },
+  ]},
+  { section: 'Bathroom(s)', items: [
+    { id: 'bath_tiles', label: 'Tiles cleaned' },
+    { id: 'bath_grout', label: 'Grout cleaned' },
+    { id: 'bath_mildew', label: 'Mildew treated' },
+    { id: 'bath_screen', label: 'Shower screen cleaned' },
+    { id: 'bath_taps', label: 'Taps polished' },
+    { id: 'bath_shower', label: 'Shower fittings cleaned' },
+    { id: 'bath_plughole', label: 'Plug holes cleared + cleaned' },
+    { id: 'bath_toilet', label: 'Toilet cleaned (bowl, seat, rim, base)' },
+  ]},
+  { section: 'Appliances', items: [
+    { id: 'app_washer', label: 'Washing machine cleaned (tray + seal + drum)' },
+    { id: 'app_dishwasher', label: 'Dishwasher cleaned (filter + arms + seal + tray)' },
+  ]},
+  { section: 'Windows', items: [
+    { id: 'win_internal', label: 'Internal windows cleaned' },
+    { id: 'win_sills', label: 'Internal sills cleaned' },
+    { id: 'win_external', label: 'External windows cleaned' },
+  ]},
+  { section: 'Floors', items: [
+    { id: 'fl_vacuum', label: 'Vacuum completed' },
+    { id: 'fl_carpet', label: 'Carpet steam cleaned' },
+    { id: 'fl_hard', label: 'Hard floors cleaned' },
+    { id: 'fl_underbed', label: 'Under beds cleaned' },
+  ]},
+];
+
+// ─────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'askmiro_job_v2';
+
+function defaultState() {
+  const checks = {};
+  CHECKLIST.forEach(s => s.items.forEach(i => { checks[i.id] = 'unchecked'; }));
+  return {
+    // Job
+    customerName:'', address:'', serviceType:'', propertyType:'',
+    furnished:'', bathrooms:'', wcs:'', date:'', teamSize:'',
+    startTime:'', endTime:'', cleanerNames:'', parking:'',
+    // Checklist
+    checks,
+    // Evidence
+    beforePhotos:'', afterPhotos:'', photoCount:'',
+    issues:'', preExistingDamage:'',
+    invoiceIssued:'', invoiceRef:'',
+    cleanerSig:'', supervisorSig:'',
+    // Status
+    jobStatus:'not-started',
+    // Satisfaction (SEPARATE)
+    satisfaction:'not-asked',
+    customerPresent:'', verbalConfirm:'', writtenConfirm:'',
+    customerComments:'', followUp:'',
+    // Notes
+    missedAreas:'', returnVisit:'', materials:'', staffNotes:'',
+    // Meta
+    lastSaved: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+let state = defaultState();
+let unsaved = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Merge to ensure new keys from defaultState() are always present
+      const def = defaultState();
+      state = Object.assign(def, saved);
+      if (!state.checks) state.checks = def.checks;
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  state.lastSaved = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  unsaved = false;
+  updateSaveIndicator();
+}
+
+function fieldChanged() {
+  collectFormValues();
+  unsaved = true;
+  updateSaveIndicator();
+  updateChecklistProgress();
+  updateStatusSummary();
+}
+
+function updateSaveIndicator() {
+  const dot = document.getElementById('saveDot');
+  const label = document.getElementById('saveLabel');
+  if (unsaved) {
+    dot.className = 'save-dot unsaved';
+    label.textContent = 'Unsaved';
+  } else {
+    dot.className = 'save-dot';
+    label.textContent = state.lastSaved ? 'Saved' : 'New Job';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TAB NAVIGATION
+// ─────────────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  event && event.target && event.target.classList.add('active');
+  // Fallback: find by onclick
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tab + "'")) {
+      b.classList.add('active');
+    }
+  });
+  if (tab === 'status') updateStatusSummary();
+  if (tab === 'report') { /* handled by button */ }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FORM ↔ STATE
+// ─────────────────────────────────────────────────────────────────
+function collectFormValues() {
+  const txt = id => (document.getElementById(id) || {}).value || '';
+  state.customerName = txt('f_customerName');
+  state.address = txt('f_address');
+  state.serviceType = txt('f_serviceType');
+  state.propertyType = txt('f_propertyType');
+  state.bathrooms = txt('f_bathrooms');
+  state.wcs = txt('f_wcs');
+  state.date = txt('f_date');
+  state.teamSize = txt('f_teamSize');
+  state.startTime = txt('f_startTime');
+  state.endTime = txt('f_endTime');
+  state.cleanerNames = txt('f_cleanerNames');
+  state.parking = txt('f_parking');
+  state.photoCount = txt('f_photoCount');
+  state.issues = txt('f_issues');
+  state.preExistingDamage = txt('f_preExistingDamage');
+  state.invoiceRef = txt('f_invoiceRef');
+  state.cleanerSig = txt('f_cleanerSig');
+  state.supervisorSig = txt('f_supervisorSig');
+  state.jobStatus = txt('f_jobStatus') || 'not-started';
+  state.satisfaction = txt('f_satisfaction') || 'not-asked';
+  state.customerComments = txt('f_customerComments');
+  state.missedAreas = txt('f_missedAreas');
+  state.materials = txt('f_materials');
+  state.staffNotes = txt('f_staffNotes');
+}
+
+function populateForm() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('f_customerName', state.customerName);
+  set('f_address', state.address);
+  set('f_serviceType', state.serviceType);
+  set('f_propertyType', state.propertyType);
+  set('f_bathrooms', state.bathrooms);
+  set('f_wcs', state.wcs);
+  set('f_date', state.date);
+  set('f_teamSize', state.teamSize);
+  set('f_startTime', state.startTime);
+  set('f_endTime', state.endTime);
+  set('f_cleanerNames', state.cleanerNames);
+  set('f_parking', state.parking);
+  set('f_photoCount', state.photoCount);
+  set('f_issues', state.issues);
+  set('f_preExistingDamage', state.preExistingDamage);
+  set('f_invoiceRef', state.invoiceRef);
+  set('f_cleanerSig', state.cleanerSig);
+  set('f_supervisorSig', state.supervisorSig);
+  set('f_jobStatus', state.jobStatus);
+  set('f_satisfaction', state.satisfaction);
+  set('f_customerComments', state.customerComments);
+  set('f_missedAreas', state.missedAreas);
+  set('f_materials', state.materials);
+  set('f_staffNotes', state.staffNotes);
+
+  // Bool buttons
+  restoreBool('furnished');
+  restoreBool('beforePhotos');
+  restoreBool('afterPhotos');
+  restoreBool('invoiceIssued');
+  restoreBool('customerPresent');
+  restoreBool('verbalConfirm');
+  restoreBool('writtenConfirm');
+  restoreBool('followUp');
+  restoreBool('returnVisit');
+
+  updateJobStatusBadge();
+  updateSatisfactionBadge();
+  updateChecklistProgress();
+  updateStatusSummary();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BOOL BUTTONS
+// ─────────────────────────────────────────────────────────────────
+function setBool(key, val) {
+  state[key] = val;
+  restoreBool(key);
+  fieldChanged();
+}
+
+function restoreBool(key) {
+  const val = state[key];
+  const yesEl = document.getElementById(key + '_yes');
+  const noEl = document.getElementById(key + '_no');
+  if (!yesEl || !noEl) return;
+  yesEl.className = 'bool-btn' + (val === 'yes' ? ' selected-yes' : '');
+  noEl.className = 'bool-btn' + (val === 'no' ? ' selected-no' : '');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CHECKLIST RENDERING
+// ─────────────────────────────────────────────────────────────────
+function renderChecklist() {
+  const card = document.getElementById('checklistCard');
+  let html = '';
+  CHECKLIST.forEach(section => {
+    const total = section.items.length;
+    const done = section.items.filter(i => state.checks[i.id] === 'checked' || state.checks[i.id] === 'na').length;
+    html += `<div class="checklist-section">
+      <div class="checklist-section-title">
+        <span>${section.section}</span>
+        <span class="checklist-progress">${done}/${total}</span>
+      </div>`;
+    section.items.forEach(item => {
+      const st = state.checks[item.id] || 'unchecked';
+      const isChecked = st === 'checked';
+      const isNA = st === 'na';
+      const lblClass = isChecked ? 'done' : isNA ? 'na' : '';
+      const boxClass = isChecked ? 'check-box checked' : isNA ? 'check-box na-box' : 'check-box';
+      html += `<div class="check-item" id="ci_${item.id}">
+        <div class="${boxClass}" onclick="toggleCheck('${item.id}')"></div>
+        <label class="${lblClass}" onclick="toggleCheck('${item.id}')">${item.label}</label>
+        <span class="na-toggle ${isNA ? 'active' : ''}" onclick="toggleNA('${item.id}')">N/A</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  card.innerHTML = html;
+  updateChecklistProgress();
+}
+
+function toggleCheck(id) {
+  const cur = state.checks[id];
+  if (cur === 'checked') {
+    state.checks[id] = 'unchecked';
+  } else {
+    state.checks[id] = 'checked';
+  }
+  unsaved = true;
+  updateSaveIndicator();
+  rerenderCheckItem(id);
+  updateChecklistProgress();
+  updateStatusSummary();
+}
+
+function toggleNA(id) {
+  const cur = state.checks[id];
+  state.checks[id] = cur === 'na' ? 'unchecked' : 'na';
+  unsaved = true;
+  updateSaveIndicator();
+  rerenderCheckItem(id);
+  updateChecklistProgress();
+  updateStatusSummary();
+}
+
+function rerenderCheckItem(id) {
+  const st = state.checks[id];
+  const isChecked = st === 'checked';
+  const isNA = st === 'na';
+  const container = document.getElementById('ci_' + id);
+  if (!container) return;
+  const box = container.querySelector('.check-box');
+  const lbl = container.querySelector('label');
+  const na = container.querySelector('.na-toggle');
+  box.className = isChecked ? 'check-box checked' : isNA ? 'check-box na-box' : 'check-box';
+  lbl.className = isChecked ? 'done' : isNA ? 'na' : '';
+  na.className = 'na-toggle' + (isNA ? ' active' : '');
+  // Re-update section count
+  CHECKLIST.forEach(section => {
+    if (section.items.some(i => i.id === id)) {
+      const sectionEl = container.closest('.checklist-section');
+      if (sectionEl) {
+        const total = section.items.length;
+        const done = section.items.filter(i => state.checks[i.id] === 'checked' || state.checks[i.id] === 'na').length;
+        const countEl = sectionEl.querySelector('.checklist-progress');
+        if (countEl) countEl.textContent = done + '/' + total;
+      }
+    }
+  });
+}
+
+function getChecklistStats() {
+  let total = 0, done = 0, na = 0, unchecked = 0;
+  CHECKLIST.forEach(s => s.items.forEach(i => {
+    total++;
+    if (state.checks[i.id] === 'checked') done++;
+    else if (state.checks[i.id] === 'na') na++;
+    else unchecked++;
+  }));
+  return { total, done, na, unchecked, complete: (done + na) };
+}
+
+function updateChecklistProgress() {
+  const { total, done, na, complete } = getChecklistStats();
+  const pct = total ? Math.round((complete / total) * 100) : 0;
+  const fill = document.getElementById('progressFill');
+  const lbl = document.getElementById('progressLabel');
+  const pctEl = document.getElementById('progressPct');
+  const cnt = document.getElementById('checkCount');
+  if (fill) fill.style.width = pct + '%';
+  if (lbl) lbl.textContent = `${complete} of ${total} items done (${na} N/A)`;
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (cnt) cnt.textContent = pct + '%';
+}
+
+function isChecklistComplete() {
+  const { unchecked } = getChecklistStats();
+  return unchecked === 0;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STATUS LOGIC
+// ─────────────────────────────────────────────────────────────────
+function onJobStatusChange() {
+  collectFormValues();
+  const status = state.jobStatus;
+  const vm = document.getElementById('statusValidation');
+
+  if (status === 'completed' && !isChecklistComplete()) {
+    document.getElementById('f_jobStatus').value = state.jobStatus === 'completed' ? 'in-progress' : state.jobStatus;
+    state.jobStatus = document.getElementById('f_jobStatus').value;
+    showValidation(vm, 'error', '⛔ Cannot mark as Completed — checklist has unchecked items. Tick all items or mark N/A first.');
+    return;
+  }
+  hideValidation(vm);
+  updateJobStatusBadge();
+  fieldChanged();
+}
+
+function onSatisfactionChange() {
+  collectFormValues();
+  const sat = state.satisfaction;
+  const vm = document.getElementById('satisfactionValidation');
+  const jobDone = state.jobStatus === 'completed' || state.jobStatus === 'completed-issues';
+
+  if (sat === 'customer-happy' && !jobDone) {
+    document.getElementById('f_satisfaction').value = 'not-asked';
+    state.satisfaction = 'not-asked';
+    showValidation(vm, 'error', '⛔ Cannot mark customer as happy — job status must be Completed first.');
+    return;
+  }
+  hideValidation(vm);
+  updateSatisfactionBadge();
+  fieldChanged();
+}
+
+function updateJobStatusBadge() {
+  const badge = document.getElementById('jobStatusBadge');
+  if (!badge) return;
+  const labels = {
+    'not-started': 'Not Started',
+    'in-progress': 'In Progress',
+    'completed': 'Completed',
+    'completed-issues': 'Completed with Issues',
+  };
+  badge.className = 'status-badge ' + (state.jobStatus || 'not-started');
+  badge.innerHTML = '<div class="status-dot"></div> ' + (labels[state.jobStatus] || 'Not Started');
+}
+
+function updateSatisfactionBadge() {
+  const badge = document.getElementById('satisfactionBadge');
+  if (!badge) return;
+  const labels = {
+    'not-asked': 'Not Yet Asked',
+    'customer-happy': 'Customer Happy',
+    'has-concerns': 'Customer Has Concerns',
+    'no-response': 'No Response',
+  };
+  badge.className = 'status-badge ' + (state.satisfaction || 'not-asked');
+  badge.innerHTML = '<div class="status-dot"></div> ' + (labels[state.satisfaction] || 'Not Yet Asked');
+}
+
+function updateStatusSummary() {
+  const el = document.getElementById('statusCheckSummary');
+  if (!el) return;
+  const { total, done, na, unchecked, complete } = getChecklistStats();
+  const pct = total ? Math.round((complete / total) * 100) : 0;
+  el.innerHTML = `
+    <div class="report-row"><span class="rk">Total items</span><span class="rv">${total}</span></div>
+    <div class="report-row"><span class="rk">Completed ✓</span><span class="rv" style="color:var(--green)">${done}</span></div>
+    <div class="report-row"><span class="rk">Not Applicable</span><span class="rv" style="color:var(--amber)">${na}</span></div>
+    <div class="report-row"><span class="rk">Unchecked ⚠️</span><span class="rv" style="color:${unchecked ? 'var(--red)' : 'var(--green)'}">${unchecked}</span></div>
+    <div class="report-row"><span class="rk">Overall progress</span><span class="rv" style="color:var(--teal)">${pct}%</span></div>
+  `;
+}
+
+function markCompleted() {
+  const vm = document.getElementById('completeValidation');
+  if (!isChecklistComplete()) {
+    const { unchecked } = getChecklistStats();
+    showValidation(vm, 'error', `⛔ ${unchecked} checklist item(s) still unchecked. Complete or mark N/A before marking job complete.`);
+    return;
+  }
+  state.jobStatus = 'completed';
+  document.getElementById('f_jobStatus').value = 'completed';
+  updateJobStatusBadge();
+  hideValidation(vm);
+  showValidation(vm, 'success', '✅ Job marked as Completed.');
+  fieldChanged();
+  showToast('Job marked Completed ✅');
+}
+
+function markCompletedIssues() {
+  state.jobStatus = 'completed-issues';
+  document.getElementById('f_jobStatus').value = 'completed-issues';
+  updateJobStatusBadge();
+  const vm = document.getElementById('completeValidation');
+  showValidation(vm, 'success', '⚠️ Job marked as Completed with Issues.');
+  fieldChanged();
+  showToast('Marked: Completed with Issues');
+}
+
+function saveSatisfaction() {
+  collectFormValues();
+  const vm = document.getElementById('saveSatValidation');
+  const sat = state.satisfaction;
+  const jobDone = state.jobStatus === 'completed' || state.jobStatus === 'completed-issues';
+  if (sat === 'customer-happy' && !jobDone) {
+    showValidation(vm, 'error', '⛔ Cannot set customer happy — job must be completed first.');
+    return;
+  }
+  saveState();
+  showValidation(vm, 'success', '✅ Customer satisfaction status saved.');
+  showToast('Satisfaction updated');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VALIDATION HELPERS
+// ─────────────────────────────────────────────────────────────────
+function showValidation(el, type, msg) {
+  if (!el) return;
+  el.className = 'validation-msg ' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => hideValidation(el), 5000);
+}
+function hideValidation(el) {
+  if (!el) return;
+  el.className = 'validation-msg';
+  el.textContent = '';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SAVE / DRAFT
+// ─────────────────────────────────────────────────────────────────
+function saveDraft() {
+  collectFormValues();
+  saveState();
+  showToast('Draft saved 💾');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REPORT GENERATION
+// ─────────────────────────────────────────────────────────────────
+function generateReport() {
+  collectFormValues();
+  saveState();
+
+  const s = state;
+  const { total, done, na, unchecked } = getChecklistStats();
+  const jobDone = s.jobStatus === 'completed' || s.jobStatus === 'completed-issues';
+
+  const statusLabels = {
+    'not-started':'Not Started','in-progress':'In Progress',
+    'completed':'Completed','completed-issues':'Completed with Issues'
+  };
+  const satLabels = {
+    'not-asked':'Not Yet Asked','customer-happy':'Customer Happy',
+    'has-concerns':'Has Concerns','no-response':'No Response'
+  };
+
+  // Job Summary
+  document.getElementById('reportJobSummary').innerHTML = `
+    <div class="report-row"><span class="rk">Customer</span><span class="rv">${s.customerName || '—'}</span></div>
+    <div class="report-row"><span class="rk">Property</span><span class="rv">${s.address || '—'}</span></div>
+    <div class="report-row"><span class="rk">Service</span><span class="rv">${s.serviceType || '—'}</span></div>
+    <div class="report-row"><span class="rk">Property Type</span><span class="rv">${s.propertyType || '—'} ${s.furnished ? '· ' + (s.furnished === 'yes' ? 'Furnished' : 'Unfurnished') : ''}</span></div>
+    <div class="report-row"><span class="rk">Bathrooms / WCs</span><span class="rv">${s.bathrooms || '0'} bath · ${s.wcs || '0'} WC</span></div>
+    <div class="report-row"><span class="rk">Date</span><span class="rv">${s.date || '—'}</span></div>
+    <div class="report-row"><span class="rk">Time</span><span class="rv">${s.startTime || '—'} → ${s.endTime || '—'}</span></div>
+    <div class="report-row"><span class="rk">Team</span><span class="rv">${s.teamSize || '—'} cleaners · ${s.cleanerNames || '—'}</span></div>
+    <div class="report-row"><span class="rk">Invoice</span><span class="rv">${s.invoiceIssued === 'yes' ? '✅ Issued' : '❌ Not issued'} ${s.invoiceRef ? '· ' + s.invoiceRef : ''}</span></div>
+    <div class="report-row"><span class="rk">Before Photos</span><span class="rv">${s.beforePhotos === 'yes' ? '✅' : '❌'}</span></div>
+    <div class="report-row"><span class="rk">After Photos</span><span class="rv">${s.afterPhotos === 'yes' ? '✅' : '❌'} ${s.photoCount ? '· ' + s.photoCount + ' photos' : ''}</span></div>
+  `;
+
+  // Checklist Summary
+  let checkHtml = `
+    <div class="report-row"><span class="rk">Items completed ✓</span><span class="rv" style="color:var(--green)">${done} / ${total}</span></div>
+    <div class="report-row"><span class="rk">Marked N/A</span><span class="rv" style="color:var(--amber)">${na}</span></div>
+    <div class="report-row"><span class="rk">Unchecked</span><span class="rv" style="color:${unchecked ? 'var(--red)' : 'var(--green)'}">${unchecked}</span></div>`;
+  if (unchecked > 0) {
+    const uncheckedItems = [];
+    CHECKLIST.forEach(sec => sec.items.forEach(i => {
+      if (state.checks[i.id] === 'unchecked') uncheckedItems.push(i.label);
+    }));
+    checkHtml += `<div style="margin-top:10px;font-size:12px;color:var(--red);">Unchecked: ${uncheckedItems.join(', ')}</div>`;
+  }
+  document.getElementById('reportChecklistSummary').innerHTML = checkHtml;
+
+  // Status Summary
+  document.getElementById('reportStatusSummary').innerHTML = `
+    <div class="report-row"><span class="rk">Job Status</span><span class="rv">${statusLabels[s.jobStatus] || '—'}</span></div>
+    <div class="report-row"><span class="rk">Customer Satisfaction</span><span class="rv">${satLabels[s.satisfaction] || '—'}</span></div>
+    <div class="report-row"><span class="rk">Customer Present</span><span class="rv">${s.customerPresent === 'yes' ? 'Yes' : s.customerPresent === 'no' ? 'No' : '—'}</span></div>
+    <div class="report-row"><span class="rk">Verbal Confirmation</span><span class="rv">${s.verbalConfirm === 'yes' ? '✅' : s.verbalConfirm === 'no' ? '❌' : '—'}</span></div>
+    <div class="report-row"><span class="rk">Written Confirmation</span><span class="rv">${s.writtenConfirm === 'yes' ? '✅' : s.writtenConfirm === 'no' ? '❌' : '—'}</span></div>
+    <div class="report-row"><span class="rk">Follow-up Required</span><span class="rv" style="color:${s.followUp === 'yes' ? 'var(--amber)' : 'inherit'}">${s.followUp === 'yes' ? '⚠️ Yes' : s.followUp === 'no' ? 'No' : '—'}</span></div>
+    <div class="report-row"><span class="rk">Issues Found</span><span class="rv">${s.issues ? s.issues.substring(0, 80) + (s.issues.length > 80 ? '…' : '') : 'None noted'}</span></div>
+    <div class="report-row"><span class="rk">Pre-existing Damage</span><span class="rv">${s.preExistingDamage ? s.preExistingDamage.substring(0, 80) + (s.preExistingDamage.length > 80 ? '…' : '') : 'None noted'}</span></div>
+    <div class="report-row"><span class="rk">Return Visit</span><span class="rv" style="color:${s.returnVisit === 'yes' ? 'var(--amber)' : 'inherit'}">${s.returnVisit === 'yes' ? '⚠️ Required' : s.returnVisit === 'no' ? 'Not required' : '—'}</span></div>
+    <div class="report-row"><span class="rk">Cleaner Signature</span><span class="rv">${s.cleanerSig || '—'}</span></div>
+    <div class="report-row"><span class="rk">Supervisor Signature</span><span class="rv">${s.supervisorSig || '—'}</span></div>
+  `;
+
+  // Customer message
+  const customerName = s.customerName ? s.customerName.split(' ')[0] : 'there';
+  const customerMsg = `Hi ${customerName} 👋
+
+Just following up on your ${s.serviceType || 'clean'} at ${s.address || 'the property'} today — we hope you're happy with the result!
+
+We completed the full clean${done === total ? ' ✅' : ` (${done + na} of ${total} items)`}${s.issues ? ' and noted the following: ' + s.issues : ''}.
+
+${s.invoiceIssued === 'yes' ? `Your invoice (${s.invoiceRef || 'INV-TBC'}) has been issued — please let us know if you have any questions.` : 'We\'ll send your invoice shortly.'}
+
+If you have any feedback or there's anything we can improve, please don't hesitate to reach out. We really value your thoughts.
+
+Thank you for choosing AskMiro Cleaning Services 🙏
+– The AskMiro Team`;
+
+  document.getElementById('reportCustomerMsg').textContent = customerMsg;
+
+  // Internal log
+  const now = new Date().toLocaleString('en-GB');
+  const internalMsg = `JOB LOG — AskMiro Cleaning Services
+Generated: ${now}
+─────────────────────────────────────
+JOB REF: EOT-${s.date ? s.date.replace(/-/g,'') : 'NODATE'}-${(s.customerName || 'UNK').replace(/\s/g,'').toUpperCase().substring(0,6)}
+Customer: ${s.customerName || '—'}
+Address:  ${s.address || '—'}
+Service:  ${s.serviceType || '—'} · ${s.propertyType || '—'}
+Date:     ${s.date || '—'} · ${s.startTime || '?'} – ${s.endTime || '?'}
+Team:     ${s.teamSize || '?'} cleaner(s) — ${s.cleanerNames || '—'}
+
+CHECKLIST: ${done + na}/${total} complete (${done} done, ${na} N/A, ${unchecked} unchecked)
+JOB STATUS: ${statusLabels[s.jobStatus] || '—'}
+SATISFACTION: ${satLabels[s.satisfaction] || '—'}
+
+ISSUES: ${s.issues || 'None'}
+PRE-EXISTING DAMAGE: ${s.preExistingDamage || 'None'}
+INVOICE: ${s.invoiceIssued === 'yes' ? 'Issued — ' + (s.invoiceRef || 'Ref TBC') : 'Not yet issued'}
+PHOTOS: Before=${s.beforePhotos || '—'} / After=${s.afterPhotos || '—'} (${s.photoCount || '0'} total)
+
+CUSTOMER PRESENT: ${s.customerPresent || '—'}
+VERBAL CONFIRM: ${s.verbalConfirm || '—'}
+WRITTEN CONFIRM: ${s.writtenConfirm || '—'}
+FOLLOW-UP REQUIRED: ${s.followUp || '—'}
+
+RETURN VISIT: ${s.returnVisit || '—'}
+MATERIALS USED: ${s.materials || '—'}
+MISSED AREAS: ${s.missedAreas || 'None'}
+STAFF NOTES: ${s.staffNotes || 'None'}
+
+Cleaner Sign-off: ${s.cleanerSig || '—'}
+Supervisor Sign-off: ${s.supervisorSig || '—'}
+─────────────────────────────────────
+AskMiro Cleaning Services · askmiro.com`;
+
+  document.getElementById('reportInternalMsg').textContent = internalMsg;
+
+  // JSON
+  document.getElementById('reportJson').textContent = JSON.stringify(state, null, 2);
+
+  document.getElementById('reportOutput').style.display = 'block';
+  showToast('Report generated 📊');
+}
+
+function toggleJson() {
+  const el = document.getElementById('reportJson');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  const text = el.textContent || el.innerText;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard ✓'));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RESET
+// ─────────────────────────────────────────────────────────────────
+function confirmReset() {
+  if (confirm('Reset all job data? This cannot be undone.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    populateForm();
+    renderChecklist();
+    document.getElementById('reportOutput').style.display = 'none';
+    showToast('Job data cleared 🗑️');
+    showTab('job');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────
+(function init() {
+  loadState();
+  populateForm();
+  renderChecklist();
+  // Auto-save every 30s
+  setInterval(() => {
+    if (unsaved) {
+      collectFormValues();
+      saveState();
+    }
+  }, 30000);
+})();
+</script>
+</body>
+</html>
