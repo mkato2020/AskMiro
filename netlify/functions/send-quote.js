@@ -203,7 +203,7 @@ async function generateQuotePdf(d) {
   rect(M, y - payH, 4, payH, C.amberBd);
   tL('HOW TO PAY', M + 14, y - 14, 8, C.amberTx, B);
   tL('No upfront payment required. Settle on completion once you\'re happy.', M + 14, y - 26, 7.5, C.amberTx, R);
-  tL('Payment by Bank Transfer only.', M + 14, y - 38, 7.5, C.amberTx, B);
+  tL('Bank Transfer:  Miro Partners Ltd  |  Acc: 26672911  |  Sort: 04-06-05', M + 14, y - 38, 7.5, C.amberTx, B);
   tL('Questions? Call 020 8073 0621 or email office@askmiro.com', M + 14, y - 50, 7, C.amberTx, R);
   y -= payH + 16;
 
