@@ -15,174 +15,243 @@ const RESEND_FROM     = 'AskMiro Cleaning Services <office@askmiro.com>';
 const RESEND_REPLY_TO = 'info@askmiro.com';
 const RESEND_BCC      = 'info@askmiro.com';
 
-// ── Colours (RGB 0-1 for pdf-lib) ───────────────────────────
-const NAVY_RGB  = rgb(10/255, 22/255, 40/255);
-const TEAL_RGB  = rgb(13/255, 148/255, 136/255);
-const WHITE_RGB = rgb(1, 1, 1);
-const DARK_RGB  = rgb(30/255, 41/255, 59/255);
-const GREY_RGB  = rgb(100/255, 116/255, 139/255);
-const LIGHT_RGB = rgb(240/255, 253/255, 250/255);
-const SLATE_RGB = rgb(148/255, 163/255, 184/255);
+// ── Colours ──────────────────────────────────────────────────
+const C = {
+  navy:    rgb(10/255,  22/255,  40/255),
+  navy2:   rgb(15/255,  32/255,  56/255),
+  teal:    rgb(13/255, 148/255, 136/255),
+  teal2:   rgb(20/255, 184/255, 166/255),
+  tealBg:  rgb(240/255, 253/255, 250/255),
+  tealBd:  rgb(153/255, 246/255, 228/255),
+  white:   rgb(1, 1, 1),
+  dark:    rgb(15/255,  23/255,  42/255),
+  slate:   rgb(71/255,  85/255, 105/255),
+  muted:   rgb(148/255, 163/255, 184/255),
+  light:   rgb(248/255, 250/255, 252/255),
+  border:  rgb(226/255, 232/255, 240/255),
+  amber:   rgb(254/255, 251/255, 235/255),
+  amberBd: rgb(253/255, 230/255, 138/255),
+  amberTx: rgb(146/255,  64/255,  14/255),
+};
 
-// ── Generate branded A4 PDF ─────────────────────────────────
+// ── Generate premium A4 PDF ──────────────────────────────────
 async function generateQuotePdf(d) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([595.28, 841.89]); // A4
-  const { width: w, height: h } = page.getSize();
+  const doc  = await PDFDocument.create();
+  const page = doc.addPage([595.28, 841.89]);
+  const { width: W, height: H } = page.getSize();
+  const M = 40; // margin
 
-  const fontR = await doc.embedFont(StandardFonts.Helvetica);
-  const fontB = await doc.embedFont(StandardFonts.HelveticaBold);
-
-  // Helper: draw text
-  const txt = (text, x, y, { font = fontR, size = 10, color = DARK_RGB } = {}) => {
-    page.drawText(text, { x, y, size, font, color });
-  };
-  const txtR = (text, x, y, { font = fontR, size = 10, color = DARK_RGB } = {}) => {
-    const tw = font.widthOfTextAtSize(text, size);
-    page.drawText(text, { x: x - tw, y, size, font, color });
-  };
-  const txtC = (text, x, y, { font = fontR, size = 10, color = DARK_RGB } = {}) => {
-    const tw = font.widthOfTextAtSize(text, size);
-    page.drawText(text, { x: x - tw / 2, y, size, font, color });
-  };
+  const R  = await doc.embedFont(StandardFonts.Helvetica);
+  const B  = await doc.embedFont(StandardFonts.HelveticaBold);
 
   const fmtDate = () => {
     if (!d.jobDate) return '';
-    const dt = new Date(d.jobDate + 'T00:00:00');
-    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(d.jobDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+  const fmtDay = () => {
+    if (!d.jobDate) return '';
+    return new Date(d.jobDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long' });
   };
   const fmtTime = () => {
     if (!d.jobTime) return '';
-    const p = d.jobTime.split(':');
-    const hr = parseInt(p[0], 10);
-    const min = p[1] || '00';
-    const ap = hr >= 12 ? 'PM' : 'AM';
-    return (hr > 12 ? hr - 12 : hr || 12) + (min !== '00' ? ':' + min : '') + ' ' + ap;
+    const [hStr, mStr] = d.jobTime.split(':');
+    const hr = parseInt(hStr, 10), min = mStr || '00';
+    return (hr > 12 ? hr - 12 : hr || 12) + (min !== '00' ? ':' + min : '') + ' ' + (hr >= 12 ? 'PM' : 'AM');
   };
 
+  const today   = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const dateStr = fmtDate();
+  const dayStr  = fmtDay();
   const timeStr = fmtTime();
-  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const validUntil = new Date(Date.now() + 14 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const ref = 'AM-' + new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + String(new Date().getDate()).padStart(2, '0');
+  const ref = 'AM-' + new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + String(new Date().getDate()).padStart(2,'0');
 
-  // ── Header band ──
-  page.drawRectangle({ x: 0, y: h - 100, width: w, height: 100, color: NAVY_RGB });
-  txt('AskMiro', 40, h - 45, { font: fontB, size: 22, color: WHITE_RGB });
-  txt('Cleaning Services', 40, h - 62, { font: fontR, size: 10, color: TEAL_RGB });
-  txtR('QUOTE & BOOKING CONFIRMATION', w - 40, h - 45, { font: fontB, size: 12, color: WHITE_RGB });
-  txtR('Date: ' + today, w - 40, h - 62, { font: fontR, size: 9, color: WHITE_RGB });
-  txtR('Valid until: ' + validUntil, w - 40, h - 74, { font: fontR, size: 9, color: WHITE_RGB });
-  txtR('Ref: ' + ref, w - 40, h - 86, { font: fontR, size: 9, color: SLATE_RGB });
+  // ── Drawing helpers ──────────────────────────────────────────
+  const rect  = (x, y, w, h, color, opacity) => page.drawRectangle({ x, y, width: w, height: h, color, opacity });
+  const line  = (x1, y1, x2, y2, color, t=0.5) => page.drawLine({ start:{x:x1,y:y1}, end:{x:x2,y:y2}, thickness:t, color });
+  const tL    = (text, x, y, sz, color, font=R) => page.drawText(String(text), { x, y, size:sz, font, color });
+  const tR    = (text, x, y, sz, color, font=R) => { const tw=font.widthOfTextAtSize(String(text),sz); page.drawText(String(text),{x:x-tw,y,size:sz,font,color}); };
+  const tC    = (text, x, y, sz, color, font=R) => { const tw=font.widthOfTextAtSize(String(text),sz); page.drawText(String(text),{x:x-tw/2,y,size:sz,font,color}); };
+  const trunc = (str, maxW, sz, font=R) => { let s=String(str); while(font.widthOfTextAtSize(s,sz)>maxW && s.length>3) s=s.slice(0,-4)+'...'; return s; };
 
-  // Teal accent
-  page.drawRectangle({ x: 0, y: h - 104, width: w, height: 4, color: TEAL_RGB });
+  // ── HEADER (navy, full-width) ────────────────────────────────
+  const hdrH = 110;
+  rect(0, H - hdrH, W, hdrH, C.navy);
 
-  let y = h - 140;
+  // Brand left
+  tL('AskMiro', M, H - 48, 28, C.white, B);
+  tL('CLEANING SERVICES', M, H - 64, 8, C.teal2, R);
+  tL('office@askmiro.com  |  www.askmiro.com  |  020 8073 0621', M, H - 80, 7.5, C.muted, R);
 
-  // ── Client details ──
-  txt('CLIENT DETAILS', 40, y, { font: fontB, size: 11, color: DARK_RGB });
-  y -= 20;
-  const fields = [
-    ['Name:', d.client],
-    ['Email:', d.email],
-    d.site ? ['Address:', d.site] : null,
-    ['Service:', d.serviceType],
-    dateStr ? ['Date:', dateStr + (timeStr ? ' at ' + timeStr : '')] : null,
-    d.propDetails ? ['Property:', d.propDetails] : null,
-  ].filter(Boolean);
+  // Badge right: "BOOKING CONFIRMATION"
+  const badgeW = 168, badgeH = 24, badgeX = W - M - badgeW, badgeY = H - 56;
+  rect(badgeX, badgeY, badgeW, badgeH, C.teal);
+  tC('BOOKING CONFIRMATION', badgeX + badgeW/2, badgeY + 7, 8, C.white, B);
 
-  for (const [label, value] of fields) {
-    txt(label, 40, y, { size: 10, color: GREY_RGB });
-    const isService = label === 'Service:';
-    txt(value, 120, y, { font: isService ? fontB : fontR, size: 10, color: isService ? TEAL_RGB : DARK_RGB });
-    y -= 16;
-  }
+  // Issued date right
+  tR('Issued: ' + today, W - M, H - 86, 7.5, C.muted, R);
+  tR('Ref: ' + ref, W - M, H - 96, 7.5, C.muted, R);
 
-  y -= 24;
+  // Teal accent stripe
+  rect(0, H - hdrH, W, 5, C.teal);
+  rect(0, H - hdrH + 5, W, 1.5, C.teal2);
 
-  // ── Line items table ──
-  const colDesc = 50;
-  const colQty = 410;
-  const colAmt = w - 50;
+  // ── STAT BAND (date / time / total) ─────────────────────────
+  const sbY = H - hdrH - 70, sbH = 68, colW = (W - 2*M) / 3;
+  rect(M, sbY, W - 2*M, sbH, C.navy2);
 
-  // Header row
-  page.drawRectangle({ x: 40, y: y - 4, width: w - 80, height: 22, color: NAVY_RGB });
-  txt('SERVICE', colDesc, y + 2, { font: fontB, size: 9, color: WHITE_RGB });
-  txtC('QTY', colQty, y + 2, { font: fontB, size: 9, color: WHITE_RGB });
-  txtR('AMOUNT', colAmt, y + 2, { font: fontB, size: 9, color: WHITE_RGB });
-  y -= 22;
-
-  // Item rows
-  const items = d.items || [];
-  for (let i = 0; i < items.length; i++) {
-    const bg = i % 2 === 0 ? LIGHT_RGB : WHITE_RGB;
-    page.drawRectangle({ x: 40, y: y - 4, width: w - 80, height: 22, color: bg });
-
-    // Truncate long descriptions
-    let desc = items[i].description || '';
-    const maxWidth = 320;
-    while (fontR.widthOfTextAtSize(desc, 9) > maxWidth && desc.length > 3) {
-      desc = desc.slice(0, -4) + '...';
-    }
-
-    txt(desc, colDesc, y + 2, { size: 9, color: DARK_RGB });
-    txtC('1', colQty, y + 2, { size: 9, color: GREY_RGB });
-    txtR('\u00A3' + items[i].amount.toFixed(2), colAmt, y + 2, { size: 9, color: DARK_RGB });
-    y -= 22;
-  }
-
-  // Subtotal / VAT / Total
-  if (d.vatRate > 0) {
-    page.drawRectangle({ x: 40, y: y - 4, width: w - 80, height: 22, color: WHITE_RGB });
-    txt('Subtotal', colDesc, y + 2, { font: fontB, size: 10, color: DARK_RGB });
-    txtR('\u00A3' + d.subtotal.toFixed(2), colAmt, y + 2, { font: fontB, size: 10, color: DARK_RGB });
-    y -= 22;
-
-    page.drawRectangle({ x: 40, y: y - 4, width: w - 80, height: 22, color: WHITE_RGB });
-    txt('VAT (' + d.vatRate + '%)', colDesc, y + 2, { size: 10, color: GREY_RGB });
-    txtR('\u00A3' + d.vat.toFixed(2), colAmt, y + 2, { size: 10, color: GREY_RGB });
-    y -= 22;
-  }
-
-  // Total row
-  page.drawRectangle({ x: 40, y: y - 6, width: w - 80, height: 28, color: TEAL_RGB });
-  txt('TOTAL (ALL INCLUSIVE)', colDesc, y + 2, { font: fontB, size: 12, color: WHITE_RGB });
-  txtR('\u00A3' + d.gross.toFixed(2), colAmt, y + 2, { font: fontB, size: 12, color: WHITE_RGB });
-  y -= 44;
-
-  // ── Scope of work (if provided) ──
-  const scopeItems = d.scopeItems || [];
-  if (scopeItems.length > 0) {
-    txt('SCOPE OF WORK', 40, y, { font: fontB, size: 11, color: DARK_RGB });
-    y -= 18;
-    for (const item of scopeItems) {
-      txt('\u2022 ' + item, 50, y, { size: 9, color: GREY_RGB });
-      y -= 14;
-      if (y < 100) break; // safety
-    }
-    y -= 10;
-  }
-
-  // ── Notes ──
-  txt('IMPORTANT NOTES', 40, y, { font: fontB, size: 11, color: DARK_RGB });
-  y -= 18;
-  const notes = [
-    'Please ensure access to the property at the scheduled time.',
-    'All cleaning supplies and equipment are provided by AskMiro.',
-    'Cancellations must be made at least 24 hours in advance.',
-    'No upfront payment required \u2014 payment due upon completion.',
-    'A full invoice and receipt will be provided on the day.',
+  const statCols = [
+    { label: 'DATE',  val: dateStr || '—',  sub: dayStr  || '' },
+    { label: 'TIME',  val: timeStr || 'Morning', sub: 'Start time' },
+    { label: 'TOTAL', val: '\u00A3' + (d.gross||0).toFixed(2), sub: 'All-inclusive' },
   ];
-  for (const n of notes) {
-    txt('\u2022 ' + n, 50, y, { size: 9, color: GREY_RGB });
-    y -= 14;
+  statCols.forEach((s, i) => {
+    const cx = M + i * colW + colW / 2;
+    if (i > 0) line(M + i*colW, sbY+8, M + i*colW, sbY+sbH-8, rgb(1,1,1), 0.5);
+    tC(s.label, cx, sbY + sbH - 18, 7, C.muted, B);
+    tC(s.val,   cx, sbY + sbH - 38, 14, C.white, B);
+    tC(s.sub,   cx, sbY + 10,        7.5, C.muted, R);
+  });
+
+  let y = sbY - 24;
+
+  // ── PROPERTY CALLOUT ─────────────────────────────────────────
+  if (d.site || d.propDetails) {
+    const propLines = [];
+    if (d.site) propLines.push(d.site);
+    if (d.propDetails) {
+      const words = d.propDetails.split(' '), maxW2 = W - 2*M - 100;
+      let line2 = '';
+      for (const w2 of words) {
+        const test = line2 ? line2+' '+w2 : w2;
+        if (R.widthOfTextAtSize(test, 8.5) > maxW2) { propLines.push(line2); line2 = w2; }
+        else line2 = test;
+      }
+      if (line2) propLines.push(line2);
+    }
+    const propH = 20 + propLines.length * 13;
+    rect(M, y - propH, W - 2*M, propH, C.tealBg);
+    rect(M, y - propH, 4, propH, C.teal);
+    tL(propLines[0] || '', M + 14, y - 14, 9.5, C.dark, B);
+    for (let i = 1; i < propLines.length; i++) {
+      tL(propLines[i], M + 14, y - 14 - i*13, 8.5, C.slate, R);
+    }
+    y -= propH + 16;
   }
 
-  // ── Footer ──
-  page.drawRectangle({ x: 0, y: 0, width: w, height: 50, color: NAVY_RGB });
-  txtC('AskMiro Cleaning Services  |  office@askmiro.com  |  www.askmiro.com  |  020 8073 0621', w / 2, 30, { size: 8, color: TEAL_RGB });
-  txtC('Professional cleaning services across London', w / 2, 18, { size: 8, color: SLATE_RGB });
+  // ── CLIENT DETAILS ───────────────────────────────────────────
+  // Section header bar
+  rect(M, y - 20, W - 2*M, 20, C.navy);
+  tL('CLIENT DETAILS', M + 10, y - 13, 8, C.white, B);
+  y -= 20;
+
+  const clientFields = [
+    ['Name',    d.client     || ''],
+    ['Email',   d.email      || ''],
+    ['Address', d.site       || ''],
+    ['Service', d.serviceType|| ''],
+  ].filter(f => f[1]);
+
+  const cfRowH = 16;
+  const cfBg   = [C.light, C.white];
+  clientFields.forEach((f, i) => {
+    rect(M, y - cfRowH, W - 2*M, cfRowH, cfBg[i % 2]);
+    tL(f[0], M + 10, y - 11, 8, C.muted, R);
+    tL(trunc(f[1], W - 2*M - 100, 8.5, R), M + 90, y - 11, 8.5,
+       f[0]==='Service' ? C.teal : C.dark,
+       f[0]==='Service' ? B : R);
+    y -= cfRowH;
+  });
+  y -= 20;
+
+  // ── QUOTE BREAKDOWN ──────────────────────────────────────────
+  rect(M, y - 20, W - 2*M, 20, C.navy);
+  tL('QUOTE BREAKDOWN', M + 10, y - 13, 8, C.white, B);
+  tR('QTY', W - M - 90, y - 13, 8, C.muted, R);
+  tR('AMOUNT', W - M - 10, y - 13, 8, C.muted, R);
+  y -= 20;
+
+  const items = d.items || [];
+  items.forEach((item, i) => {
+    rect(M, y - 20, W - 2*M, 20, i%2===0 ? C.light : C.white);
+    const desc = trunc(item.description||'', W - 2*M - 130, 8.5, R);
+    tL(desc, M + 10, y - 13, 8.5, C.dark, R);
+    tR('1', W - M - 90, y - 13, 8.5, C.muted, R);
+    tR('\u00A3' + Number(item.amount).toFixed(2), W - M - 10, y - 13, 8.5, C.dark, R);
+    y -= 20;
+  });
+
+  if (d.vatRate > 0) {
+    rect(M, y - 18, W - 2*M, 18, C.white);
+    tL('Subtotal', M + 10, y - 12, 8.5, C.dark, B);
+    tR('\u00A3' + Number(d.subtotal||0).toFixed(2), W - M - 10, y - 12, 8.5, C.dark, B);
+    y -= 18;
+    rect(M, y - 18, W - 2*M, 18, C.white);
+    tL('VAT (' + d.vatRate + '%)', M + 10, y - 12, 8.5, C.muted, R);
+    tR('\u00A3' + Number(d.vat||0).toFixed(2), W - M - 10, y - 12, 8.5, C.muted, R);
+    y -= 18;
+  }
+
+  // Total row — prominent
+  rect(M, y - 26, W - 2*M, 26, C.navy);
+  tL('TOTAL  \u2014  ALL INCLUSIVE', M + 10, y - 17, 9, C.white, B);
+  tR('\u00A3' + Number(d.gross||0).toFixed(2), W - M - 10, y - 17, 13, C.teal2, B);
+  y -= 40;
+
+  // ── SCOPE OF WORK ────────────────────────────────────────────
+  const scopeItems = (d.scopeItems || []).map(s => s.replace(/^[-\u2022]\s*/, '').trim()).filter(Boolean);
+  if (scopeItems.length > 0) {
+    rect(M, y - 20, W - 2*M, 20, C.teal);
+    tL('WHAT\u2019S INCLUDED', M + 10, y - 13, 8, C.white, B);
+    y -= 20;
+
+    scopeItems.forEach((item, i) => {
+      rect(M, y - 15, W - 2*M, 15, i%2===0 ? C.tealBg : C.white);
+      // checkmark circle
+      rect(M + 8, y - 12, 10, 10, C.teal);
+      tL('\u2713', M + 9.5, y - 11, 7, C.white, B);
+      tL(trunc(item, W - 2*M - 40, 8.5, R), M + 24, y - 11, 8.5, C.dark, R);
+      y -= 15;
+      if (y < 120) return;
+    });
+    y -= 12;
+  }
+
+  // ── IMPORTANT NOTES ──────────────────────────────────────────
+  const notes = [
+    'Access to the property, electricity and water must be available at the agreed time.',
+    'All professional cleaning supplies and equipment are provided by AskMiro.',
+    'Cancellations must be made at least 24 hours in advance.',
+    'No upfront payment required \u2014 payment due upon satisfactory completion.',
+    'A full VAT invoice and receipt will be issued on the day for your records.',
+  ];
+  if (y > 140) {
+    const notesH = 20 + notes.length * 14;
+    rect(M, y - notesH, W - 2*M, notesH, C.amber);
+    rect(M, y - notesH, 4, notesH, C.amberBd);
+    tL('IMPORTANT NOTES', M + 14, y - 14, 8, C.amberTx, B);
+    notes.forEach((n, i) => {
+      tL('\u2022 ' + trunc(n, W - 2*M - 30, 7.5, R), M + 14, y - 26 - i*13, 7.5, C.amberTx, R);
+    });
+    y -= notesH + 12;
+  }
+
+  // ── CERTIFICATIONS STRIP ─────────────────────────────────────
+  if (y > 80) {
+    const certs = ['\u2713  Fully Insured', '\u2713  COSHH Compliant', '\u2713  ISO Quality Standards', '\u2713  London & UK'];
+    const stripH = 26;
+    rect(M, y - stripH, W - 2*M, stripH, C.tealBg);
+    rect(M, y - stripH, W - 2*M, 1, C.tealBd);
+    rect(M, y - 1, W - 2*M, 1, C.tealBd);
+    const certW = (W - 2*M) / certs.length;
+    certs.forEach((c, i) => tC(c, M + i*certW + certW/2, y - 17, 7.5, C.teal, B));
+    y -= stripH + 10;
+  }
+
+  // ── FOOTER ───────────────────────────────────────────────────
+  rect(0, 0, W, 48, C.navy);
+  rect(0, 48, W, 2, C.teal);
+  tC('AskMiro Cleaning Services  \u00B7  office@askmiro.com  \u00B7  www.askmiro.com  \u00B7  020 8073 0621', W/2, 28, 8, C.teal2, B);
+  tC('A trading name of Miro Partners Ltd  \u00B7  Professional Cleaning Across London', W/2, 14, 7, C.muted, R);
 
   return await doc.save();
 }
@@ -311,7 +380,7 @@ export default async (req) => {
 
     // Send via Resend
     const payload = {
-      from: body.fromName ? `${body.fromName} <office@askmiro.com>` : RESEND_FROM,
+      from: RESEND_FROM,
       reply_to: RESEND_REPLY_TO,
       to: [email],
       bcc: [RESEND_BCC],
