@@ -197,6 +197,16 @@ async function generateQuotePdf(d) {
   tR('\u00A3' + Number(d.gross||0).toFixed(2), W - M - 10, y - 17, 13, C.teal2, B);
   y -= 40;
 
+  // ── HOW TO PAY ───────────────────────────────────────────────
+  const payH = 52;
+  rect(M, y - payH, W - 2*M, payH, C.amber);
+  rect(M, y - payH, 4, payH, C.amberBd);
+  tL('HOW TO PAY', M + 14, y - 14, 8, C.amberTx, B);
+  tL('No upfront payment required. Settle on completion once you\'re happy.', M + 14, y - 26, 7.5, C.amberTx, R);
+  tL('Accepted: Cash  |  Bank Transfer  |  Card', M + 14, y - 38, 7.5, C.amberTx, B);
+  tL('Questions? Call 020 8073 0621 or email office@askmiro.com', M + 14, y - 50, 7, C.amberTx, R);
+  y -= payH + 16;
+
   // ── SCOPE OF WORK ────────────────────────────────────────────
   const scopeItems = (d.scopeItems || []).map(s => s.replace(/^[-\u2022]\s*/, '').trim()).filter(Boolean);
   if (scopeItems.length > 0) {
@@ -206,12 +216,14 @@ async function generateQuotePdf(d) {
 
     scopeItems.forEach((item, i) => {
       rect(M, y - 15, W - 2*M, 15, i%2===0 ? C.tealBg : C.white);
-      // checkmark circle
+      // checkmark circle — drawn with lines (Helvetica/WinAnsi can't encode U+2713)
       rect(M + 8, y - 12, 10, 10, C.teal);
-      tL('\u2713', M + 9.5, y - 11, 7, C.white, B);
+      const ckX = M + 10, ckY = y - 7;
+      page.drawLine({ start:{x:ckX,y:ckY-3}, end:{x:ckX+2.5,y:ckY-5.5}, thickness:1.3, color:C.white });
+      page.drawLine({ start:{x:ckX+2.5,y:ckY-5.5}, end:{x:ckX+7,y:ckY+1}, thickness:1.3, color:C.white });
       tL(trunc(item, W - 2*M - 40, 8.5, R), M + 24, y - 11, 8.5, C.dark, R);
       y -= 15;
-      if (y < 120) return;
+      if (y < 180) return;
     });
     y -= 12;
   }
@@ -237,7 +249,7 @@ async function generateQuotePdf(d) {
 
   // ── CERTIFICATIONS STRIP ─────────────────────────────────────
   if (y > 80) {
-    const certs = ['\u2713  Fully Insured', '\u2713  COSHH Compliant', '\u2713  ISO Quality Standards', '\u2713  London & UK'];
+    const certs = ['Fully Insured', 'COSHH Compliant', 'ISO Quality Standards', 'London & UK'];
     const stripH = 26;
     rect(M, y - stripH, W - 2*M, stripH, C.tealBg);
     rect(M, y - stripH, W - 2*M, 1, C.tealBd);
