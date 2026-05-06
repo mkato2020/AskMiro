@@ -8,9 +8,20 @@ window. Router = (() => {
   let _navigating = false;
 
   const PAGE_TITLES = {
-    quotes:   'Quote Requests',
-    outreach: 'Outreach Queue',
-    email:    'Email Centre',
+    dashboard: 'Dashboard',
+    crm:       'CRM',
+    quotes:    'Quote Requests',
+    contracts: 'Contracts',
+    ops:       'Operations',
+    cleaners:  'Cleaners',
+    quality:   'Quality',
+    outreach:  'Outreach Queue',
+    finance:   'Finance',
+    payroll:   'Payroll',
+    email:     'Email Centre',
+    seo:       'SEO Content',
+    documents: 'Documents',
+    admin:     'Admin',
   };
 
   const PAGE_CTA = {
