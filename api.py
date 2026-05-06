@@ -7282,11 +7282,10 @@ def admin_clear_stuck_jobs(body: dict = Body(default={})):
     try:
         with db_pg.transaction() as conn:
             rows = db_pg.fetchall(conn, """
-                UPDATE connector_runs
-                SET running = false,
-                    finished_at = NOW(),
+                UPDATE ingest_runs
+                SET finished_at = NOW(),
                     notes = COALESCE(notes,'') || ' [auto-cleared by admin reset]'
-                WHERE running = true
+                WHERE finished_at IS NULL AND started_at IS NOT NULL
                 RETURNING source, started_at
             """)
         return {"status": "ok", "cleared": [{"source": r["source"], "started_at": r["started_at"].isoformat() if r["started_at"] else None} for r in rows], "count": len(rows)}
