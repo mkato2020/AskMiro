@@ -180,6 +180,11 @@ else:
 if os.path.isdir(_DIST):
     app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="static-assets")
 
+# Mount Ops panel (plain HTML/JS — served at /ops/)
+_OPS_DIR = os.path.join(os.path.dirname(__file__), "ops")
+if os.path.isdir(_OPS_DIR):
+    app.mount("/ops", StaticFiles(directory=_OPS_DIR, html=True), name="ops-panel")
+
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
