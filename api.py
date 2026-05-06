@@ -7272,6 +7272,71 @@ def today_engine(focus: Optional[str] = None):
         return {"error": str(e)}
 
 
+# ── Admin: Clear stuck connector jobs ────────────────────────────────────────
+
+@app.post("/api/admin/clear-stuck-jobs")
+def admin_clear_stuck_jobs(body: dict = Body(default={})):
+    """Mark all stuck connector jobs as finished (running=false)."""
+    if body.get("token") != "askmiro-reset-2026":
+        raise HTTPException(status_code=403, detail="Invalid token")
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, """
+                UPDATE connector_runs
+                SET running = false,
+                    finished_at = NOW(),
+                    notes = COALESCE(notes,'') || ' [auto-cleared by admin reset]'
+                WHERE running = true
+                RETURNING source, started_at
+            """)
+        return {"status": "ok", "cleared": [{"source": r["source"], "started_at": r["started_at"].isoformat() if r["started_at"] else None} for r in rows], "count": len(rows)}
+    except Exception as exc:
+        logger.error("clear_stuck_jobs error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── Admin: Dedupe cleaners by lowercase name ─────────────────────────────────
+
+@app.post("/api/admin/dedupe-cleaners")
+def admin_dedupe_cleaners(body: dict = Body(default={})):
+    """Remove duplicate cleaners (same lowercased full_name) — keeps oldest."""
+    if body.get("token") != "askmiro-reset-2026":
+        raise HTTPException(status_code=403, detail="Invalid token")
+    try:
+        with db_pg.transaction() as conn:
+            removed = db_pg.fetchall(conn, """
+                WITH ranked AS (
+                  SELECT id, full_name,
+                         ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(full_name)) ORDER BY id ASC) AS rn
+                  FROM ops_cleaners
+                )
+                DELETE FROM ops_cleaners
+                WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
+                RETURNING id, full_name
+            """)
+        return {"status": "ok", "removed": [{"id": r["id"], "name": r["full_name"]} for r in removed], "count": len(removed)}
+    except Exception as exc:
+        logger.error("dedupe_cleaners error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── Admin: Wipe payroll test data ────────────────────────────────────────────
+
+@app.post("/api/admin/reset-payroll")
+def admin_reset_payroll(body: dict = Body(default={})):
+    """Wipe ALL payroll entries (use only when current data is confirmed test)."""
+    if body.get("token") != "askmiro-reset-2026":
+        raise HTTPException(status_code=403, detail="Invalid token")
+    try:
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, "DELETE FROM pay_entries")
+            db_pg.execute(conn, "ALTER SEQUENCE pay_entries_id_seq RESTART WITH 1")
+        return {"status": "ok", "wiped": True, "message": "All payroll entries deleted"}
+    except Exception as exc:
+        logger.error("reset_payroll error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── Admin: Finance reset (wipe test data, seed real invoices) ────────────────
 
 @app.post("/api/admin/reset-finance")

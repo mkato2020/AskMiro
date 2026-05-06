@@ -8,7 +8,7 @@ window.Admin = (() => {
 
   // ── RENDER ────────────────────────────────────────────────────
   async function render() {
-    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://precious-essence.up.railway.app';
+    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://askmiro-api-production.up.railway.app';
     const mc = document.getElementById('main-content');
     mc.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px">
