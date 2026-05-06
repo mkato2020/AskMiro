@@ -6203,12 +6203,25 @@ def public_join_team(body: dict = Body(...)):
     except (ValueError, TypeError):
         rate = 12.50
 
+    # Normalise phone for duplicate check (strip +44/spaces/leading 0)
+    def _norm_phone(p):
+        if not p: return ""
+        x = "".join(ch for ch in p if ch.isdigit())
+        if x.startswith("44"): x = x[2:]
+        return x.lstrip("0")
+    phone_norm = _norm_phone(phone)
+
     try:
         with db_pg.transaction() as conn:
-            # Check for duplicate
+            # Dedupe by email OR phone OR exact lowercased name (catches relay+manual collisions)
             existing = db_pg.fetchval(conn, """
-                SELECT id FROM ops_cleaners WHERE email = %s AND email != ''
-            """, (email,))
+                SELECT id FROM ops_cleaners
+                WHERE (email = %s AND email != '')
+                   OR (REGEXP_REPLACE(REGEXP_REPLACE(phone,'^\\+?44',''),'\\D','','g') = %s
+                       AND %s != '')
+                   OR LOWER(TRIM(full_name)) = LOWER(TRIM(%s))
+                LIMIT 1
+            """, (email, phone_norm, phone_norm, name))
             if existing:
                 return {"status": "duplicate", "message": "Application already on file",
                         "cleaner_id": existing}
@@ -7270,6 +7283,30 @@ def today_engine(focus: Optional[str] = None):
     except Exception as e:
         logger.error("today engine: %s", e)
         return {"error": str(e)}
+
+
+# ── Admin: Delete cleaner by ID (token-protected) ────────────────────────────
+
+@app.post("/api/admin/delete-cleaner")
+def admin_delete_cleaner(body: dict = Body(...)):
+    """Delete a single cleaner by id. Token-protected."""
+    if body.get("token") != "askmiro-reset-2026":
+        raise HTTPException(status_code=403, detail="Invalid token")
+    cleaner_id = body.get("id")
+    if not cleaner_id:
+        raise HTTPException(status_code=400, detail="id required")
+    try:
+        with db_pg.transaction() as conn:
+            row = db_pg.fetchone(conn,
+                "DELETE FROM ops_cleaners WHERE id = %s RETURNING id, full_name",
+                (int(cleaner_id),))
+        if not row:
+            raise HTTPException(status_code=404, detail="cleaner not found")
+        return {"status": "ok", "deleted": dict(row)}
+    except HTTPException: raise
+    except Exception as exc:
+        logger.error("delete_cleaner error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ── Public: Web quote relay (called by GAS handleWebQuoteSubmission) ─────────
