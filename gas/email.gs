@@ -545,8 +545,87 @@ function handleWebQuoteSubmission(params) {
     intel         = handleOneOffClean(lead, intel);
     const quoteId = createDraftQuote(ss, lead, intel, leadId);
     notifyOwnerNewWebLead(lead, leadId, quoteId, getSettingsObj());
+
+    // ── Relay to AskMiro OS Postgres ──────────────────────────
+    // Non-critical: failure here does NOT affect the quote pipeline.
+    // GAS remains source of truth for quote PDF + Resend email.
+    try {
+      var balanced = (intel && intel.scenarios && intel.scenarios.balanced) || {};
+      var relayPayload = JSON.stringify({
+        gasLeadId:          leadId,
+        gasQuoteId:         quoteId,
+        fullName:           lead.name,
+        email:              lead.email,
+        phone:              lead.phone,
+        company:            lead.company,
+        postcode:           lead.postcode,
+        borough:            lead.borough,
+        sector:             lead.sector,
+        facilityType:       lead.facilityType,
+        cleaningFrequency:  lead.cleaningFrequency,
+        areaMq:             intel ? intel.areaMq : lead.areaMq,
+        requirements:       lead.requirements,
+        message:            lead.message,
+        revenuePerMonth:    balanced.revenuePerMonth,
+        marginPct:          balanced.marginPct,
+        hoursPerMonth:      intel ? intel.hoursPerMonth : null,
+        notes:              'Relayed from GAS handleWebQuoteSubmission'
+      });
+      var relayRes = UrlFetchApp.fetch(
+        'https://askmiro-api-production.up.railway.app/api/public/web-quote',
+        { method: 'post', contentType: 'application/json', payload: relayPayload, muteHttpExceptions: true }
+      );
+      Logger.log('✅ Quote relay: ' + relayRes.getContentText());
+    } catch(relayErr) {
+      Logger.log('⚠️ Quote relay failed (non-critical, GAS pipeline succeeded): ' + relayErr);
+    }
+
     return { ok: true, leadId, quoteId };
   } catch(e) { Logger.log('handleWebQuoteSubmission ERROR: ' + e.message); logError(e); return { ok: false, error: e.message }; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKFILL — Pull all existing Sheet web leads into Postgres
+// Run once from GAS editor: backfillWebQuotesToPostgres()
+// ═══════════════════════════════════════════════════════════════
+function backfillWebQuotesToPostgres() {
+  var OS = 'https://askmiro-api-production.up.railway.app/api/public/web-quote';
+  var rows = getTableRows('Web_Leads');
+  if (!rows || !rows.length) {
+    Logger.log('No Web_Leads rows found');
+    return { ok: 0, error: 0 };
+  }
+  var results = { ok: 0, duplicate: 0, error: 0 };
+  Logger.log('Backfilling ' + rows.length + ' web leads → Postgres...');
+  rows.forEach(function(lead) {
+    if (!lead.name && !lead.email) return;
+    try {
+      var payload = JSON.stringify({
+        gasLeadId:          lead.id || '',
+        gasQuoteId:         lead.quoteId || '',
+        fullName:           lead.name || '',
+        email:              lead.email || '',
+        phone:              lead.phone || '',
+        company:            lead.company || '',
+        postcode:           lead.postcode || '',
+        sector:             lead.sector || '',
+        facilityType:       lead.facilityType || '',
+        cleaningFrequency:  lead.cleaningFrequency || '',
+        areaMq:             lead.areaMq || null,
+        requirements:       lead.requirements || '',
+        message:            lead.message || '',
+        notes:              'Backfilled from GAS Web_Leads sheet'
+      });
+      var res = UrlFetchApp.fetch(OS, { method: 'post', contentType: 'application/json', payload: payload, muteHttpExceptions: true });
+      var data = JSON.parse(res.getContentText());
+      if (data.status === 'duplicate') results.duplicate++;
+      else if (data.status === 'ok')   results.ok++;
+      else                              results.error++;
+      Utilities.sleep(150);
+    } catch(err) { results.error++; Logger.log('❌ ' + (lead.name || lead.email) + ': ' + err); }
+  });
+  Logger.log('Backfill complete: ' + JSON.stringify(results));
+  return results;
 }
 // ══════════════════════════════════════════════════════════════
 // INTELLIGENCE ENGINE

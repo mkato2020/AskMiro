@@ -306,6 +306,43 @@ def ensure_ops_tables(conn):
         )
     """)
 
+    # 13b. web_quote_requests — inbound quote requests from askmiro.com forms
+    # Receives a relay from GAS handleWebQuoteSubmission AFTER the GAS-side
+    # work (Sheet write, intelligence engine, draft quote, owner email) succeeds.
+    # GAS remains source of truth for the actual quote PDF + Resend; this table
+    # is the read-source for Ops/React reporting & dashboards.
+    db_pg.execute(conn, """
+        CREATE TABLE IF NOT EXISTS web_quote_requests (
+            id              SERIAL PRIMARY KEY,
+            gas_lead_id     TEXT,
+            gas_quote_id    TEXT,
+            full_name       TEXT,
+            email           TEXT,
+            phone           TEXT,
+            company         TEXT,
+            postcode        TEXT,
+            borough         TEXT,
+            sector          TEXT,
+            facility_type   TEXT,
+            cleaning_frequency TEXT,
+            area_mq         NUMERIC(10,2),
+            requirements    TEXT,
+            message         TEXT,
+            estimated_revenue_per_month NUMERIC(12,2),
+            estimated_margin_pct        NUMERIC(5,2),
+            estimated_hours_per_month   NUMERIC(8,2),
+            status          TEXT DEFAULT 'new'
+                            CHECK (status IN ('new','contacted','quoted','won','lost','dropped')),
+            submitted_at    TIMESTAMP DEFAULT NOW(),
+            updated_at      TIMESTAMP DEFAULT NOW(),
+            notes           TEXT
+        )
+    """)
+    db_pg.execute(conn,
+        "CREATE INDEX IF NOT EXISTS idx_web_quotes_submitted ON web_quote_requests(submitted_at DESC)")
+    db_pg.execute(conn,
+        "CREATE INDEX IF NOT EXISTS idx_web_quotes_status ON web_quote_requests(status)")
+
     # 14. fin_settings
     db_pg.execute(conn, """
         CREATE TABLE IF NOT EXISTS fin_settings (

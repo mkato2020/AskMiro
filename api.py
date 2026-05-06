@@ -7272,6 +7272,74 @@ def today_engine(focus: Optional[str] = None):
         return {"error": str(e)}
 
 
+# ── Public: Web quote relay (called by GAS handleWebQuoteSubmission) ─────────
+
+@app.post("/api/public/web-quote")
+def public_web_quote(body: dict = Body(...)):
+    """
+    Receives a relay copy of a web quote request AFTER GAS has finished
+    processing it (Sheet write, intelligence engine, draft quote, owner email).
+    GAS remains source of truth for the quote PDF + Resend email pipeline.
+    This endpoint is the read-source for Ops/React reporting only.
+    Public — no auth required (matches /api/public/join-team pattern).
+    """
+    try:
+        with db_pg.transaction() as conn:
+            # Skip if we already have this gas_lead_id (idempotent)
+            if body.get("gasLeadId"):
+                existing = db_pg.fetchone(conn,
+                    "SELECT id FROM web_quote_requests WHERE gas_lead_id = %s",
+                    (body["gasLeadId"],))
+                if existing:
+                    return {"status": "duplicate", "id": existing["id"], "message": "Already in Postgres"}
+
+            row = db_pg.fetchone(conn, """
+                INSERT INTO web_quote_requests
+                    (gas_lead_id, gas_quote_id, full_name, email, phone, company,
+                     postcode, borough, sector, facility_type, cleaning_frequency,
+                     area_mq, requirements, message,
+                     estimated_revenue_per_month, estimated_margin_pct, estimated_hours_per_month,
+                     notes)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                body.get("gasLeadId"), body.get("gasQuoteId"),
+                body.get("fullName") or body.get("name"),
+                body.get("email"), body.get("phone"), body.get("company"),
+                body.get("postcode"), body.get("borough"),
+                body.get("sector"), body.get("facilityType"),
+                body.get("cleaningFrequency"),
+                float(body["areaMq"]) if body.get("areaMq") else None,
+                body.get("requirements"), body.get("message"),
+                float(body["revenuePerMonth"]) if body.get("revenuePerMonth") else None,
+                float(body["marginPct"]) if body.get("marginPct") else None,
+                float(body["hoursPerMonth"]) if body.get("hoursPerMonth") else None,
+                body.get("notes"),
+            ))
+        return {"status": "ok", "id": row["id"], "message": "Web quote relayed to Postgres"}
+    except Exception as exc:
+        logger.error("public_web_quote error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/web-quotes")
+def list_web_quotes(status: Optional[str] = None):
+    """List all inbound web quote requests (read-only mirror of GAS submissions)."""
+    try:
+        with db_pg.transaction() as conn:
+            if status:
+                rows = db_pg.fetchall(conn,
+                    "SELECT * FROM web_quote_requests WHERE status = %s ORDER BY submitted_at DESC",
+                    (status,))
+            else:
+                rows = db_pg.fetchall(conn,
+                    "SELECT * FROM web_quote_requests ORDER BY submitted_at DESC")
+        return [dict(r) for r in rows]
+    except Exception as exc:
+        logger.error("list_web_quotes error: %s", exc)
+        return []
+
+
 # ── Admin: Clear stuck connector jobs ────────────────────────────────────────
 
 @app.post("/api/admin/clear-stuck-jobs")
