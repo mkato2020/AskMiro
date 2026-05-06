@@ -7,7 +7,8 @@
 
 (function() {
   const modules = [
-    'Quotes','Outreach','Email'
+    'Dashboard','CRM','Quotes','Contracts','Ops','Cleaners',
+    'Quality','Outreach','Finance','Payroll','Email','SEO','Documents','Admin'
   ];
   modules.forEach(function(name) {
     if (typeof window[name] === 'undefined') {
