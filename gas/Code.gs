@@ -35,6 +35,12 @@ function doGet(e) {
   const body = (e.parameter && e.parameter._method === 'POST') ? parseBody(e) : null;
   var action = e.parameter && e.parameter.action;
 if (action === 'cleaner.apply') return applyAsCleaner(e.parameter, cb);
+if (action === 'cleaner.backfill' && e.parameter._key === 'askmiro-backfill-2026') {
+  var result = backfillCleanersToPostgres();
+  return cb
+    ? ContentService.createTextOutput(cb + '(' + JSON.stringify(result) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT)
+    : ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
   return jsonpResponse(handleRequest(e, body ? 'POST' : 'GET', body), cb);
 }
 function doPost(e) {
