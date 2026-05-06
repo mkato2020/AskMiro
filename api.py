@@ -7267,6 +7267,128 @@ def today_engine(focus: Optional[str] = None):
         return {"error": str(e)}
 
 
+# ── Admin: Finance reset (wipe test data, seed real invoices) ────────────────
+
+@app.post("/api/admin/reset-finance")
+def admin_reset_finance(body: dict = Body(default={})):
+    """
+    Wipe ALL finance data (test data) and seed the two real paid invoices.
+    Protected by a simple token check — call with {"token": "askmiro-reset-2026"}.
+    """
+    if body.get("token") != "askmiro-reset-2026":
+        raise HTTPException(status_code=403, detail="Invalid token")
+
+    try:
+        with db_pg.transaction() as conn:
+            # 1. Wipe all finance tables in safe order (child tables first)
+            db_pg.execute(conn, "DELETE FROM fin_transactions")
+            db_pg.execute(conn, "DELETE FROM fin_snapshots")
+            db_pg.execute(conn, "DELETE FROM fin_payments")
+            db_pg.execute(conn, "DELETE FROM fin_invoices")
+
+            # Reset the id sequence so next auto-insert starts clean
+            db_pg.execute(conn, "ALTER SEQUENCE fin_invoices_id_seq RESTART WITH 1")
+            db_pg.execute(conn, "ALTER SEQUENCE fin_transactions_id_seq RESTART WITH 1")
+
+            # 2. Insert the two real invoices
+            # Invoice 1 — Tiana Tasevska — EOT — 20 Apr 2026 — £220 paid, no VAT
+            inv1_items = json.dumps([
+                {"description": "End of Tenancy Cleaning (Full Property — Landlord Standard)", "quantity": 1, "amount_net": 180.00},
+                {"description": "Carpet Steam Cleaning", "quantity": 1, "amount_net": 20.00},
+                {"description": "Window Cleaning (Internal & Accessible External)", "quantity": 1, "amount_net": 20.00}
+            ])
+            row1 = db_pg.fetchone(conn, """
+                INSERT INTO fin_invoices
+                    (invoice_number, customer_name, invoice_date, due_date,
+                     payment_terms, subtotal_net, vat_amount, total_gross,
+                     amount_paid, balance_due, status, line_items_json, notes)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                'INV-2026-201', 'Tiana Tasevska', '2026-04-20', '2026-04-20',
+                0, 220.00, 0.00, 220.00,
+                220.00, 0.00, 'Paid', inv1_items,
+                'EOT job — 301 Lumiere Apartments, 58 St. John\'s Hill, SW11 1AD. '
+                '10AM start. Full EOT to landlord standard. Carpet steam + internal & accessible external windows. '
+                'Ref: AMR-2026-201. Payment: card.'
+            ))
+
+            # Transaction for invoice 1
+            db_pg.execute(conn, """
+                INSERT INTO fin_transactions
+                    (transaction_date, type, category, description, party,
+                     amount_gross, amount_net, amount_vat, linked_invoice_id)
+                VALUES (%s,'invoice','Revenue',%s,%s,%s,%s,%s,%s)
+            """, (
+                '2026-04-20', 'Invoice INV-2026-201', 'Tiana Tasevska',
+                220.00, 220.00, 0.00, row1['id']
+            ))
+
+            # Payment for invoice 1
+            db_pg.execute(conn, """
+                INSERT INTO fin_payments
+                    (invoice_id, date_received, amount, payment_method, reference, notes)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                row1['id'], '2026-04-20', 220.00, 'Card',
+                'AMR-2026-201', 'Paid in full on job day'
+            ))
+
+            # Invoice 2 — Toby Hughes — EOT — 30 Apr 2026 — £350 paid, no VAT
+            inv2_items = json.dumps([
+                {"description": "End of Tenancy Deep Clean — 3 Bed Property (Chelsea)", "quantity": 1, "amount_net": 350.00}
+            ])
+            row2 = db_pg.fetchone(conn, """
+                INSERT INTO fin_invoices
+                    (invoice_number, customer_name, invoice_date, due_date,
+                     payment_terms, subtotal_net, vat_amount, total_gross,
+                     amount_paid, balance_due, status, line_items_json, notes)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                'INV-2026-202', 'Toby Hughes', '2026-04-30', '2026-04-30',
+                0, 350.00, 0.00, 350.00,
+                350.00, 0.00, 'Paid', inv2_items,
+                'EOT Deep Clean — Seymour Walk, Chelsea. '
+                'Team of 3. 8AM start. Incl. oven, fridge, carpet steam clean, internal windows. Est. 6-7 hrs. '
+                'Ref: AMR-2026-202. Payment: card.'
+            ))
+
+            # Transaction for invoice 2
+            db_pg.execute(conn, """
+                INSERT INTO fin_transactions
+                    (transaction_date, type, category, description, party,
+                     amount_gross, amount_net, amount_vat, linked_invoice_id)
+                VALUES (%s,'invoice','Revenue',%s,%s,%s,%s,%s,%s)
+            """, (
+                '2026-04-30', 'Invoice INV-2026-202', 'Toby Hughes',
+                350.00, 350.00, 0.00, row2['id']
+            ))
+
+            # Payment for invoice 2
+            db_pg.execute(conn, """
+                INSERT INTO fin_payments
+                    (invoice_id, date_received, amount, payment_method, reference, notes)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (
+                row2['id'], '2026-04-30', 350.00, 'Card',
+                'AMR-2026-202', 'Paid in full on job day'
+            ))
+
+        return {
+            "status": "ok",
+            "wiped": True,
+            "seeded": [
+                {"invoice_number": "INV-2026-201", "customer": "Tiana Tasevska", "amount": 220.00, "postgres_id": row1['id']},
+                {"invoice_number": "INV-2026-202", "customer": "Toby Hughes",    "amount": 350.00, "postgres_id": row2['id']}
+            ],
+            "message": "Finance tables wiped and real invoices seeded."
+        }
+    except Exception as exc:
+        logger.error("admin_reset_finance error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── SPA catch-all (must be last) ─────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)

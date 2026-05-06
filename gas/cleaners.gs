@@ -384,6 +384,38 @@ function applyAsCleaner(params, cb) {
     // ── Write to sheet ────────────────────────────────────────
     appendRow('Cleaners', cleaner);
     invalidateCache('Cleaners');
+    // ── Relay to AskMiro OS Postgres ─────────────────────────
+    try {
+      var OS_ENDPOINT = 'https://askmiro-api-production.up.railway.app/api/public/join-team';
+      var relayPayload = JSON.stringify({
+        fullName:           cleaner.fullName,
+        email:              cleaner.email,
+        phone:              cleaner.phone,
+        homePostcode:       cleaner.homePostcode,
+        borough:            cleaner.borough,
+        cleanerType:        cleaner.cleanerType,
+        servicesOffered:    cleaner.servicesOffered,
+        availabilityType:   cleaner.availabilityType,
+        currentlyAvailable: 'Yes',
+        complianceStatus:   'Pending',
+        dbsStatus:          cleaner.dbsStatus,
+        transportMode:      cleaner.transportMode,
+        hourlyRate:         cleaner.hourlyRate || 12.50,
+        emergencyCover:     cleaner.emergencyCover,
+        notes:              'Applied via Web Form. GAS ID: ' + newId
+      });
+      var relayOptions = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: relayPayload,
+        muteHttpExceptions: true
+      };
+      var relayRes = UrlFetchApp.fetch(OS_ENDPOINT, relayOptions);
+      var relayData = JSON.parse(relayRes.getContentText());
+      Logger.log('✅ OS relay: ' + JSON.stringify(relayData));
+    } catch(relayErr) {
+      Logger.log('⚠️ OS relay failed (non-critical, Sheet write succeeded): ' + relayErr);
+    }
     // ── Log it ───────────────────────────────────────────────
     auditLog('public-form', 'CREATE', 'Cleaner', newId, null, cleaner);
     // ── Send confirmation to applicant (if they gave email) ─────
@@ -433,6 +465,66 @@ function applyAsCleaner(params, cb) {
       : ContentService.createTextOutput(JSON.stringify(errResult)).setMimeType(ContentService.MimeType.JSON);
   }
 }
+// ═══════════════════════════════════════════════════════════════
+// BACKFILL — Pull all existing Sheet cleaners into Postgres
+// Run once from GAS editor: backfillCleanersToPostgres()
+// ═══════════════════════════════════════════════════════════════
+function backfillCleanersToPostgres() {
+  var OS_ENDPOINT = 'https://askmiro-api-production.up.railway.app/api/public/join-team';
+  var rows = getTableRows('Cleaners');
+  var results = { ok: 0, duplicate: 0, error: 0 };
+
+  Logger.log('Starting backfill of ' + rows.length + ' cleaners to Postgres...');
+
+  rows.forEach(function(cleaner) {
+    if (!cleaner.fullName && !cleaner.firstName) return; // skip empty rows
+    try {
+      var payload = JSON.stringify({
+        fullName:           cleaner.fullName || ((cleaner.firstName || '') + ' ' + (cleaner.lastName || '')).trim(),
+        email:              cleaner.email || '',
+        phone:              cleaner.phone || '',
+        homePostcode:       cleaner.homePostcode || '',
+        borough:            cleaner.borough || '',
+        cleanerType:        cleaner.cleanerType || 'Subcontractor',
+        servicesOffered:    cleaner.servicesOffered || '',
+        availabilityType:   cleaner.availabilityType || 'Full-time',
+        currentlyAvailable: cleaner.currentlyAvailable || 'Yes',
+        complianceStatus:   cleaner.complianceStatus || 'Pending',
+        dbsStatus:          cleaner.dbsStatus || 'None',
+        transportMode:      cleaner.transportMode || '',
+        hourlyRate:         cleaner.hourlyRate || 12.50,
+        emergencyCover:     cleaner.emergencyCover || 'No',
+        notes:              'Backfilled from GAS Sheet. GAS ID: ' + (cleaner.id || 'unknown') + '. Original status: ' + (cleaner.status || 'unknown')
+      });
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: payload,
+        muteHttpExceptions: true
+      };
+      var res = UrlFetchApp.fetch(OS_ENDPOINT, options);
+      var data = JSON.parse(res.getContentText());
+      if (data.status === 'duplicate') {
+        results.duplicate++;
+        Logger.log('⏭ Duplicate: ' + (cleaner.fullName || cleaner.email));
+      } else if (data.status === 'ok') {
+        results.ok++;
+        Logger.log('✅ Synced: ' + (cleaner.fullName || cleaner.email) + ' → Postgres ID: ' + data.cleaner_id);
+      } else {
+        results.error++;
+        Logger.log('❌ Error for ' + (cleaner.fullName || cleaner.email) + ': ' + JSON.stringify(data));
+      }
+      Utilities.sleep(200); // avoid hammering the API
+    } catch(err) {
+      results.error++;
+      Logger.log('❌ Exception for ' + (cleaner.fullName || cleaner.email) + ': ' + err);
+    }
+  });
+
+  Logger.log('Backfill complete: ' + JSON.stringify(results));
+  return results;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // BRANDED EMAIL — Cleaner Application Confirmation
 // Called inside applyAsCleaner() when applicant has provided email
