@@ -21,7 +21,19 @@ const CFG = {
   LLW_RATE:            13.85,
   ONCOST_PCT:          0.22,
   SQ_FT_TO_M2:         0.0929,
-  VERSION:             '3.1.0'
+  VERSION:             '3.1.0',
+
+  // ── Outreach Readiness Layer — feature flags (all default OFF) ──────────
+  // Every flag is a kill switch. Set to true ONLY after Mike approves rollout.
+  // No flag should be enabled by default. No code path may bypass these flags.
+  READINESS_GATE_ENABLED:           false,  // readiness_gate() before sends
+  MAIL_DIRECTION_CLASSIFIER_ENABLED: false,  // classify_mail_direction()
+  OUTREACH_EVENT_LOGGING_ENABLED:   false,  // POST /api/outreach/event
+  BOUNCE_HANDLER_ENABLED:           false,  // archive + suppress on bounce DSN
+
+  // Railway base URL (used by readiness.gs / outreach.gs API helpers)
+  RAILWAY_URL:                      'https://askmiro-api-production.up.railway.app',
+  OPS_TOKEN:                        ''      // set via PropertiesService for prod
 };
 const SHEET_LEADS      = 'Leads';
 const SHEET_QUOTES     = 'Quotes';

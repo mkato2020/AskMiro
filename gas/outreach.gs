@@ -46,6 +46,7 @@ const OS = {
   PAUSED:              'PAUSED',
   STOPPED:             'STOPPED',
   DISQUALIFIED:        'DISQUALIFIED',
+  BOUNCED:             'BOUNCED',          // set by readiness layer bounce handler
 };
 
 // Active follow-up states (still in sequence, awaiting next touch)
@@ -282,15 +283,19 @@ function _runAutoSend() {
     if (sent >= batchLimit) return;
     try {
       // ── Readiness gate: check Postgres before sending ──────────
-      const gate = readiness_gate({
-        entity_id: lead.entityId || null,
-        place_id:  lead.id,
-        email:     lead.email,
-      });
-      if (!gate.allowed) {
-        Logger.log('autoSend BLOCKED by readiness gate for ' + lead.id + ': ' + gate.reason);
-        updateRow('Leads', lead.id, { outreachStatus: OS.STOPPED, humanActionReason: 'readiness_gate:' + gate.reason });
-        return;
+      // Kill switch: CFG.READINESS_GATE_ENABLED must be true to gate.
+      // Default false → behaves identically to pre-readiness-layer code.
+      if (CFG.READINESS_GATE_ENABLED) {
+        const gate = readiness_gate({
+          entity_id: lead.entityId || null,
+          place_id:  lead.id,
+          email:     lead.email,
+        });
+        if (!gate.allowed) {
+          Logger.log('autoSend BLOCKED by readiness gate for ' + lead.id + ': ' + gate.reason);
+          updateRow('Leads', lead.id, { outreachStatus: OS.STOPPED, humanActionReason: 'readiness_gate:' + gate.reason });
+          return;
+        }
       }
       _autoSendInitial(lead);
       sent++;
@@ -640,24 +645,32 @@ function scanOutreachReplies() {
       if (messages.length <= 1) return;
 
       // ── Mail direction pre-classifier (replaces bare from-filter) ──
-      // classify_mail_direction is defined in readiness.gs
-      const mailDir = classify_mail_direction(thread);
+      // Kill switch: CFG.MAIL_DIRECTION_CLASSIFIER_ENABLED must be true.
+      // Default false → falls through to legacy from-filter (line below).
+      if (CFG.MAIL_DIRECTION_CLASSIFIER_ENABLED) {
+        const mailDir = classify_mail_direction(thread);
 
-      if (mailDir.direction !== 'INBOUND_HUMAN') {
-        // Handle bounces, OOO, machine mail, unsubscribes — no AI cost
-        handleNonHumanThread(thread, mailDir, lead.id);
+        if (mailDir.direction !== 'INBOUND_HUMAN') {
+          // Handle bounces, OOO, machine mail, unsubscribes — no AI cost
+          // Sub-kill-switch: only run the bounce handler side-effects if enabled
+          if (CFG.BOUNCE_HANDLER_ENABLED) {
+            handleNonHumanThread(thread, mailDir, lead.id);
 
-        // If it's a bounce — update the Leads row status too
-        if (mailDir.direction === 'BOUNCE' || mailDir.direction === 'DELIVERY_STATUS_NOTIFICATION') {
-          updateRow('Leads', lead.id, {
-            outreachStatus:    OS.BOUNCED,
-            replyStatus:       'BOUNCE',
-            replyNextAction:   'Email bounced — suppressed. Find alternative contact.',
-            needsHumanAction:  'true',
-            humanActionReason: 'bounce_detected',
-          });
+            // If it's a bounce — update the Leads row status too
+            if (mailDir.direction === 'BOUNCE' || mailDir.direction === 'DELIVERY_STATUS_NOTIFICATION') {
+              updateRow('Leads', lead.id, {
+                outreachStatus:    OS.BOUNCED,
+                replyStatus:       'BOUNCE',
+                replyNextAction:   'Email bounced — suppressed. Find alternative contact.',
+                needsHumanAction:  'true',
+                humanActionReason: 'bounce_detected',
+              });
+            }
+          } else {
+            Logger.log('mail direction = ' + mailDir.direction + ' for lead ' + lead.id + ' — handler disabled, no action');
+          }
+          return;  // don't classify as a human reply
         }
-        return;  // don't classify as a human reply
       }
 
       // Only INBOUND_HUMAN reaches here — find the actual reply message
@@ -2078,6 +2091,9 @@ function setupAnthropicKey(apiKey) {
 // Any error is logged but never re-thrown — keeps the send path clean.
 
 function _log_outreach_event_gas(payload) {
+  // Kill switch: CFG.OUTREACH_EVENT_LOGGING_ENABLED must be true.
+  // Default false → no-op. Sends complete normally; Postgres just doesn't see them.
+  if (!CFG.OUTREACH_EVENT_LOGGING_ENABLED) return;
   try {
     const url = CFG.RAILWAY_URL + '/api/outreach/event';
     UrlFetchApp.fetch(url, {

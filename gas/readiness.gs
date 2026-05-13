@@ -366,6 +366,8 @@ function handleNonHumanThread(thread, classification, placeId) {
  * Non-fatal — logs errors but doesn't throw.
  */
 function _log_outreach_event(payload) {
+  // Kill switch — defense in depth. Same flag as outreach.gs uses.
+  if (!CFG.OUTREACH_EVENT_LOGGING_ENABLED) return;
   try {
     _apiPost(CFG.RAILWAY_URL + '/api/outreach/event', payload);
   } catch (err) {
