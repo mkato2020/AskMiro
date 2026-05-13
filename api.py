@@ -7563,6 +7563,312 @@ def admin_reset_finance(body: dict = Body(default={})):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ── Outreach Readiness Layer ──────────────────────────────────────────────────
+
+@app.post("/api/outreach/readiness/run")
+def run_readiness_scoring(
+    batch: int = 1000,
+    rescore_all: bool = False,
+    entity_id: Optional[int] = None,
+    dry_run: bool = False,
+):
+    """
+    Trigger the outreach readiness scoring engine.
+    Scores up to `batch` entities and classifies each into a readiness status.
+    Call this after enrichment, on a schedule, or to rescore a single entity.
+    """
+    try:
+        import readiness as _readiness
+        counts = _readiness.run(
+            batch=batch,
+            rescore_all=rescore_all,
+            entity_id=entity_id,
+            dry_run=dry_run,
+        )
+        return {"ok": True, "results": counts}
+    except Exception as exc:
+        logger.error("readiness run error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/outreach/readiness/summary")
+def get_readiness_summary():
+    """
+    Return a breakdown of all readiness statuses and HVT tier distribution.
+    """
+    try:
+        with db_pg.transaction() as conn:
+            status_rows = db_pg.fetchall(conn, """
+                SELECT
+                    outreach_readiness_status AS status,
+                    COUNT(*) AS cnt,
+                    ROUND(AVG(outreach_readiness_score)) AS avg_score
+                FROM entities
+                GROUP BY outreach_readiness_status
+                ORDER BY cnt DESC
+            """)
+            tier_rows = db_pg.fetchall(conn, """
+                SELECT hvt_tier, COUNT(*) AS cnt
+                FROM entities
+                WHERE hvt_tier IS NOT NULL
+                GROUP BY hvt_tier
+                ORDER BY hvt_tier
+            """)
+            unscored = db_pg.fetchval(conn, """
+                SELECT COUNT(*) FROM entities WHERE last_readiness_checked_at IS NULL
+            """)
+        return {
+            "ok": True,
+            "status_breakdown": [dict(r) for r in status_rows],
+            "tier_breakdown":   [dict(r) for r in tier_rows],
+            "unscored_count":   unscored or 0,
+        }
+    except Exception as exc:
+        logger.error("readiness summary error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/outreach/readiness/queue")
+def get_readiness_queue(
+    status: str = "READY_FOR_OUTREACH",
+    tier: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """
+    Return entities filtered by readiness status (and optionally HVT tier).
+    Default: READY_FOR_OUTREACH — these are the leads cleared for outreach.
+    """
+    try:
+        valid_statuses = {
+            "READY_FOR_OUTREACH", "NEEDS_CONTACT_ENRICHMENT",
+            "NEEDS_EMAIL_VERIFICATION", "NEEDS_DECISION_MAKER",
+            "PHONE_FIRST", "HIGH_VALUE_NOT_CONTACTABLE",
+            "SUPPRESSED_BAD_EMAIL", "SUPPRESSED_LOW_VALUE",
+            "SUPPRESSED_WRONG_SECTOR", "SUPPRESSED_DUPLICATE", "MANUAL_REVIEW",
+        }
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+
+        params: list = [status]
+        tier_clause = ""
+        if tier in ("A", "B", "C", "D"):
+            tier_clause = "AND hvt_tier = %s"
+            params.append(tier)
+
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn, f"""
+                SELECT
+                    id, name, primary_email, phone, sector, borough,
+                    outreach_readiness_status, outreach_readiness_score,
+                    hvt_tier, contact_quality_score, email_quality_score,
+                    authority_score, sector_value_score, location_fit_score,
+                    revenue_potential_score, deliverability_risk_score,
+                    recommended_next_action, enrichment_required,
+                    last_readiness_checked_at, outreach_sent_count
+                FROM entities
+                WHERE outreach_readiness_status = %s
+                {tier_clause}
+                ORDER BY outreach_readiness_score DESC, sector_value_score DESC
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
+
+            total = db_pg.fetchval(conn, f"""
+                SELECT COUNT(*) FROM entities
+                WHERE outreach_readiness_status = %s {tier_clause}
+            """, params)
+
+        return {
+            "ok": True,
+            "status": status,
+            "tier": tier,
+            "total": total or 0,
+            "offset": offset,
+            "limit": limit,
+            "leads": [dict(r) for r in rows],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("readiness queue error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/outreach/event")
+def log_outreach_event(request_data: dict = Body({})):
+    """
+    Receive outreach events from GAS and write to outreach_events table.
+    Called by _log_outreach_event_gas() and _log_outreach_event() in GAS.
+
+    Payload: { place_id, event_type, direction, email, thread_id, detail }
+    """
+    try:
+        place_id   = request_data.get("place_id", "")
+        event_type = request_data.get("event_type", "UNKNOWN")
+        direction  = request_data.get("direction", "UNKNOWN")
+        email      = (request_data.get("email") or "").strip().lower()
+        thread_id  = request_data.get("thread_id", "")
+        detail     = request_data.get("detail", "")
+
+        with db_pg.transaction() as conn:
+            # Resolve entity_id from place_id if possible
+            entity_id = None
+            if place_id:
+                row = db_pg.fetchone(conn,
+                    "SELECT id FROM entities WHERE place_id = %s LIMIT 1",
+                    (place_id,))
+                if row:
+                    entity_id = row["id"]
+
+            db_pg.execute(conn, """
+                INSERT INTO outreach_events
+                    (entity_id, lead_email, event_type, mail_direction,
+                     thread_id, notes, source_system)
+                VALUES (%s, %s, %s, %s, %s, %s, 'gas')
+            """, (
+                entity_id,
+                email or None,
+                event_type,
+                direction if direction != "UNKNOWN" else None,
+                thread_id or None,
+                detail or None,
+            ))
+
+            # If it's a send event, increment outreach_sent_count on the entity
+            if event_type in ("EMAIL_SENT", "FOLLOW_UP_SENT", "FINAL_FOLLOW_UP_SENT") and entity_id:
+                db_pg.execute(conn, """
+                    UPDATE entities
+                    SET outreach_sent_count   = COALESCE(outreach_sent_count, 0) + 1,
+                        outreach_last_sent_at = NOW(),
+                        outreach_status_gas   = %s
+                    WHERE id = %s
+                """, (event_type, entity_id))
+
+            # If it's a bounce — flag entity immediately
+            if event_type == "BOUNCE_DETECTED" and entity_id:
+                db_pg.execute(conn, """
+                    UPDATE entities
+                    SET bounce_detected             = TRUE,
+                        bounce_detected_at          = NOW(),
+                        outreach_readiness_status   = 'SUPPRESSED_BAD_EMAIL',
+                        suppression_reason          = 'bounce_dsn_from_gas'
+                    WHERE id = %s
+                """, (entity_id,))
+                # Also suppress the email
+                if email:
+                    try:
+                        from email_guard import add_suppression
+                        add_suppression(email, "bounce_dsn", source="gas_event")
+                    except Exception:
+                        pass
+
+        return {"ok": True, "event_type": event_type, "entity_id": entity_id}
+
+    except Exception as exc:
+        logger.error("outreach event log error: %s", exc)
+        # Don't block GAS — return 200 with error flag
+        return {"ok": False, "error": str(exc)}
+
+
+@app.post("/api/outreach/readiness/entity/by-email")
+def update_readiness_by_email(request_data: dict = Body({})):
+    """Update an entity's readiness status by email address (used by bounce handler)."""
+    try:
+        email  = (request_data.get("email") or "").strip().lower()
+        status = request_data.get("status", "SUPPRESSED_BAD_EMAIL")
+        reason = request_data.get("reason", "gas_flagged")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="email required")
+
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, """
+                UPDATE entities
+                SET outreach_readiness_status = %s,
+                    suppression_reason        = %s,
+                    last_readiness_checked_at = NOW()
+                WHERE primary_email = %s
+            """, (status, reason, email))
+
+        return {"ok": True, "email": email, "status": status}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("update readiness by email error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/outreach/readiness/entity/by-place")
+def update_readiness_by_place(request_data: dict = Body({})):
+    """Update an entity's readiness status by place_id (used by unsubscribe handler)."""
+    try:
+        place_id = (request_data.get("place_id") or "").strip()
+        status   = request_data.get("status", "SUPPRESSED_BAD_EMAIL")
+        reason   = request_data.get("reason", "gas_flagged")
+
+        if not place_id:
+            raise HTTPException(status_code=400, detail="place_id required")
+
+        with db_pg.transaction() as conn:
+            db_pg.execute(conn, """
+                UPDATE entities
+                SET outreach_readiness_status = %s,
+                    suppression_reason        = %s,
+                    last_readiness_checked_at = NOW()
+                WHERE place_id = %s
+            """, (status, reason, place_id))
+
+        return {"ok": True, "place_id": place_id, "status": status}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("update readiness by place error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/leads/entity/{entity_id}")
+def get_entity_readiness(entity_id: int):
+    """
+    Slim entity lookup — used by GAS readiness_gate() before every send.
+    Returns just the readiness-relevant fields, fast.
+    """
+    try:
+        with db_pg.transaction() as conn:
+            row = db_pg.fetchone(conn, """
+                SELECT id, name, primary_email, phone, sector, borough,
+                       outreach_readiness_status, outreach_readiness_score,
+                       hvt_tier, contact_quality_score, email_quality_score,
+                       authority_score, sector_value_score, deliverability_risk_score,
+                       enrichment_required, suppression_reason,
+                       recommended_next_action, bounce_detected,
+                       outreach_sent_count, outreach_last_sent_at,
+                       last_readiness_checked_at
+                FROM entities WHERE id = %s
+            """, (entity_id,))
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+        return dict(row)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("get_entity_readiness error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/outreach/readiness/entity/{entity_id}")
+def rescore_single_entity(entity_id: int):
+    """Force-rescore a single entity by ID."""
+    try:
+        import readiness as _readiness
+        counts = _readiness.run(entity_id=entity_id)
+        return {"ok": True, "entity_id": entity_id, "results": counts}
+    except Exception as exc:
+        logger.error("rescore entity error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── SPA catch-all (must be last) ─────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
