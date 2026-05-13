@@ -33,7 +33,14 @@ const CFG = {
 
   // Railway base URL (used by readiness.gs / outreach.gs API helpers)
   RAILWAY_URL:                      'https://askmiro-api-production.up.railway.app',
-  OPS_TOKEN:                        ''      // set via PropertiesService for prod
+  OPS_TOKEN:                        '',     // set via PropertiesService for prod
+
+  // ── Send resilience (v95) ───────────────────────────────────────────────
+  // Quota-error handling: pause sending for the rest of the day on first
+  // detection; do NOT flag the lead. Non-quota transient errors are retried
+  // up to MAX_SEND_RETRIES before flagging human action.
+  MAX_SEND_RETRIES:                 3,
+  QUOTA_PAUSE_PROPERTY:             'quota_pause_until'  // PropertiesService key
 };
 const SHEET_LEADS      = 'Leads';
 const SHEET_QUOTES     = 'Quotes';

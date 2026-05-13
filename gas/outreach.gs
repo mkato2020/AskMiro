@@ -253,6 +253,14 @@ function autoSendOutreach() {
 }
 
 function _runAutoSend() {
+  // ── Quota pause guard (v95) ────────────────────────────────────
+  // If a prior trigger this calendar day tripped the quota circuit
+  // breaker, skip the entire batch. Auto-clears on date change.
+  if (_isQuotaPaused()) {
+    Logger.log('autoSendOutreach: quota pause active for today — skipping entire batch');
+    return;
+  }
+
   const sentToday = _getSentTodayCount();
   const remaining = DAILY_SEND_CAP - sentToday;
 
@@ -278,8 +286,10 @@ function _runAutoSend() {
     .slice(0, batchLimit);
 
   let sent = 0;
+  let quotaTripped = false;   // v95: circuit breaker, set on first quota error
 
   readyQueue.forEach(lead => {
+    if (quotaTripped) return;             // v95: stop processing on quota trip
     if (sent >= batchLimit) return;
     try {
       // ── Readiness gate: check Postgres before sending ──────────
@@ -300,9 +310,32 @@ function _runAutoSend() {
       _autoSendInitial(lead);
       sent++;
       _incrementSentToday();
+      _clearSendRetries(lead.id);          // v95: clear retry counter on success
     } catch(e) {
       Logger.log('autoSend initial fail for ' + lead.id + ': ' + e.message);
-      _flagHumanAction(lead.id, 'send_error', 'Initial send failed: ' + e.message);
+
+      if (_isQuotaError(e)) {
+        // ── v95: quota exhausted → release lock, pause, halt batch ──
+        // Do NOT flag human action. This is infrastructure failure,
+        // not a lead-data issue. Next-day retry handles recovery.
+        updateRow('Leads', lead.id, { outreachStatus: OS.READY_FOR_OUTREACH });
+        _setQuotaPauseToday();
+        quotaTripped = true;
+        Logger.log('QUOTA TRIPPED in initial-send loop — circuit breaker engaged. ' +
+                   sent + ' sends completed before trip. Pause active until next day.');
+        return;
+      }
+
+      // Non-quota transient error: bump retry, release lock, flag only at MAX
+      const retries = _incrementSendRetries(lead.id);
+      updateRow('Leads', lead.id, { outreachStatus: OS.READY_FOR_OUTREACH });
+      if (retries >= CFG.MAX_SEND_RETRIES) {
+        _flagHumanAction(lead.id, 'send_error',
+          'Initial send failed after ' + retries + ' attempts: ' + e.message);
+      } else {
+        Logger.log('Will retry lead ' + lead.id + ' (attempt ' + retries +
+                   '/' + CFG.MAX_SEND_RETRIES + ')');
+      }
     }
   });
 
@@ -321,14 +354,31 @@ function _runAutoSend() {
     .slice(0, batchLeft);
 
   followUpDue.forEach(lead => {
+    if (quotaTripped) return;              // v95: shared circuit breaker
     if (sent >= batchLimit) return;
     try {
       _autoSendFollowUp(lead);
       sent++;
       _incrementSentToday();
+      _clearSendRetries(lead.id);           // v95
     } catch(e) {
       Logger.log('autoSend follow-up fail for ' + lead.id + ': ' + e.message);
-      _flagHumanAction(lead.id, 'followup_error', 'Follow-up send failed: ' + e.message);
+
+      if (_isQuotaError(e)) {
+        _setQuotaPauseToday();
+        quotaTripped = true;
+        Logger.log('QUOTA TRIPPED in follow-up loop — circuit breaker engaged.');
+        return;
+      }
+
+      const retries = _incrementSendRetries(lead.id);
+      if (retries >= CFG.MAX_SEND_RETRIES) {
+        _flagHumanAction(lead.id, 'followup_error',
+          'Follow-up send failed after ' + retries + ' attempts: ' + e.message);
+      } else {
+        Logger.log('Will retry follow-up for lead ' + lead.id + ' (attempt ' +
+                   retries + '/' + CFG.MAX_SEND_RETRIES + ')');
+      }
     }
   });
 
@@ -346,13 +396,21 @@ function _runAutoSend() {
     .slice(0, batchLeft2);
 
   finalDue.forEach(lead => {
+    if (quotaTripped) return;              // v95: shared circuit breaker
     if (sent >= batchLimit) return;
     try {
       _autoSendFinal(lead);
       sent++;
       _incrementSentToday();
+      _clearSendRetries(lead.id);           // v95
     } catch(e) {
       Logger.log('autoSend final fail for ' + lead.id + ': ' + e.message);
+      if (_isQuotaError(e)) {
+        _setQuotaPauseToday();
+        quotaTripped = true;
+        Logger.log('QUOTA TRIPPED in final-follow-up loop — circuit breaker engaged.');
+      }
+      // Non-quota final-follow-up errors stay silent (sequence is ending anyway)
     }
   });
 
@@ -368,20 +426,22 @@ function _autoSendInitial(lead) {
 
   const { subject, textBody, htmlBody } = _buildEmail(lead, 'initial');
 
-  GmailApp.sendEmail(lead.email, subject, textBody, {
+  // ── v95: deterministic send via createDraft + draft.send() ──
+  // Replaces the prior sendEmail + sleep + _findSentThread race pattern.
+  // draft.send() returns the GmailMessage synchronously, so threadId
+  // and msgId are always populated for new sends. NO BACKFILL of old
+  // rows — existing threadId='' rows are unaffected by this change.
+  const draft = GmailApp.createDraft(lead.email, subject, textBody, {
     name:     'Mike Kato — AskMiro',
     replyTo:  'info@askmiro.com',
     bcc:      'info@askmiro.com',
     htmlBody: htmlBody,
     headers:  _unsubHeaders(),
   });
-
-  Utilities.sleep(1200);
-  const sentThread = _findSentThread(lead.email, subject);
-  const threadId   = sentThread ? sentThread.getId() : '';
-  const msgId      = sentThread
-    ? sentThread.getMessages()[sentThread.getMessages().length - 1].getId()
-    : '';
+  const message = draft.send();
+  const thread  = message.getThread();
+  const threadId = thread ? thread.getId() : '';
+  const msgId    = message.getId();
 
   const now        = new Date().toISOString();
   const nextFU     = _addDays(now, FOLLOW_UP_DAYS[0]);
@@ -2108,4 +2168,95 @@ function _log_outreach_event_gas(payload) {
   } catch (err) {
     Logger.log('_log_outreach_event_gas: failed (non-fatal): ' + err.message);
   }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// v95 — SEND RESILIENCE HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+// Quota detection, per-day pause marker, per-lead retry counter.
+// All helpers are pure-PropertiesService — no Sheets writes, no Gmail calls,
+// no external API calls. Inert if v95 code paths are reverted (rollback-safe).
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Detect Gmail "Service invoked too many times for one day" and related
+ * daily-quota error messages. Conservative regex — matches the specific
+ * phrases Apps Script emits. Non-quota transient errors return false.
+ */
+function _isQuotaError(err) {
+  var msg = (err && err.message ? err.message : String(err || '')).toLowerCase();
+  return /service invoked too many times|too many emails|daily.*(limit|quota)|rate.*exceed/i.test(msg);
+}
+
+/**
+ * Today's date key in the script's configured timezone (Europe/London for
+ * AskMiro). Using Session.getScriptTimeZone() instead of UTC ensures the
+ * quota pause expires at midnight LOCAL time, aligning with Gmail Workspace's
+ * per-day quota reset. UTC-based keys caused a ~1h false-clear window
+ * during BST.
+ */
+function _todayKey() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+/**
+ * Set the per-day quota pause marker to today's date.
+ * Auto-expires at calendar-day boundary in the script timezone.
+ */
+function _setQuotaPauseToday() {
+  PropertiesService.getScriptProperties().setProperty(
+    CFG.QUOTA_PAUSE_PROPERTY, _todayKey()
+  );
+}
+
+/**
+ * Return true if today is within the quota pause window.
+ * Used at _runAutoSend entry to short-circuit the whole batch.
+ */
+function _isQuotaPaused() {
+  var paused = PropertiesService.getScriptProperties()
+                 .getProperty(CFG.QUOTA_PAUSE_PROPERTY) || '';
+  return paused === _todayKey();
+}
+
+/**
+ * Clear the quota pause manually (for debugging / forced retry).
+ * Not called from normal flow.
+ */
+function _clearQuotaPause() {
+  PropertiesService.getScriptProperties().deleteProperty(CFG.QUOTA_PAUSE_PROPERTY);
+}
+
+/**
+ * Per-lead retry counter for non-quota transient errors.
+ * Cleared on first successful send.
+ *
+ * Defensive guard: if leadId is falsy (missing / undefined / null / empty),
+ * return early. Without this guard, all un-id'd failing leads would share
+ * a single "send_retry_undefined" property, causing collisions and silent
+ * skip-to-flagged behavior across unrelated leads.
+ */
+function _getSendRetries(leadId) {
+  if (!leadId) return 0;
+  return parseInt(
+    PropertiesService.getScriptProperties().getProperty('send_retry_' + leadId) || '0',
+    10
+  );
+}
+
+function _incrementSendRetries(leadId) {
+  if (!leadId) {
+    Logger.log('_incrementSendRetries: missing leadId — skipping (returning 0)');
+    return 0;
+  }
+  var k = 'send_retry_' + leadId;
+  var n = _getSendRetries(leadId) + 1;
+  PropertiesService.getScriptProperties().setProperty(k, String(n));
+  return n;
+}
+
+function _clearSendRetries(leadId) {
+  if (!leadId) return;
+  PropertiesService.getScriptProperties().deleteProperty('send_retry_' + leadId);
 }
