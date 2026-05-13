@@ -7828,6 +7828,103 @@ def update_readiness_by_place(request_data: dict = Body({})):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ── Migration Runner endpoints (token-gated) ─────────────────────────────────
+
+def _check_admin_token(token: Optional[str]) -> None:
+    """Reject unless ADMIN_MIGRATION_TOKEN matches. Set on Railway env."""
+    expected = os.getenv("ADMIN_MIGRATION_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="ADMIN_MIGRATION_TOKEN not configured on server — migrations disabled",
+        )
+    if not token or token != expected:
+        raise HTTPException(status_code=403, detail="invalid_admin_token")
+
+
+@app.get("/api/admin/migrations/list")
+def migrations_list(token: str = ""):
+    """List all migrations and their status."""
+    _check_admin_token(token)
+    try:
+        from migrations import runner as _runner
+        return {"ok": True, "migrations": _runner.list_migrations()}
+    except Exception as exc:
+        logger.error("migrations_list error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/admin/migrations/status/{version}")
+def migrations_status(version: int, token: str = ""):
+    """Show detail of one migration."""
+    _check_admin_token(token)
+    try:
+        from migrations import runner as _runner
+        return {"ok": True, "status": _runner.status(version)}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.error("migrations_status error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/admin/migrations/up")
+def migrations_up(body: dict = Body(...)):
+    """
+    Apply a migration. Body:
+      {
+        "version":  10,
+        "token":    "<ADMIN_MIGRATION_TOKEN>",
+        "dry_run":  true|false,
+        "confirm":  true|false,
+        "actor":    "mike@askmiro.com"     // optional, for audit
+      }
+    """
+    _check_admin_token(body.get("token"))
+    try:
+        from migrations import runner as _runner
+        version = int(body.get("version"))
+        dry_run = bool(body.get("dry_run", False))
+        confirm = bool(body.get("confirm", False))
+        actor   = body.get("actor", "api")
+        return _runner.up(version, actor=actor, dry_run=dry_run, confirm=confirm)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.error("migrations_up error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/admin/migrations/down")
+def migrations_down(body: dict = Body(...)):
+    """Revert a migration. Same body shape as /up."""
+    _check_admin_token(body.get("token"))
+    try:
+        from migrations import runner as _runner
+        version = int(body.get("version"))
+        dry_run = bool(body.get("dry_run", False))
+        confirm = bool(body.get("confirm", False))
+        actor   = body.get("actor", "api")
+        return _runner.down(version, actor=actor, dry_run=dry_run, confirm=confirm)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.error("migrations_down error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/admin/migrations/verify")
+def migrations_verify(token: str = ""):
+    """Verify checksums of all applied migrations against their files."""
+    _check_admin_token(token)
+    try:
+        from migrations import runner as _runner
+        return _runner.verify()
+    except Exception as exc:
+        logger.error("migrations_verify error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/api/leads/entity/{entity_id}")
 def get_entity_readiness(entity_id: int):
     """
