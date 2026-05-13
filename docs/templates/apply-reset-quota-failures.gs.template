@@ -1,0 +1,357 @@
+// apply-reset-quota-failures.gs — MUTATION FUNCTION (DESIGN ONLY)
+// ───────────────────────────────────────────────────────────────────
+// STATUS: NOT YET RUN. This is the mutation-capable companion to
+//   reset-quota-failures.gs.template. Default mode is dryRun=true.
+//   Mutation requires explicit confirm=true AND a matching
+//   expectedMatched count from the prior dry-run.
+//
+// SAFETY HARNESS:
+//   1. dryRun=true by default — same as the read-only proposal builder
+//   2. confirm=true required for any write
+//   3. expectedMatched parameter required — must match runtime within
+//      MATCH_DRIFT_TOLERANCE rows or function aborts (population drift
+//      detection — refuses to apply if candidate set has changed
+//      materially since the dry-run snapshot)
+//   4. Pre-flight: Outreach_AuditLog sheet must exist (function does
+//      NOT auto-create it — see setup-audit-log.gs.template)
+//   5. For each row: re-evaluate ALL filters at runtime immediately
+//      before mutation (no trust in pre-built candidate list)
+//   6. For each row: write audit row to Outreach_AuditLog FIRST.
+//      If audit write fails → skip this lead, log, continue with next
+//   7. Only after audit row is confirmed written: update the Leads row
+//   8. Per-batch progress logging (every 50 rows)
+//   9. Hard limit on mutations per invocation: MAX_MUTATIONS_PER_RUN
+//  10. Idempotent — already-processed rows (where outreachStatus or
+//      needsHumanAction no longer match) are silently skipped
+//
+// USAGE:
+//   applyResetQuotaFailures()                                // dry run, no expected count check
+//   applyResetQuotaFailures({ expectedMatched: 245 })        // dry run + drift check
+//   applyResetQuotaFailures({ confirm: true, expectedMatched: 245 })  // MUTATE
+//
+// PREREQUISITES BEFORE confirm:true:
+//   • Run reset-quota-failures.gs.template (the read-only proposal builder)
+//   • Confirm proposalCounts and verification fields are acceptable
+//   • Run setup-audit-log.gs.template to create the Outreach_AuditLog sheet
+//   • Pause autosend triggers for the mutation window (optional but recommended)
+// ───────────────────────────────────────────────────────────────────
+
+function applyResetQuotaFailures(opts) {
+  opts = opts || {};
+  var dryRun  = opts.confirm === true ? false : true;     // defaults to dry-run
+  var confirm = opts.confirm === true;
+  var expectedMatched = opts.expectedMatched;             // optional integer
+  var actor   = opts.actor || Session.getActiveUser().getEmail() || 'unknown';
+
+  // ── Constants ─────────────────────────────────────────────────────
+  var REASON_RE = /^(send_error|followup_error):/;
+  var QUOTA_RE  = /(too many times|Service invoked too many)/i;
+  var MAX_FU    = 3;
+  var MATCH_DRIFT_TOLERANCE = 5;       // ±N rows tolerated vs expectedMatched
+  var MAX_MUTATIONS_PER_RUN = 300;     // hard ceiling
+  var AUDIT_SHEET_NAME      = 'Outreach_AuditLog';
+
+  // ── Pre-flight: audit sheet must exist ───────────────────────────
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+  var auditSheet = ss.getSheetByName(AUDIT_SHEET_NAME);
+  if (!auditSheet) {
+    return {
+      ok:    false,
+      error: 'audit_sheet_missing',
+      remedy: 'Run setup-audit-log.gs.template to create the "' +
+              AUDIT_SHEET_NAME + '" sheet before applying mutations.',
+      actor: actor,
+      mode:  dryRun ? 'dry_run' : 'mutate'
+    };
+  }
+
+  // ── Verify audit sheet header signature ──────────────────────────
+  var EXPECTED_HEADERS = [
+    'id', 'timestamp', 'leadId', 'actor', 'action',
+    'before', 'after', 'originalReason', 'notes'
+  ];
+  var actualHeaders = auditSheet.getRange(1, 1, 1, EXPECTED_HEADERS.length)
+                                .getValues()[0];
+  for (var h = 0; h < EXPECTED_HEADERS.length; h++) {
+    if (String(actualHeaders[h]).trim() !== EXPECTED_HEADERS[h]) {
+      return {
+        ok:     false,
+        error:  'audit_sheet_header_mismatch',
+        column: h + 1,
+        expected: EXPECTED_HEADERS[h],
+        actual:   actualHeaders[h],
+        remedy: 'Audit sheet headers must match exactly. Re-run setup-audit-log.gs.template.'
+      };
+    }
+  }
+
+  // ── Filter candidates (same logic as dry-run) ────────────────────
+  var all = getTableRows('Leads');
+  var matched = [];
+  for (var i = 0; i < all.length; i++) {
+    var r = all[i];
+    if (r.leadDirection !== 'outbound') continue;
+    if (String(r.needsHumanAction) !== 'true') continue;
+    if (r.replyStatus && r.replyStatus !== '') continue;
+    var reason = r.humanActionReason || '';
+    if (!REASON_RE.test(reason)) continue;
+    if (!QUOTA_RE.test(reason)) continue;
+    matched.push(r);
+  }
+
+  // ── Population drift check ───────────────────────────────────────
+  if (typeof expectedMatched === 'number') {
+    var drift = Math.abs(matched.length - expectedMatched);
+    if (drift > MATCH_DRIFT_TOLERANCE) {
+      return {
+        ok:      false,
+        error:   'population_drift',
+        expected: expectedMatched,
+        actual:   matched.length,
+        drift:    drift,
+        tolerance: MATCH_DRIFT_TOLERANCE,
+        remedy:  'Candidate population has changed by more than ±' +
+                 MATCH_DRIFT_TOLERANCE + ' rows since the dry-run. ' +
+                 'Re-run reset-quota-failures.gs first to re-baseline, ' +
+                 'then call with the new expectedMatched count.'
+      };
+    }
+  }
+
+  // ── Hard limit ───────────────────────────────────────────────────
+  if (matched.length > MAX_MUTATIONS_PER_RUN) {
+    return {
+      ok:     false,
+      error:  'too_many_candidates',
+      matched: matched.length,
+      max:    MAX_MUTATIONS_PER_RUN,
+      remedy: 'Candidate count exceeds per-run ceiling. ' +
+              'Tighten the filter or raise MAX_MUTATIONS_PER_RUN deliberately.'
+    };
+  }
+
+  // ── Per-row processing ───────────────────────────────────────────
+  var nowIso     = new Date().toISOString();
+  var today      = nowIso.split('T')[0];
+  var nextDayIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  var stats = {
+    candidateCount:    matched.length,
+    attempted:         0,
+    mutated:           0,
+    skippedReRunCheck: 0,    // re-check at runtime failed
+    skippedAuditFail:  0,    // audit row write failed
+    skippedAlreadyDone: 0,   // status changed since matching
+    errorRows:         []    // per-row error captures
+  };
+
+  var actionCounts = {
+    resetToReady:            0,
+    safeCloseFinal:          0,
+    safeCloseFinalCompleted: 0,
+    scheduledRetry:          0
+  };
+
+  for (var j = 0; j < matched.length; j++) {
+    stats.attempted++;
+    var lead = matched[j];
+
+    // ── Per-row re-check: ALL filters re-evaluated immediately ──
+    // Re-read the live row (the cached `lead` object may be stale)
+    var liveRows = getTableRows('Leads');
+    var live = null;
+    for (var l = 0; l < liveRows.length; l++) {
+      if (liveRows[l].id === lead.id) { live = liveRows[l]; break; }
+    }
+    if (!live) {
+      stats.skippedReRunCheck++;
+      stats.errorRows.push({ id: lead.id, reason: 'row_disappeared' });
+      continue;
+    }
+    if (live.leadDirection !== 'outbound' ||
+        String(live.needsHumanAction) !== 'true' ||
+        (live.replyStatus && live.replyStatus !== '') ||
+        !REASON_RE.test(live.humanActionReason || '') ||
+        !QUOTA_RE.test(live.humanActionReason || '')) {
+      stats.skippedAlreadyDone++;
+      continue;
+    }
+
+    // ── Classify current row ─────────────────────────────────────
+    var status      = live.outreachStatus || '';
+    var hasThread   = !!live.threadId;
+    var followCount = Number(live.followUpCount || live.emailSentCount || 0);
+    var action      = null;
+    var afterPatch  = null;
+    var noteText    = null;
+
+    if (status === 'LOCKED_FOR_OUTREACH') {
+      action = 'resetToReady';
+      afterPatch = {
+        outreachStatus:    'READY_FOR_OUTREACH',
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-reset ' + today + ': send_error quota; lock released'
+      };
+      noteText = afterPatch.lastAuditNote;
+    } else if (status === 'FINAL_FOLLOW_UP' && !hasThread) {
+      action = 'safeCloseFinal';
+      afterPatch = {
+        // outreachStatus unchanged
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-close ' + today + ': followup_error quota; thread missing; no retry'
+      };
+      noteText = afterPatch.lastAuditNote;
+    } else if (status === 'FINAL_FOLLOW_UP' && hasThread && followCount >= MAX_FU) {
+      action = 'safeCloseFinalCompleted';
+      afterPatch = {
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-close ' + today + ': sequence complete (count>=' + MAX_FU + ')'
+      };
+      noteText = afterPatch.lastAuditNote;
+    } else if (status === 'FINAL_FOLLOW_UP' && hasThread && followCount < MAX_FU) {
+      action = 'scheduledRetry';
+      afterPatch = {
+        outreachStatus:    'FOLLOW_UP_2',
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        followUpCount:     String(Math.max(0, followCount - 1)),
+        nextFollowUpAt:    nextDayIso,
+        lastAuditNote:     'auto-retry ' + today + ': reverted to FOLLOW_UP_2; rescheduled +24h'
+      };
+      noteText = afterPatch.lastAuditNote;
+    } else {
+      // Anomaly — should not happen because dry-run reported anomaly=0,
+      // but if it does, skip and record
+      stats.errorRows.push({
+        id:           lead.id,
+        reason:       'anomaly_at_apply_time',
+        outreachStatus: status
+      });
+      continue;
+    }
+
+    var beforeState = {
+      outreachStatus:    status,
+      needsHumanAction:  String(live.needsHumanAction || ''),
+      humanActionReason: (live.humanActionReason || '').substring(0, 500),
+      threadId:          hasThread ? '(present)' : '',
+      followUpCount:     followCount,
+      lastContactedAt:   live.lastContactedAt || '',
+      nextFollowUpAt:    live.nextFollowUpAt || ''
+    };
+
+    // ── Dry-run: count and continue, no writes ───────────────────
+    if (dryRun) {
+      actionCounts[action]++;
+      continue;
+    }
+
+    // ── MUTATION MODE: audit row first, then Leads update ────────
+    var auditId   = Utilities.getUuid();
+    var auditRow  = [
+      auditId,
+      new Date().toISOString(),
+      lead.id,
+      actor,
+      action,
+      JSON.stringify(beforeState),
+      JSON.stringify(afterPatch),
+      (live.humanActionReason || '').substring(0, 500),
+      noteText
+    ];
+
+    // Step 1 — write audit row, catch any failure
+    try {
+      auditSheet.appendRow(auditRow);
+    } catch (auditErr) {
+      stats.skippedAuditFail++;
+      stats.errorRows.push({
+        id:    lead.id,
+        reason:'audit_write_failed',
+        error: auditErr.message
+      });
+      continue;  // do NOT mutate Leads if audit failed
+    }
+
+    // Step 2 — confirm audit row exists (defensive double-check)
+    var auditCheck = auditSheet.getRange(auditSheet.getLastRow(), 1).getValue();
+    if (auditCheck !== auditId) {
+      stats.skippedAuditFail++;
+      stats.errorRows.push({
+        id:    lead.id,
+        reason:'audit_row_verification_failed',
+        wrote: auditId,
+        found: auditCheck
+      });
+      continue;
+    }
+
+    // Step 3 — mutate Leads
+    try {
+      updateRow('Leads', lead.id, afterPatch);
+      stats.mutated++;
+      actionCounts[action]++;
+    } catch (mutErr) {
+      stats.errorRows.push({
+        id:     lead.id,
+        reason: 'mutation_failed',
+        error:  mutErr.message,
+        auditId: auditId,
+        note:   'AUDIT ROW EXISTS BUT LEADS WRITE FAILED — investigate'
+      });
+      // Mark the audit row as failed by appending a follow-up audit row
+      try {
+        auditSheet.appendRow([
+          Utilities.getUuid(),
+          new Date().toISOString(),
+          lead.id,
+          'system',
+          'mutation_failed',
+          JSON.stringify(beforeState),
+          JSON.stringify(afterPatch),
+          '',
+          'WRITE_FAILED for auditId ' + auditId + ': ' + mutErr.message
+        ]);
+      } catch (_) {}
+    }
+
+    // Per-batch progress log
+    if ((j + 1) % 50 === 0) {
+      Logger.log('[progress] ' + (j + 1) + '/' + matched.length +
+                 ' • mutated: ' + stats.mutated +
+                 ' • auditFail: ' + stats.skippedAuditFail);
+    }
+  }
+
+  // ── Invalidate cache so subsequent reads see the new state ──
+  if (!dryRun && stats.mutated > 0) {
+    invalidateCache('Leads');
+  }
+
+  // ── Result envelope ────────────────────────────────────────────
+  var result = {
+    ok:               true,
+    mode:             dryRun ? 'dry_run' : 'mutate',
+    confirm:          confirm,
+    actor:            actor,
+    generatedAt:      nowIso,
+    expectedMatched:  expectedMatched || null,
+    matchedAtRuntime: matched.length,
+    stats:            stats,
+    actionCounts:     actionCounts,
+    errorRowsCount:   stats.errorRows.length,
+    errorRowsSample:  stats.errorRows.slice(0, 25)   // first 25 errors
+  };
+
+  Logger.log(JSON.stringify(result, null, 2).substring(0, 45000));
+  Logger.log('[done] mode=' + result.mode +
+             ' • candidates: ' + matched.length +
+             ' • mutated: ' + stats.mutated +
+             ' • auditFail: ' + stats.skippedAuditFail +
+             ' • alreadyDone: ' + stats.skippedAlreadyDone +
+             ' • errors: ' + stats.errorRows.length);
+  return result;
+}

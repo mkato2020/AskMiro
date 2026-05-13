@@ -1,0 +1,188 @@
+// audit-tmp.gs — READ-ONLY forensic audit extraction
+// ────────────────────────────────────────────────────
+// SAFETY CONTRACT (DO NOT EDIT):
+//   • No writes (no setValue / appendRow / updateRow)
+//   • No sends (no GmailApp.sendEmail / replyAll)
+//   • No labels (no addLabel / removeLabel / moveToArchive)
+//   • No external API calls (no UrlFetchApp / fetch)
+//   • No Properties writes (no PropertiesService.setProperty)
+//   • Reads only: getTableRows('Leads')
+//
+// Paste-once, run-once, delete-the-file.
+// Do NOT clasp push. Do NOT commit. This file lives under docs/templates/
+// so it can never be picked up by `clasp push` from the gas/ folder.
+// ────────────────────────────────────────────────────
+
+function auditNeedsAttention() {
+  // ── Read-only data acquisition ──────────────────────────────────────────
+  const all = getTableRows('Leads');
+  const rows = all.filter(function (r) {
+    return r.leadDirection === 'outbound' && String(r.needsHumanAction) === 'true';
+  });
+
+  // ── Bucket counts (cheap aggregates over the full set) ─────────────────
+  const bucketsByReason = {};
+  const bucketsByReplyStatus = {};
+  const bucketsByOutreachStatus = {};
+  rows.forEach(function (r) {
+    var reason = (r.humanActionReason || '').split(':')[0] || 'empty';
+    var rs     = r.replyStatus     || 'empty';
+    var os     = r.outreachStatus  || 'empty';
+    bucketsByReason[reason]     = (bucketsByReason[reason] || 0) + 1;
+    bucketsByReplyStatus[rs]    = (bucketsByReplyStatus[rs] || 0) + 1;
+    bucketsByOutreachStatus[os] = (bucketsByOutreachStatus[os] || 0) + 1;
+  });
+
+  // ── Category heuristics (the 9 buckets requested) ──────────────────────
+  // Each row counts in EVERY category it matches (not mutually exclusive)
+  // except 'unknown', which is set only if no other category matched.
+  var GENERIC_LOCALS = {
+    info: 1, contact: 1, hello: 1, office: 1, admin: 1, sales: 1,
+    enquiries: 1, enquiry: 1, support: 1, help: 1, reception: 1,
+    accounts: 1, hr: 1, jobs: 1, careers: 1, marketing: 1, press: 1,
+    media: 1, legal: 1, compliance: 1, feedback: 1, team: 1,
+    staff: 1, management: 1, mail: 1, general: 1,
+  };
+  var PUBLIC_TLD_RE = /\.(gov\.uk|nhs\.uk|ac\.uk|sch\.uk|police\.uk|mod\.uk)$/i;
+  var EMAIL_RE      = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i;
+  var BOUNCE_RE     = /(undeliverable|could not be delivered|delivery (has )?failed|mailer[- ]?daemon|address rejected|user unknown|mailbox (full|unavailable)|recipient address rejected|no such user|550 |5\.1\.1)/i;
+  var OOO_RE        = /(out of office|on (annual )?leave|on holiday|on vacation|away (from|until)|currently (away|out)|i'?ll be back|return on|automatic (reply|response))/i;
+  var OWN_FU_RE     = /(following up|circling back|checking in|just (a |to )?(quick )?nudge|did you have a chance|wanted to follow|gentle reminder|bumping this)/i;
+
+  var cat = {
+    ownFollowUpSuspected:    0,
+    wrongContact:            0,
+    badEmailFormat:          0,
+    genericInbox:            0,
+    bounced:                 0,
+    oooSuspected:            0,
+    publicSectorDomain:      0,
+    realHumanReplySuspected: 0,
+    unknown:                 0,
+  };
+
+  rows.forEach(function (r) {
+    var matched = false;
+    var email   = (r.email || '').toLowerCase().trim();
+    var local   = email.indexOf('@') > 0 ? email.split('@')[0] : '';
+    var domain  = email.indexOf('@') > 0 ? email.split('@')[1] : '';
+    var reason  = (r.humanActionReason || '').toLowerCase();
+    var rstatus = (r.replyStatus       || '').toUpperCase();
+    var summary = (r.replySummary      || '');
+
+    if (email && !EMAIL_RE.test(email)) {
+      cat.badEmailFormat++; matched = true;
+    }
+    if (local && GENERIC_LOCALS[local]) {
+      cat.genericInbox++; matched = true;
+    }
+    if (domain && PUBLIC_TLD_RE.test(domain)) {
+      cat.publicSectorDomain++; matched = true;
+    }
+    if (reason.indexOf('wrong_contact') >= 0 || rstatus === 'WRONG_CONTACT') {
+      cat.wrongContact++; matched = true;
+    }
+    if (reason.indexOf('bounce') >= 0 || rstatus === 'BOUNCE' ||
+        BOUNCE_RE.test(summary)) {
+      cat.bounced++; matched = true;
+    }
+    if (rstatus === 'OUT_OF_OFFICE' ||
+        reason.indexOf('ooo') >= 0 || reason.indexOf('auto') >= 0 ||
+        OOO_RE.test(summary)) {
+      cat.oooSuspected++; matched = true;
+    }
+    if (OWN_FU_RE.test(summary)) {
+      cat.ownFollowUpSuspected++; matched = true;
+    }
+    if (reason.indexOf('interested') >= 0 ||
+        rstatus === 'POSITIVE' || rstatus === 'INTERESTED' ||
+        rstatus === 'INFO_REQUEST') {
+      cat.realHumanReplySuspected++; matched = true;
+    }
+    if (!matched) cat.unknown++;
+  });
+
+  // ── Age distribution ────────────────────────────────────────────────────
+  var now = Date.now();
+  var ages = rows.map(function (r) {
+    var t = new Date(r.lastContactedAt || r.createdAt || now).getTime();
+    return Math.max(0, Math.floor((now - t) / (1000 * 60 * 60 * 24)));
+  });
+  ages.sort(function (a, b) { return a - b; });
+  var ageStats = {
+    medianDays:   ages[Math.floor(ages.length / 2)] || 0,
+    p90Days:      ages[Math.floor(ages.length * 0.9)] || 0,
+    p99Days:      ages[Math.floor(ages.length * 0.99)] || 0,
+    oldestDays:   ages[ages.length - 1] || 0,
+    youngestDays: ages[0] || 0,
+  };
+
+  // ── Sample 25 newest / 25 oldest / 25 random ───────────────────────────
+  function _summarise(r) {
+    return {
+      id:                r.id,
+      company:           (r.companyName || '').substring(0, 80),
+      email:             r.email || '',
+      role:              (r.contactRole || r.role || '').substring(0, 60),
+      sector:            (r.sector || r.segment || '').substring(0, 40),
+      outreachStatus:    r.outreachStatus || '',
+      replyStatus:       r.replyStatus || '',
+      replySummary:      (r.replySummary || '').substring(0, 120),
+      humanActionReason: (r.humanActionReason || '').substring(0, 80),
+      needsHumanAction:  String(r.needsHumanAction || ''),
+      lastContactedAt:   r.lastContactedAt || '',
+      threadIdPresent:   !!r.threadId,
+      nextFollowUpAt:    r.nextFollowUpAt || '',
+      emailSentCount:    Number(r.emailSentCount || r.followUpCount || 0),
+      updatedAt:         r.updatedAt || r.lastModifiedAt || '',
+    };
+  }
+
+  var sortedByDateDesc = rows.slice().sort(function (a, b) {
+    return new Date(b.lastContactedAt || 0) - new Date(a.lastContactedAt || 0);
+  });
+  var sortedByDateAsc = rows.slice().sort(function (a, b) {
+    return new Date(a.lastContactedAt || 0) - new Date(b.lastContactedAt || 0);
+  });
+  var shuffled = rows.slice();
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+  }
+
+  var sample25Newest = sortedByDateDesc.slice(0, 25).map(_summarise);
+  var sample25Oldest = sortedByDateAsc.slice(0, 25).map(_summarise);
+  var sample25Random = shuffled.slice(0, 25).map(_summarise);
+
+  // ── Compose result ─────────────────────────────────────────────────────
+  var result = {
+    generatedAt:             new Date().toISOString(),
+    auditVersion:            '1',
+    leadsScanned:            all.length,
+    needsAttentionTotal:     rows.length,
+    categoryCounts:          cat,
+    bucketsByReason:         bucketsByReason,
+    bucketsByReplyStatus:    bucketsByReplyStatus,
+    bucketsByOutreachStatus: bucketsByOutreachStatus,
+    ageDistribution:         ageStats,
+    sample25Newest:          sample25Newest,
+    sample25Oldest:          sample25Oldest,
+    sample25Random:          sample25Random,
+  };
+
+  // ── Output in two safe ways ────────────────────────────────────────────
+  // (1) Logger.log chunked so no single line exceeds the 50 KB ceiling
+  var json = JSON.stringify(result, null, 2);
+  var CHUNK = 45000;
+  var totalChunks = Math.ceil(json.length / CHUNK);
+  for (var k = 0; k < totalChunks; k++) {
+    Logger.log('[chunk ' + (k + 1) + '/' + totalChunks + ']\n' +
+               json.substring(k * CHUNK, (k + 1) * CHUNK));
+  }
+  Logger.log('[done] total bytes: ' + json.length +
+             ' • chunks: ' + totalChunks +
+             ' • rows: ' + rows.length);
+
+  // (2) Return the object so it appears in the editor's "Result" section
+  return result;
+}

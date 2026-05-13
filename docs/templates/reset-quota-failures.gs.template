@@ -1,0 +1,303 @@
+// reset-quota-failures.gs — READ-ONLY DRY-RUN proposal builder
+// ────────────────────────────────────────────────────────────────
+// SAFETY CONTRACT (DO NOT EDIT):
+//   • No writes (no setValue / appendRow / updateRow)
+//   • No sends (no GmailApp.sendEmail / replyAll)
+//   • No labels (no addLabel / removeLabel / moveToArchive)
+//   • No external API calls (no UrlFetchApp / fetch)
+//   • No Properties writes (no PropertiesService.setProperty)
+//   • Reads only: getTableRows('Leads')
+//
+//   This is a PROPOSAL BUILDER. It computes what would change and
+//   returns a JSON describing every proposed transition. It NEVER
+//   applies the transitions. There is no `confirm: true` path.
+//   A separate `applyResetQuotaFailures()` function will be built
+//   only after Mike reviews this output and approves the design.
+//
+//   Paste-once, run-once, delete-the-file.
+//   Do NOT clasp push. Do NOT commit. Lives under docs/templates/
+//   so it can never be uploaded by `clasp push` from gas/.
+// ────────────────────────────────────────────────────────────────
+
+function resetQuotaFailures() {
+  // ── Filter constants ───────────────────────────────────────────────
+  var REASON_RE = /^(send_error|followup_error):/;
+  var QUOTA_RE  = /(too many times|Service invoked too many)/i;
+  var MAX_FU    = 3;     // matches MAX_FOLLOW_UPS in outreach.gs
+
+  // ── Read-only data acquisition ─────────────────────────────────────
+  var all = getTableRows('Leads');
+
+  // Audit counters
+  var counters = {
+    leadsScanned:                 all.length,
+    outboundTotal:                0,
+    needsAttentionTotal:          0,
+    excluded_notOutbound:         0,
+    excluded_notFlagged:          0,
+    excluded_replyStatusSet:      0,
+    excluded_reasonMismatch:      0,
+    excluded_quotaTermMissing:    0,
+    matched:                      0,
+    repliedRowsSeenButNotTouched: 0
+  };
+
+  var matched = [];
+
+  for (var i = 0; i < all.length; i++) {
+    var r = all[i];
+
+    // Outbound only
+    if (r.leadDirection !== 'outbound') {
+      counters.excluded_notOutbound++;
+      continue;
+    }
+    counters.outboundTotal++;
+
+    // Count flagged for needs-attention regardless of other filters
+    var flagged = String(r.needsHumanAction) === 'true';
+    if (flagged) counters.needsAttentionTotal++;
+
+    // Belt-and-braces REPLIED-row counter (the 54 rows we must not touch)
+    if ((r.replyStatus || '').toUpperCase() === 'REPLIED') {
+      counters.repliedRowsSeenButNotTouched++;
+    }
+
+    if (!flagged) {
+      counters.excluded_notFlagged++;
+      continue;
+    }
+
+    // replyStatus must be empty (excludes all REPLIED, POSITIVE, etc.)
+    if (r.replyStatus && r.replyStatus !== '') {
+      counters.excluded_replyStatusSet++;
+      continue;
+    }
+
+    // humanActionReason must start with send_error: or followup_error:
+    var reason = r.humanActionReason || '';
+    if (!REASON_RE.test(reason)) {
+      counters.excluded_reasonMismatch++;
+      continue;
+    }
+
+    // humanActionReason must include the quota error phrase
+    if (!QUOTA_RE.test(reason)) {
+      counters.excluded_quotaTermMissing++;
+      continue;
+    }
+
+    counters.matched++;
+    matched.push(r);
+  }
+
+  // ── Classify matched rows into transition buckets ──────────────────
+  var plan = {
+    resetToReady:            [],
+    safeCloseFinal:          [],
+    safeCloseFinalCompleted: [],
+    scheduledRetry:          [],
+    anomaly:                 []
+  };
+
+  var nowIso = new Date().toISOString();
+  var nextDayMs = Date.now() + (24 * 60 * 60 * 1000);
+  var nextDayIso = new Date(nextDayMs).toISOString();
+
+  for (var j = 0; j < matched.length; j++) {
+    var r = matched[j];
+    var status      = r.outreachStatus || '';
+    var hasThread   = !!r.threadId;
+    var followCount = Number(r.followUpCount || r.emailSentCount || 0);
+    var originalReason = (r.humanActionReason || '').substring(0, 200);
+
+    var beforeState = {
+      outreachStatus:    status,
+      needsHumanAction:  String(r.needsHumanAction || ''),
+      humanActionReason: originalReason,
+      threadId:          hasThread ? '(present)' : '',
+      followUpCount:     followCount,
+      lastContactedAt:   r.lastContactedAt || '',
+      nextFollowUpAt:    r.nextFollowUpAt || ''
+    };
+
+    var entry = {
+      id:              r.id,
+      company:         (r.companyName || '').substring(0, 80),
+      email:           r.email || '',
+      sector:          (r.sector || r.segment || '').substring(0, 40),
+      before:          beforeState,
+      after:           null,
+      proposedAction:  null,
+      auditNote:       null,
+      originalReason:  originalReason
+    };
+
+    // ── Classification logic ─────────────────────────────────────────
+    if (status === 'LOCKED_FOR_OUTREACH') {
+      // Initial send failed mid-flight, lock never released
+      entry.proposedAction = 'resetToReady';
+      entry.after = {
+        outreachStatus:    'READY_FOR_OUTREACH',
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-reset ' + nowIso.split('T')[0] +
+                           ': send_error quota; lock released',
+        // unchanged: threadId, followUpCount, lastContactedAt
+      };
+      entry.auditNote = entry.after.lastAuditNote;
+      plan.resetToReady.push(entry);
+
+    } else if (status === 'FINAL_FOLLOW_UP' && !hasThread) {
+      // Followup quota-failed AND no thread exists — cannot retry safely
+      entry.proposedAction = 'safeCloseFinal';
+      entry.after = {
+        outreachStatus:    'FINAL_FOLLOW_UP',  // unchanged
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-close ' + nowIso.split('T')[0] +
+                           ': followup_error quota; thread missing; no retry'
+      };
+      entry.auditNote = entry.after.lastAuditNote;
+      plan.safeCloseFinal.push(entry);
+
+    } else if (status === 'FINAL_FOLLOW_UP' && hasThread && followCount >= MAX_FU) {
+      // Sequence is complete; no further send wanted; just unflag
+      entry.proposedAction = 'safeCloseFinalCompleted';
+      entry.after = {
+        outreachStatus:    'FINAL_FOLLOW_UP',  // unchanged
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        lastAuditNote:     'auto-close ' + nowIso.split('T')[0] +
+                           ': sequence already complete (count>=' + MAX_FU + ')'
+      };
+      entry.auditNote = entry.after.lastAuditNote;
+      plan.safeCloseFinalCompleted.push(entry);
+
+    } else if (status === 'FINAL_FOLLOW_UP' && hasThread && followCount < MAX_FU) {
+      // Thread exists, count below max — safe to schedule a retry
+      // outside today's quota window
+      entry.proposedAction = 'scheduledRetry';
+      entry.after = {
+        outreachStatus:    'FOLLOW_UP_2',
+        needsHumanAction:  'false',
+        humanActionReason: '',
+        followUpCount:     Math.max(0, followCount - 1),
+        nextFollowUpAt:    nextDayIso,
+        lastAuditNote:     'auto-retry ' + nowIso.split('T')[0] +
+                           ': reverted from FINAL_FOLLOW_UP to FOLLOW_UP_2; ' +
+                           'rescheduled +24h to clear quota window'
+      };
+      entry.auditNote = entry.after.lastAuditNote;
+      plan.scheduledRetry.push(entry);
+
+    } else {
+      // Matched filter but outreachStatus is unexpected — report, do not transition
+      entry.proposedAction = 'anomaly';
+      entry.after = null;
+      entry.auditNote = 'anomaly: unexpected outreachStatus="' + status +
+                        '" for quota failure row — requires human inspection';
+      plan.anomaly.push(entry);
+    }
+  }
+
+  // ── Verification ───────────────────────────────────────────────────
+  var verification = {
+    repliedRowsSeenButNotTouched: counters.repliedRowsSeenButNotTouched,
+    // (matched) + (all excluded buckets after outbound filter) === outboundTotal AND
+    // also accounts for non-flagged rows
+    filterIntegrityOk: (
+      counters.matched +
+      counters.excluded_notFlagged +
+      counters.excluded_replyStatusSet +
+      counters.excluded_reasonMismatch +
+      counters.excluded_quotaTermMissing
+    ) === counters.outboundTotal,
+    repliedRowsExclusionAsExpected:
+      counters.repliedRowsSeenButNotTouched <= counters.excluded_replyStatusSet,
+    anomalyCount: plan.anomaly.length
+  };
+
+  // ── Build sampled output (cap each bucket at 25 for size) ──────────
+  function _sample(arr) { return arr.slice(0, 25); }
+
+  // ── Audit log preview (first 5 rows total across buckets) ──────────
+  var auditLogRowsPreview = [];
+  ['resetToReady','safeCloseFinal','safeCloseFinalCompleted','scheduledRetry']
+    .forEach(function(bucket) {
+      var items = plan[bucket];
+      for (var k = 0; k < items.length && auditLogRowsPreview.length < 5; k++) {
+        auditLogRowsPreview.push({
+          timestamp:      nowIso,
+          leadId:         items[k].id,
+          actor:          '<dry_run_proposal>',
+          action:         items[k].proposedAction,
+          before:         items[k].before,
+          after:          items[k].after,
+          originalReason: items[k].originalReason,
+          notes:          items[k].auditNote
+        });
+      }
+    });
+
+  // ── Compose result ─────────────────────────────────────────────────
+  var result = {
+    generatedAt:          nowIso,
+    mode:                 'dry_run',
+    auditVersion:         '1',
+    leadsScanned:         counters.leadsScanned,
+    outboundTotal:        counters.outboundTotal,
+    needsAttentionTotal:  counters.needsAttentionTotal,
+
+    filter: {
+      matched:                   counters.matched,
+      excluded_notOutbound:      counters.excluded_notOutbound,
+      excluded_notFlagged:       counters.excluded_notFlagged,
+      excluded_replyStatusSet:   counters.excluded_replyStatusSet,
+      excluded_reasonMismatch:   counters.excluded_reasonMismatch,
+      excluded_quotaTermMissing: counters.excluded_quotaTermMissing
+    },
+
+    verification: verification,
+
+    proposalCounts: {
+      resetToReady:            plan.resetToReady.length,
+      safeCloseFinal:          plan.safeCloseFinal.length,
+      safeCloseFinalCompleted: plan.safeCloseFinalCompleted.length,
+      scheduledRetry:          plan.scheduledRetry.length,
+      anomaly:                 plan.anomaly.length
+    },
+
+    samples: {
+      resetToReady:            _sample(plan.resetToReady),
+      safeCloseFinal:          _sample(plan.safeCloseFinal),
+      safeCloseFinalCompleted: _sample(plan.safeCloseFinalCompleted),
+      scheduledRetry:          _sample(plan.scheduledRetry),
+      anomaly:                 _sample(plan.anomaly)
+    },
+
+    auditLogRowsPreview: auditLogRowsPreview
+  };
+
+  // ── Output in two safe ways ────────────────────────────────────────
+  // (1) Logger.log chunked so no single line exceeds the 50 KB ceiling
+  var json = JSON.stringify(result, null, 2);
+  var CHUNK = 45000;
+  var totalChunks = Math.ceil(json.length / CHUNK);
+  for (var c = 0; c < totalChunks; c++) {
+    Logger.log('[chunk ' + (c + 1) + '/' + totalChunks + ']\n' +
+               json.substring(c * CHUNK, (c + 1) * CHUNK));
+  }
+  Logger.log('[done] mode=dry_run' +
+             ' • matched: ' + counters.matched +
+             ' • resetToReady: ' + plan.resetToReady.length +
+             ' • safeCloseFinal: ' + plan.safeCloseFinal.length +
+             ' • safeCloseFinalCompleted: ' + plan.safeCloseFinalCompleted.length +
+             ' • scheduledRetry: ' + plan.scheduledRetry.length +
+             ' • anomalies: ' + plan.anomaly.length +
+             ' • filterIntegrityOk: ' + verification.filterIntegrityOk +
+             ' • repliedSeenButNotTouched: ' + verification.repliedRowsSeenButNotTouched);
+
+  // (2) Return the object so it appears in the editor's "Result" section
+  return result;
+}

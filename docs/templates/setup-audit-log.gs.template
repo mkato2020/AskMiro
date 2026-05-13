@@ -1,0 +1,76 @@
+// setup-audit-log.gs — ONE-TIME setup of the Outreach_AuditLog sheet
+// ────────────────────────────────────────────────────────────────────
+// SCOPE: this function performs EXACTLY ONE write — it creates a new
+// Sheet tab named 'Outreach_AuditLog' with 9 column headers. It does
+// not touch the Leads sheet, does not send email, does not call
+// external APIs. It is the only authorised prerequisite write
+// required before applyResetQuotaFailures({ confirm: true }) can run.
+//
+// IDEMPOTENCY:
+//   • Returns { ok: false, error: 'sheet_already_exists' } if the sheet
+//     already exists. Does NOT overwrite.
+//
+// USAGE:
+//   setupAuditLogSheet()      // creates the sheet on first run
+//
+// PASTE-AND-RUN MODEL:
+//   Paste into a throwaway audit-setup.gs file in the GAS editor,
+//   run once, delete the file. The created sheet persists in the
+//   spreadsheet and is read by applyResetQuotaFailures().
+//
+// PERMISSION SCOPES:
+//   • SpreadsheetApp only
+//   • NO Gmail, NO UrlFetch
+// ────────────────────────────────────────────────────────────────────
+
+function setupAuditLogSheet() {
+  var SHEET_NAME = 'Outreach_AuditLog';
+  var HEADERS = [
+    'id',              // UUID generated per row
+    'timestamp',       // ISO 8601
+    'leadId',          // LEAD-...
+    'actor',           // email or 'system'
+    'action',          // resetToReady | safeCloseFinal | safeCloseFinalCompleted | scheduledRetry | mutation_failed
+    'before',          // JSON string of the row state before mutation
+    'after',           // JSON string of the patch applied
+    'originalReason',  // the humanActionReason text preserved
+    'notes'            // human or machine notes
+  ];
+
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+
+  if (ss.getSheetByName(SHEET_NAME)) {
+    return {
+      ok:    false,
+      error: 'sheet_already_exists',
+      sheet: SHEET_NAME,
+      remedy: 'Sheet exists. If headers need repair, manually inspect; do not auto-overwrite.'
+    };
+  }
+
+  var sheet = ss.insertSheet(SHEET_NAME);
+  sheet.appendRow(HEADERS);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, HEADERS.length)
+       .setFontWeight('bold')
+       .setBackground('#F1F5F9');
+
+  // Set column widths for readability
+  sheet.setColumnWidth(1, 280);   // id (UUID)
+  sheet.setColumnWidth(2, 180);   // timestamp
+  sheet.setColumnWidth(3, 180);   // leadId
+  sheet.setColumnWidth(4, 200);   // actor
+  sheet.setColumnWidth(5, 180);   // action
+  sheet.setColumnWidth(6, 400);   // before (JSON)
+  sheet.setColumnWidth(7, 400);   // after  (JSON)
+  sheet.setColumnWidth(8, 300);   // originalReason
+  sheet.setColumnWidth(9, 300);   // notes
+
+  return {
+    ok:           true,
+    sheet:        SHEET_NAME,
+    headers:      HEADERS,
+    columnCount:  HEADERS.length,
+    note:         'Sheet created and ready for applyResetQuotaFailures() to append audit rows.'
+  };
+}

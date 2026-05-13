@@ -1,0 +1,85 @@
+// inspect-quota-term-missing.gs — READ-ONLY inspection
+// ──────────────────────────────────────────────────────
+// SAFETY CONTRACT:
+//   • No writes (no setValue / appendRow / updateRow)
+//   • No sends (no GmailApp)
+//   • No external API calls (no UrlFetchApp)
+//   • Reads only: getTableRows('Leads')
+//
+//   Surfaces the rows whose humanActionReason starts with
+//   send_error: or followup_error: but does NOT contain the
+//   Gmail quota phrase. These are excluded from the auto-cleanup
+//   candidate set and likely represent genuine human-attention
+//   items (bad recipient, blocked content, malformed message,
+//   etc.). They should remain human-reviewed.
+//
+//   Paste-once, run-once, delete-the-file.
+//   Do NOT clasp push. Do NOT commit.
+// ──────────────────────────────────────────────────────
+
+function inspectQuotaTermMissing() {
+  var REASON_RE = /^(send_error|followup_error):/;
+  var QUOTA_RE  = /(too many times|Service invoked too many)/i;
+
+  var all = getTableRows('Leads');
+  var found = [];
+
+  for (var i = 0; i < all.length; i++) {
+    var r = all[i];
+    if (r.leadDirection !== 'outbound') continue;
+    if (String(r.needsHumanAction) !== 'true') continue;
+    if (r.replyStatus && r.replyStatus !== '') continue;
+
+    var reason = r.humanActionReason || '';
+    if (!REASON_RE.test(reason)) continue;       // not a send/followup error at all
+    if (QUOTA_RE.test(reason)) continue;          // IS a quota error — already in candidate set
+
+    // This row is the target: starts with send_error: or followup_error:
+    // but reason does NOT mention the quota phrase
+    found.push({
+      id:                 r.id,
+      company:            (r.companyName || '').substring(0, 80),
+      email:              r.email || '',
+      role:               (r.contactRole || r.role || '').substring(0, 60),
+      sector:             (r.sector || r.segment || '').substring(0, 40),
+      outreachStatus:     r.outreachStatus || '',
+      replyStatus:        r.replyStatus || '',
+      // Full reason (no truncation here — we want to see the whole error message)
+      humanActionReason:  reason,
+      // Classify the error type from the message text for the user's convenience
+      inferredErrorType:  _inferErrorType(reason),
+      needsHumanAction:   String(r.needsHumanAction || ''),
+      lastContactedAt:    r.lastContactedAt || '',
+      threadIdPresent:    !!r.threadId,
+      followUpCount:      Number(r.followUpCount || r.emailSentCount || 0),
+      nextFollowUpAt:     r.nextFollowUpAt || '',
+      updatedAt:          r.updatedAt || r.lastModifiedAt || ''
+    });
+  }
+
+  // Best-effort classification of the underlying Gmail error
+  function _inferErrorType(reason) {
+    var r = reason.toLowerCase();
+    if (/invalid (recipient|email|address)/.test(r)) return 'invalid_recipient';
+    if (/no recipient|recipient not specified/.test(r)) return 'missing_recipient';
+    if (/attachment.*(size|too large)|message too large/.test(r)) return 'message_too_large';
+    if (/blocked|spam|policy/.test(r)) return 'policy_blocked';
+    if (/authentication|auth/.test(r)) return 'auth_failure';
+    if (/timeout|timed out/.test(r)) return 'timeout';
+    if (/network|connection/.test(r)) return 'network_error';
+    if (/permission/.test(r)) return 'permission_denied';
+    return 'unknown_non_quota';
+  }
+
+  var result = {
+    generatedAt:   new Date().toISOString(),
+    mode:          'inspection_read_only',
+    foundCount:    found.length,
+    rows:          found
+  };
+
+  // Output: small enough to fit in one Logger.log line for 2 rows
+  Logger.log(JSON.stringify(result, null, 2));
+  Logger.log('[done] inspected • foundCount: ' + found.length);
+  return result;
+}
