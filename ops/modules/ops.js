@@ -1,26 +1,23 @@
 window. Ops = (() => {
   let _jobs = [];
   async function render() {
-    const osUrl = (window.CFG && window.CFG.OS_URL) || 'https://askmiro-api-production.up.railway.app';
-    const mc = document.getElementById('main-content');
-    mc.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px">
-        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:40px 48px;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)">
-          <div style="width:48px;height:48px;background:linear-gradient(135deg,#0DBDAD,#0A9688);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px">🚀</div>
-          <h2 style="margin:0 0 10px;font-size:1.25rem;font-weight:800;color:#0F172A;letter-spacing:-.02em">This module has moved</h2>
-          <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.65">
-            This section is now part of <strong style="color:#0F172A">AskMiro OS</strong> — the unified operations platform on Railway.
-            All your data is there.
-          </p>
-          <a href="${osUrl}" target="_blank" rel="noopener"
-            style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0DBDAD,#0A9688);color:#fff;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(10,150,136,.3)">
-            Open AskMiro OS →
-          </a>
-          <p style="margin:20px 0 0;font-size:12px;color:#94A3B8">
-            Outreach &amp; Email remain here in Ops.
-          </p>
-        </div>
-      </div>`;
+    try { _jobs = await API.get('jobs', { from: UI.today() }); } catch(e) { _jobs = []; }
+    const missed = _jobs.filter(j => j.status === 'Missed').length;
+    const rows = _jobs.map(j => `<tr>
+      <td class="tmn">${j.id}</td><td class="tfw">${j.siteId}</td>
+      <td>${j.date||'&#8212;'}</td><td>${j.startTime||'&#8212;'}</td>
+      <td>${j.staffName||'&#8212;'}</td>
+      <td>${UI.statusPill(j.status)}</td>
+      <td>${j.status==='Scheduled'?`<button class="btn bo btn-xs" onclick="Ops.clockIn('${j.id}')">Clock In</button>`:j.status==='InProgress'?`<button class="btn bp btn-xs" onclick="Ops.clockOut('${j.id}')">Clock Out</button>`:''}</td>
+    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--ll);padding:24px">No jobs today</td></tr>`;
+    document.getElementById('main-content').innerHTML = `
+${UI.secHd('Ops', "Today's Jobs", _jobs.length + ' scheduled')}
+${missed > 0 ? `<div class="alert alert-r">&#9888; ${missed} missed job${missed>1?'s':''} today &#8212; please investigate</div>` : ''}
+<div class="fb"><div class="sp"></div><button class="btn bp" onclick="Ops.openNew()">+ Schedule Job</button></div>
+<div class="card"><div class="card-body" style="padding-top:12px"><div class="tbl-wrap"><table class="tbl">
+  <thead><tr><th>Job ID</th><th>Site</th><th>Date</th><th>Start</th><th>Staff</th><th>Status</th><th></th></tr></thead>
+  <tbody>${rows}</tbody>
+</table></div></div></div>`;
   }
   async function clockIn(id) {
     try { await API.post('job', { id, status: 'InProgress', clockIn: new Date().toISOString() }); UI.toast('Clocked in'); await render(); }

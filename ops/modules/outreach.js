@@ -395,17 +395,11 @@ window.Outreach = (() => {
               ${_timeAgo(r.createdAt)}
             </td>
             <td style="padding:12px 16px;text-align:center">
-              <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-                ${r.phone ? `<button onclick="Outreach.openCallScript('${_esc(r.id)}','${_esc(r.phone)}','${_esc(r.sourceLeadId||'')}')"
-                  title="Call ${_esc(r.phone)}"
-                  style="background:#10B981;color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s"
-                  onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">
-                  📞 ${_esc(r.phone)}
-                </button>` : ''}
+              <div style="display:flex;gap:6px;justify-content:center">
                 <button onclick="Outreach.openSendModal('${_esc(r.id)}')"
                   style="background:#6366F1;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s"
                   onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">
-                  ✉️ Email
+                  Send →
                 </button>
                 <button onclick="Outreach._markOptOut('${_esc(r.id)}')"
                   title="Mark as opted out"
@@ -1800,52 +1794,6 @@ window.Outreach = (() => {
   }
   function _search(q) { _q = q; _draw(); }
 
-  // ── Call Script Overlay ───────────────────────────────────────────────────
-  async function openCallScript(leadId, phone, osPlaceId) {
-    const OS_URL = 'http://localhost:8000';
-    let script = '';
-    // Try fetching from OS if we have a place_id
-    if (osPlaceId) {
-      try {
-        const res = await fetch(`${OS_URL}/api/outreach/${osPlaceId}`);
-        if (res.ok) {
-          const data = await res.json();
-          script = data.full_call_script || data.call_opener || '';
-        }
-      } catch(e) { /* OS offline — use fallback */ }
-    }
-    // Fallback: find lead in queue and build basic opener
-    if (!script) {
-      const lead = _queue.find(r => r.id === leadId);
-      if (lead) {
-        script = `OPENER:\nHi, is that ${lead.companyName}? My name's Mike, calling from AskMiro Cleaning Services in London.\nI'm reaching out because we work with a number of ${lead.segment || 'businesses'} in the area and wanted to see if your cleaning setup is one we could help improve.\n\nQUALIFY:\n- Do you currently have a regular cleaning team in place?\n- Who normally handles the facilities side of things there?\n\nPITCH:\nWe provide managed commercial cleaning — same trained team every visit, supervisor-led quality checks, and full COSHH compliance. We cover everything from daily office cleans to deep cleans, all under one account manager.\n\nOBJECTIONS:\n- Already have a cleaner: "Totally understand — we actually work alongside or replace existing arrangements. Would you be open to a quick comparison?"\n- Not interested: "No problem at all — would it be ok if I sent a quick overview by email just in case things change?"\n- Send me an email: "Of course — what's the best email? And is it ok if I follow up next week just to check you received it?"\n\nCLOSE:\nWould you be open to a quick 20-minute site visit this week so I can give you an accurate quote? No obligation at all.`;
-      }
-    }
-    const overlay = document.createElement('div');
-    overlay.id = 'callScriptOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.55)';
-    overlay.innerHTML = `
-      <div style="background:#1E293B;border-radius:16px;padding:28px;width:580px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid #334155">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div>
-            <div style="font-weight:800;font-size:1.05rem;color:#F1F5F9">📞 Call Script</div>
-            <div style="font-size:0.78rem;color:#64748B;margin-top:2px">${phone}</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <a href="tel:${phone}" style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none">📞 Dial Now</a>
-            <button onclick="navigator.clipboard.writeText(document.getElementById('callScriptText').innerText)" style="background:#334155;color:#94A3B8;border:1px solid #475569;border-radius:8px;padding:7px 12px;font-size:11px;cursor:pointer">Copy</button>
-            <button onclick="document.getElementById('callScriptOverlay').remove()" style="background:#334155;color:#94A3B8;border:1px solid #475569;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">×</button>
-          </div>
-        </div>
-        <pre id="callScriptText" style="background:#0F172A;border-radius:10px;padding:16px;font-size:13px;line-height:1.9;white-space:pre-wrap;word-break:break-word;color:#CBD5E1;font-family:'JetBrains Mono',monospace;max-height:420px;overflow-y:auto">${script.replace(/</g,'&lt;')}</pre>
-        <div style="margin-top:14px;padding:12px;background:rgba(16,185,129,.1);border-radius:8px;border:1px solid rgba(16,185,129,.2);font-size:12px;color:#6EE7B7">
-          <strong>After the call:</strong> Log the outcome in the activity panel — system auto-schedules follow-up.
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  }
-
   return {
     render,
     openAddLead,
@@ -1866,6 +1814,5 @@ window.Outreach = (() => {
     openAssistModal,
     _runAssist,
     _openAssistFromModal,
-    openCallScript,
   };
 })();

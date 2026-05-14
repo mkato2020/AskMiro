@@ -734,9 +734,17 @@ function scanOutreachReplies() {
       }
 
       // Only INBOUND_HUMAN reaches here — find the actual reply message
+      // Sender-identity check widened to include all authoritative AskMiro
+      // senders. Previous narrow check (askmiro.com domain only) missed
+      // mkato.ug@gmail.com — the actual GAS-running account — causing 52
+      // self-follow-ups to be misclassified as prospect replies (2026-05-14
+      // forensic audit). This fix stops the bleed at source.
       const replies = messages.filter(m => {
         const from = m.getFrom().toLowerCase();
-        return !from.includes('askmiro.com') && !from.includes('info@askmiro');
+        return !from.includes('askmiro.com') &&
+               !from.includes('info@askmiro') &&
+               !from.includes('mkato.ug@gmail.com') &&
+               !from.includes('mike kato');
       });
       if (!replies.length) return;
 
