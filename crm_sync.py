@@ -618,7 +618,7 @@ def _parse_response(raw: str) -> object:
 
 def _ensure_tables(conn) -> None:
     """Create crm_handoffs table and run any missing column migrations.
-    Postgres-only (operates against the Railway/db_pg connection)."""
+    Postgres-native idempotent (no exception aborts the transaction)."""
     db_pg.execute(conn,
         """
         CREATE TABLE IF NOT EXISTS crm_handoffs (
@@ -634,30 +634,23 @@ def _ensure_tables(conn) -> None:
         )
         """
     )
-    # Safe column migrations for installs missing later columns
-    _add_col_safe(conn, "crm_handoffs", "python_lead_id",      "TEXT")
-    _add_col_safe(conn, "crm_handoffs", "last_sync_at",        "TEXT")
-    _add_col_safe(conn, "crm_handoffs", "error_message",       "TEXT")
-    _add_col_safe(conn, "crm_handoffs", "crm_outreach_status", "TEXT")
-    _add_col_safe(conn, "crm_handoffs", "crm_reply_status",    "TEXT")
+    # Idempotent column adds — Postgres native IF NOT EXISTS prevents
+    # exceptions that would otherwise abort the surrounding transaction.
+    for col, defn in [
+        ("python_lead_id",      "TEXT"),
+        ("last_sync_at",        "TEXT"),
+        ("error_message",       "TEXT"),
+        ("crm_outreach_status", "TEXT"),
+        ("crm_reply_status",    "TEXT"),
+    ]:
+        db_pg.execute(conn,
+            f"ALTER TABLE crm_handoffs ADD COLUMN IF NOT EXISTS {col} {defn}")
 
 
 def _add_col_safe(conn, table: str, col: str, defn: str) -> None:
-    """Add a column if it doesn't exist (Postgres). Idempotent."""
-    try:
-        existing_rows = db_pg.fetchall(conn,
-            "SELECT column_name FROM information_schema.columns "
-            "WHERE table_schema = 'public' AND table_name = %s",
-            (table,),
-        )
-        existing = {r["column_name"] for r in existing_rows}
-    except Exception:
-        existing = set()
-    if col not in existing:
-        try:
-            db_pg.execute(conn, f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
-        except Exception:
-            pass
+    """Backward-compatible alias — now uses Postgres native IF NOT EXISTS."""
+    db_pg.execute(conn,
+        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {defn}")
 
 
 def _now() -> str:
