@@ -5281,7 +5281,21 @@ def api_crm_status():
     Return a summary of the CRM handoff pipeline:
     how many leads pushed, pending, failed, and current config.
     """
-    return crm_sync.get_handoff_status()
+    try:
+        return crm_sync.get_handoff_status()
+    except Exception as exc:
+        import traceback
+        logger.error("api_crm_status failed: %s\n%s", exc, traceback.format_exc())
+        # Surface the actual error temporarily to aid diagnosis after deploy.
+        # Remove this verbose return once the underlying bug is fixed.
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error":     type(exc).__name__,
+                "message":   str(exc)[:500],
+                "traceback": traceback.format_exc()[-1200:],
+            },
+        )
 
 
 @app.post("/api/crm/sync")
