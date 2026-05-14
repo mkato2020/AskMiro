@@ -1,0 +1,269 @@
+// cleanup-self-followups.gs — MUTATION-CAPABLE function (default dry-run)
+// ────────────────────────────────────────────────────────────────────────
+// PURPOSE: Recover the 52 SELF_FOLLOWUP rows misclassified by the v94
+// reply scanner. Each row is verified via Gmail thread inspection
+// (same logic as _classifyNeedsAttention) before any mutation.
+//
+// MUTATION PER ROW:
+//   - Clear needsHumanAction (false)
+//   - Clear humanActionReason (empty)
+//   - Clear replyStatus (empty) — unblocks future reply detection
+//   - Revert outreachStatus from REPLIED → FOLLOW_UP_2
+//     (puts the lead back in the follow-up cadence so another touch
+//      can be attempted; conservative choice — assumes mid-sequence)
+//   - Set nextFollowUpAt = now + 3 days (one cadence step away)
+//   - Set lastAuditNote with timestamp + reason
+//   - Write one audit row to Outreach_AuditLog BEFORE mutation
+//
+// SAFETY HARNESS (10 layers, same as applyResetQuotaFailures):
+//   1. dryRun=true by default
+//   2. confirm=true required for mutation
+//   3. expectedMatched parameter for drift detection (default 52 ±10)
+//   4. Pre-flight: Outreach_AuditLog sheet must exist
+//   5. Header signature check
+//   6. Per-row: re-verify Gmail thread is SELF_FOLLOWUP at runtime
+//      (re-checks: no non-AskMiro message in the thread)
+//   7. Audit row written FIRST; skip lead if audit append throws
+//   8. Audit row verified by UUID read-back
+//   9. MAX_MUTATIONS_PER_RUN = 100 hard ceiling
+//  10. Per-batch progress log every 25 rows
+//
+// USAGE:
+//   cleanupSelfFollowups()                                       // dry-run
+//   cleanupSelfFollowups({ expectedMatched: 52 })                // dry-run + drift check
+//   cleanupSelfFollowups({ confirm: true, expectedMatched: 52 }) // MUTATE
+//
+// EXCLUSIONS — these rows will NEVER be touched:
+//   - replyStatus is not empty AND not 'REPLIED' (excludes WRONG_CONTACT)
+//   - humanActionReason starts with 'send_error:' or 'followup_error:'
+//     (excludes INVALID_CONTACT residue)
+//   - Thread inaccessible OR has any non-AskMiro inbound message
+//     (excludes GENUINE_REPLY, BOUNCED, OOO, CLASSIFIER_UNCERTAIN)
+//
+// Paste-once, run-once, delete-the-file. Do NOT clasp push.
+// ────────────────────────────────────────────────────────────────────────
+
+function cleanupSelfFollowups(opts) {
+  opts = opts || { expectedMatched: 52 };
+  var dryRun = opts.confirm === true ? false : true;
+  var confirm = opts.confirm === true;
+  var expectedMatched = opts.expectedMatched;
+  var actor = opts.actor || Session.getActiveUser().getEmail() || 'unknown';
+
+  var MATCH_DRIFT_TOLERANCE = 10;
+  var MAX_MUTATIONS_PER_RUN = 100;
+  var AUDIT_SHEET_NAME = 'Outreach_AuditLog';
+  var FOLLOWUP_RESCHEDULE_DAYS = 3;
+
+  // Pre-flight: audit sheet
+  var ss = SpreadsheetApp.openById(CFG.SHEET_ID);
+  var auditSheet = ss.getSheetByName(AUDIT_SHEET_NAME);
+  if (!auditSheet) return { ok: false, error: 'audit_sheet_missing' };
+
+  var EXPECTED_HEADERS = ['id','timestamp','leadId','actor','action','before','after','originalReason','notes'];
+  var actualHeaders = auditSheet.getRange(1, 1, 1, EXPECTED_HEADERS.length).getValues()[0];
+  for (var h = 0; h < EXPECTED_HEADERS.length; h++) {
+    if (String(actualHeaders[h]).trim() !== EXPECTED_HEADERS[h]) {
+      return { ok: false, error: 'audit_sheet_header_mismatch', column: h + 1 };
+    }
+  }
+
+  // Sender-identity check (must match _classifyNeedsAttention)
+  function _isOurSender(from) {
+    var f = (from || '').toLowerCase();
+    return f.indexOf('mkato.ug@gmail.com') >= 0 ||
+           f.indexOf('@askmiro.com') >= 0 ||
+           f.indexOf('mike kato') >= 0;
+  }
+
+  // Candidate filter — narrow to rows that *could* be SELF_FOLLOWUP
+  var all = getTableRows('Leads');
+  var candidates = all.filter(function(r) {
+    return r.leadDirection === 'outbound' &&
+           String(r.needsHumanAction) === 'true' &&
+           (r.replyStatus || '').toUpperCase() === 'REPLIED' &&
+           (r.humanActionReason || '').toLowerCase() === 'unclassified_reply' &&
+           !!r.threadId;
+  });
+
+  // Per-row Gmail verification — proves SELF_FOLLOWUP
+  var matched = [];
+  var skippedNotSelfFollowup = [];
+  var skippedThreadError = [];
+
+  candidates.forEach(function(r) {
+    try {
+      var thread = GmailApp.getThreadById(r.threadId);
+      if (!thread) {
+        skippedThreadError.push({ id: r.id, reason: 'thread_not_found' });
+        return;
+      }
+      var messages = thread.getMessages();
+      var hasNonAskMiroMessage = false;
+      for (var i = 0; i < messages.length; i++) {
+        if (!_isOurSender(messages[i].getFrom())) {
+          hasNonAskMiroMessage = true;
+          break;
+        }
+      }
+      if (hasNonAskMiroMessage) {
+        skippedNotSelfFollowup.push({ id: r.id, reason: 'thread_contains_inbound_message' });
+        return;
+      }
+      matched.push(r);
+    } catch (e) {
+      skippedThreadError.push({ id: r.id, reason: 'thread_inspection_failed', error: e.message });
+    }
+  });
+
+  // Drift check
+  if (typeof expectedMatched === 'number') {
+    var drift = Math.abs(matched.length - expectedMatched);
+    if (drift > MATCH_DRIFT_TOLERANCE) {
+      return { ok: false, error: 'population_drift',
+               expected: expectedMatched, actual: matched.length, drift: drift,
+               candidates: candidates.length,
+               skippedNotSelfFollowupCount: skippedNotSelfFollowup.length,
+               skippedThreadErrorCount: skippedThreadError.length };
+    }
+  }
+
+  if (matched.length > MAX_MUTATIONS_PER_RUN) {
+    return { ok: false, error: 'too_many_candidates', matched: matched.length };
+  }
+
+  var nowIso = new Date().toISOString();
+  var today = nowIso.split('T')[0];
+  var nextFollowUpAt = new Date(Date.now() + FOLLOWUP_RESCHEDULE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  var stats = { candidateCount: candidates.length, matchedAtRuntime: matched.length,
+                attempted: 0, mutated: 0,
+                skippedAuditFail: 0, skippedAlreadyDone: 0,
+                skippedNotSelfFollowup: skippedNotSelfFollowup.length,
+                skippedThreadError: skippedThreadError.length,
+                errorRows: [] };
+
+  // Process each matched row
+  for (var j = 0; j < matched.length; j++) {
+    stats.attempted++;
+    var lead = matched[j];
+
+    // Build before/after states
+    var beforeState = {
+      outreachStatus:    lead.outreachStatus || '',
+      needsHumanAction:  String(lead.needsHumanAction || ''),
+      humanActionReason: (lead.humanActionReason || '').substring(0, 500),
+      replyStatus:       lead.replyStatus || '',
+      replySummary:      (lead.replySummary || '').substring(0, 500),
+      nextFollowUpAt:    lead.nextFollowUpAt || '',
+      threadIdPresent:   !!lead.threadId
+    };
+
+    var afterPatch = {
+      outreachStatus:    'FOLLOW_UP_2',
+      needsHumanAction:  'false',
+      humanActionReason: '',
+      replyStatus:       '',
+      replySummary:      '',
+      nextFollowUpAt:    nextFollowUpAt,
+      lastAuditNote:     'self-followup-cleanup ' + today +
+                         ': misclassified REPLIED reverted to FOLLOW_UP_2; ' +
+                         'thread contained only AskMiro outbound messages'
+    };
+
+    if (dryRun) {
+      stats.mutated++;
+      // store the first 10 proposed transitions for review
+      if (!stats.proposalSample) stats.proposalSample = [];
+      if (stats.proposalSample.length < 10) {
+        stats.proposalSample.push({
+          id: lead.id,
+          company: (lead.companyName || '').substring(0, 60),
+          before: beforeState,
+          after: afterPatch
+        });
+      }
+      continue;
+    }
+
+    // MUTATION PATH
+    var auditId = Utilities.getUuid();
+    var noteText = afterPatch.lastAuditNote;
+
+    try {
+      auditSheet.appendRow([
+        auditId, new Date().toISOString(), lead.id, actor, 'selfFollowupCleanup',
+        JSON.stringify(beforeState), JSON.stringify(afterPatch),
+        (lead.humanActionReason || '').substring(0, 500), noteText
+      ]);
+    } catch (auditErr) {
+      stats.skippedAuditFail++;
+      stats.errorRows.push({ id: lead.id, reason: 'audit_write_failed', error: auditErr.message });
+      continue;
+    }
+
+    // Audit row verification
+    var auditCheck = auditSheet.getRange(auditSheet.getLastRow(), 1).getValue();
+    if (auditCheck !== auditId) {
+      stats.skippedAuditFail++;
+      stats.errorRows.push({ id: lead.id, reason: 'audit_row_verification_failed' });
+      continue;
+    }
+
+    // Leads mutation
+    try {
+      updateRow('Leads', lead.id, afterPatch);
+      stats.mutated++;
+    } catch (mutErr) {
+      stats.errorRows.push({ id: lead.id, reason: 'mutation_failed', error: mutErr.message, auditId: auditId });
+      // Write failure audit row
+      try {
+        auditSheet.appendRow([
+          Utilities.getUuid(), new Date().toISOString(), lead.id, 'system',
+          'mutation_failed', JSON.stringify(beforeState), JSON.stringify(afterPatch),
+          '', 'WRITE_FAILED for auditId ' + auditId + ': ' + mutErr.message
+        ]);
+      } catch (_) {}
+    }
+
+    if ((j + 1) % 25 === 0) {
+      Logger.log('[progress] ' + (j + 1) + '/' + matched.length +
+                 ' mutated=' + stats.mutated + ' auditFail=' + stats.skippedAuditFail);
+    }
+  }
+
+  if (!dryRun && stats.mutated > 0) invalidateCache('Leads');
+
+  var result = {
+    ok: true,
+    mode: dryRun ? 'dry_run' : 'mutate',
+    confirm: confirm,
+    actor: actor,
+    generatedAt: nowIso,
+    expectedMatched: expectedMatched || null,
+    candidatesScanned: candidates.length,
+    matchedAtRuntime: matched.length,
+    stats: stats,
+    errorRowsCount: stats.errorRows.length,
+    errorRowsSample: stats.errorRows.slice(0, 10),
+    skippedDetails: {
+      notSelfFollowup: skippedNotSelfFollowup.slice(0, 10),
+      threadError: skippedThreadError.slice(0, 10)
+    }
+  };
+
+  var json = JSON.stringify(result, null, 2);
+  var CHUNK = 45000;
+  var totalChunks = Math.ceil(json.length / CHUNK);
+  for (var c = 0; c < totalChunks; c++) {
+    Logger.log('[chunk ' + (c + 1) + '/' + totalChunks + ']\n' + json.substring(c * CHUNK, (c + 1) * CHUNK));
+  }
+  Logger.log('[done] mode=' + result.mode +
+             ' candidates=' + candidates.length +
+             ' matched=' + matched.length +
+             ' mutated=' + stats.mutated +
+             ' auditFail=' + stats.skippedAuditFail +
+             ' skippedNotSelf=' + skippedNotSelfFollowup.length +
+             ' skippedThreadErr=' + skippedThreadError.length);
+  return result;
+}

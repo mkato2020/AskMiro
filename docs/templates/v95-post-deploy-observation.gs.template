@@ -1,0 +1,202 @@
+// v95-post-deploy-observation.gs — READ-ONLY post-deploy snapshot
+// ─────────────────────────────────────────────────────────────────────
+// SAFETY CONTRACT:
+//   • No writes (no setValue / appendRow / updateRow / setProperty)
+//   • No sends (no GmailApp.*)
+//   • No external API calls (no UrlFetchApp)
+//   • Reads only:
+//     - getTableRows('Leads')
+//     - PropertiesService.getScriptProperties().getProperty(...)
+//     - PropertiesService.getScriptProperties().getKeys()
+//
+//   Gathers the post-v95 observation data the MCP couldn't see:
+//     Item 4: New LOCKED_FOR_OUTREACH rows post-deploy
+//     Item 5: New send_error / followup_error rows post-deploy
+//     Item 6: New CONTACTED rows + threadId presence
+//     Item 8: quota_pause_until property state
+//     Item 9: Needs Attention count vs 305 baseline
+//
+//   Paste-once, run-once, delete-the-file. Do NOT clasp push.
+// ─────────────────────────────────────────────────────────────────────
+
+function _postDeployObservation() {
+  // ── Deploy anchor (UTC) ──────────────────────────────────────────
+  // v95 was deployed at 2026-05-13 20:46 BST = 19:46 UTC.
+  // Edit this if you re-run after a later deploy.
+  var DEPLOY_AT_UTC = '2026-05-13T19:46:00Z';
+  var BASELINE_NEEDS_ATTENTION = 305;
+
+  var props = PropertiesService.getScriptProperties();
+  var nowMs = Date.now();
+  var deployMs = new Date(DEPLOY_AT_UTC).getTime();
+  var hoursSinceDeploy = ((nowMs - deployMs) / (1000 * 60 * 60)).toFixed(2);
+
+  // ── PropertiesService snapshot (no mutations) ────────────────────
+  var allPropKeys = props.getKeys();
+  var quotaPauseValue = props.getProperty('quota_pause_until') || null;
+  var todayKey = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var todaysSentCounter = parseInt(props.getProperty('sent_' + todayKey) || '0', 10);
+
+  var retryKeys = allPropKeys.filter(function(k) { return k.indexOf('send_retry_') === 0; });
+  var retrySample = retryKeys.slice(0, 10).map(function(k) {
+    return { leadId: k.replace('send_retry_', ''), retries: parseInt(props.getProperty(k) || '0', 10) };
+  });
+
+  // ── Leads sheet snapshot (single read) ───────────────────────────
+  var all = getTableRows('Leads');
+  var outbound = all.filter(function(r) { return r.leadDirection === 'outbound'; });
+
+  // Overall counts by status
+  var statusCounts = {};
+  outbound.forEach(function(r) {
+    var s = r.outreachStatus || '(empty)';
+    statusCounts[s] = (statusCounts[s] || 0) + 1;
+  });
+
+  // Needs attention count (compare to baseline)
+  var needsAttention = outbound.filter(function(r) { return String(r.needsHumanAction) === 'true'; });
+  var needsAttentionTotal = needsAttention.length;
+  var needsAttentionDelta = needsAttentionTotal - BASELINE_NEEDS_ATTENTION;
+
+  // ── Rows touched since deploy ────────────────────────────────────
+  var touchedSinceDeploy = outbound.filter(function(r) {
+    var t = new Date(r.lastContactedAt || r.updatedAt || 0).getTime();
+    return t >= deployMs;
+  });
+
+  var post = {
+    newContactedWithThreadId:     0,
+    newContactedWithoutThreadId:  0,    // CRITICAL — should be 0 with v95
+    newLockedForOutreach:         0,    // CRITICAL — should be 0 (lock release works)
+    newSendErrors:                0,
+    newFollowupErrors:            0,
+    newQuotaErrorFlagged:         0,    // CRITICAL — should be 0 (quota errors don't flag in v95)
+    newNonQuotaErrorFlagged:      0,
+    other:                        0
+  };
+  var newSamples = [];
+
+  touchedSinceDeploy.forEach(function(r) {
+    var status = r.outreachStatus || '';
+    var hasThread = !!r.threadId;
+    var reason = (r.humanActionReason || '').toLowerCase();
+    var flagged = String(r.needsHumanAction) === 'true';
+
+    // Summary row (capped, no PII bodies)
+    if (newSamples.length < 15) {
+      newSamples.push({
+        id:                r.id,
+        company:           (r.companyName || '').substring(0, 60),
+        outreachStatus:    status,
+        threadIdPresent:   hasThread,
+        needsHumanAction:  String(r.needsHumanAction || ''),
+        humanActionReason: (r.humanActionReason || '').substring(0, 120),
+        lastContactedAt:   r.lastContactedAt || ''
+      });
+    }
+
+    if (status === 'CONTACTED' && hasThread) {
+      post.newContactedWithThreadId++;
+    } else if (status === 'CONTACTED' && !hasThread) {
+      post.newContactedWithoutThreadId++;
+    } else if (status === 'LOCKED_FOR_OUTREACH') {
+      post.newLockedForOutreach++;
+    } else if (flagged && /^send_error:/.test(reason)) {
+      if (/(too many times|service invoked too many)/i.test(reason)) {
+        post.newQuotaErrorFlagged++;
+      } else {
+        post.newNonQuotaErrorFlagged++;
+      }
+      post.newSendErrors++;
+    } else if (flagged && /^followup_error:/.test(reason)) {
+      if (/(too many times|service invoked too many)/i.test(reason)) {
+        post.newQuotaErrorFlagged++;
+      } else {
+        post.newNonQuotaErrorFlagged++;
+      }
+      post.newFollowupErrors++;
+    } else {
+      post.other++;
+    }
+  });
+
+  // ── Health verdict ───────────────────────────────────────────────
+  // Cycle has fired = at least one row was touched post-deploy
+  var cycleHasFired = touchedSinceDeploy.length > 0;
+
+  // ThreadId fix working = of post-deploy CONTACTED rows, ALL have threadId
+  var totalNewContacted = post.newContactedWithThreadId + post.newContactedWithoutThreadId;
+  var threadIdFixWorking = totalNewContacted === 0 ? null : post.newContactedWithoutThreadId === 0;
+
+  // No lock poisoning = zero new rows stuck at LOCKED
+  var noLockPoisoning = post.newLockedForOutreach === 0;
+
+  // No new quota flags = the v95 catch-block correctly suppressed flagging
+  var noNewQuotaFlags = post.newQuotaErrorFlagged === 0;
+
+  // Queue did not explode = delta within tolerance (≤+10 considered noise; >10 needs review)
+  var queueStable = needsAttentionDelta <= 10;
+
+  var overallHealthy =
+    noLockPoisoning &&
+    noNewQuotaFlags &&
+    queueStable &&
+    (threadIdFixWorking === true || threadIdFixWorking === null);  // null = no new sends yet, not a failure
+
+  // ── Result envelope ──────────────────────────────────────────────
+  var result = {
+    generatedAt:       new Date().toISOString(),
+    v95DeployedAtUtc:  DEPLOY_AT_UTC,
+    hoursSinceDeploy:  parseFloat(hoursSinceDeploy),
+    scriptTimeZone:    Session.getScriptTimeZone(),
+    todayKey:          todayKey,
+
+    propertiesService: {
+      quota_pause_until_value:  quotaPauseValue,
+      isPauseActiveToday:       quotaPauseValue === todayKey,
+      todaysSentCounter:        todaysSentCounter,
+      activeRetryCounterCount:  retryKeys.length,
+      retryCounterSample:       retrySample
+    },
+
+    leadsSheetSnapshot: {
+      totalRows:               all.length,
+      outboundTotal:           outbound.length,
+      needsAttentionTotal:     needsAttentionTotal,
+      needsAttentionBaseline:  BASELINE_NEEDS_ATTENTION,
+      needsAttentionDelta:     needsAttentionDelta,
+      statusCounts:            statusCounts
+    },
+
+    postDeployActivity: {
+      cutoffUtc:                 DEPLOY_AT_UTC,
+      rowsTouchedSinceDeploy:    touchedSinceDeploy.length,
+      breakdown:                 post,
+      sampleRowsTouched:         newSamples
+    },
+
+    verdict: {
+      cycleHasFired:        cycleHasFired,
+      threadIdFixWorking:   threadIdFixWorking,    // null = insufficient evidence
+      noLockPoisoning:      noLockPoisoning,
+      noNewQuotaFlags:      noNewQuotaFlags,
+      queueStable:          queueStable,
+      overallHealthy:       overallHealthy
+    }
+  };
+
+  // Chunked Logger.log
+  var json = JSON.stringify(result, null, 2);
+  var CHUNK = 45000;
+  var totalChunks = Math.ceil(json.length / CHUNK);
+  for (var c = 0; c < totalChunks; c++) {
+    Logger.log('[chunk ' + (c + 1) + '/' + totalChunks + ']\n' +
+               json.substring(c * CHUNK, (c + 1) * CHUNK));
+  }
+  Logger.log('[done] hoursSinceDeploy=' + hoursSinceDeploy +
+             ' • cycleHasFired=' + cycleHasFired +
+             ' • overallHealthy=' + overallHealthy +
+             ' • needsAttentionDelta=' + needsAttentionDelta);
+
+  return result;
+}

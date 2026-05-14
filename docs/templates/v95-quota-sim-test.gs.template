@@ -1,0 +1,474 @@
+// v95-quota-sim-test.gs — QUOTA SIMULATION + CONTROL-FLOW UNWIND TEST
+// ─────────────────────────────────────────────────────────────────────
+// SCOPE: simulates GAS-level quota exhaustion at the send-wrapper layer
+// and verifies that the v95 catch-block + circuit breaker + retry path
+// behaves correctly. Self-contained — does not depend on v95 being
+// pushed to live GAS, and does not touch real Gmail / Leads sheet.
+//
+// SAFETY CONTRACT:
+//   • NO Gmail calls (no GmailApp.* used anywhere)
+//   • NO Leads sheet calls (no getTableRows / updateRow / appendRow)
+//   • NO external API calls (no UrlFetchApp / fetch)
+//   • PropertiesService writes use sandbox prefix only ('TEST_v95_*')
+//   • Mock Leads are in-memory JS objects, never persisted
+//   • All sandbox keys deleted at end; snapshot/restore for safety
+//
+// PROVES THE 7 PHASES:
+//   1. exception thrown (from mock send-wrapper, mimicking draft.send())
+//   2. exception classified by _isQuotaError
+//   3. pause marker written via _setQuotaPauseToday
+//   4. loop aborted via quotaTripped flag
+//   5. lock release executes for every catch branch
+//   6. subsequent iteration in same batch prevented
+//   7. next-day reset clears the pause cleanly
+//
+// Paste-once, run-once, delete-the-file. Do NOT clasp push.
+// ─────────────────────────────────────────────────────────────────────
+
+function _v95QuotaSimTest() {
+  var props = PropertiesService.getScriptProperties();
+  var TEST_PAUSE_KEY    = 'TEST_v95_quota_pause';
+  var TEST_RETRY_PREFIX = 'TEST_v95_retry_';
+  var MAX_SEND_RETRIES  = 3;   // mirrors CFG.MAX_SEND_RETRIES in v95
+
+  // ── Snapshot pre-existing test keys ──────────────────────────────
+  var preExisting = {};
+  var allKeys = props.getKeys();
+  for (var i = 0; i < allKeys.length; i++) {
+    var k = allKeys[i];
+    if (k === TEST_PAUSE_KEY || k.indexOf(TEST_RETRY_PREFIX) === 0) {
+      preExisting[k] = props.getProperty(k);
+    }
+  }
+
+  // ── Inlined v95 helpers (logic byte-identical to committed code) ──
+  function _test_isQuotaError(err) {
+    var msg = (err && err.message ? err.message : String(err || '')).toLowerCase();
+    return /service invoked too many times|too many emails|daily.*(limit|quota)|rate.*exceed/i.test(msg);
+  }
+  function _test_todayKey() {
+    return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  function _test_setQuotaPauseToday() {
+    props.setProperty(TEST_PAUSE_KEY, _test_todayKey());
+  }
+  function _test_setQuotaPauseDate(dateStr) {
+    // Test-only helper for next-day reset simulation
+    props.setProperty(TEST_PAUSE_KEY, dateStr);
+  }
+  function _test_isQuotaPaused() {
+    var paused = props.getProperty(TEST_PAUSE_KEY) || '';
+    return paused === _test_todayKey();
+  }
+  function _test_clearQuotaPause() {
+    props.deleteProperty(TEST_PAUSE_KEY);
+  }
+  function _test_getSendRetries(leadId) {
+    if (!leadId) return 0;
+    return parseInt(props.getProperty(TEST_RETRY_PREFIX + leadId) || '0', 10);
+  }
+  function _test_incrementSendRetries(leadId) {
+    if (!leadId) return 0;
+    var n = _test_getSendRetries(leadId) + 1;
+    props.setProperty(TEST_RETRY_PREFIX + leadId, String(n));
+    return n;
+  }
+  function _test_clearSendRetries(leadId) {
+    if (!leadId) return;
+    props.deleteProperty(TEST_RETRY_PREFIX + leadId);
+  }
+
+  // ── Mock send-wrapper — mimics _autoSendInitial control flow ──────
+  // sendFn(lead) throws or returns. This is the layer that, in real
+  // v95, calls GmailApp.createDraft + draft.send(). We inject a fake
+  // sendFn per scenario so we can deterministically trigger throws
+  // from the exact layer Gmail would throw from.
+  function _mock_autoSendInitial(lead, sendFn) {
+    // Lock first — matches the real v95 _autoSendInitial line 1
+    lead.outreachStatus = 'LOCKED_FOR_OUTREACH';
+    lead._mutations.push({ at: 'lock', status: 'LOCKED_FOR_OUTREACH' });
+
+    // Send (this is where Gmail would throw)
+    sendFn(lead);
+
+    // Success path — matches the real v95 _autoSendInitial tail
+    lead.outreachStatus  = 'CONTACTED';
+    lead.threadId        = 'mock-thread-' + lead.id;
+    lead.gmailMessageId  = 'mock-msg-' + lead.id;
+    lead.followUpCount   = '0';
+    lead._mutations.push({ at: 'success', status: 'CONTACTED' });
+  }
+
+  // ── Mock _runAutoSend loop — byte-faithful control flow of v95 ────
+  function _mock_runAutoSend(leads, sendFn) {
+    var sendAttempts = [];
+
+    // v95 entry guard
+    if (_test_isQuotaPaused()) {
+      return {
+        skippedDueToQuotaPause: true,
+        sent: 0,
+        quotaTrippedDuringRun: false,
+        sendAttempts: []
+      };
+    }
+
+    var sent = 0;
+    var quotaTripped = false;
+
+    leads.forEach(function(lead) {
+      if (quotaTripped) {
+        sendAttempts.push({ leadId: lead.id, outcome: 'skipped_circuit_breaker' });
+        return;
+      }
+
+      try {
+        _mock_autoSendInitial(lead, sendFn);
+        sent++;
+        _test_clearSendRetries(lead.id);
+        sendAttempts.push({ leadId: lead.id, outcome: 'success' });
+      } catch (e) {
+        if (_test_isQuotaError(e)) {
+          // Quota branch — release lock, set pause, halt batch, NO flag
+          lead.outreachStatus = 'READY_FOR_OUTREACH';
+          lead._mutations.push({ at: 'quota_catch_release', status: 'READY_FOR_OUTREACH' });
+          _test_setQuotaPauseToday();
+          quotaTripped = true;
+          sendAttempts.push({
+            leadId: lead.id,
+            outcome: 'quota_tripped',
+            errorMsg: e.message,
+            humanActionFlagged: false
+          });
+          return;
+        }
+
+        // Non-quota branch — release lock, increment retry, flag at MAX
+        var retries = _test_incrementSendRetries(lead.id);
+        lead.outreachStatus = 'READY_FOR_OUTREACH';
+        lead._mutations.push({ at: 'nonquota_catch_release', status: 'READY_FOR_OUTREACH' });
+        if (retries >= MAX_SEND_RETRIES) {
+          lead.needsHumanAction  = 'true';
+          lead.humanActionReason = 'send_error: failed after ' + retries + ' attempts: ' + e.message;
+          lead._mutations.push({ at: 'flag_max_retries', retries: retries });
+          sendAttempts.push({
+            leadId: lead.id,
+            outcome: 'flagged_after_max_retries',
+            retries: retries,
+            humanActionFlagged: true
+          });
+        } else {
+          sendAttempts.push({
+            leadId: lead.id,
+            outcome: 'retry_pending',
+            retries: retries,
+            humanActionFlagged: false
+          });
+        }
+      }
+    });
+
+    return {
+      skippedDueToQuotaPause: false,
+      sent: sent,
+      quotaTrippedDuringRun: quotaTripped,
+      sendAttempts: sendAttempts
+    };
+  }
+
+  // ── Mock-lead factory ────────────────────────────────────────────
+  function mkLead(id) {
+    return {
+      id:                id,
+      outreachStatus:    'READY_FOR_OUTREACH',
+      needsHumanAction:  'false',
+      humanActionReason: '',
+      threadId:          '',
+      gmailMessageId:    '',
+      followUpCount:     '',
+      _mutations:        []
+    };
+  }
+
+  // ── Send-function injectors ──────────────────────────────────────
+  function makeSendOk() {
+    return function(lead) { /* no-op = success */ };
+  }
+  function makeSendQuotaAtIndex(n) {
+    // Throws the real Gmail quota error string on the n-th lead (1-indexed)
+    var i = 0;
+    return function(lead) {
+      i++;
+      if (i === n) {
+        throw new Error('Service invoked too many times for one day: email.');
+      }
+    };
+  }
+  function makeSendNonQuotaAlways() {
+    return function(lead) {
+      throw new Error('Invalid recipient address: bogus@nope');
+    };
+  }
+
+  // ── Test harness ─────────────────────────────────────────────────
+  var checks = [];
+  function check(name, cond, detail) {
+    checks.push({ name: name, pass: !!cond, detail: detail || '' });
+  }
+
+  // Always start each phase from a clean pause state
+  _test_clearQuotaPause();
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 1 — Quota trip mid-batch
+  //   5 leads. sendFn succeeds for #1-2, throws quota on #3,
+  //   #4 and #5 must NEVER be attempted (circuit breaker).
+  // ═════════════════════════════════════════════════════════════════
+  var phase1_leads = [mkLead('P1-L1'), mkLead('P1-L2'), mkLead('P1-L3'), mkLead('P1-L4'), mkLead('P1-L5')];
+  var phase1_result = _mock_runAutoSend(phase1_leads, makeSendQuotaAtIndex(3));
+
+  check('phase1_first_two_sent',
+        phase1_leads[0].outreachStatus === 'CONTACTED' &&
+        phase1_leads[1].outreachStatus === 'CONTACTED');
+
+  check('phase1_first_two_have_threadId',
+        !!phase1_leads[0].threadId && !!phase1_leads[1].threadId);
+
+  // Phase 1.A — exception was classified as quota
+  var quotaAttempt = phase1_result.sendAttempts.filter(function(a){ return a.outcome === 'quota_tripped'; })[0];
+  check('phase1_exception_thrown', !!quotaAttempt);
+  check('phase1_exception_classified_as_quota',
+        quotaAttempt && /Service invoked too many times/i.test(quotaAttempt.errorMsg));
+
+  // Phase 1.B — lock cleanup executed for the quota-failing lead
+  check('phase1_quota_lead_lock_released',
+        phase1_leads[2].outreachStatus === 'READY_FOR_OUTREACH');
+
+  check('phase1_quota_lead_has_release_mutation',
+        phase1_leads[2]._mutations.some(function(m){ return m.at === 'quota_catch_release'; }));
+
+  // Phase 1.C — NO human-action flag set on quota-failing lead
+  check('phase1_quota_lead_no_human_flag',
+        phase1_leads[2].needsHumanAction === 'false' &&
+        phase1_leads[2].humanActionReason === '',
+        'flag was: ' + phase1_leads[2].needsHumanAction +
+        ' / reason: ' + phase1_leads[2].humanActionReason);
+
+  // Phase 1.D — pause marker WRITTEN
+  check('phase1_pause_marker_written', _test_isQuotaPaused() === true);
+
+  // Phase 1.E — circuit breaker HALTED the rest of the batch
+  check('phase1_loop_aborted',
+        phase1_leads[3].outreachStatus === 'READY_FOR_OUTREACH' &&
+        phase1_leads[4].outreachStatus === 'READY_FOR_OUTREACH',
+        'L4 status: ' + phase1_leads[3].outreachStatus +
+        ' / L5 status: ' + phase1_leads[4].outreachStatus);
+
+  check('phase1_leads_4_5_never_attempted',
+        phase1_leads[3]._mutations.length === 0 &&
+        phase1_leads[4]._mutations.length === 0);
+
+  var skippedCount = phase1_result.sendAttempts.filter(function(a){ return a.outcome === 'skipped_circuit_breaker'; }).length;
+  check('phase1_two_leads_recorded_as_skipped', skippedCount === 2);
+
+  check('phase1_quotaTripped_flag_set_during_run',
+        phase1_result.quotaTrippedDuringRun === true);
+
+  check('phase1_only_two_successful_sends', phase1_result.sent === 2);
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 2 — Pause guard short-circuits new run (same day)
+  //   Re-run with all-OK sendFn. Pause is still active from Phase 1.
+  //   Verify: NOTHING is sent, no leads touched.
+  // ═════════════════════════════════════════════════════════════════
+  var phase2_leads = [mkLead('P2-L1'), mkLead('P2-L2'), mkLead('P2-L3')];
+  var phase2_result = _mock_runAutoSend(phase2_leads, makeSendOk());
+
+  check('phase2_pause_guard_skipped_run', phase2_result.skippedDueToQuotaPause === true);
+  check('phase2_zero_sends', phase2_result.sent === 0);
+  check('phase2_zero_attempts', phase2_result.sendAttempts.length === 0);
+  check('phase2_no_lead_touched',
+        phase2_leads[0]._mutations.length === 0 &&
+        phase2_leads[1]._mutations.length === 0 &&
+        phase2_leads[2]._mutations.length === 0);
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 3 — Next-day reset clears the pause cleanly
+  //   Manually set pause marker to YESTERDAY. _isQuotaPaused must
+  //   return false because the date no longer matches today.
+  // ═════════════════════════════════════════════════════════════════
+  var yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  var yesterdayKey = Utilities.formatDate(yesterday, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  _test_setQuotaPauseDate(yesterdayKey);
+
+  check('phase3_yesterday_marker_set',
+        props.getProperty(TEST_PAUSE_KEY) === yesterdayKey);
+  check('phase3_pause_recognised_as_expired', _test_isQuotaPaused() === false);
+
+  // And a run can proceed
+  var phase3_leads = [mkLead('P3-L1')];
+  var phase3_result = _mock_runAutoSend(phase3_leads, makeSendOk());
+  check('phase3_run_proceeds_after_reset', phase3_result.skippedDueToQuotaPause === false);
+  check('phase3_send_succeeds', phase3_leads[0].outreachStatus === 'CONTACTED');
+
+  // Clean pause state for next phase
+  _test_clearQuotaPause();
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 4 — Non-quota transient error retries 3x, then flags
+  //   One lead, sendFn always throws "Invalid recipient" (NOT a quota
+  //   error). Run loop 3 times consecutively (simulating 3 trigger
+  //   windows). Verify retry counter increments and only the 3rd run
+  //   sets the human-action flag.
+  // ═════════════════════════════════════════════════════════════════
+  var phase4_lead = mkLead('P4-L1');
+  _test_clearSendRetries(phase4_lead.id);
+
+  // Run 1
+  var phase4_r1 = _mock_runAutoSend([phase4_lead], makeSendNonQuotaAlways());
+  check('phase4_run1_retry_counter_is_1', _test_getSendRetries(phase4_lead.id) === 1);
+  check('phase4_run1_lock_released',     phase4_lead.outreachStatus === 'READY_FOR_OUTREACH');
+  check('phase4_run1_no_flag',           phase4_lead.needsHumanAction === 'false');
+  check('phase4_run1_no_pause_set',      _test_isQuotaPaused() === false);
+
+  // Run 2
+  phase4_lead._mutations = [];
+  var phase4_r2 = _mock_runAutoSend([phase4_lead], makeSendNonQuotaAlways());
+  check('phase4_run2_retry_counter_is_2', _test_getSendRetries(phase4_lead.id) === 2);
+  check('phase4_run2_lock_released',     phase4_lead.outreachStatus === 'READY_FOR_OUTREACH');
+  check('phase4_run2_still_no_flag',     phase4_lead.needsHumanAction === 'false');
+
+  // Run 3 — should hit MAX and flag
+  phase4_lead._mutations = [];
+  var phase4_r3 = _mock_runAutoSend([phase4_lead], makeSendNonQuotaAlways());
+  check('phase4_run3_retry_counter_is_3', _test_getSendRetries(phase4_lead.id) === 3);
+  check('phase4_run3_lock_released',      phase4_lead.outreachStatus === 'READY_FOR_OUTREACH');
+  check('phase4_run3_flag_set_at_max',    phase4_lead.needsHumanAction === 'true');
+  check('phase4_run3_flag_reason_correct',
+        /failed after 3 attempts/.test(phase4_lead.humanActionReason),
+        'reason: ' + phase4_lead.humanActionReason);
+  check('phase4_run3_no_pause_set',       _test_isQuotaPaused() === false);
+
+  _test_clearSendRetries(phase4_lead.id);
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 5 — Successful retry recovery clears the counter
+  //   Lead with retry=2 from a prior failure. Now sendFn succeeds.
+  //   Verify: status transitions to CONTACTED, retry counter cleared.
+  // ═════════════════════════════════════════════════════════════════
+  var phase5_lead = mkLead('P5-L1');
+  _test_incrementSendRetries(phase5_lead.id);
+  _test_incrementSendRetries(phase5_lead.id);
+  check('phase5_setup_retry_counter_is_2', _test_getSendRetries(phase5_lead.id) === 2);
+
+  var phase5_result = _mock_runAutoSend([phase5_lead], makeSendOk());
+  check('phase5_send_succeeded',           phase5_lead.outreachStatus === 'CONTACTED');
+  check('phase5_retry_counter_cleared',    _test_getSendRetries(phase5_lead.id) === 0);
+  check('phase5_no_human_flag',            phase5_lead.needsHumanAction === 'false');
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 6 — Lock release confirmed in ALL error scenarios
+  //   Re-scan all phase results to confirm every catch path produced
+  //   a 'release' mutation. This proves lock cleanup is unconditional.
+  // ═════════════════════════════════════════════════════════════════
+  var allLeads = phase1_leads.concat(phase2_leads, phase3_leads, [phase4_lead, phase5_lead]);
+  var leadsThatErrored = allLeads.filter(function(lead) {
+    return lead._mutations.some(function(m) { return m.at === 'lock'; }) &&
+           lead.outreachStatus !== 'CONTACTED';
+  });
+  var leadsWithProperRelease = leadsThatErrored.filter(function(lead) {
+    return lead._mutations.some(function(m) {
+      return m.at === 'quota_catch_release' || m.at === 'nonquota_catch_release';
+    });
+  });
+  check('phase6_all_errored_leads_had_lock_released',
+        leadsWithProperRelease.length === leadsThatErrored.length,
+        'errored: ' + leadsThatErrored.length + ' / released: ' + leadsWithProperRelease.length);
+
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 7 — Already verified in Phase 3 (next-day reset).
+  //   Add a final integrity check: today's marker can be re-engaged
+  //   after a reset, so we don't have a one-shot pause.
+  // ═════════════════════════════════════════════════════════════════
+  _test_clearQuotaPause();
+  check('phase7_pause_cleared_for_test', _test_isQuotaPaused() === false);
+  _test_setQuotaPauseToday();
+  check('phase7_pause_re_engageable', _test_isQuotaPaused() === true);
+  _test_clearQuotaPause();
+  check('phase7_pause_clears_again', _test_isQuotaPaused() === false);
+
+  // ── CLEANUP: remove all TEST_v95_* keys ──────────────────────────
+  var deletedCount = 0;
+  var cleanupKeys = props.getKeys();
+  for (var j = 0; j < cleanupKeys.length; j++) {
+    var ck = cleanupKeys[j];
+    if (ck === TEST_PAUSE_KEY || ck.indexOf(TEST_RETRY_PREFIX) === 0) {
+      props.deleteProperty(ck);
+      deletedCount++;
+    }
+  }
+  // Restore any pre-existing values
+  var restoredCount = 0;
+  for (var rk in preExisting) {
+    if (preExisting.hasOwnProperty(rk)) {
+      props.setProperty(rk, preExisting[rk]);
+      restoredCount++;
+    }
+  }
+
+  // Verify cleanup
+  var leftover = [];
+  var finalKeys = props.getKeys();
+  for (var f = 0; f < finalKeys.length; f++) {
+    var fk = finalKeys[f];
+    if ((fk === TEST_PAUSE_KEY || fk.indexOf(TEST_RETRY_PREFIX) === 0) && !preExisting.hasOwnProperty(fk)) {
+      leftover.push(fk);
+    }
+  }
+
+  // ── Summarise ────────────────────────────────────────────────────
+  var passed = checks.filter(function(c) { return c.pass; }).length;
+  var failed = checks.filter(function(c) { return !c.pass; });
+
+  var summary = {
+    generatedAt:    new Date().toISOString(),
+    scriptTimeZone: Session.getScriptTimeZone(),
+    totalChecks:    checks.length,
+    passed:         passed,
+    failed:         failed.length,
+    allPassed:      failed.length === 0,
+    failures:       failed,
+    phases: {
+      phase1_quota_trip_midbatch:   phase1_result,
+      phase2_pause_guard:           phase2_result,
+      phase3_nextday_reset:         { yesterdayKey: yesterdayKey, runResult: phase3_result },
+      phase4_nonquota_retry: {
+        run1: { retries: 1, attempts: phase4_r1.sendAttempts },
+        run2: { retries: 2, attempts: phase4_r2.sendAttempts },
+        run3: { retries: 3, attempts: phase4_r3.sendAttempts, finalFlagged: phase4_lead.needsHumanAction === 'true' }
+      },
+      phase5_retry_recovery: phase5_result
+    },
+    cleanup: {
+      preExistingTestKeys: Object.keys(preExisting).length,
+      deleted:             deletedCount,
+      restored:            restoredCount,
+      leftoverKeys:        leftover,
+      cleanupOk:           leftover.length === 0
+    }
+  };
+
+  // Chunked Logger.log so no line exceeds 50 KB
+  var json = JSON.stringify(summary, null, 2);
+  var CHUNK = 45000;
+  var totalChunks = Math.ceil(json.length / CHUNK);
+  for (var c = 0; c < totalChunks; c++) {
+    Logger.log('[chunk ' + (c + 1) + '/' + totalChunks + ']\n' +
+               json.substring(c * CHUNK, (c + 1) * CHUNK));
+  }
+  Logger.log('[done] passed: ' + passed + '/' + checks.length +
+             ' • allPassed: ' + summary.allPassed +
+             ' • cleanupOk: ' + summary.cleanup.cleanupOk);
+
+  return summary;
+}

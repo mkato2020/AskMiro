@@ -1,0 +1,171 @@
+// v95-single-send-test.gs — SINGLE LIVE TEST SEND
+// ─────────────────────────────────────────────────────────────────────
+// SCOPE: sends exactly ONE test email to a hard-coded controlled
+// mailbox. Uses the v95 createDraft + draft.send() + message.getThread()
+// pattern, byte-identical to gas/outreach.gs:_autoSendInitial in the
+// committed v95 code.
+//
+// SAFETY CONTRACT:
+//   • Does NOT read the Leads sheet (no getTableRows call)
+//   • Does NOT write the Leads sheet (no updateRow)
+//   • Does NOT touch any of the 305 queue rows
+//   • Does NOT touch any of the 55 REPLIED rows
+//   • Does NOT trigger the autosend pipeline
+//   • Does NOT enable any kill switch
+//   • Does NOT create the audit-log sheet
+//   • Does NOT run any migration
+//   • Sends to ONE address only: the RECIPIENT const below
+//   • Verifies by reading back the sent message via getMessageById
+//
+// Paste-once, run-once, delete-the-file. Do NOT clasp push.
+// ─────────────────────────────────────────────────────────────────────
+
+function _v95SingleSendTest() {
+  // ════════════════════════════════════════════════════════════════════
+  // ↓↓↓ EDIT THIS LINE BEFORE RUNNING ↓↓↓
+  var RECIPIENT = 'katomikekalungi@gmail.com';
+  // ↑↑↑ Must be a mailbox you control. Test will refuse other domains. ↑↑↑
+  // ════════════════════════════════════════════════════════════════════
+
+  // Sanity guard: refuse to send to anything that looks like a prospect
+  var CONTROLLED_DOMAINS = ['gmail.com', 'askmiro.com', 'googlemail.com'];
+  var domain = (RECIPIENT.split('@')[1] || '').toLowerCase();
+  if (CONTROLLED_DOMAINS.indexOf(domain) === -1) {
+    return {
+      ok: false,
+      error: 'recipient_not_in_controlled_domains',
+      domain: domain,
+      remedy: 'Edit RECIPIENT to a mailbox you own. Test refused to send to a non-controlled domain.'
+    };
+  }
+
+  var SUBJECT = '[AskMiro v95 test] draft-and-send threadId capture — ' +
+                new Date().toISOString();
+  var TEXT_BODY = 'This is an internal v95 send-resilience test message.\n\n' +
+                  'Purpose: verify that GmailApp.createDraft + draft.send() ' +
+                  'returns a valid message+thread, so threadId is captured ' +
+                  'deterministically (no sleep+search race).\n\n' +
+                  'If you received this, the test succeeded. Delete this email.';
+  var HTML_BODY = '<p>This is an internal v95 send-resilience test message.</p>' +
+                  '<p>Purpose: verify that <code>GmailApp.createDraft + draft.send()</code> ' +
+                  'returns a valid message+thread, so threadId is captured ' +
+                  'deterministically (no sleep+search race).</p>' +
+                  '<p>If you received this, the test succeeded. Delete this email.</p>';
+
+  // Snapshot draft count BEFORE so we can verify the test draft is consumed
+  var draftsBefore = GmailApp.getDrafts().length;
+
+  // ── v95 SEND PATTERN (byte-identical to _autoSendInitial in v95) ────
+  // Use 'TEST' name suffix in From so a recipient can distinguish.
+  var draft = GmailApp.createDraft(RECIPIENT, SUBJECT, TEXT_BODY, {
+    name:     'Mike Kato — AskMiro (v95 TEST)',
+    replyTo:  'info@askmiro.com',
+    bcc:      'info@askmiro.com',
+    htmlBody: HTML_BODY,
+    headers:  {
+      'List-Unsubscribe':      '<mailto:unsubscribe@askmiro.com>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+    }
+  });
+
+  var draftsAfterCreate = GmailApp.getDrafts().length;
+  var draftCreatedOne   = (draftsAfterCreate === draftsBefore + 1);
+
+  // ── The critical line: draft.send() returns a GmailMessage ─────────
+  var message = draft.send();
+
+  var messageReturned = !!message;
+  var thread          = (message && message.getThread()) || null;
+  var threadReturned  = !!thread;
+  var threadId        = thread ? thread.getId() : '';
+  var msgId           = message ? message.getId() : '';
+
+  var draftsAfterSend = GmailApp.getDrafts().length;
+  var draftConsumed   = (draftsAfterSend === draftsBefore);  // back to original count
+
+  // ── Read back the sent message to verify headers ────────────────────
+  // Brief pause for Gmail to fully index the sent message
+  Utilities.sleep(800);
+
+  var readBack = null;
+  var rawHeaders = '';
+  try {
+    var msgById = GmailApp.getMessageById(msgId);
+    if (msgById) {
+      rawHeaders = (msgById.getRawContent() || '').substring(0, 3000);
+      readBack = {
+        from:     msgById.getFrom() || '',
+        to:       msgById.getTo() || '',
+        subject:  msgById.getSubject() || '',
+        replyTo:  msgById.getReplyTo() || ''
+      };
+    }
+  } catch (e) {
+    readBack = { error: 'getMessageById failed: ' + e.message };
+  }
+
+  // ── Header assertions ──────────────────────────────────────────────
+  var verification = {
+    fromContainsExpectedName: readBack && /Mike Kato — AskMiro/.test(readBack.from || ''),
+    fromContainsTestMarker:   readBack && /\(v95 TEST\)/.test(readBack.from || ''),
+    toMatchesRecipient:       readBack && (readBack.to || '').toLowerCase().indexOf(RECIPIENT.toLowerCase()) >= 0,
+    subjectMatches:           readBack && readBack.subject === SUBJECT,
+    replyToMatches:           readBack && /info@askmiro\.com/i.test(readBack.replyTo || ''),
+    rawHeadersIncludeListUnsubscribe: /^list-unsubscribe:/im.test(rawHeaders),
+    rawHeadersIncludeBcc:     /^bcc:.*info@askmiro\.com/im.test(rawHeaders)
+    // Note: BCC is normally STRIPPED from the recipient's copy by Gmail.
+    // This check inspects the sender-side copy's raw headers.
+    // BCC delivery to info@askmiro.com is verified out-of-band.
+  };
+
+  // ── Result envelope ────────────────────────────────────────────────
+  var result = {
+    generatedAt:  new Date().toISOString(),
+    test:         'v95 single live send',
+    recipient:    RECIPIENT,
+    sentSubject:  SUBJECT,
+
+    sendResult: {
+      messageReturned:           messageReturned,
+      threadReturned:            threadReturned,
+      threadIdCaptured:          !!threadId,
+      gmailMessageIdCaptured:    !!msgId,
+      threadId:                  threadId,
+      gmailMessageId:            msgId
+    },
+
+    draftLifecycle: {
+      before:        draftsBefore,
+      afterCreate:   draftsAfterCreate,
+      afterSend:     draftsAfterSend,
+      draftCreatedOne: draftCreatedOne,
+      draftConsumed:   draftConsumed,
+      // If draftConsumed===false, an orphan exists — needs investigation
+    },
+
+    headerVerification: verification,
+
+    readBack: readBack,
+
+    overallPass: !!(
+      messageReturned &&
+      threadReturned &&
+      threadId &&
+      msgId &&
+      draftCreatedOne &&
+      draftConsumed &&
+      verification.fromContainsExpectedName &&
+      verification.fromContainsTestMarker &&
+      verification.toMatchesRecipient &&
+      verification.subjectMatches &&
+      verification.replyToMatches &&
+      verification.rawHeadersIncludeListUnsubscribe
+    )
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+  Logger.log('[done] overallPass: ' + result.overallPass +
+             ' • threadIdCaptured: ' + result.sendResult.threadIdCaptured +
+             ' • draftConsumed: ' + result.draftLifecycle.draftConsumed);
+  return result;
+}

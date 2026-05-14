@@ -1,0 +1,239 @@
+// v95-unit-tests.gs — SELF-CONTAINED helper-logic unit tests
+// ────────────────────────────────────────────────────────────
+// SAFETY CONTRACT:
+//   • No writes to the Leads sheet.
+//   • No emails, no labels, no Gmail API calls.
+//   • No external API calls.
+//   • Touches PropertiesService ONLY under a sandbox prefix
+//     ('TEST_v95_') that is independent of any production key.
+//   • Restores PropertiesService to its prior state at end.
+//
+//   Self-contained: inlines _test_-prefixed copies of the v95 helpers
+//   so the test passes regardless of whether v95 has been pushed to
+//   live GAS. The inlined logic is byte-identical to the v95 commit.
+//
+//   Paste-once, run-once, delete-the-file.
+//   Do NOT clasp push. Do NOT commit.
+// ────────────────────────────────────────────────────────────
+
+function _v95UnitTests() {
+  var props = PropertiesService.getScriptProperties();
+  var TEST_PAUSE_KEY    = 'TEST_v95_quota_pause';
+  var TEST_RETRY_PREFIX = 'TEST_v95_retry_';
+
+  // ── Snapshot any pre-existing test keys (should normally be none) ──
+  var preExisting = {};
+  var allKeys = props.getKeys();
+  for (var i = 0; i < allKeys.length; i++) {
+    var k = allKeys[i];
+    if (k === TEST_PAUSE_KEY || k.indexOf(TEST_RETRY_PREFIX) === 0) {
+      preExisting[k] = props.getProperty(k);
+    }
+  }
+
+  // ── Inlined helpers (logic byte-identical to v95 commit) ───────────
+  function _test_isQuotaError(err) {
+    var msg = (err && err.message ? err.message : String(err || '')).toLowerCase();
+    return /service invoked too many times|too many emails|daily.*(limit|quota)|rate.*exceed/i.test(msg);
+  }
+  function _test_todayKey() {
+    return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  function _test_setQuotaPauseToday() {
+    props.setProperty(TEST_PAUSE_KEY, _test_todayKey());
+  }
+  function _test_isQuotaPaused() {
+    var paused = props.getProperty(TEST_PAUSE_KEY) || '';
+    return paused === _test_todayKey();
+  }
+  function _test_clearQuotaPause() {
+    props.deleteProperty(TEST_PAUSE_KEY);
+  }
+  function _test_getSendRetries(leadId) {
+    if (!leadId) return 0;
+    return parseInt(props.getProperty(TEST_RETRY_PREFIX + leadId) || '0', 10);
+  }
+  function _test_incrementSendRetries(leadId) {
+    if (!leadId) return 0;
+    var k = TEST_RETRY_PREFIX + leadId;
+    var n = _test_getSendRetries(leadId) + 1;
+    props.setProperty(k, String(n));
+    return n;
+  }
+  function _test_clearSendRetries(leadId) {
+    if (!leadId) return;
+    props.deleteProperty(TEST_RETRY_PREFIX + leadId);
+  }
+
+  // ── Test harness ───────────────────────────────────────────────────
+  var results = [];
+  function check(name, cond, detail) {
+    results.push({ name: name, pass: !!cond, detail: detail || '' });
+  }
+
+  // ── 1. _isQuotaError — recognises the real error message from audit ─
+  var realErr = new Error('Service invoked too many times for one day: email.');
+  check('quota_real_audit_message',
+        _test_isQuotaError(realErr) === true,
+        'must detect "Service invoked too many times for one day"');
+
+  check('quota_case_insensitive',
+        _test_isQuotaError(new Error('SERVICE INVOKED TOO MANY TIMES')) === true);
+
+  check('quota_alt_phrasing_daily_limit',
+        _test_isQuotaError(new Error('Daily user-sending limit exceeded')) === true);
+
+  check('quota_alt_phrasing_rate_exceed',
+        _test_isQuotaError(new Error('Rate limit exceeded')) === true);
+
+  // ── 2. _isQuotaError — rejects unrelated errors ────────────────────
+  check('non_quota_invalid_recipient',
+        _test_isQuotaError(new Error('Invalid recipient address')) === false);
+
+  check('non_quota_network',
+        _test_isQuotaError(new Error('Network timeout')) === false);
+
+  check('non_quota_attachment',
+        _test_isQuotaError(new Error('Attachment too large')) === false);
+
+  check('non_quota_empty',
+        _test_isQuotaError(new Error('')) === false);
+
+  check('non_quota_null_safe',
+        _test_isQuotaError(null) === false);
+
+  // ── 3. Pause cycle — set / read / clear ────────────────────────────
+  _test_clearQuotaPause();                                    // start clean
+  check('pause_starts_cleared', _test_isQuotaPaused() === false);
+
+  _test_setQuotaPauseToday();
+  check('pause_active_after_set', _test_isQuotaPaused() === true);
+
+  // Pause key value sanity — should be a YYYY-MM-DD date in script TZ
+  var pauseValue = props.getProperty(TEST_PAUSE_KEY);
+  check('pause_key_is_date',
+        /^\d{4}-\d{2}-\d{2}$/.test(pauseValue || ''),
+        'got: ' + pauseValue);
+
+  var scriptTz = Session.getScriptTimeZone();
+  check('pause_uses_script_tz',
+        scriptTz && scriptTz !== 'Etc/GMT',
+        'script timezone: ' + scriptTz);
+
+  _test_clearQuotaPause();
+  check('pause_clears_to_false', _test_isQuotaPaused() === false);
+
+  // ── 4. Retry counter — happy path ──────────────────────────────────
+  var testLeadId = 'TEST-LEAD-' + Utilities.getUuid().substring(0, 8);
+
+  _test_clearSendRetries(testLeadId);
+  check('retry_starts_zero', _test_getSendRetries(testLeadId) === 0);
+
+  check('retry_increments_to_1', _test_incrementSendRetries(testLeadId) === 1);
+  check('retry_increments_to_2', _test_incrementSendRetries(testLeadId) === 2);
+  check('retry_increments_to_3', _test_incrementSendRetries(testLeadId) === 3);
+  check('retry_get_reflects_increment', _test_getSendRetries(testLeadId) === 3);
+
+  _test_clearSendRetries(testLeadId);
+  check('retry_clears_to_zero', _test_getSendRetries(testLeadId) === 0);
+
+  // ── 5. Retry counter — defensive guards (Q9 fix) ───────────────────
+  check('retry_get_handles_empty_id', _test_getSendRetries('') === 0);
+  check('retry_get_handles_null_id',  _test_getSendRetries(null) === 0);
+  check('retry_get_handles_undef_id', _test_getSendRetries(undefined) === 0);
+
+  check('retry_increment_handles_empty_id', _test_incrementSendRetries('') === 0);
+  check('retry_increment_handles_null_id',  _test_incrementSendRetries(null) === 0);
+  check('retry_increment_handles_undef_id', _test_incrementSendRetries(undefined) === 0);
+
+  // Critical: the guarded increment must NOT have written any property
+  var anyUndefinedProp = props.getProperty(TEST_RETRY_PREFIX + 'undefined') ||
+                         props.getProperty(TEST_RETRY_PREFIX + 'null') ||
+                         props.getProperty(TEST_RETRY_PREFIX);
+  check('retry_no_collision_property_written',
+        anyUndefinedProp === null || anyUndefinedProp === '',
+        'leaked property: ' + anyUndefinedProp);
+
+  // Clear-with-bad-id must not throw
+  var clearOk = true;
+  try { _test_clearSendRetries(''); _test_clearSendRetries(null); _test_clearSendRetries(undefined); }
+  catch (e) { clearOk = false; }
+  check('retry_clear_handles_bad_id_no_throw', clearOk === true);
+
+  // ── 6. Distinct lead IDs do not collide ────────────────────────────
+  var leadA = 'TEST-LEAD-A-' + Utilities.getUuid().substring(0, 6);
+  var leadB = 'TEST-LEAD-B-' + Utilities.getUuid().substring(0, 6);
+  _test_clearSendRetries(leadA);
+  _test_clearSendRetries(leadB);
+
+  _test_incrementSendRetries(leadA);
+  _test_incrementSendRetries(leadA);     // A=2
+  _test_incrementSendRetries(leadB);     // B=1
+
+  check('retry_lead_a_isolated', _test_getSendRetries(leadA) === 2);
+  check('retry_lead_b_isolated', _test_getSendRetries(leadB) === 1);
+
+  _test_clearSendRetries(leadA);
+  check('retry_clear_a_does_not_affect_b', _test_getSendRetries(leadB) === 1);
+
+  _test_clearSendRetries(leadB);
+
+  // ── CLEANUP: restore PropertiesService to prior state ──────────────
+  // Delete every TEST_v95_* key we may have touched
+  var cleanupKeysAfter = props.getKeys();
+  var deletedCount = 0;
+  for (var j = 0; j < cleanupKeysAfter.length; j++) {
+    var ck = cleanupKeysAfter[j];
+    if (ck === TEST_PAUSE_KEY || ck.indexOf(TEST_RETRY_PREFIX) === 0) {
+      props.deleteProperty(ck);
+      deletedCount++;
+    }
+  }
+  // Restore any pre-existing values (paranoid — should always be 0)
+  var restoredCount = 0;
+  for (var k in preExisting) {
+    if (preExisting.hasOwnProperty(k)) {
+      props.setProperty(k, preExisting[k]);
+      restoredCount++;
+    }
+  }
+
+  // ── Verify cleanup ─────────────────────────────────────────────────
+  var leftover = [];
+  var finalKeys = props.getKeys();
+  for (var f = 0; f < finalKeys.length; f++) {
+    var fk = finalKeys[f];
+    if (fk === TEST_PAUSE_KEY || fk.indexOf(TEST_RETRY_PREFIX) === 0) {
+      if (!preExisting.hasOwnProperty(fk)) {
+        leftover.push(fk);
+      }
+    }
+  }
+
+  // ── Summarise ──────────────────────────────────────────────────────
+  var passed = results.filter(function(r) { return r.pass; }).length;
+  var failed = results.filter(function(r) { return !r.pass; });
+
+  var summary = {
+    generatedAt:   new Date().toISOString(),
+    scriptTimeZone: Session.getScriptTimeZone(),
+    totalChecks:   results.length,
+    passed:        passed,
+    failed:        failed.length,
+    allPassed:     failed.length === 0,
+    failures:      failed,
+    cleanup: {
+      preExistingTestKeys:  Object.keys(preExisting).length,
+      deleted:              deletedCount,
+      restored:             restoredCount,
+      leftoverKeys:         leftover,
+      cleanupOk:            leftover.length === 0
+    }
+  };
+
+  Logger.log(JSON.stringify(summary, null, 2));
+  Logger.log('[done] passed: ' + passed + '/' + results.length +
+             ' • cleanupOk: ' + summary.cleanup.cleanupOk);
+
+  return summary;
+}
