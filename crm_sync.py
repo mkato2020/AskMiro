@@ -34,9 +34,77 @@ try:
 except ImportError:
     pass
 
-from database import db_connection
+import db_pg
 
 logger = logging.getLogger(__name__)
+
+# ──────────────────────────────────────────────────────────────────────
+# QUALIFIED LEAD QUERY (Postgres normalized schema)
+# ──────────────────────────────────────────────────────────────────────
+# After the April 1 migration (commit 73e229c), data lives in the new
+# normalized tables — entities, opportunity_scores, opportunities,
+# contacts, entity_source_links, addresses. The legacy `lead_records`
+# table no longer exists. This single SELECT replaces the old query;
+# every callsite uses it via _select_qualified_rows().
+#
+# Maintains identical output column names to the old schema so the
+# downstream _push_one() payload mapping continues to work unchanged.
+# ──────────────────────────────────────────────────────────────────────
+_QUALIFIED_LEAD_SQL = """
+SELECT
+    e.id                                    AS id,
+    e.id                                    AS entity_id,
+    esl.source_record_id                    AS place_id,
+    e.canonical_name                        AS business_name,
+    LOWER(COALESCE(e.sector, ''))           AS normalized_sector,
+    a.borough                               AS borough,
+    a.line1                                 AS address,
+    a.postcode                              AS postcode,
+    e.primary_phone                         AS phone,
+    e.primary_email                         AS email,
+    c.full_name                             AS contact_name,
+    os.total_score                          AS priority_score,
+    c.job_title                             AS ai_decision_maker_type,
+    COALESCE(os.next_best_action, '')       AS trigger_summary,
+    ''                                      AS recommended_offer,
+    ''                                      AS buying_signal_types,
+    COALESCE(o.current_stage::TEXT, 'new')  AS pipeline_status,
+    op.cold_email                           AS cold_email,
+    op.follow_up_email                      AS follow_up_email
+FROM entities e
+JOIN entity_source_links esl
+    ON esl.entity_id = e.id AND esl.source = 'google_maps'
+JOIN opportunity_scores os
+    ON os.entity_id = e.id
+LEFT JOIN opportunities o
+    ON o.entity_id = e.id
+LEFT JOIN contacts c
+    ON c.entity_id = e.id AND c.is_primary = TRUE
+LEFT JOIN entity_locations el
+    ON el.entity_id = e.id AND el.is_primary = TRUE
+LEFT JOIN addresses a
+    ON a.id = el.address_id
+LEFT JOIN outreach_packages op
+    ON op.entity_id = e.id OR op.place_id = esl.source_record_id
+LEFT JOIN crm_handoffs ch
+    ON ch.place_id = esl.source_record_id
+WHERE os.total_score >= %s
+  AND e.active = TRUE
+  AND COALESCE(e.primary_email, '') != ''
+  AND COALESCE(ch.place_id, '') = ''
+  AND COALESCE(o.current_stage::TEXT, 'new') IN
+      ('new', 'enriched', 'ready_to_contact')
+  AND NOT EXISTS (
+      SELECT 1 FROM email_suppressions es
+      WHERE es.email = LOWER(e.primary_email) AND es.active = TRUE
+  )
+ORDER BY os.total_score DESC
+LIMIT %s
+"""
+
+def _select_qualified_rows(conn, min_score: int, limit: int) -> list[dict]:
+    """Return list of dicts matching the legacy lead_records shape."""
+    return db_pg.fetchall(conn, _QUALIFIED_LEAD_SQL, (min_score, limit))
 
 # ── CONFIG ────────────────────────────────────────────────────
 # Set these in .env:
@@ -118,7 +186,7 @@ def push_qualified_leads(
     Find leads ready for CRM handoff and push them.
     Criteria:
       - priority_score >= min_score
-      - ai_is_cleaning_target = 1
+      - opportunity_scores row exists (entity passed the scoring filter)
       - has email address (required for outreach)
       - not already pushed (no crm_handoffs row)
       - pipeline_status in (new, shortlisted, enriched, ready_to_contact)
@@ -135,49 +203,9 @@ def push_qualified_leads(
         logger.warning("crm_sync: GAS_ENDPOINT or GAS_TOKEN not configured — skipping push")
         return {"pushed": 0, "skipped": 0, "failed": 0, "total": 0, "error": "not_configured"}
 
-    with db_connection() as conn:
+    with db_pg.transaction() as conn:
         _ensure_tables(conn)
-
-        rows = conn.execute(
-            """
-            SELECT
-                lr.id,
-                lr.place_id,
-                lr.business_name,
-                lr.normalized_sector,
-                lr.borough,
-                lr.address,
-                lr.postcode,
-                lr.phone,
-                lr.email,
-                lr.contact_name,
-                lr.priority_score,
-                lr.ai_decision_maker_type,
-                lr.trigger_summary,
-                lr.recommended_offer,
-                lr.buying_signal_types,
-                lr.pipeline_status,
-                op.cold_email,
-                op.follow_up_email
-            FROM lead_records lr
-            LEFT JOIN outreach_packages op  ON lr.place_id = op.place_id
-            LEFT JOIN crm_handoffs      ch  ON lr.place_id = ch.place_id
-            WHERE lr.priority_score          >= ?
-              AND lr.ai_is_cleaning_target    = 1
-              AND COALESCE(lr.email, '')      != ''
-              AND COALESCE(ch.place_id, '')   = ''
-              AND COALESCE(lr.pipeline_status, 'new') IN
-                  ('new', 'shortlisted', 'enriched', 'ready_to_contact', 'raw')
-              -- Exclude suppressed emails (bounced/invalid/unsubscribed)
-              AND NOT EXISTS (
-                  SELECT 1 FROM email_suppressions es
-                  WHERE es.email = LOWER(lr.email) AND es.active = TRUE
-              )
-            ORDER BY lr.priority_score DESC
-            LIMIT ?
-            """,
-            (min_score, limit),
-        ).fetchall()
+        rows = _select_qualified_rows(conn, min_score, limit)
 
     # Generate outreach packages for any leads that don't have one yet
     leads_needing_outreach = [r for r in rows if not r.get("cold_email")]
@@ -191,33 +219,8 @@ def push_qualified_leads(
             logger.warning("crm_sync: outreach generation failed — %s", exc)
 
         # Re-fetch rows with outreach packages now populated
-        with db_connection() as conn:
-            rows = conn.execute(
-                """
-                SELECT
-                    lr.id, lr.place_id, lr.business_name, lr.normalized_sector,
-                    lr.borough, lr.address, lr.postcode, lr.phone, lr.email,
-                    lr.contact_name, lr.priority_score, lr.ai_decision_maker_type,
-                    lr.trigger_summary, lr.recommended_offer, lr.buying_signal_types,
-                    lr.pipeline_status, op.cold_email, op.follow_up_email
-                FROM lead_records lr
-                LEFT JOIN outreach_packages op ON lr.place_id = op.place_id
-                LEFT JOIN crm_handoffs      ch ON lr.place_id = ch.place_id
-                WHERE lr.priority_score          >= ?
-                  AND lr.ai_is_cleaning_target    = 1
-                  AND COALESCE(lr.email, '')      != ''
-                  AND COALESCE(ch.place_id, '')   = ''
-                  AND COALESCE(lr.pipeline_status, 'new') IN
-                      ('new', 'shortlisted', 'enriched', 'ready_to_contact', 'raw')
-                  AND NOT EXISTS (
-                      SELECT 1 FROM email_suppressions es
-                      WHERE es.email = LOWER(lr.email) AND es.active = TRUE
-                  )
-                ORDER BY lr.priority_score DESC
-                LIMIT ?
-                """,
-                (min_score, limit),
-            ).fetchall()
+        with db_pg.transaction() as conn:
+            rows = _select_qualified_rows(conn, min_score, limit)
 
     pushed = skipped = failed = 0
     errors: list[str] = []
@@ -250,18 +253,45 @@ def push_single_lead(place_id: str) -> dict:
     if not cfg["endpoint"] or not cfg["token"]:
         return {"ok": False, "error": "not_configured"}
 
-    with db_connection() as conn:
+    # Force-push a single lead by place_id (overrides score/status filters)
+    # Same column shape as the qualified-leads query so _push_one works unchanged.
+    _SINGLE_LEAD_SQL = """
+    SELECT
+        e.id                                    AS id,
+        e.id                                    AS entity_id,
+        esl.source_record_id                    AS place_id,
+        e.canonical_name                        AS business_name,
+        LOWER(COALESCE(e.sector, ''))           AS normalized_sector,
+        a.borough                               AS borough,
+        a.line1                                 AS address,
+        a.postcode                              AS postcode,
+        e.primary_phone                         AS phone,
+        e.primary_email                         AS email,
+        c.full_name                             AS contact_name,
+        COALESCE(os.total_score, 0)             AS priority_score,
+        c.job_title                             AS ai_decision_maker_type,
+        COALESCE(os.next_best_action, '')       AS trigger_summary,
+        ''                                      AS recommended_offer,
+        ''                                      AS buying_signal_types,
+        COALESCE(o.current_stage::TEXT, 'new')  AS pipeline_status,
+        op.cold_email                           AS cold_email,
+        op.follow_up_email                      AS follow_up_email
+    FROM entities e
+    JOIN entity_source_links esl
+        ON esl.entity_id = e.id AND esl.source = 'google_maps'
+    LEFT JOIN opportunity_scores os ON os.entity_id = e.id
+    LEFT JOIN opportunities o ON o.entity_id = e.id
+    LEFT JOIN contacts c ON c.entity_id = e.id AND c.is_primary = TRUE
+    LEFT JOIN entity_locations el ON el.entity_id = e.id AND el.is_primary = TRUE
+    LEFT JOIN addresses a ON a.id = el.address_id
+    LEFT JOIN outreach_packages op
+        ON op.entity_id = e.id OR op.place_id = esl.source_record_id
+    WHERE esl.source_record_id = %s
+    LIMIT 1
+    """
+    with db_pg.transaction() as conn:
         _ensure_tables(conn)
-        row = conn.execute(
-            """
-            SELECT lr.*, op.cold_email, op.follow_up_email
-            FROM lead_records lr
-            LEFT JOIN outreach_packages op ON lr.place_id = op.place_id
-            WHERE lr.place_id = ?
-            LIMIT 1
-            """,
-            (place_id,),
-        ).fetchone()
+        row = db_pg.fetchone(conn, _SINGLE_LEAD_SQL, (place_id,))
 
     if not row:
         return {"ok": False, "error": "lead_not_found"}
@@ -278,7 +308,7 @@ def push_single_lead(place_id: str) -> dict:
 def sync_status_from_crm() -> dict:
     """
     Poll GAS CRM for status changes on outbound leads.
-    Updates local lead_records.pipeline_status and crm_handoffs tracking.
+    Updates opportunities.current_stage and crm_handoffs tracking.
     """
     cfg = _cfg()
     if not cfg["endpoint"] or not cfg["token"]:
@@ -294,7 +324,7 @@ def sync_status_from_crm() -> dict:
         return {"synced": 0, "error": "unexpected_response_type"}
 
     synced = 0
-    with db_connection() as conn:
+    with db_pg.transaction() as conn:
         _ensure_tables(conn)
         for lead in leads:
             # Only sync outbound leads we handed off
@@ -309,30 +339,29 @@ def sync_status_from_crm() -> dict:
             pipeline_status = _CRM_TO_PIPELINE.get(outreach_status, "")
 
             if pipeline_status:
-                # Update the real opportunities table (lead_records is now a VIEW)
-                conn.execute(
-                    """UPDATE opportunities SET current_stage = ?::pipeline_stage,
-                       updated_at = ?, last_touched_at = ?
+                # Update the real opportunities table
+                db_pg.execute(conn,
+                    """UPDATE opportunities SET current_stage = %s::pipeline_stage,
+                       updated_at = %s, last_touched_at = %s
                        WHERE entity_id = (
                            SELECT e.id FROM entities e
                            JOIN entity_source_links esl ON esl.entity_id = e.id
-                           WHERE esl.source_record_id = ?
+                           WHERE esl.source_record_id = %s
                            LIMIT 1
                        )""",
                     (pipeline_status, _now(), _now(), source_id),
                 )
 
-            conn.execute(
+            db_pg.execute(conn,
                 """
                 UPDATE crm_handoffs
-                SET last_sync_at=?, crm_outreach_status=?, crm_reply_status=?
-                WHERE place_id=?
+                SET last_sync_at=%s, crm_outreach_status=%s, crm_reply_status=%s
+                WHERE place_id=%s
                 """,
                 (_now(), outreach_status, reply_status, source_id),
             )
             synced += 1
-
-        conn.commit()
+        # db_pg.transaction() handles commit/rollback automatically
 
     logger.info("crm_sync.sync_status_from_crm: synced=%d leads", synced)
     return {"synced": synced}
@@ -344,44 +373,55 @@ def sync_status_from_crm() -> dict:
 
 def get_handoff_status() -> dict:
     """Summary of all CRM handoffs — used by /api/crm/status."""
-    with db_connection() as conn:
+    with db_pg.transaction() as conn:
         _ensure_tables(conn)
 
-        by_status = conn.execute(
+        by_status = db_pg.fetchall(conn,
             """
             SELECT handoff_status, COUNT(*) as n, MAX(handoff_at) as last_at
             FROM crm_handoffs
             GROUP BY handoff_status
             """,
-        ).fetchall()
+        )
 
-        total_pushed = conn.execute(
+        total_pushed = db_pg.fetchone(conn,
             "SELECT COUNT(*) as n FROM crm_handoffs WHERE handoff_status IN ('success','duplicate')"
-        ).fetchone()
+        )
 
-        pending = conn.execute(
+        # Pending count: entities ready for push, no crm_handoffs row yet.
+        # Mirrors the qualified-leads filter logic.
+        pending = db_pg.fetchone(conn,
             """
             SELECT COUNT(*) as n
-            FROM lead_records lr
-            LEFT JOIN crm_handoffs ch ON lr.place_id = ch.place_id
-            WHERE lr.priority_score          >= ?
-              AND lr.ai_is_cleaning_target    = 1
-              AND COALESCE(lr.email, '')      != ''
-              AND COALESCE(ch.place_id, '')   = ''
+            FROM entities e
+            JOIN entity_source_links esl
+                ON esl.entity_id = e.id AND esl.source = 'google_maps'
+            JOIN opportunity_scores os ON os.entity_id = e.id
+            LEFT JOIN crm_handoffs ch ON ch.place_id = esl.source_record_id
+            WHERE os.total_score >= %s
+              AND e.active = TRUE
+              AND COALESCE(e.primary_email, '') != ''
+              AND COALESCE(ch.place_id, '') = ''
             """,
             (_cfg()["min_score"],),
-        ).fetchone()
+        )
 
-        errors = conn.execute(
+        errors = db_pg.fetchall(conn,
             """
-            SELECT ch.place_id, lr.business_name, ch.error_message, ch.handoff_at
+            SELECT
+                ch.place_id,
+                e.canonical_name AS business_name,
+                ch.error_message,
+                ch.handoff_at
             FROM crm_handoffs ch
-            LEFT JOIN lead_records lr ON ch.place_id = lr.place_id
+            LEFT JOIN entity_source_links esl
+                ON esl.source_record_id = ch.place_id
+            LEFT JOIN entities e ON e.id = esl.entity_id
             WHERE ch.handoff_status = 'error'
             ORDER BY ch.handoff_at DESC
             LIMIT 10
             """,
-        ).fetchall()
+        )
 
     return {
         "total_pushed":  (total_pushed or {}).get("n", 0),
@@ -504,14 +544,14 @@ def _record_handoff(
     error: str,
 ) -> None:
     """Upsert a crm_handoffs row."""
-    with db_connection() as conn:
+    with db_pg.transaction() as conn:
         _ensure_tables(conn)
-        conn.execute(
+        db_pg.execute(conn,
             """
             INSERT INTO crm_handoffs
                 (place_id, crm_id, python_lead_id, handoff_at, handoff_status,
                  last_sync_at, error_message)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (place_id) DO UPDATE SET
                 crm_id = EXCLUDED.crm_id,
                 python_lead_id = EXCLUDED.python_lead_id,
@@ -530,7 +570,6 @@ def _record_handoff(
                 error or None,
             ),
         )
-        conn.commit()
 
 
 def _gas_post(action: str, body: dict) -> dict:
@@ -578,8 +617,9 @@ def _parse_response(raw: str) -> object:
 
 
 def _ensure_tables(conn) -> None:
-    """Create crm_handoffs table and run any missing column migrations."""
-    conn.execute(
+    """Create crm_handoffs table and run any missing column migrations.
+    Postgres-only (operates against the Railway/db_pg connection)."""
+    db_pg.execute(conn,
         """
         CREATE TABLE IF NOT EXISTS crm_handoffs (
             place_id            TEXT PRIMARY KEY,
@@ -594,7 +634,7 @@ def _ensure_tables(conn) -> None:
         )
         """
     )
-    # Safe migrations for existing installs
+    # Safe column migrations for installs missing later columns
     _add_col_safe(conn, "crm_handoffs", "python_lead_id",      "TEXT")
     _add_col_safe(conn, "crm_handoffs", "last_sync_at",        "TEXT")
     _add_col_safe(conn, "crm_handoffs", "error_message",       "TEXT")
@@ -603,26 +643,19 @@ def _ensure_tables(conn) -> None:
 
 
 def _add_col_safe(conn, table: str, col: str, defn: str) -> None:
-    """Add a column if it doesn't exist — works on both SQLite and Postgres."""
+    """Add a column if it doesn't exist (Postgres). Idempotent."""
     try:
-        # Postgres path: use information_schema
-        existing = [
-            r["column_name"]
-            for r in conn.execute(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_schema = 'public' AND table_name = %s",
-                (table,),
-            ).fetchall()
-        ]
+        existing_rows = db_pg.fetchall(conn,
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = 'public' AND table_name = %s",
+            (table,),
+        )
+        existing = {r["column_name"] for r in existing_rows}
     except Exception:
-        # SQLite fallback
-        try:
-            existing = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
-        except Exception:
-            existing = []
+        existing = set()
     if col not in existing:
         try:
-            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
+            db_pg.execute(conn, f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
         except Exception:
             pass
 
