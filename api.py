@@ -132,6 +132,22 @@ def _start_scheduler():
             replace_existing=True,
         )
 
+        # Phone-lane push — leads with phone but no email, every hour.
+        # Gated behind CRM_PHONE_PUSH_AUTO=1 so it's off until you opt in.
+        if os.getenv("CRM_PHONE_PUSH_AUTO", "").strip() in ("1", "true", "yes"):
+            scheduler.add_job(
+                _job_push_phone,
+                trigger=IntervalTrigger(hours=1),
+                id="crm_push_phone",
+                name="Push phone-only leads to Ops",
+                max_instances=1,
+                replace_existing=True,
+            )
+            logger.info("APScheduler: crm_push_phone job enabled")
+        else:
+            logger.info("APScheduler: crm_push_phone job DISABLED "
+                        "(set CRM_PHONE_PUSH_AUTO=1 to enable)")
+
         # Email enrichment — scrape websites for emails every 2 hours.
         # Disabled by default; enable with EMAIL_ENRICH_AUTO=1 once we've
         # verified one manual batch run looks sane.
@@ -174,6 +190,15 @@ def _job_sync_status():
         logger.info("Scheduled CRM sync: %s", result)
     except Exception as exc:
         logger.error("Scheduled CRM sync failed: %s", exc)
+
+
+def _job_push_phone():
+    try:
+        result = crm_sync.push_phone_leads()
+        logger.info("Scheduled phone push: %s",
+                    {k: v for k, v in result.items() if k != "errors"})
+    except Exception as exc:
+        logger.error("Scheduled phone push failed: %s", exc)
 
 
 def _job_email_enrich():
@@ -5553,6 +5578,27 @@ def api_crm_push(
                 "traceback": traceback.format_exc()[-1500:],
             },
         )
+
+
+@app.post("/api/crm/push-phone")
+def api_crm_push_phone(
+    min_score: int = Query(None, ge=0, le=100),
+    limit:     int = Query(None, ge=1, le=500),
+):
+    """Phone-lane push: leads with phone but no email → Ops as PHONE_LEAD."""
+    kwargs = {}
+    if min_score is not None: kwargs["min_score"] = min_score
+    if limit is not None:     kwargs["limit"] = limit
+    try:
+        return crm_sync.push_phone_leads(**kwargs)
+    except Exception as exc:
+        import traceback
+        logger.error("push_phone failed: %s\n%s", exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+            "traceback": traceback.format_exc()[-1200:],
+        })
 
 
 @app.post("/api/crm/push/{place_id}")

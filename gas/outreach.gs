@@ -47,6 +47,7 @@ const OS = {
   STOPPED:             'STOPPED',
   DISQUALIFIED:        'DISQUALIFIED',
   BOUNCED:             'BOUNCED',          // set by readiness layer bounce handler
+  PHONE_LEAD:          'PHONE_LEAD',       // no email — operator calls/SMS, not auto-sent
 };
 
 // Active follow-up states (still in sequence, awaiting next touch)
@@ -156,17 +157,33 @@ AskMiro Cleaning Services`
 function handoffLead(body, auth) {
   requireRole(auth, 'OpsManager');
 
+  const lane    = String(body.lane || 'email').trim().toLowerCase();   // 'email' | 'phone'
   const email   = String(body.email || '').trim().toLowerCase();
+  const phone   = String(body.phone || '').trim();
   const company = String(body.companyName || body.company || '').trim();
 
-  if (!email || !email.includes('@')) {
-    return { error: 'Valid email required' };
+  // ── Lane validation ─────────────────────────────────────────
+  if (lane === 'phone') {
+    // Phone-only lead: needs phone, email optional
+    if (!phone || phone.length < 6) {
+      return { error: 'Phone-lane lead requires phone number' };
+    }
+  } else {
+    // Default email lane
+    if (!email || !email.includes('@')) {
+      return { error: 'Valid email required' };
+    }
   }
 
   // ── Duplicate guard ─────────────────────────────────────────
-  const existing = getTableRows('Leads').find(r =>
-    String(r.email || '').toLowerCase() === email
-  );
+  // Email-lane dedups on email; phone-lane dedups on phone+company.
+  const existing = getTableRows('Leads').find(r => {
+    if (lane === 'phone') {
+      return String(r.phone || '').replace(/\D/g, '') === phone.replace(/\D/g, '')
+          && String(r.companyName || '').toLowerCase() === company.toLowerCase();
+    }
+    return String(r.email || '').toLowerCase() === email;
+  });
   if (existing) {
     // Upgrade score if new signal is stronger
     const newScore = Number(body.leadScore || 0);
@@ -207,7 +224,9 @@ function handoffLead(body, auth) {
     sourceLeadId:     String(body.sourceLeadId || body.source_lead_id || ''),
     pythonLeadId:     String(body.pythonLeadId  || body.python_lead_id  || ''),
     leadScore:        String(body.leadScore || body.lead_score || ''),
-    outreachStatus:   OS.READY_FOR_OUTREACH,
+    // Phone-lane leads get PHONE_LEAD so autoSendOutreach skips them
+    outreachStatus:   (lane === 'phone' ? OS.PHONE_LEAD : OS.READY_FOR_OUTREACH),
+    leadLane:         lane,
     outreachTemplate: template,
     followUpCount:    '0',
     lastContactedAt:  '',

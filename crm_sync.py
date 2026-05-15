@@ -109,6 +109,67 @@ def _select_qualified_rows(conn, min_score: int, limit: int) -> list[dict]:
     """Return list of dicts matching the legacy lead_records shape."""
     return db_pg.fetchall(conn, _QUALIFIED_LEAD_SQL, (min_score, limit))
 
+
+# ── Phone-lane SQL ────────────────────────────────────────────
+# Mirrors the email query but: requires phone, no email needed.
+# Used for entities where the scraper captured a phone but no email.
+_PHONE_QUALIFIED_LEAD_SQL = """
+SELECT
+    e.id                                    AS id,
+    e.id                                    AS entity_id,
+    esl.source_record_id                    AS place_id,
+    e.canonical_name                        AS business_name,
+    LOWER(COALESCE(e.sector, ''))           AS normalized_sector,
+    a.borough                               AS borough,
+    a.line1                                 AS address,
+    a.postcode                              AS postcode,
+    e.primary_phone                         AS phone,
+    e.primary_email                         AS email,
+    c.full_name                             AS contact_name,
+    os.total_score                          AS priority_score,
+    c.job_title                             AS ai_decision_maker_type,
+    COALESCE(os.next_best_action, '')       AS trigger_summary,
+    ''                                      AS recommended_offer,
+    ''                                      AS buying_signal_types,
+    COALESCE(o.current_stage::TEXT, 'new')  AS pipeline_status,
+    op.cold_email                           AS cold_email,
+    op.follow_up_email                      AS follow_up_email
+FROM entities e
+JOIN entity_source_links esl
+    ON esl.entity_id = e.id AND esl.source = 'google_maps'
+JOIN opportunity_scores os
+    ON os.entity_id = e.id
+LEFT JOIN opportunities o
+    ON o.entity_id = e.id
+LEFT JOIN contacts c
+    ON c.entity_id = e.id AND c.is_primary = TRUE
+LEFT JOIN entity_locations el
+    ON el.entity_id = e.id AND el.is_primary = TRUE
+LEFT JOIN addresses a
+    ON a.id = el.address_id
+LEFT JOIN outreach_packages op
+    ON op.entity_id = e.id OR op.place_id = esl.source_record_id
+LEFT JOIN crm_handoffs ch
+    ON ch.place_id = esl.source_record_id
+   AND (ch.handoff_status = 'pushed'
+        OR ch.handoff_status = 'duplicate'
+        OR ch.handoff_status LIKE 'success%%')
+WHERE os.total_score >= %s
+  AND e.active = TRUE
+  AND COALESCE(e.primary_phone, '') != ''
+  AND LENGTH(REGEXP_REPLACE(COALESCE(e.primary_phone, ''), '[^0-9]', '', 'g')) >= 7
+  AND COALESCE(e.primary_email, '') = ''
+  AND ch.id IS NULL
+  AND COALESCE(o.current_stage::TEXT, 'new') IN
+      ('new', 'enriched', 'ready_to_contact')
+ORDER BY os.total_score DESC
+LIMIT %s
+"""
+
+
+def _select_phone_rows(conn, min_score: int, limit: int) -> list[dict]:
+    return db_pg.fetchall(conn, _PHONE_QUALIFIED_LEAD_SQL, (min_score, limit))
+
 # ── CONFIG ────────────────────────────────────────────────────
 # Set these in .env:
 #   GAS_ENDPOINT=https://script.google.com/macros/s/.../exec
@@ -271,6 +332,102 @@ def push_qualified_leads(
     )
     return {"pushed": pushed, "skipped": skipped, "failed": failed,
             "total": len(rows), "errors": errors}
+
+
+def push_phone_leads(min_score: int = None, limit: int = None) -> dict:
+    """
+    Phone-only lane: leads with phone but no email.
+    Pushed to GAS with lane='phone' → status PHONE_LEAD → operator manual action.
+    Skips email_guard / send-throttle (no email involved).
+    Has its own daily cap (CRM_PHONE_PUSH_DAILY_CAP, default 30/day).
+    """
+    cfg = _cfg()
+    if min_score is None:
+        min_score = cfg["min_score"]
+    if limit is None:
+        limit = cfg["batch_size"]
+    if not cfg["endpoint"] or not cfg["token"]:
+        return {"pushed": 0, "skipped": 0, "failed": 0, "total": 0,
+                "error": "not_configured"}
+
+    with db_pg.transaction() as conn:
+        _ensure_tables(conn)
+        daily_cap = int(os.getenv("CRM_PHONE_PUSH_DAILY_CAP", "30"))
+        today_pushed = db_pg.fetchone(conn,
+            "SELECT COUNT(*) AS c FROM crm_handoffs "
+            "WHERE handoff_status = 'pushed' "
+            "  AND handed_off_at::date = CURRENT_DATE "
+            "  AND COALESCE(error_message, '') LIKE 'lane:phone%%'")["c"]
+        remaining = max(daily_cap - (today_pushed or 0), 0)
+        if remaining <= 0:
+            logger.info("crm_sync.push_phone_leads: daily cap reached (%d/%d)",
+                        today_pushed, daily_cap)
+            return {"pushed": 0, "skipped": 0, "failed": 0, "total": 0,
+                    "note": f"phone_daily_cap_reached:{today_pushed}/{daily_cap}"}
+        rows = _select_phone_rows(conn, min_score, min(limit, remaining))
+
+    pushed = skipped = failed = 0
+    errors: list[str] = []
+    for row in rows:
+        outcome, err = _push_one_phone(row)
+        if outcome == "ok":
+            pushed += 1
+        elif outcome == "duplicate":
+            skipped += 1
+        else:
+            failed += 1
+            if err:
+                errors.append(f"{row.get('place_id', '?')}: {err}")
+
+    logger.info("crm_sync.push_phone_leads: pushed=%d skipped=%d failed=%d",
+                pushed, skipped, failed)
+    return {"pushed": pushed, "skipped": skipped, "failed": failed,
+            "total": len(rows), "errors": errors, "lane": "phone"}
+
+
+def _push_one_phone(row: dict) -> tuple[str, Optional[str]]:
+    """Push a phone-only lead to GAS with lane='phone'."""
+    place_id = row.get("place_id", "")
+    phone    = (row.get("phone") or "").strip()
+    if not phone or len(phone) < 6:
+        _record_handoff(place_id, row, "", "skipped_no_phone", "lane:phone")
+        return ("error", "no_phone")
+
+    sector  = (row.get("normalized_sector") or "").lower().replace(" ", "_")
+    segment = _SECTOR_MAP.get(sector, "Office")
+
+    payload = {
+        "lane":             "phone",
+        "companyName":      row.get("business_name", ""),
+        "contactName":      (row.get("contact_name") or
+                             row.get("ai_decision_maker_type") or ""),
+        "email":            "",                                # explicit no-email
+        "phone":            phone,
+        "serviceType":      row.get("normalized_sector", ""),
+        "segment":          segment,
+        "leadScore":        str(row.get("priority_score", "")),
+        "sourceLeadId":     place_id,
+        "pythonLeadId":     str(row.get("id", "")),
+        "triggerSummary":   row.get("trigger_summary", ""),
+        "recommendedOffer": row.get("recommended_offer", ""),
+        "buyingSignals":    row.get("buying_signal_types", ""),
+        # No outreach email body — phone leads are handled manually
+        "outreachEmailBody": "",
+        "followUpEmailBody": "",
+    }
+
+    try:
+        result = _gas_post("outreach.handoff", payload)
+        is_dup = bool(result.get("duplicate"))
+        crm_id = result.get("leadId", "")
+        status = "duplicate" if is_dup else "pushed"
+        # Tag the handoff so the phone-cap counter can find it.
+        _record_handoff(place_id, row, crm_id, status, "lane:phone")
+        return ("duplicate" if is_dup else "ok", None)
+    except Exception as exc:
+        logger.warning("phone push failed for %s: %s", place_id, exc)
+        _record_handoff(place_id, row, "", "error", f"lane:phone;{exc}")
+        return ("error", str(exc)[:200])
 
 
 def push_single_lead(place_id: str) -> dict:
