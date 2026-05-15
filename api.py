@@ -5259,8 +5259,19 @@ def api_crm_push(
         kwargs["min_score"] = min_score
     if limit is not None:
         kwargs["limit"] = limit
-    result = crm_sync.push_qualified_leads(**kwargs)
-    return result
+    try:
+        return crm_sync.push_qualified_leads(**kwargs)
+    except Exception as exc:
+        import traceback
+        logger.error("api_crm_push failed: %s\n%s", exc, traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error":     type(exc).__name__,
+                "message":   str(exc)[:500],
+                "traceback": traceback.format_exc()[-1500:],
+            },
+        )
 
 
 @app.post("/api/crm/push/{place_id}")
