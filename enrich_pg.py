@@ -26,7 +26,7 @@ SELECT  e.id              AS entity_id,
         e.place_id        AS place_id,
         e.canonical_name  AS name,
         e.primary_website AS website,
-        os.score          AS score
+        os.total_score          AS score
 FROM    entities          e
 JOIN    opportunity_scores os ON os.entity_id = e.id
 LEFT JOIN crm_handoffs    ch ON ch.entity_id = e.id
@@ -34,9 +34,9 @@ WHERE   e.active = TRUE
   AND   e.primary_website IS NOT NULL
   AND   e.primary_website <> ''
   AND   (e.primary_email IS NULL OR e.primary_email = '')
-  AND   os.score >= %s
+  AND   os.total_score >= %s
   AND   ch.id IS NULL                  -- skip leads already handed off
-ORDER BY os.score DESC
+ORDER BY os.total_score DESC
 LIMIT %s
 """
 
@@ -174,7 +174,7 @@ def coverage_stats_pg() -> dict:
                                "WHERE e.active = TRUE "
                                "  AND e.primary_website IS NOT NULL AND e.primary_website <> '' "
                                "  AND (e.primary_email IS NULL OR e.primary_email = '') "
-                               "  AND os.score >= 65",
+                               "  AND os.total_score >= 65",
         "no_website":          "SELECT COUNT(*) AS c FROM entities "
                                "WHERE active = TRUE "
                                "  AND (primary_website IS NULL OR primary_website = '')",

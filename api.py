@@ -695,7 +695,7 @@ def list_signals(signal_type: Optional[str] = None, limit: int = 500):
                        e.id as entity_id, e.canonical_name, e.sector, e.entity_kind,
                        e.primary_website, e.primary_phone,
                        a.postcode, a.borough,
-                       os.total_score, os.score_band, os.estimated_monthly_value_gbp,
+                       os.total_score, os.total_score_band, os.estimated_monthly_value_gbp,
                        os.next_best_action,
                        vl.place_id,
                        o.id as opportunity_id, o.current_stage
@@ -973,7 +973,7 @@ def analytics_borough_drilldown(borough: str):
         top_leads = db_pg.fetchall(conn, """
             SELECT
                 e.id AS entity_id, e.canonical_name, e.sector, a.borough,
-                os.total_score, os.score_band, os.estimated_monthly_value_gbp,
+                os.total_score, os.total_score_band, os.estimated_monthly_value_gbp,
                 CASE
                     WHEN EXISTS(SELECT 1 FROM signals WHERE entity_id=e.id
                                 AND signal_type='public_procurement' AND active=TRUE) THEN 'Tender'
@@ -1048,7 +1048,7 @@ def analytics_top_opportunities():
                     e.sector,
                     a.borough,
                     os.total_score,
-                    os.score_band,
+                    os.total_score_band,
                     os.estimated_monthly_value_gbp,
                     CASE
                         WHEN EXISTS(SELECT 1 FROM signals WHERE entity_id=e.id
@@ -5111,7 +5111,7 @@ def api_entity_full(entity_id: int):
     with db_pg.transaction() as conn:
         entity = db_pg.fetchone(conn, """
             SELECT e.*, a.borough, a.postcode,
-                   os.total_score, os.score_band, os.estimated_monthly_value_gbp,
+                   os.total_score, os.total_score_band, os.estimated_monthly_value_gbp,
                    os.next_best_action, os.value_confidence
             FROM entities e
             LEFT JOIN LATERAL (
@@ -5465,7 +5465,7 @@ def email_coverage_audit():
             "JOIN opportunity_scores os ON os.entity_id = e.id "
             "WHERE e.primary_website IS NOT NULL AND e.primary_website <> '' "
             "  AND (e.primary_email IS NULL OR e.primary_email = '') "
-            "  AND os.score >= 65")
+            "  AND os.total_score >= 65")
 
         contacts_total = _q("SELECT COUNT(*) AS c FROM contacts")
         contacts_with_email = _q(
@@ -5726,7 +5726,7 @@ def unified_outreach_queue(limit: int = 50):
                         e.primary_email AS email,
                         a.borough,
                         os.total_score,
-                        os.score_band,
+                        os.total_score_band,
                         os.next_best_action,
                         COALESCE(o.current_stage::TEXT, 'raw') AS stage,
                         o.id AS opportunity_id,
@@ -7277,7 +7277,7 @@ def today_engine(focus: Optional[str] = None):
                 SELECT e.id AS entity_id, e.canonical_name AS business_name,
                        a.borough, e.sector, e.entity_kind,
                        COALESCE(os.total_score, 0) AS total_score,
-                       os.score_band,
+                       os.total_score_band,
                        e.hvt,
                        e.primary_phone AS phone,
                        e.primary_website AS website,
@@ -7285,7 +7285,7 @@ def today_engine(focus: Optional[str] = None):
                        COALESCE(os.estimated_monthly_value_gbp, 0) AS estimated_monthly_value_gbp,
                        os.next_best_action,
                        EXTRACT(DAY FROM NOW() - e.created_at)::int AS days_since_added,
-                       os.scored_at
+                       os.total_scored_at
                 FROM entities e
                 LEFT JOIN entity_locations el ON el.entity_id = e.id AND el.is_primary = TRUE
                 LEFT JOIN addresses a ON a.id = el.address_id
