@@ -18,6 +18,7 @@ import logging
 import database as db
 import analytics
 import crm_sync
+import enrich_pg
 from services.email_scraper import enrich_leads_batch, find_email
 # Sales execution services
 from services.planning_filter   import run_planning_filter, score_planning_description
@@ -131,6 +132,23 @@ def _start_scheduler():
             replace_existing=True,
         )
 
+        # Email enrichment — scrape websites for emails every 2 hours.
+        # Disabled by default; enable with EMAIL_ENRICH_AUTO=1 once we've
+        # verified one manual batch run looks sane.
+        if os.getenv("EMAIL_ENRICH_AUTO", "").strip() in ("1", "true", "yes"):
+            scheduler.add_job(
+                _job_email_enrich,
+                trigger=IntervalTrigger(hours=2),
+                id="email_enrich",
+                name="Scrape websites for emails (Postgres)",
+                max_instances=1,
+                replace_existing=True,
+            )
+            logger.info("APScheduler: email_enrich job enabled")
+        else:
+            logger.info("APScheduler: email_enrich job DISABLED "
+                        "(set EMAIL_ENRICH_AUTO=1 to enable)")
+
         scheduler.start()
         logger.info("APScheduler started: crm_push (30min) + crm_sync (2h)")
     except ImportError:
@@ -156,6 +174,21 @@ def _job_sync_status():
         logger.info("Scheduled CRM sync: %s", result)
     except Exception as exc:
         logger.error("Scheduled CRM sync failed: %s", exc)
+
+
+def _job_email_enrich():
+    """Scheduled email enrichment — drains a capped batch every tick."""
+    try:
+        batch = int(os.getenv("EMAIL_ENRICH_BATCH", "50"))
+        min_score = int(os.getenv("EMAIL_ENRICH_MIN_SCORE", "65"))
+        min_conf  = os.getenv("EMAIL_ENRICH_MIN_CONF", "medium")
+        result = enrich_pg.enrich_batch_pg(
+            min_score=min_score, limit=batch, min_conf=min_conf, dry_run=False,
+        )
+        logger.info("Scheduled email enrichment: %s",
+                    {k: v for k, v in result.items() if k != "examples"})
+    except Exception as exc:
+        logger.error("Scheduled email enrichment failed: %s", exc)
 
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
@@ -5217,6 +5250,46 @@ def api_email_lookup(website: str = Query(..., description="Website URL to scrap
     return result
 
 
+@app.post("/api/email-enrichment/run-pg")
+def api_email_enrichment_pg(
+    limit:     int  = Query(50,    ge=1,  le=500),
+    min_score: int  = Query(65,    ge=0,  le=100),
+    min_conf:  str  = Query("medium", description="high|medium|low"),
+    dry_run:   bool = Query(False, description="Preview without writing"),
+):
+    """
+    Postgres-native email enrichment. Drains a batch of entities
+    that have a website but no email, scrapes, writes back to
+    entities.primary_email. The /api/crm/push job then picks them up.
+    """
+    try:
+        return enrich_pg.enrich_batch_pg(
+            min_score=min_score, limit=limit, min_conf=min_conf, dry_run=dry_run,
+        )
+    except Exception as exc:
+        import traceback
+        logger.error("enrich-pg failed: %s\n%s", exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+            "traceback": traceback.format_exc()[-1200:],
+        })
+
+
+@app.get("/api/email-enrichment/stats-pg")
+def api_email_enrichment_stats_pg():
+    """Coverage on the live Postgres entities table."""
+    try:
+        return enrich_pg.coverage_stats_pg()
+    except Exception as exc:
+        import traceback
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+            "traceback": traceback.format_exc()[-800:],
+        })
+
+
 @app.get("/api/email-enrichment/stats")
 def api_email_enrichment_stats():
     """Coverage stats: how many leads have/don't have emails."""
@@ -5383,6 +5456,16 @@ def email_coverage_audit():
         ent_with_email = _q(
             "SELECT COUNT(*) AS c FROM entities "
             "WHERE primary_email IS NOT NULL AND primary_email <> ''")
+        ent_scrape_ready = _q(
+            "SELECT COUNT(*) AS c FROM entities "
+            "WHERE primary_website IS NOT NULL AND primary_website <> '' "
+            "  AND (primary_email IS NULL OR primary_email = '')")
+        ent_scrape_ready_score65 = _q(
+            "SELECT COUNT(*) AS c FROM entities e "
+            "JOIN opportunity_scores os ON os.entity_id = e.id "
+            "WHERE e.primary_website IS NOT NULL AND e.primary_website <> '' "
+            "  AND (e.primary_email IS NULL OR e.primary_email = '') "
+            "  AND os.score >= 65")
 
         contacts_total = _q("SELECT COUNT(*) AS c FROM contacts")
         contacts_with_email = _q(
@@ -5420,6 +5503,8 @@ def email_coverage_audit():
                 "total": ent_total,
                 "with_primary_email": ent_with_email,
                 "pct_with_email": round(ewe * 100.0 / max(et, 1), 2),
+                "scrape_ready_have_website_no_email": ent_scrape_ready,
+                "scrape_ready_score_gte_65": ent_scrape_ready_score65,
             },
             "contacts": {
                 "total": contacts_total,
