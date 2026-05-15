@@ -22,20 +22,22 @@ CONF_RANK = {"high": 0, "medium": 1, "low": 2}
 
 
 _CANDIDATE_SQL = """
-SELECT  e.id              AS entity_id,
-        e.place_id        AS place_id,
-        e.canonical_name  AS name,
-        e.primary_website AS website,
-        os.total_score          AS score
-FROM    entities          e
-JOIN    opportunity_scores os ON os.entity_id = e.id
-LEFT JOIN crm_handoffs    ch ON ch.entity_id = e.id
+SELECT  e.id                       AS entity_id,
+        esl.source_record_id       AS place_id,
+        e.canonical_name           AS name,
+        e.primary_website          AS website,
+        os.total_score             AS score
+FROM    entities                   e
+JOIN    opportunity_scores         os ON os.entity_id = e.id
+LEFT JOIN entity_source_links      esl
+        ON esl.entity_id = e.id AND esl.source = 'google_maps'
+LEFT JOIN crm_handoffs             ch ON ch.entity_id = e.id
 WHERE   e.active = TRUE
   AND   e.primary_website IS NOT NULL
   AND   e.primary_website <> ''
   AND   (e.primary_email IS NULL OR e.primary_email = '')
   AND   os.total_score >= %s
-  AND   ch.id IS NULL                  -- skip leads already handed off
+  AND   ch.id IS NULL
 ORDER BY os.total_score DESC
 LIMIT %s
 """
