@@ -543,27 +543,59 @@ def _record_handoff(
     status: str,
     error: str,
 ) -> None:
-    """Upsert a crm_handoffs row."""
+    """Upsert a crm_handoffs row.
+
+    Live Railway schema columns (verified 2026-05-15):
+        id, place_id, entity_id, handoff_status, handed_off_at,
+        python_lead_id, last_sync_at, error_message,
+        crm_outreach_status, crm_reply_status
+
+    No crm_id column — GAS-side leadId is stored in python_lead_id
+    instead (acceptable: not used by any downstream query).
+    """
+    entity_id = row.get("entity_id") or row.get("id")
+    try:
+        entity_id_int = int(entity_id) if entity_id else None
+    except (TypeError, ValueError):
+        entity_id_int = None
+
     with db_pg.transaction() as conn:
         _ensure_tables(conn)
+        # Ensure place_id has a unique constraint so ON CONFLICT works.
+        # IF NOT EXISTS keeps this idempotent across redeploys.
+        db_pg.execute(conn,
+            """DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conrelid = 'crm_handoffs'::regclass
+                      AND contype = 'u'
+                      AND conname = 'crm_handoffs_place_id_uq'
+                ) THEN
+                    ALTER TABLE crm_handoffs
+                        ADD CONSTRAINT crm_handoffs_place_id_uq UNIQUE (place_id);
+                END IF;
+            END $$;""")
+
         db_pg.execute(conn,
             """
             INSERT INTO crm_handoffs
-                (place_id, crm_id, python_lead_id, handed_off_at, handoff_status,
-                 last_sync_at, error_message)
+                (place_id, entity_id, python_lead_id, handed_off_at,
+                 handoff_status, last_sync_at, error_message)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (place_id) DO UPDATE SET
-                crm_id = EXCLUDED.crm_id,
+                entity_id      = COALESCE(EXCLUDED.entity_id, crm_handoffs.entity_id),
                 python_lead_id = EXCLUDED.python_lead_id,
-                handed_off_at = EXCLUDED.handed_off_at,
+                handed_off_at  = EXCLUDED.handed_off_at,
                 handoff_status = EXCLUDED.handoff_status,
-                last_sync_at = EXCLUDED.last_sync_at,
-                error_message = EXCLUDED.error_message
+                last_sync_at   = EXCLUDED.last_sync_at,
+                error_message  = EXCLUDED.error_message
             """,
             (
                 place_id,
-                crm_id,
-                str(row.get("id", "")),
+                entity_id_int,
+                # python_lead_id was previously the GAS-side crm_id when
+                # available, else the Python entity id. Keep that semantic.
+                crm_id or str(row.get("id", "")),
                 _now(),
                 status,
                 _now(),
