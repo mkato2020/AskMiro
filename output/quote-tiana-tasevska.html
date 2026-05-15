@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quote — Tiana Tasevska | AskMiro Cleaning Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1E293B; line-height: 1.6; }
+    @page { size: A4; margin: 0; }
+    @media print {
+      .no-print { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    .page { max-width: 794px; margin: 0 auto; padding: 48px 56px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 3px solid #0D9488; }
+    .brand { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; color: #0D9488; letter-spacing: -0.5px; }
+    .brand-sub { font-size: 13px; color: #64748B; margin-top: 4px; }
+    .brand-contact { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+    .doc-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 22px; color: #1E293B; letter-spacing: -0.3px; }
+    .doc-meta { font-size: 13px; color: #64748B; margin-top: 4px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    .info-box { border-radius: 10px; padding: 20px; }
+    .info-box.client { background: #F8FAFC; }
+    .info-box.service { background: #F0FDFA; }
+    .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .info-box.client .info-label { color: #94A3B8; }
+    .info-box.service .info-label { color: #0D9488; }
+    .info-name { font-size: 16px; font-weight: 700; color: #1E293B; }
+    .info-detail { font-size: 13px; color: #64748B; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    thead th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid #E2E8F0; background: #F8FAFC; }
+    thead th:last-child { text-align: right; }
+    tbody td { padding: 14px 16px; border-bottom: 1px solid #F1F5F9; font-size: 14px; color: #1E293B; }
+    tbody td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+    .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 32px; }
+    .totals { width: 300px; background: #F8FAFC; border-radius: 10px; padding: 16px 20px; }
+    .total-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 14px; }
+    .total-row .label { color: #64748B; }
+    .total-row .value { font-weight: 600; }
+    .total-row.grand { padding: 12px 0; margin-top: 8px; border-top: 2px solid #0D9488; font-size: 18px; }
+    .total-row.grand .label { font-weight: 700; color: #1E293B; }
+    .total-row.grand .value { font-weight: 800; color: #0D9488; }
+    .pay-section { text-align: center; margin-bottom: 28px; }
+    .pay-btn { display: inline-block; background: #0D9488; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; padding: 14px 48px; border-radius: 10px; text-decoration: none; letter-spacing: 0.02em; box-shadow: 0 4px 14px rgba(13,148,136,0.35); }
+    .pay-note { font-size: 11px; color: #94A3B8; margin-top: 8px; }
+    .terms { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+    .terms-label { font-size: 11px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .terms-text { font-size: 13px; color: #78350F; line-height: 1.7; }
+    .scope { background: #F0FDFA; border: 1px solid #99F6E4; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+    .scope-label { font-size: 11px; font-weight: 700; color: #0D9488; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .scope-list { font-size: 13px; color: #1E293B; line-height: 1.8; }
+    .scope-list li { margin-bottom: 2px; }
+    .confirm-box { background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+    .confirm-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 13px; }
+    .confirm-grid dt { color: #64748B; font-weight: 500; }
+    .confirm-grid dd { color: #1E293B; font-weight: 600; }
+    .footer { border-top: 1px solid #E2E8F0; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .footer-col { font-size: 11px; color: #94A3B8; line-height: 1.6; }
+    .footer-col.right { text-align: right; }
+  </style>
+</head>
+<body>
+
+<div class="no-print" style="background: #0D9488; padding: 12px 24px; display: flex; gap: 12px; align-items: center; justify-content: center;">
+  <button onclick="window.print()" style="background: #fff; color: #0D9488; border: none; padding: 10px 32px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;">Save as PDF</button>
+  <button onclick="window.close()" style="background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); padding: 10px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit;">Close</button>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="brand">AskMiro</div>
+      <div class="brand-sub">Managed Cleaning Services</div>
+      <div class="brand-contact">020 8073 0621 &bull; info@askmiro.com &bull; www.askmiro.com</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="doc-title">QUOTE &amp; BOOKING<br>CONFIRMATION</div>
+      <div class="doc-meta">Date: 8 April 2026</div>
+      <div class="doc-meta">Valid until: 22 April 2026</div>
+      <div class="doc-meta" style="margin-top: 4px; font-weight: 600; color: #0D9488;">Ref: AM-EOT-0408</div>
+    </div>
+  </div>
+
+  <!-- Client + Service -->
+  <div class="info-grid">
+    <div class="info-box client">
+      <div class="info-label">Prepared for</div>
+      <div class="info-name">Tiana Tasevska</div>
+      <div class="info-detail">301 Lumiere Apartments</div>
+      <div class="info-detail">58 St. John's Hill, SW11 1AD</div>
+      <div class="info-detail">tiana.tasevska94@gmail.com</div>
+    </div>
+    <div class="info-box service">
+      <div class="info-label">Service Details</div>
+      <div class="info-name">End of Tenancy Clean</div>
+      <div class="info-detail" style="font-weight: 600; color: #0F766E;">Monday 20 April 2026, 10:00 AM</div>
+      <div class="info-detail">1 Bedroom Flat &bull; 1 Bathroom &bull; 1 WC</div>
+      <div class="info-detail">Furnished property</div>
+    </div>
+  </div>
+
+  <!-- Booking Confirmation -->
+  <div class="confirm-box">
+    <div class="confirm-label">Booking Confirmation</div>
+    <div class="confirm-grid">
+      <dt>Date &amp; Time</dt>
+      <dd>Monday 20 April 2026, 10:00 AM</dd>
+      <dt>Team Size</dt>
+      <dd>Full team allocated</dd>
+      <dt>Parking</dt>
+      <dd>Gated access confirmed</dd>
+      <dt>Completion</dt>
+      <dd>Same-day, single visit</dd>
+    </div>
+  </div>
+
+  <!-- Line Items -->
+  <table>
+    <thead>
+      <tr><th>Description</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div style="font-weight: 600;">Complete end of tenancy deep clean</div>
+          <div style="font-size: 12px; color: #64748B; margin-top: 2px;">All rooms, kitchen appliances, bathroom/WC, skirting boards, radiators, door frames, light fittings, cobweb removal, internal windowsills</div>
+        </td>
+        <td>&pound;140.00</td>
+      </tr>
+      <tr>
+        <td>
+          <div style="font-weight: 600;">Carpet &amp; hard floor steam cleaning</div>
+          <div style="font-size: 12px; color: #64748B; margin-top: 2px;">Professional steam clean of all carpeted areas and hardwood floors, including under beds</div>
+        </td>
+        <td>&pound;50.00</td>
+      </tr>
+      <tr>
+        <td>
+          <div style="font-weight: 600;">Fridge, freezer &amp; appliance deep clean</div>
+          <div style="font-size: 12px; color: #64748B; margin-top: 2px;">Washing machine, dishwasher (dispenser trays, rubber seals), fridge interior</div>
+        </td>
+        <td>&pound;15.00</td>
+      </tr>
+      <tr>
+        <td>
+          <div style="font-weight: 600;">Accessible external window cleaning</div>
+          <div style="font-size: 12px; color: #64748B; margin-top: 2px;">External windows where safe ground-level access is available</div>
+        </td>
+        <td>&pound;15.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="totals-wrap">
+    <div class="totals">
+      <div class="total-row"><span class="label">Subtotal (net)</span><span class="value">&pound;220.00</span></div>
+      <div class="total-row"><span class="label">VAT (0% &mdash; below threshold)</span><span class="value">&pound;0.00</span></div>
+      <div class="total-row grand"><span class="label">Total</span><span class="value">&pound;220.00</span></div>
+    </div>
+  </div>
+
+  <!-- Scope of Work -->
+  <div class="scope">
+    <div class="scope-label">Full Scope of Work</div>
+    <ul class="scope-list">
+      <li>Removal of cobwebs on ceilings and walls</li>
+      <li>Dusting of skirting boards, banisters, door frames, lampshades, light fittings, radiators/heaters</li>
+      <li>Tops of all kitchen units cleaned</li>
+      <li>Internal and accessible external windows and windowsills</li>
+      <li>Shower screens cleaned</li>
+      <li>Bathroom tiles, grout and mildew attention, taps, shower fittings, plug holes</li>
+      <li>Fridge and freezer interior deep clean</li>
+      <li>Washing machine and dishwasher (dispenser trays, rubber seals)</li>
+      <li>Professional carpet steam clean and hardwood floor steam clean</li>
+      <li>Under beds thoroughly cleaned</li>
+      <li>Full invoice/receipt provided on completion</li>
+    </ul>
+  </div>
+
+  <!-- Terms -->
+  <div class="terms">
+    <div class="terms-label">Payment Terms</div>
+    <div class="terms-text">
+      No upfront payment required. Payment of <strong>&pound;220.00</strong> is due upon completion of the job, once you are satisfied with the standard of work. A full invoice and receipt will be provided on the day for your tenancy records.<br><br>
+      <strong>Payment methods:</strong> Bank transfer (details on invoice) or card payment via secure link below.
+    </div>
+  </div>
+
+  <!-- Payment Button -->
+  <div style="text-align: center; margin-bottom: 32px;">
+    <a href="https://pay.tide.co/pay/ae1d8cf7-2529-4237-ab5f-38d0c5bcbc88" target="_blank" rel="noopener" style="display: inline-block; background: #0D9488; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; padding: 16px 56px; border-radius: 10px; text-decoration: none; letter-spacing: 0.02em; box-shadow: 0 4px 14px rgba(13,148,136,0.35);">Pay Now &mdash; &pound;220.00</a>
+    <div style="font-size: 11px; color: #94A3B8; margin-top: 8px;">Secure payment via Tide &bull; Card or bank transfer accepted</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-col">
+      AskMiro Cleaning Services<br>
+      SW11, London<br>
+      Company registered in England &amp; Wales
+    </div>
+    <div class="footer-col right">
+      Reliable. Thorough. Local.<br>
+      www.askmiro.com<br>
+      020 8073 0621
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

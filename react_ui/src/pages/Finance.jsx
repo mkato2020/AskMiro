@@ -163,12 +163,12 @@ export default function Finance(){
   const [chatInput,setChatInput]=useState('')
 
   /* queries — all from GAS (HMRC source of truth) */
-  const {data:overview,isLoading:ovLoading}=useQuery({queryKey:['financeOverview'],queryFn:gasClient.finance.overview,staleTime:60000})
+  const {data:overview,isLoading:ovLoading}=useQuery({queryKey:['financeOverview'],queryFn:api.financeOverview,staleTime:60000})
   const invStatusQ=invSubTab==='All'?'':invSubTab.toLowerCase()
-  const {data:invoicesData}=useQuery({queryKey:['financeInvoices',invStatusQ,invMonth],queryFn:()=>gasClient.finance.invoices(invStatusQ,invMonth),staleTime:60000})
-  const {data:txnData}=useQuery({queryKey:['financeTxn',txnType,txnCat,txnMonth],queryFn:()=>gasClient.finance.transactions(txnType,txnCat,txnMonth),staleTime:60000})
-  const {data:expData}=useQuery({queryKey:['financeExp',expCat,expMonth],queryFn:()=>gasClient.finance.expenses(expCat,expMonth),staleTime:60000})
-  const {data:profData}=useQuery({queryKey:['financeProf',profMonth],queryFn:()=>gasClient.finance.profitability(profMonth),staleTime:60000})
+  const {data:invoicesData}=useQuery({queryKey:['financeInvoices',invStatusQ,invMonth],queryFn:()=>api.financeInvoices(invStatusQ,invMonth),staleTime:60000})
+  const {data:txnData}=useQuery({queryKey:['financeTxn',txnType,txnCat,txnMonth],queryFn:()=>api.financeTransactions(txnType,txnCat,txnMonth),staleTime:60000})
+  const {data:expData}=useQuery({queryKey:['financeExp',expCat,expMonth],queryFn:()=>api.financeExpenses(expCat,expMonth),staleTime:60000})
+  const {data:profData}=useQuery({queryKey:['financeProf',profMonth],queryFn:()=>api.financeProfitability(profMonth),staleTime:60000})
 
   const ov=overview||{}
   const invoices=safeArr(Array.isArray(invoicesData)?invoicesData:invoicesData?.invoices)
@@ -182,15 +182,15 @@ export default function Finance(){
   /* mutations — all routed to GAS (HMRC source of truth) */
   const invalidate=()=>{qc.invalidateQueries({queryKey:['financeOverview']});qc.invalidateQueries({queryKey:['financeInvoices']});qc.invalidateQueries({queryKey:['financeTxn']});qc.invalidateQueries({queryKey:['financeExp']});qc.invalidateQueries({queryKey:['financeProf']})}
 
-  const createInvM=useMutation({mutationFn:gasClient.finance.createInvoice,onSuccess:()=>{invalidate();setModal(null)}})
-  const markSentM=useMutation({mutationFn:id=>gasClient.finance.markSent(id),onSuccess:invalidate})
-  const voidInvM=useMutation({mutationFn:id=>gasClient.finance.voidInvoice(id),onSuccess:invalidate})
-  const recordPayM=useMutation({mutationFn:({id,body})=>gasClient.finance.recordPayment(id,body),onSuccess:()=>{invalidate();setModal(null)}})
-  const createExpM=useMutation({mutationFn:gasClient.finance.createExpense,onSuccess:()=>{invalidate();setModal(null)}})
-  const createTxnM=useMutation({mutationFn:gasClient.finance.createTransaction,onSuccess:()=>{invalidate();setModal(null)}})
-  const voidTxnM=useMutation({mutationFn:id=>gasClient.finance.voidTransaction(id),onSuccess:invalidate})
-  const recalcM=useMutation({mutationFn:m=>gasClient.finance.recalcSnapshots(m),onSuccess:invalidate})
-  const genRecurM=useMutation({mutationFn:m=>gasClient.finance.generateRecurring(m),onSuccess:invalidate})
+  const createInvM=useMutation({mutationFn:api.createInvoice,onSuccess:()=>{invalidate();setModal(null)}})
+  const markSentM=useMutation({mutationFn:id=>api.markInvoiceSent(id),onSuccess:invalidate})
+  const voidInvM=useMutation({mutationFn:id=>api.voidInvoice(id),onSuccess:invalidate})
+  const recordPayM=useMutation({mutationFn:({id,body})=>api.recordPayment(id,body),onSuccess:()=>{invalidate();setModal(null)}})
+  const createExpM=useMutation({mutationFn:api.createExpense,onSuccess:()=>{invalidate();setModal(null)}})
+  const createTxnM=useMutation({mutationFn:api.createTransaction,onSuccess:()=>{invalidate();setModal(null)}})
+  const voidTxnM=useMutation({mutationFn:id=>api.voidTransaction(id),onSuccess:invalidate})
+  const recalcM=useMutation({mutationFn:m=>api.recalculateSnapshots(m),onSuccess:invalidate})
+  const genRecurM=useMutation({mutationFn:m=>api.generateRecurring(m),onSuccess:invalidate})
 
   /* sorted data */
   const sortedInv=useSorter(invoices,invSort)

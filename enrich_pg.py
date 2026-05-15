@@ -30,7 +30,7 @@ SELECT  e.id              AS entity_id,
 FROM    entities          e
 JOIN    opportunity_scores os ON os.entity_id = e.id
 LEFT JOIN crm_handoffs    ch ON ch.entity_id = e.id
-WHERE   e.is_active = TRUE
+WHERE   e.active = TRUE
   AND   e.primary_website IS NOT NULL
   AND   e.primary_website <> ''
   AND   (e.primary_email IS NULL OR e.primary_email = '')
@@ -160,23 +160,23 @@ def coverage_stats_pg() -> dict:
     """Return current email-coverage numbers from the entities table."""
     out = {}
     queries = {
-        "total":               "SELECT COUNT(*) AS c FROM entities WHERE is_active = TRUE",
+        "total":               "SELECT COUNT(*) AS c FROM entities WHERE active = TRUE",
         "with_email":          "SELECT COUNT(*) AS c FROM entities "
-                               "WHERE is_active = TRUE "
+                               "WHERE active = TRUE "
                                "  AND primary_email IS NOT NULL AND primary_email <> ''",
         "scrape_ready":        "SELECT COUNT(*) AS c FROM entities "
-                               "WHERE is_active = TRUE "
+                               "WHERE active = TRUE "
                                "  AND primary_website IS NOT NULL AND primary_website <> '' "
                                "  AND (primary_email IS NULL OR primary_email = '')",
         "scrape_ready_score65":
                                "SELECT COUNT(*) AS c FROM entities e "
                                "JOIN opportunity_scores os ON os.entity_id = e.id "
-                               "WHERE e.is_active = TRUE "
+                               "WHERE e.active = TRUE "
                                "  AND e.primary_website IS NOT NULL AND e.primary_website <> '' "
                                "  AND (e.primary_email IS NULL OR e.primary_email = '') "
                                "  AND os.score >= 65",
         "no_website":          "SELECT COUNT(*) AS c FROM entities "
-                               "WHERE is_active = TRUE "
+                               "WHERE active = TRUE "
                                "  AND (primary_website IS NULL OR primary_website = '')",
     }
     for key, sql in queries.items():

@@ -1,0 +1,11 @@
+{
+  "name": "askmiro-social-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AskMiro Cleaning Services — automated social media content engine",
+  "scripts": {
+    "post": "node daily-post.mjs",
+    "generate": "node content-generator.mjs",
+    "preview": "node content-generator.mjs --preview"
+  }
+}

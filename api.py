@@ -5486,7 +5486,7 @@ def email_coverage_audit():
             "FROM entities e "
             "JOIN entity_source_links esl ON esl.entity_id = e.id "
             "WHERE (e.primary_email IS NULL OR e.primary_email = '') "
-            "  AND e.is_active = true "
+            "  AND e.active = true "
             "GROUP BY esl.source ORDER BY c DESC LIMIT 10", one=False)
 
         def _safe_int(v):

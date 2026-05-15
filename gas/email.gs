@@ -1,8 +1,8 @@
 // ── EMAIL TEMPLATE BUILDER ────────────────────────────────────
 function buildEmailTemplate(tmpl, f, subject) {
-  var teal = '#0D9488', navy = '#0C1929', charcoal = '#1F2937', slate = '#475569';
-  var muted = '#94A3B8', border = '#E2E8F0', offWhite = '#F8FAFC';
-  var phone = '020 8073 0621', emailAddr = 'info@askmiro.com', web = 'www.askmiro.com';
+  var teal = '#0D9488', navy = '#0C1929', charcoal = '#1F2937', slate = '#1F2937';
+  var muted = '#4B5563', border = '#E2E8F0', offWhite = '#F8FAFC';
+  var phone = '020 8073 0621 · +44 (0)7549 354362', emailAddr = 'info@askmiro.com', web = 'www.askmiro.com';
   var company = 'AskMiro Cleaning Services', trading = 'A trading name of Miro Partners Ltd';
   var sortCode = '04-06-05', accNum = '26672911', accName = 'Miro Partners Ltd';
   var name = f.name || 'there', site = f.site || '[Site Name]', amount = f.amount || '';
@@ -30,7 +30,7 @@ function buildEmailTemplate(tmpl, f, subject) {
   }
   function statBand(stats) {
     return '<table cellpadding="0" cellspacing="0" width="100%" style="border-radius:10px;overflow:hidden;margin-bottom:22px"><tr>'
-      + stats.map(function(s, i) { return '<td align="center" style="background:linear-gradient(135deg,' + navy + ',#122440);padding:16px;' + (i < stats.length - 1 ? 'border-right:1px solid rgba(255,255,255,0.08)' : '') + '"><div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.45);margin-bottom:4px">' + s.label + '</div><div style="font-family:Georgia,serif;font-size:24px;font-weight:700;color:#fff">' + s.value + '</div>' + (s.sub ? '<div style="font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">' + s.sub + '</div>' : '') + '</td>'; }).join('')
+      + stats.map(function(s, i) { return '<td align="center" style="background:linear-gradient(135deg,' + navy + ',#122440);padding:16px;' + (i < stats.length - 1 ? 'border-right:1px solid rgba(255,255,255,0.08)' : '') + '"><div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.75);margin-bottom:4px">' + s.label + '</div><div style="font-family:Georgia,serif;font-size:24px;font-weight:700;color:#fff">' + s.value + '</div>' + (s.sub ? '<div style="font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.65);margin-top:2px">' + s.sub + '</div>' : '') + '</td>'; }).join('')
       + '</tr></table>';
   }
   function dataTable(rows, total) {
