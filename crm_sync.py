@@ -455,10 +455,14 @@ def _push_one(row: dict, force: bool = False) -> tuple[str, Optional[str]]:
     # ── Email Guard: validate, check risk, suppression, throttle ──────
     try:
         from email_guard import pre_send_check, log_send, record_send, update_send_status
+        # ALLOW_ROLE_EMAILS=1 (default) lets info@, enquiries@, admin@ through
+        # — for UK SMEs those ARE the published contact addresses. Flip to 0
+        # to revert to strict-personal-only.
+        allow_role = os.getenv("ALLOW_ROLE_EMAILS", "1").strip() in ("1", "true", "yes")
         allowed, reason = pre_send_check(
             email, place_id=place_id,
             entity_id=row.get("entity_id") or row.get("id"),
-            allow_risky=force,          # force=True allows role-based emails
+            allow_risky=force or allow_role,
         )
         if not allowed:
             logger.info("crm_sync._push_one: BLOCKED by email_guard for %s — %s", place_id, reason)
