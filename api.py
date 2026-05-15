@@ -5266,7 +5266,7 @@ def admin_sync_audit():
                 UNION ALL SELECT 'has_opportunity', COUNT(*)::TEXT FROM opportunities
                 UNION ALL SELECT 'in_crm_handoffs', COUNT(*)::TEXT FROM crm_handoffs
                 UNION ALL SELECT 'handoff_success', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status IN ('success','duplicate')
-                UNION ALL SELECT 'handoff_blocked', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status LIKE 'blocked:%'
+                UNION ALL SELECT 'handoff_blocked', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status LIKE 'blocked:%%'
                 UNION ALL SELECT 'handoff_error', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status = 'error'
             """)
             out["os_postgres"]["funnel"] = {r["metric"]: int(r["value"]) for r in funnel}
