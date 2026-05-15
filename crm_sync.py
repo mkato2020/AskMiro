@@ -88,10 +88,13 @@ LEFT JOIN outreach_packages op
     ON op.entity_id = e.id OR op.place_id = esl.source_record_id
 LEFT JOIN crm_handoffs ch
     ON ch.place_id = esl.source_record_id
+   AND (ch.handoff_status = 'pushed'
+        OR ch.handoff_status = 'duplicate'
+        OR ch.handoff_status LIKE 'success%%')
 WHERE os.total_score >= %s
   AND e.active = TRUE
   AND COALESCE(e.primary_email, '') != ''
-  AND COALESCE(ch.place_id, '') = ''
+  AND ch.id IS NULL
   AND COALESCE(o.current_stage::TEXT, 'new') IN
       ('new', 'enriched', 'ready_to_contact')
   AND NOT EXISTS (

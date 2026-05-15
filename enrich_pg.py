@@ -31,7 +31,11 @@ FROM    entities                   e
 JOIN    opportunity_scores         os ON os.entity_id = e.id
 LEFT JOIN entity_source_links      esl
         ON esl.entity_id = e.id AND esl.source = 'google_maps'
-LEFT JOIN crm_handoffs             ch ON ch.entity_id = e.id
+LEFT JOIN crm_handoffs             ch
+        ON ch.entity_id = e.id
+       AND (ch.handoff_status = 'pushed'
+            OR ch.handoff_status = 'duplicate'
+            OR ch.handoff_status LIKE 'success%%')
 WHERE   e.active = TRUE
   AND   e.primary_website IS NOT NULL
   AND   e.primary_website <> ''
