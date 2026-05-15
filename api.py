@@ -5351,6 +5351,99 @@ def crm_handoffs_schema():
         return {"error": str(exc), "traceback": traceback.format_exc()[-500:]}
 
 
+@app.get("/api/admin/email-coverage-audit")
+def email_coverage_audit():
+    """
+    Diagnostic: find out where emails are hiding.
+    Compares email presence across raw_source_records, entities, and contacts.
+    Tells us if there is a backfill opportunity (emails in raw not promoted)
+    or if we need a scrape/enrichment pass (emails simply absent).
+    """
+    out = {}
+    try:
+        with db_pg.transaction() as conn:
+            # raw_source_records coverage
+            try:
+                rsr_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM raw_source_records")["c"]
+                rsr_with_email = db_pg.fetchone(conn,
+                    "SELECT COUNT(*) AS c FROM raw_source_records "
+                    "WHERE payload ? 'email' OR payload::text ILIKE '%@%'")["c"]
+                rsr_sample = db_pg.fetchall(conn,
+                    "SELECT id, source, payload FROM raw_source_records "
+                    "WHERE payload::text ILIKE '%@%' LIMIT 3")
+            except Exception as e:
+                rsr_total = rsr_with_email = None
+                rsr_sample = [{"error": str(e)[:200]}]
+
+            # entities coverage
+            ent_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM entities")["c"]
+            ent_with_email = db_pg.fetchone(conn,
+                "SELECT COUNT(*) AS c FROM entities WHERE primary_email IS NOT NULL AND primary_email <> ''")["c"]
+
+            # contacts coverage (if contacts table holds emails separately)
+            try:
+                contacts_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM contacts")["c"]
+                contacts_with_email = db_pg.fetchone(conn,
+                    "SELECT COUNT(*) AS c FROM contacts WHERE email IS NOT NULL AND email <> ''")["c"]
+                contacts_distinct_entities = db_pg.fetchone(conn,
+                    "SELECT COUNT(DISTINCT entity_id) AS c FROM contacts "
+                    "WHERE email IS NOT NULL AND email <> ''")["c"]
+            except Exception as e:
+                contacts_total = contacts_with_email = contacts_distinct_entities = None
+
+            # entities with email in contacts but NOT in entities.primary_email
+            try:
+                gap = db_pg.fetchone(conn,
+                    "SELECT COUNT(DISTINCT c.entity_id) AS c "
+                    "FROM contacts c JOIN entities e ON e.id = c.entity_id "
+                    "WHERE c.email IS NOT NULL AND c.email <> '' "
+                    "  AND (e.primary_email IS NULL OR e.primary_email = '')")["c"]
+            except Exception:
+                gap = None
+
+            # sources breakdown for entities lacking email
+            try:
+                sources = db_pg.fetchall(conn,
+                    "SELECT esl.source, COUNT(*) AS c "
+                    "FROM entities e "
+                    "JOIN entity_source_links esl ON esl.entity_id = e.id "
+                    "WHERE (e.primary_email IS NULL OR e.primary_email = '') "
+                    "  AND e.is_active = true "
+                    "GROUP BY esl.source ORDER BY c DESC LIMIT 10")
+            except Exception as e:
+                sources = [{"error": str(e)[:200]}]
+
+        out = {
+            "raw_source_records": {
+                "total": rsr_total,
+                "with_email_in_payload": rsr_with_email,
+                "sample": rsr_sample,
+            },
+            "entities": {
+                "total": ent_total,
+                "with_primary_email": ent_with_email,
+                "pct_with_email": round((ent_with_email or 0) * 100.0 / max(ent_total or 1, 1), 2),
+            },
+            "contacts": {
+                "total": contacts_total,
+                "with_email": contacts_with_email,
+                "distinct_entities_covered": contacts_distinct_entities,
+            },
+            "backfill_opportunity": {
+                "entities_missing_email_but_have_contact_email": gap,
+                "interpretation": (
+                    "If this number is large, the emails ARE in the DB (contacts) "
+                    "but never promoted to entities.primary_email. Pure backfill, no scraping."
+                ),
+            },
+            "sources_lacking_email": sources,
+        }
+        return out
+    except Exception as exc:
+        import traceback
+        return {"error": str(exc), "traceback": traceback.format_exc()[-1500:], "partial": out}
+
+
 @app.post("/api/crm/push")
 def api_crm_push(
     min_score: int = Query(None, ge=0, le=100, description="Override default min score"),
