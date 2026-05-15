@@ -43,17 +43,38 @@ LIMIT %s
 """
 
 
+import re
+
+# Common placeholder/template emails scrapers pick up from example contact-form fields
+_PLACEHOLDER_RE = re.compile(
+    r"^(name|youremail|youraddress|email|firstname|lastname|john\.?smith|jane\.?doe|"
+    r"foo|bar|user|customer|example|test|demo|sample|fake|noreply|no-reply)"
+    r"@(domain\.com|example\.(com|org|net)|yoursite\.com|site\.com)$",
+    re.I,
+)
+
+
 def _validate_email(email: str) -> tuple[bool, str]:
-    """Soft validation: prefer email_guard if available, otherwise basic check."""
+    """RFC + placeholder + format. Skips DNS (expensive in tight loops)."""
+    # Placeholder check FIRST — these pass RFC but are useless
+    if _PLACEHOLDER_RE.match(email):
+        return False, "placeholder_template"
+
+    # Reject obvious junk
+    if email.count("@") != 1:
+        return False, "malformed"
+    local, _, domain = email.partition("@")
+    if not local or not domain or "." not in domain:
+        return False, "malformed"
+
     try:
         import email_guard
         ok, reason = email_guard.validate_format(email)
         if not ok:
             return False, f"format:{reason}"
-        # Skip DNS check here — it's expensive and we'll catch bad domains downstream
         return True, "ok"
     except Exception:
-        return ("@" in email and "." in email.split("@", 1)[-1]), "basic"
+        return True, "basic"
 
 
 def enrich_batch_pg(
