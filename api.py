@@ -5360,59 +5360,56 @@ def email_coverage_audit():
     or if we need a scrape/enrichment pass (emails simply absent).
     """
     out = {}
+    def _q(sql, one=True):
+        """Run each probe in its own fresh transaction so one failure can't poison the rest."""
+        try:
+            with db_pg.transaction() as conn:
+                if one:
+                    r = db_pg.fetchone(conn, sql)
+                    return r["c"] if r and "c" in r else r
+                return db_pg.fetchall(conn, sql)
+        except Exception as e:
+            return {"__err__": str(e)[:200]}
+
     try:
-        with db_pg.transaction() as conn:
-            # raw_source_records coverage
-            try:
-                rsr_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM raw_source_records")["c"]
-                rsr_with_email = db_pg.fetchone(conn,
-                    "SELECT COUNT(*) AS c FROM raw_source_records "
-                    "WHERE payload ? 'email' OR payload::text ILIKE '%@%'")["c"]
-                rsr_sample = db_pg.fetchall(conn,
-                    "SELECT id, source, payload FROM raw_source_records "
-                    "WHERE payload::text ILIKE '%@%' LIMIT 3")
-            except Exception as e:
-                rsr_total = rsr_with_email = None
-                rsr_sample = [{"error": str(e)[:200]}]
+        rsr_total = _q("SELECT COUNT(*) AS c FROM raw_source_records")
+        rsr_with_email = _q(
+            "SELECT COUNT(*) AS c FROM raw_source_records WHERE payload::text ILIKE '%@%'")
+        rsr_sample = _q(
+            "SELECT id, source, payload FROM raw_source_records "
+            "WHERE payload::text ILIKE '%@%' LIMIT 3", one=False)
 
-            # entities coverage
-            ent_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM entities")["c"]
-            ent_with_email = db_pg.fetchone(conn,
-                "SELECT COUNT(*) AS c FROM entities WHERE primary_email IS NOT NULL AND primary_email <> ''")["c"]
+        ent_total = _q("SELECT COUNT(*) AS c FROM entities")
+        ent_with_email = _q(
+            "SELECT COUNT(*) AS c FROM entities "
+            "WHERE primary_email IS NOT NULL AND primary_email <> ''")
 
-            # contacts coverage (if contacts table holds emails separately)
-            try:
-                contacts_total = db_pg.fetchone(conn, "SELECT COUNT(*) AS c FROM contacts")["c"]
-                contacts_with_email = db_pg.fetchone(conn,
-                    "SELECT COUNT(*) AS c FROM contacts WHERE email IS NOT NULL AND email <> ''")["c"]
-                contacts_distinct_entities = db_pg.fetchone(conn,
-                    "SELECT COUNT(DISTINCT entity_id) AS c FROM contacts "
-                    "WHERE email IS NOT NULL AND email <> ''")["c"]
-            except Exception as e:
-                contacts_total = contacts_with_email = contacts_distinct_entities = None
+        contacts_total = _q("SELECT COUNT(*) AS c FROM contacts")
+        contacts_with_email = _q(
+            "SELECT COUNT(*) AS c FROM contacts "
+            "WHERE email IS NOT NULL AND email <> ''")
+        contacts_distinct_entities = _q(
+            "SELECT COUNT(DISTINCT entity_id) AS c FROM contacts "
+            "WHERE email IS NOT NULL AND email <> ''")
 
-            # entities with email in contacts but NOT in entities.primary_email
-            try:
-                gap = db_pg.fetchone(conn,
-                    "SELECT COUNT(DISTINCT c.entity_id) AS c "
-                    "FROM contacts c JOIN entities e ON e.id = c.entity_id "
-                    "WHERE c.email IS NOT NULL AND c.email <> '' "
-                    "  AND (e.primary_email IS NULL OR e.primary_email = '')")["c"]
-            except Exception:
-                gap = None
+        gap = _q(
+            "SELECT COUNT(DISTINCT c.entity_id) AS c "
+            "FROM contacts c JOIN entities e ON e.id = c.entity_id "
+            "WHERE c.email IS NOT NULL AND c.email <> '' "
+            "  AND (e.primary_email IS NULL OR e.primary_email = '')")
 
-            # sources breakdown for entities lacking email
-            try:
-                sources = db_pg.fetchall(conn,
-                    "SELECT esl.source, COUNT(*) AS c "
-                    "FROM entities e "
-                    "JOIN entity_source_links esl ON esl.entity_id = e.id "
-                    "WHERE (e.primary_email IS NULL OR e.primary_email = '') "
-                    "  AND e.is_active = true "
-                    "GROUP BY esl.source ORDER BY c DESC LIMIT 10")
-            except Exception as e:
-                sources = [{"error": str(e)[:200]}]
+        sources = _q(
+            "SELECT esl.source, COUNT(*) AS c "
+            "FROM entities e "
+            "JOIN entity_source_links esl ON esl.entity_id = e.id "
+            "WHERE (e.primary_email IS NULL OR e.primary_email = '') "
+            "  AND e.is_active = true "
+            "GROUP BY esl.source ORDER BY c DESC LIMIT 10", one=False)
 
+        def _safe_int(v):
+            return v if isinstance(v, int) else None
+        et = _safe_int(ent_total) or 0
+        ewe = _safe_int(ent_with_email) or 0
         out = {
             "raw_source_records": {
                 "total": rsr_total,
@@ -5422,7 +5419,7 @@ def email_coverage_audit():
             "entities": {
                 "total": ent_total,
                 "with_primary_email": ent_with_email,
-                "pct_with_email": round((ent_with_email or 0) * 100.0 / max(ent_total or 1, 1), 2),
+                "pct_with_email": round(ewe * 100.0 / max(et, 1), 2),
             },
             "contacts": {
                 "total": contacts_total,
@@ -5432,8 +5429,8 @@ def email_coverage_audit():
             "backfill_opportunity": {
                 "entities_missing_email_but_have_contact_email": gap,
                 "interpretation": (
-                    "If this number is large, the emails ARE in the DB (contacts) "
-                    "but never promoted to entities.primary_email. Pure backfill, no scraping."
+                    "If large, emails ARE in contacts but never promoted to "
+                    "entities.primary_email. Pure backfill, no scraping needed."
                 ),
             },
             "sources_lacking_email": sources,
