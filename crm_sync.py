@@ -114,9 +114,11 @@ def _select_qualified_rows(conn, min_score: int, limit: int) -> list[dict]:
 #   CRM_BATCH_SIZE=25
 # Read dynamically so .env changes are always picked up at call time
 def _cfg():
+    # .strip() removes accidental trailing whitespace/newlines that Railway
+    # env var configs sometimes carry — these break URL construction silently.
     return {
-        "endpoint":   os.getenv("GAS_ENDPOINT", ""),
-        "token":      os.getenv("GAS_TOKEN", ""),
+        "endpoint":   os.getenv("GAS_ENDPOINT", "").strip(),
+        "token":      os.getenv("GAS_TOKEN", "").strip(),
         "min_score":  int(os.getenv("CRM_MIN_SCORE", "65")),
         "batch_size": int(os.getenv("CRM_BATCH_SIZE", "25")),
     }
