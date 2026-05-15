@@ -210,7 +210,31 @@ def push_qualified_leads(
 
     with db_pg.transaction() as conn:
         _ensure_tables(conn)
-        rows = _select_qualified_rows(conn, min_score, limit)
+
+        # ── Daily cap ─────────────────────────────────────────────
+        # Prevent a future enrichment surge from dumping thousands of
+        # leads into Ops in a single day. Counts only successful pushes
+        # (handoff_status='pushed') made today; blocked/duplicate don't count.
+        daily_cap = int(os.getenv("CRM_PUSH_DAILY_CAP", "100"))
+        today_pushed = db_pg.fetchone(conn,
+            "SELECT COUNT(*) AS c FROM crm_handoffs "
+            "WHERE handoff_status = 'pushed' "
+            "  AND handed_off_at::date = CURRENT_DATE")["c"]
+        remaining = max(daily_cap - (today_pushed or 0), 0)
+        if remaining <= 0:
+            logger.info("crm_sync: daily cap reached (%d/%d) — skipping push",
+                        today_pushed, daily_cap)
+            return {
+                "pushed": 0, "skipped": 0, "failed": 0, "total": 0,
+                "note": f"daily_cap_reached:{today_pushed}/{daily_cap}",
+                "daily_cap": daily_cap,
+                "today_pushed": today_pushed,
+            }
+        # Don't fetch more than the cap allows
+        effective_limit = min(limit, remaining)
+        logger.info("crm_sync: daily cap %d/%d, fetching up to %d",
+                    today_pushed, daily_cap, effective_limit)
+        rows = _select_qualified_rows(conn, min_score, effective_limit)
 
     # Generate outreach packages for any leads that don't have one yet
     leads_needing_outreach = [r for r in rows if not r.get("cold_email")]
@@ -225,7 +249,7 @@ def push_qualified_leads(
 
         # Re-fetch rows with outreach packages now populated
         with db_pg.transaction() as conn:
-            rows = _select_qualified_rows(conn, min_score, limit)
+            rows = _select_qualified_rows(conn, min_score, effective_limit)
 
     pushed = skipped = failed = 0
     errors: list[str] = []
