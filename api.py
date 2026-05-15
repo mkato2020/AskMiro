@@ -5245,6 +5245,97 @@ def api_email_enrichment_stats():
 
 # ── CRM Sync — Lead Intelligence → GAS CRM pipeline ──────────────────────────
 
+@app.get("/api/admin/sync-audit")
+def admin_sync_audit():
+    """
+    Read-only diagnostic: compares OS (Postgres) vs Ops (GAS sheet)
+    so divergence between the two systems is visible at a glance.
+    """
+    try:
+        out = {"os_postgres": {}, "ops_gas": {}, "comparison": {}}
+
+        # ── OS side: full Postgres funnel ────────────────────────
+        with db_pg.transaction() as conn:
+            funnel = db_pg.fetchall(conn, """
+                SELECT 'total_entities' AS metric, COUNT(*)::TEXT AS value FROM entities
+                UNION ALL SELECT 'active_entities', COUNT(*)::TEXT FROM entities WHERE active = TRUE
+                UNION ALL SELECT 'with_email', COUNT(*)::TEXT FROM entities WHERE COALESCE(primary_email,'') != ''
+                UNION ALL SELECT 'with_phone', COUNT(*)::TEXT FROM entities WHERE COALESCE(primary_phone,'') != ''
+                UNION ALL SELECT 'with_score', COUNT(*)::TEXT FROM opportunity_scores
+                UNION ALL SELECT 'score_gte_65', COUNT(*)::TEXT FROM opportunity_scores WHERE total_score >= 65
+                UNION ALL SELECT 'has_opportunity', COUNT(*)::TEXT FROM opportunities
+                UNION ALL SELECT 'in_crm_handoffs', COUNT(*)::TEXT FROM crm_handoffs
+                UNION ALL SELECT 'handoff_success', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status IN ('success','duplicate')
+                UNION ALL SELECT 'handoff_blocked', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status LIKE 'blocked:%'
+                UNION ALL SELECT 'handoff_error', COUNT(*)::TEXT FROM crm_handoffs WHERE handoff_status = 'error'
+            """)
+            out["os_postgres"]["funnel"] = {r["metric"]: int(r["value"]) for r in funnel}
+
+            # Push-eligible funnel (mirrors crm_sync filter exactly)
+            eligibility = db_pg.fetchall(conn, """
+                WITH base AS (
+                    SELECT e.id, e.active, e.primary_email, esl.source_record_id AS place_id,
+                           os.total_score, COALESCE(o.current_stage::TEXT,'new') AS stage,
+                           ch.handoff_status
+                    FROM entities e
+                    JOIN entity_source_links esl ON esl.entity_id = e.id AND esl.source = 'google_maps'
+                    JOIN opportunity_scores os ON os.entity_id = e.id
+                    LEFT JOIN opportunities o ON o.entity_id = e.id
+                    LEFT JOIN crm_handoffs ch ON ch.place_id = esl.source_record_id
+                )
+                SELECT 'has_source_link' AS step, COUNT(*)::TEXT AS n FROM base
+                UNION ALL SELECT 'active_only', COUNT(*)::TEXT FROM base WHERE active = TRUE
+                UNION ALL SELECT 'score_gte_65', COUNT(*)::TEXT FROM base WHERE active = TRUE AND total_score >= 65
+                UNION ALL SELECT 'has_email', COUNT(*)::TEXT FROM base WHERE active = TRUE AND total_score >= 65 AND COALESCE(primary_email,'') != ''
+                UNION ALL SELECT 'valid_stage', COUNT(*)::TEXT FROM base WHERE active = TRUE AND total_score >= 65 AND COALESCE(primary_email,'') != '' AND stage IN ('new','enriched','ready_to_contact')
+                UNION ALL SELECT 'not_in_handoffs', COUNT(*)::TEXT FROM base WHERE active = TRUE AND total_score >= 65 AND COALESCE(primary_email,'') != '' AND stage IN ('new','enriched','ready_to_contact') AND handoff_status IS NULL
+            """)
+            out["os_postgres"]["push_eligibility_funnel"] = {r["step"]: int(r["n"]) for r in eligibility}
+
+        # ── Ops side: query GAS via crm_sync._gas_get ────────────
+        try:
+            from crm_sync import _gas_get
+            gas_leads = _gas_get("leads")
+            if isinstance(gas_leads, list):
+                out["ops_gas"]["total_rows"] = len(gas_leads)
+                outbound = [l for l in gas_leads if l.get("leadDirection") == "outbound"]
+                out["ops_gas"]["outbound_rows"] = len(outbound)
+                by_status = {}
+                for l in outbound:
+                    s = l.get("outreachStatus") or "(empty)"
+                    by_status[s] = by_status.get(s, 0) + 1
+                out["ops_gas"]["by_outreach_status"] = by_status
+                # Compare source IDs
+                ops_place_ids = {l.get("sourceLeadId") or l.get("id") for l in outbound}
+                ops_place_ids.discard(None)
+                ops_place_ids.discard("")
+                out["ops_gas"]["distinct_source_ids"] = len(ops_place_ids)
+            else:
+                out["ops_gas"]["error"] = "unexpected_response_type"
+        except Exception as gas_exc:
+            out["ops_gas"]["error"] = str(gas_exc)[:300]
+
+        # ── Comparison: leads on each side but not the other ───
+        if "outbound_rows" in out["ops_gas"]:
+            with db_pg.transaction() as conn:
+                # Place IDs in PG that exist in handoffs as success/duplicate
+                pg_pushed = db_pg.fetchall(conn, """
+                    SELECT place_id FROM crm_handoffs WHERE handoff_status IN ('success','duplicate')
+                """)
+                out["comparison"]["pg_thinks_pushed"] = len(pg_pushed)
+                out["comparison"]["ops_actually_has"] = out["ops_gas"]["outbound_rows"]
+                out["comparison"]["divergence_observation"] = (
+                    "If pg_thinks_pushed << ops_actually_has, GAS has historical leads "
+                    "that predate the integration's tracking. If pg_thinks_pushed > ops_actually_has, "
+                    "GAS deleted leads we logged as pushed."
+                )
+
+        return out
+    except Exception as exc:
+        import traceback
+        return {"error": str(exc), "traceback": traceback.format_exc()[-1200:]}
+
+
 @app.get("/api/admin/crm-handoffs-schema")
 def crm_handoffs_schema():
     """Temp diagnostic: dump column names of crm_handoffs."""
