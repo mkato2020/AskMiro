@@ -378,7 +378,7 @@ def get_handoff_status() -> dict:
 
         by_status = db_pg.fetchall(conn,
             """
-            SELECT handoff_status, COUNT(*) as n, MAX(handoff_at) as last_at
+            SELECT handoff_status, COUNT(*) as n, MAX(handed_off_at) as last_at
             FROM crm_handoffs
             GROUP BY handoff_status
             """,
@@ -412,13 +412,13 @@ def get_handoff_status() -> dict:
                 ch.place_id,
                 e.canonical_name AS business_name,
                 ch.error_message,
-                ch.handoff_at
+                ch.handed_off_at
             FROM crm_handoffs ch
             LEFT JOIN entity_source_links esl
                 ON esl.source_record_id = ch.place_id
             LEFT JOIN entities e ON e.id = esl.entity_id
             WHERE ch.handoff_status = 'error'
-            ORDER BY ch.handoff_at DESC
+            ORDER BY ch.handed_off_at DESC
             LIMIT 10
             """,
         )
@@ -549,13 +549,13 @@ def _record_handoff(
         db_pg.execute(conn,
             """
             INSERT INTO crm_handoffs
-                (place_id, crm_id, python_lead_id, handoff_at, handoff_status,
+                (place_id, crm_id, python_lead_id, handed_off_at, handoff_status,
                  last_sync_at, error_message)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (place_id) DO UPDATE SET
                 crm_id = EXCLUDED.crm_id,
                 python_lead_id = EXCLUDED.python_lead_id,
-                handoff_at = EXCLUDED.handoff_at,
+                handed_off_at = EXCLUDED.handed_off_at,
                 handoff_status = EXCLUDED.handoff_status,
                 last_sync_at = EXCLUDED.last_sync_at,
                 error_message = EXCLUDED.error_message
@@ -625,7 +625,7 @@ def _ensure_tables(conn) -> None:
             place_id            TEXT PRIMARY KEY,
             crm_id              TEXT,
             python_lead_id      TEXT,
-            handoff_at          TEXT,
+            handed_off_at          TEXT,
             handoff_status      TEXT,
             last_sync_at        TEXT,
             error_message       TEXT,
