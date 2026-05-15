@@ -5245,6 +5245,21 @@ def api_email_enrichment_stats():
 
 # ── CRM Sync — Lead Intelligence → GAS CRM pipeline ──────────────────────────
 
+@app.get("/api/admin/crm-handoffs-schema")
+def crm_handoffs_schema():
+    """Temp diagnostic: dump column names of crm_handoffs."""
+    try:
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn,
+                "SELECT column_name, data_type FROM information_schema.columns "
+                "WHERE table_schema='public' AND table_name='crm_handoffs' "
+                "ORDER BY ordinal_position")
+        return {"columns": rows, "count": len(rows)}
+    except Exception as exc:
+        import traceback
+        return {"error": str(exc), "traceback": traceback.format_exc()[-500:]}
+
+
 @app.post("/api/crm/push")
 def api_crm_push(
     min_score: int = Query(None, ge=0, le=100, description="Override default min score"),
