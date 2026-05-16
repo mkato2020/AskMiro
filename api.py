@@ -165,6 +165,23 @@ def _start_scheduler():
             logger.info("APScheduler: email_enrich job DISABLED "
                         "(set EMAIL_ENRICH_AUTO=1 to enable)")
 
+        # Readiness v1 classifier — every 4 hours.
+        # OFF by default per plan §9.5. Operator flips READINESS_AUTO_CLASSIFY=1
+        # only after reviewing the first manual batch.
+        if os.getenv("READINESS_AUTO_CLASSIFY", "0").strip() in ("1", "true", "yes"):
+            scheduler.add_job(
+                _job_readiness_classify,
+                trigger=IntervalTrigger(hours=4),
+                id="readiness_classify",
+                name="Classify entities into readiness states",
+                max_instances=1,
+                replace_existing=True,
+            )
+            logger.info("APScheduler: readiness_classify job enabled")
+        else:
+            logger.info("APScheduler: readiness_classify job DISABLED "
+                        "(set READINESS_AUTO_CLASSIFY=1 to enable)")
+
         scheduler.start()
         logger.info("APScheduler started: crm_push (30min) + crm_sync (2h)")
     except ImportError:
@@ -199,6 +216,23 @@ def _job_push_phone():
                     {k: v for k, v in result.items() if k != "errors"})
     except Exception as exc:
         logger.error("Scheduled phone push failed: %s", exc)
+
+
+def _job_readiness_classify():
+    """Scheduled readiness classifier — drains a capped batch every tick.
+    Off by default (READINESS_AUTO_CLASSIFY=0)."""
+    try:
+        result = crm_sync._classify_readiness_batch(
+            limit=int(os.getenv("READINESS_BATCH_SIZE", "200")),
+            do_dns=os.getenv("READINESS_DNS_CHECK", "0") == "1",
+        )
+        if not result.get("ok"):
+            logger.warning("readiness classifier: %s", result)
+        else:
+            logger.info("readiness classifier: %s",
+                        {k: v for k, v in result.items() if k != "errors"})
+    except Exception as exc:
+        logger.error("readiness classifier failed: %s", exc)
 
 
 def _job_email_enrich():
@@ -5339,6 +5373,167 @@ def api_email_enrichment_stats():
         "priority_scrape_ready": d["priority_scrape_ready"],  # score>=65, target, no email, has website
         "coverage_pct":         round(d["has_email"] / max(d["total"], 1) * 100, 1),
     }
+
+
+# ── Readiness v1 (Scraper Enhancer Phase 1) ─────────────────────────────────
+# All three endpoints are read-only EXCEPT classify-batch which writes only
+# readiness_state / enrichment_events (never primary_email, never push).
+# Returns 503 migration_not_applied if migration 011 hasn't been run.
+
+def _readiness_v1_ready_or_503():
+    """Helper: returns None if v1 tables present, else HTTPException 503."""
+    try:
+        import prospect_validation as pv
+        with db_pg.transaction() as conn:
+            if not pv.readiness_table_present(conn):
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "error": "migration_not_applied",
+                        "message": "Run migration 011_readiness_v1.sql first.",
+                        "migration": "011_readiness_v1",
+                    },
+                )
+        return None
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # If we can't even check, fail closed.
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "migration_check_failed",
+                    "message": str(exc)[:200]},
+        )
+
+
+@app.get("/api/admin/readiness-funnel")
+def admin_readiness_funnel():
+    """Distribution of readiness states + top rejection reasons."""
+    _readiness_v1_ready_or_503()
+    try:
+        with db_pg.transaction() as conn:
+            total = db_pg.fetchone(
+                conn,
+                "SELECT COUNT(*) AS c FROM entities WHERE active = TRUE",
+            )["c"]
+            by_state_rows = db_pg.fetchall(
+                conn,
+                "SELECT COALESCE(readiness_state, 'unclassified') AS state, "
+                "       COUNT(*) AS n "
+                "FROM entities WHERE active = TRUE "
+                "GROUP BY COALESCE(readiness_state, 'unclassified') "
+                "ORDER BY n DESC",
+            )
+            top_reasons = db_pg.fetchall(
+                conn,
+                "SELECT readiness_reason AS reason, COUNT(*) AS n "
+                "FROM entities WHERE active = TRUE "
+                "  AND readiness_state IS NOT NULL "
+                "  AND readiness_state <> 'READY_FOR_OUTREACH' "
+                "GROUP BY readiness_reason ORDER BY n DESC LIMIT 10",
+            )
+            by_provenance = db_pg.fetchall(
+                conn,
+                "SELECT provenance, COUNT(*) AS n FROM entities "
+                "WHERE active = TRUE GROUP BY provenance",
+            )
+        return {
+            "as_of":   datetime.utcnow().isoformat() + "Z",
+            "scope":   "all_active_entities",
+            "total":   total,
+            "by_readiness_state": {r["state"]: r["n"] for r in by_state_rows},
+            "top_rejection_reasons": top_reasons,
+            "by_provenance": {r["provenance"]: r["n"] for r in by_provenance},
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        logger.error("readiness-funnel failed: %s\n%s",
+                     exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+        })
+
+
+@app.get("/api/admin/entity-audit/{entity_id}")
+def admin_entity_audit(entity_id: int):
+    """Full lineage for one entity: row, score, enrichment_events history."""
+    _readiness_v1_ready_or_503()
+    try:
+        with db_pg.transaction() as conn:
+            entity = db_pg.fetchone(
+                conn,
+                "SELECT id, canonical_name, primary_email, primary_phone, "
+                "       primary_website, sector, provenance, "
+                "       readiness_state, readiness_reason, "
+                "       readiness_classified_at, active "
+                "FROM entities WHERE id = %s",
+                (entity_id,),
+            )
+            if not entity:
+                raise HTTPException(status_code=404,
+                                    detail={"error": "entity_not_found"})
+            score = db_pg.fetchone(
+                conn,
+                "SELECT total_score, sector, next_best_action "
+                "FROM opportunity_scores WHERE entity_id = %s",
+                (entity_id,),
+            )
+            events = db_pg.fetchall(
+                conn,
+                "SELECT event_at, event_type, source, outcome, "
+                "       confidence, rejection_reason, result, notes "
+                "FROM enrichment_events WHERE entity_id = %s "
+                "ORDER BY event_at DESC LIMIT 50",
+                (entity_id,),
+            )
+        return {
+            "entity": entity,
+            "score":  score,
+            "enrichment_events": events,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        logger.error("entity-audit failed: %s\n%s",
+                     exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+        })
+
+
+@app.post("/api/admin/classify-batch")
+def admin_classify_batch(
+    limit:    int  = Query(50, ge=1, le=2000),
+    dry_run:  bool = Query(True,
+        description="If true (default), report what would change but write nothing"),
+    do_dns:   bool = Query(False,
+        description="If true, run MX lookups (slower but stricter)"),
+):
+    """
+    Manually trigger the readiness classifier over a batch.
+    Defaults: dry_run=True, do_dns=False. Operator must opt in to writes.
+    Writes only readiness_state / enrichment_events. Never primary_email.
+    Never pushes to GAS.
+    """
+    _readiness_v1_ready_or_503()
+    try:
+        return crm_sync._classify_readiness_batch(
+            limit=limit, dry_run=dry_run, do_dns=do_dns,
+        )
+    except Exception as exc:
+        import traceback
+        logger.error("classify-batch failed: %s\n%s",
+                     exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail={
+            "error": type(exc).__name__,
+            "message": str(exc)[:500],
+            "traceback": traceback.format_exc()[-1200:],
+        })
 
 
 # ── CRM Sync — Lead Intelligence → GAS CRM pipeline ──────────────────────────

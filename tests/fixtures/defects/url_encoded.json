@@ -1,0 +1,15 @@
+{
+  "name": "url_encoded",
+  "description": "Email field carries %20 (encoded space) — never decoded by scraper.",
+  "entity": {
+    "id": 9002,
+    "canonical_name": "Test Office Group",
+    "primary_email": "%20info@askmiro.com",
+    "primary_phone": "+44 20 7000 0000",
+    "primary_website": "https://askmiro.com",
+    "sector": "office",
+    "total_score": 80
+  },
+  "expected_state": "INVALID_CONTACT",
+  "expected_reason_fragment": "transport_decode_failed"
+}

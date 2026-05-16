@@ -1,0 +1,18 @@
+{
+  "name": "truncated_tld",
+  "description": "Domain TLD truncated by a regex over-match (bse.ac instead of bse.ac.uk). MX lookup will fail in production.",
+  "entity": {
+    "id": 9006,
+    "canonical_name": "BSE Test School",
+    "primary_email": "office@bse.ac",
+    "primary_phone": "+44 20 0000 0000",
+    "primary_website": "https://bse.ac.uk",
+    "sector": "school",
+    "total_score": 75
+  },
+  "expected_state": "INVALID_CONTACT",
+  "expected_reason_fragment": "domain_mismatch",
+  "requires_env": {
+    "DOMAIN_FIT_ENABLED": "1"
+  }
+}

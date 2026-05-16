@@ -1,0 +1,18 @@
+{
+  "name": "cross_entity",
+  "description": "Mayflower Pub assigned an email belonging to a different pub (George & Dragon). Cross-entity contamination.",
+  "entity": {
+    "id": 9005,
+    "canonical_name": "Mayflower Pub",
+    "primary_email": "hello@thegeorgeanddragonpub.com",
+    "primary_phone": "+44 20 8000 0000",
+    "primary_website": "https://mayflowerpub.co.uk",
+    "sector": "pub",
+    "total_score": 70
+  },
+  "expected_state": "ENTITY_CONFLICT",
+  "expected_reason_fragment": "email_used_by",
+  "context_email_owners": {
+    "hello@thegeorgeanddragonpub.com": [9099, 9005]
+  }
+}

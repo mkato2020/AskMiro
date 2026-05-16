@@ -1,0 +1,15 @@
+{
+  "name": "placeholder",
+  "description": "Scrapers commonly capture template addresses from contact form placeholders.",
+  "entity": {
+    "id": 9001,
+    "canonical_name": "Acme Cleaning Test Co",
+    "primary_email": "name@domain.com",
+    "primary_phone": "+44 20 7123 4567",
+    "primary_website": "https://acme-cleaning-test.co.uk",
+    "sector": "office",
+    "total_score": 72
+  },
+  "expected_state": "INVALID_CONTACT",
+  "expected_reason_fragment": "placeholder"
+}

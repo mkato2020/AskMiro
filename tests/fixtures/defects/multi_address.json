@@ -1,0 +1,15 @@
+{
+  "name": "multi_address",
+  "description": "Three mailto links from a contact page joined into one cell with ' - ' separators.",
+  "entity": {
+    "id": 9004,
+    "canonical_name": "MultiAddr Co",
+    "primary_email": "info@multiaddr.com - hello@multiaddr.com - sales@multiaddr.com",
+    "primary_phone": "+44 20 7000 0000",
+    "primary_website": "https://multiaddr.com",
+    "sector": "office",
+    "total_score": 70
+  },
+  "expected_state": "INVALID_CONTACT",
+  "expected_reason_fragment": "multi_value_unsplit"
+}

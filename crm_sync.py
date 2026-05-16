@@ -106,8 +106,182 @@ LIMIT %s
 """
 
 def _select_qualified_rows(conn, min_score: int, limit: int) -> list[dict]:
-    """Return list of dicts matching the legacy lead_records shape."""
+    """
+    Return list of dicts matching the legacy lead_records shape.
+
+    Readiness v1 (per docs/SCRAPER_ENHANCER_V1_PLAN.md §11):
+      * READINESS_ENFORCE=0 (default): query runs unchanged.
+      * READINESS_ENFORCE=1: query gets an extra filter
+        'AND (readiness_state IS NULL OR readiness_state = READY)'.
+        Filter is injected at runtime, not compiled into _QUALIFIED_LEAD_SQL,
+        so the default path is byte-for-byte identical to pre-v1.
+    """
+    if os.getenv("READINESS_ENFORCE", "0").strip() in ("1", "true", "yes"):
+        # Grace-mode filter: still allows NULL (unclassified) through.
+        # Strict mode (no NULL) is a future phase 7 change.
+        sql = _QUALIFIED_LEAD_SQL.replace(
+            "ORDER BY os.total_score DESC",
+            "  AND (e.readiness_state IS NULL "
+            "       OR e.readiness_state = 'READY_FOR_OUTREACH')\n"
+            "ORDER BY os.total_score DESC",
+        )
+        return db_pg.fetchall(conn, sql, (min_score, limit))
     return db_pg.fetchall(conn, _QUALIFIED_LEAD_SQL, (min_score, limit))
+
+
+def _classify_readiness_batch(
+    limit: int = None,
+    only_unclassified: bool = True,
+    do_dns: bool = False,
+    dry_run: bool = False,
+) -> dict:
+    """
+    Run the readiness classifier over a batch of entities.
+    Writes only readiness_state, readiness_reason, readiness_classified_at,
+    and rows into enrichment_events. NEVER writes primary_email or pushes
+    to GAS.
+
+    Returns {processed, classified, by_state, errors, dry_run, skipped}.
+
+    Idempotent: re-classifying an entity overwrites prior state + appends
+    a new enrichment_events row.
+
+    Safety:
+      * Returns {error: 'migration_not_applied'} cleanly if the v1 tables
+        are absent — does NOT raise.
+      * Runs purely Tier-0 (no HTTP, no paid API). DNS optional via do_dns.
+      * Operator triggers it manually or via the scheduler (which is gated
+        by READINESS_AUTO_CLASSIFY=0 by default).
+    """
+    import prospect_validation as pv
+
+    if limit is None:
+        limit = int(os.getenv("READINESS_BATCH_SIZE", "200"))
+
+    # 1. Pre-flight: migration applied?
+    with db_pg.transaction() as conn:
+        if not pv.readiness_table_present(conn):
+            return {
+                "ok": False,
+                "error": "migration_not_applied",
+                "note": "Run migration 011 first.",
+            }
+
+        # 2. Load context once per batch
+        chains = db_pg.fetchall(
+            conn,
+            "SELECT id, sector, chain_name, root_domain, "
+            "       name_aliases, active "
+            "FROM chain_operators WHERE active = TRUE",
+        )
+        shared = db_pg.fetchall(
+            conn,
+            "SELECT id, sector, root_domain, confidence, active "
+            "FROM sector_shared_domains WHERE active = TRUE",
+        )
+
+        # 3. Candidates: unclassified or stale > 7 days
+        where = "WHERE e.active = TRUE "
+        if only_unclassified:
+            where += (
+                " AND (e.readiness_state IS NULL "
+                "      OR e.readiness_classified_at < NOW() - INTERVAL '7 days')"
+            )
+        candidates = db_pg.fetchall(
+            conn,
+            f"""
+            SELECT e.id, e.canonical_name, e.primary_email, e.primary_phone,
+                   e.primary_website, e.sector,
+                   COALESCE(os.total_score, 0) AS total_score
+            FROM entities e
+            LEFT JOIN opportunity_scores os ON os.entity_id = e.id
+            {where}
+            ORDER BY COALESCE(os.total_score, 0) DESC,
+                     e.primary_email IS NULL
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+    context = {
+        "chain_operators": chains,
+        "sector_shared_domains": shared,
+    }
+
+    by_state: dict = {}
+    classified = errors = skipped = 0
+
+    for ent in candidates:
+        try:
+            result = pv.classify_readiness(ent, context=context,
+                                           do_dns=do_dns)
+        except Exception as exc:
+            logger.warning("classify failed for entity %s: %s",
+                           ent.get("id"), exc)
+            errors += 1
+            continue
+
+        by_state[result.state] = by_state.get(result.state, 0) + 1
+
+        if dry_run:
+            skipped += 1
+            continue
+
+        # Write the readiness state + an audit row, each in its own
+        # short transaction. NO touching of primary_email.
+        try:
+            with db_pg.transaction() as wconn:
+                db_pg.execute(
+                    wconn,
+                    "UPDATE entities "
+                    "SET readiness_state = %s, "
+                    "    readiness_reason = %s, "
+                    "    readiness_classified_at = NOW() "
+                    "WHERE id = %s",
+                    (result.state, result.reason[:500], ent["id"]),
+                )
+                db_pg.execute(
+                    wconn,
+                    "INSERT INTO enrichment_events "
+                    "(entity_id, event_type, source, outcome, "
+                    " rejection_reason, result, confidence) "
+                    "VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)",
+                    (
+                        ent["id"],
+                        "validate_email",
+                        "classifier",
+                        "pass" if result.state == "READY_FOR_OUTREACH"
+                        else ("fail"
+                              if result.state in (
+                                  "INVALID_CONTACT", "SUPPRESSED",
+                                  "ENTITY_CONFLICT")
+                              else "flagged"),
+                        result.reason[:500],
+                        _json_dumps(result.to_dict()),
+                        None,
+                    ),
+                )
+            classified += 1
+        except Exception as exc:
+            logger.error("write failed for entity %s: %s",
+                         ent.get("id"), exc)
+            errors += 1
+
+    return {
+        "ok": True,
+        "processed": len(candidates),
+        "classified": classified,
+        "skipped": skipped,
+        "errors": errors,
+        "by_state": by_state,
+        "dry_run": dry_run,
+    }
+
+
+def _json_dumps(obj) -> str:
+    """Tiny helper — keeps json import local to keep top-level light."""
+    import json as _json
+    return _json.dumps(obj, default=str)
 
 
 # ── Phone-lane SQL ────────────────────────────────────────────

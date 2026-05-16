@@ -1,0 +1,15 @@
+{
+  "name": "unicode_escape",
+  "description": "Email contains a stray u003e (encoded > character) that the scraper failed to unescape.",
+  "entity": {
+    "id": 9003,
+    "canonical_name": "Queen Adelaide",
+    "primary_email": "u003equeenadelaide@youngs.co.uk",
+    "primary_phone": "+44 20 7993 0000",
+    "primary_website": "https://youngs.co.uk/queen-adelaide",
+    "sector": "pub",
+    "total_score": 68
+  },
+  "expected_state": "INVALID_CONTACT",
+  "expected_reason_fragment": "transport_decode_failed"
+}
