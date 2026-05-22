@@ -365,6 +365,7 @@ function _runAutoSend() {
   const followUpDue = allLeads
     .filter(r =>
       OS_FOLLOW_UP_STATES.includes(r.outreachStatus) &&
+      (!r.replyStatus || r.replyStatus === '') &&   // Hackney-bug guard: never follow up if any reply has been classified
       r.nextFollowUpAt &&
       new Date(r.nextFollowUpAt) <= now &&
       Number(r.followUpCount || 0) < MAX_FOLLOW_UPS
@@ -408,6 +409,7 @@ function _runAutoSend() {
   const finalDue = allLeads
     .filter(r =>
       r.outreachStatus === OS.FOLLOW_UP_2 &&
+      (!r.replyStatus || r.replyStatus === '') &&   // Hackney-bug guard
       r.nextFollowUpAt &&
       new Date(r.nextFollowUpAt) <= now &&
       Number(r.followUpCount || 0) >= MAX_FOLLOW_UPS - 1
@@ -491,6 +493,20 @@ function _autoSendInitial(lead) {
 
 // ── SEND FOLLOW-UP ────────────────────────────────────────────
 function _autoSendFollowUp(lead) {
+  // Hackney-bug guard: authoritative pre-send check against Gmail itself.
+  // Catches replies the scanner missed, misclassified, or hasn't processed yet.
+  if (_threadHasInboundReply(lead)) {
+    updateRow('Leads', lead.id, {
+      replyStatus:       'UNCLASSIFIED_REPLY',
+      needsHumanAction:  'true',
+      humanActionReason: 'reply_detected_at_send_time',
+      replyNextAction:   'Reply found in thread at follow-up send time — review and classify',
+      nextFollowUpAt:    '',
+    });
+    Logger.log('Aborted follow-up for ' + lead.id + ' — inbound reply detected in thread at send time');
+    return;
+  }
+
   const n = Number(lead.followUpCount || 0);
   const nextStatus = n === 0 ? OS.FOLLOW_UP_1 : OS.FOLLOW_UP_2;
 
@@ -526,6 +542,19 @@ function _autoSendFollowUp(lead) {
 
 // ── SEND FINAL FOLLOW-UP ─────────────────────────────────────
 function _autoSendFinal(lead) {
+  // Hackney-bug guard (mirrors _autoSendFollowUp)
+  if (_threadHasInboundReply(lead)) {
+    updateRow('Leads', lead.id, {
+      replyStatus:       'UNCLASSIFIED_REPLY',
+      needsHumanAction:  'true',
+      humanActionReason: 'reply_detected_at_send_time',
+      replyNextAction:   'Reply found in thread at final-follow-up send time — review and classify',
+      nextFollowUpAt:    '',
+    });
+    Logger.log('Aborted final follow-up for ' + lead.id + ' — inbound reply detected in thread at send time');
+    return;
+  }
+
   const { subject, textBody, htmlBody } = _buildEmail(lead, 'final');
 
   _sendInThread(lead, subject, textBody, htmlBody);
@@ -549,6 +578,81 @@ function _autoSendFinal(lead) {
     thread_id:  lead.threadId || '',
     detail:     'Final follow-up: ' + subject,
   });
+}
+
+
+// ── INBOUND-REPLY GUARD ──────────────────────────────────────
+// Authoritative check against Gmail: is there a non-AskMiro message in
+// this thread? Used by _autoSendFollowUp / _autoSendFinal to abort a send
+// when the reply scanner hasn't (yet) classified an inbound reply.
+// Returns true if a reply exists, false otherwise (also false on lookup
+// failure — fail-open so transient Gmail errors don't block all sends).
+function _threadHasInboundReply(lead) {
+  if (!lead || !lead.threadId) return false;
+  try {
+    const thread = GmailApp.getThreadById(lead.threadId);
+    if (!thread) return false;
+    const messages = thread.getMessages();
+    if (messages.length <= 1) return false;
+    return messages.some(m => {
+      const from = (m.getFrom() || '').toLowerCase();
+      return !from.includes('askmiro.com') &&
+             !from.includes('info@askmiro') &&
+             !from.includes('mkato.ug@gmail.com') &&
+             !from.includes('mike kato');
+    });
+  } catch (e) {
+    Logger.log('_threadHasInboundReply lookup failed for ' + lead.id + ': ' + e.message);
+    return false;
+  }
+}
+
+
+// ── AUDIT: SUSPECT LEADS (READ-ONLY) ─────────────────────────
+// One-off review tool. Lists leads in an active follow-up state whose
+// Gmail thread already contains a reply that wasn't classified — the
+// rows the new guards will auto-abort on next send. Run from the Apps
+// Script editor → Logger / Executions. Modifies no data.
+function auditSuspectLeads() {
+  const leads = getTableRows('Leads').filter(r =>
+    r.leadDirection === 'outbound' &&
+    OS_FOLLOW_UP_STATES.includes(r.outreachStatus) &&
+    r.threadId &&
+    (!r.replyStatus || r.replyStatus === '')
+  );
+  Logger.log('auditSuspectLeads: scanning ' + leads.length + ' active follow-up leads');
+
+  let suspect = 0;
+  leads.forEach(lead => {
+    try {
+      const thread = GmailApp.getThreadById(lead.threadId);
+      if (!thread) return;
+      const messages = thread.getMessages();
+      if (messages.length <= 1) return;
+      const inbound = messages.filter(m => {
+        const from = (m.getFrom() || '').toLowerCase();
+        return !from.includes('askmiro.com') &&
+               !from.includes('info@askmiro') &&
+               !from.includes('mkato.ug@gmail.com') &&
+               !from.includes('mike kato');
+      });
+      if (!inbound.length) return;
+      suspect++;
+      const last = inbound[inbound.length - 1];
+      Logger.log('SUSPECT ' + suspect + ': lead=' + lead.id +
+                 ' company=' + (lead.companyName || '?') +
+                 ' email=' + lead.email +
+                 ' status=' + lead.outreachStatus +
+                 ' fuCount=' + (lead.followUpCount || 0) +
+                 ' nextFU=' + (lead.nextFollowUpAt || '') +
+                 ' replyFrom=' + last.getFrom() +
+                 ' replyDate=' + last.getDate().toISOString() +
+                 ' snippet=' + last.getPlainBody().substring(0, 120).replace(/\s+/g, ' '));
+    } catch (e) {
+      Logger.log('audit lookup failed for ' + lead.id + ': ' + e.message);
+    }
+  });
+  Logger.log('auditSuspectLeads: ' + suspect + ' suspect lead(s) found');
 }
 
 
@@ -889,6 +993,13 @@ function _ruleBasedClassify(text) {
 
   if (/not\s+interested|no\s+thank|don'?t\s+need|happy\s+with\s+(our|the)\s+current|already\s+have\s+a\s+(cleaner|cleaning)|not\s+looking|we\s+don'?t\s+require/.test(t)) {
     return { intent: 'NOT_INTERESTED', summary: 'Not interested in services', confidence: 'rule' };
+  }
+
+  // Procurement / supplier-portal gate (councils, NHS, universities, large estates).
+  // First-reply redirect to a formal procurement route — treat as terminal so the engine
+  // never follows up. Hackney Council bug 2026-05-22.
+  if (/contact\s+our\s+procurement|procurement\s+(department|team|portal)|tendering\s+opportunit|supplier\s+(registration|portal|onboarding)|register\s+(on|with)\s+our\s+supplier|via\s+our\s+procurement/.test(t)) {
+    return { intent: 'NOT_INTERESTED', summary: 'Procurement-gate redirect — formal tender route only', confidence: 'rule' };
   }
 
   if (/wrong\s+(person|email|department)|not\s+my\s+(role|department|area)|you\s+should\s+contact|please\s+contact\s+our/.test(t)) {
