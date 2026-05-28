@@ -51,10 +51,26 @@ from analytics import activity_summary, pipeline_velocity
 
 app = FastAPI(title="AskMiro Lead Intelligence OS", version="1.0.0")
 
+# CORS — explicit allow-list. `allow_origins=["*"]` with `allow_credentials=True`
+# is rejected by the CORS spec and exposes authenticated endpoints to any site.
+# Override via env CORS_ORIGINS (comma-separated) for new frontends.
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+if _cors_origins_env.strip():
+    _cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+else:
+    _cors_origins = [
+        "https://www.askmiro.com",
+        "https://askmiro.com",
+        "https://askmiro.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     allow_credentials=True,
 )
@@ -7837,7 +7853,8 @@ def today_engine(focus: Optional[str] = None):
 @app.post("/api/admin/delete-cleaner")
 def admin_delete_cleaner(body: dict = Body(...)):
     """Delete a single cleaner by id. Token-protected."""
-    if body.get("token") != "askmiro-reset-2026":
+    _admin_token_env = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin_token_env or body.get("token") != _admin_token_env:
         raise HTTPException(status_code=403, detail="Invalid token")
     cleaner_id = body.get("id")
     if not cleaner_id:
@@ -7929,7 +7946,8 @@ def list_web_quotes(status: Optional[str] = None):
 @app.post("/api/admin/clear-stuck-jobs")
 def admin_clear_stuck_jobs(body: dict = Body(default={})):
     """Mark all stuck connector jobs as finished (running=false)."""
-    if body.get("token") != "askmiro-reset-2026":
+    _admin_token_env = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin_token_env or body.get("token") != _admin_token_env:
         raise HTTPException(status_code=403, detail="Invalid token")
     try:
         with db_pg.transaction() as conn:
@@ -7951,7 +7969,8 @@ def admin_clear_stuck_jobs(body: dict = Body(default={})):
 @app.post("/api/admin/dedupe-cleaners")
 def admin_dedupe_cleaners(body: dict = Body(default={})):
     """Remove duplicate cleaners (same lowercased full_name) — keeps oldest."""
-    if body.get("token") != "askmiro-reset-2026":
+    _admin_token_env = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin_token_env or body.get("token") != _admin_token_env:
         raise HTTPException(status_code=403, detail="Invalid token")
     try:
         with db_pg.transaction() as conn:
@@ -7976,7 +7995,8 @@ def admin_dedupe_cleaners(body: dict = Body(default={})):
 @app.post("/api/admin/reset-payroll")
 def admin_reset_payroll(body: dict = Body(default={})):
     """Wipe ALL payroll entries (use only when current data is confirmed test)."""
-    if body.get("token") != "askmiro-reset-2026":
+    _admin_token_env = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin_token_env or body.get("token") != _admin_token_env:
         raise HTTPException(status_code=403, detail="Invalid token")
     try:
         with db_pg.transaction() as conn:
@@ -7994,9 +8014,10 @@ def admin_reset_payroll(body: dict = Body(default={})):
 def admin_reset_finance(body: dict = Body(default={})):
     """
     Wipe ALL finance data (test data) and seed the two real paid invoices.
-    Protected by a simple token check — call with {"token": "askmiro-reset-2026"}.
+    Protected by an environment-variable token. Set ADMIN_TOKEN in Railway env, then call with {"token": "<value>"}.
     """
-    if body.get("token") != "askmiro-reset-2026":
+    _admin_token_env = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin_token_env or body.get("token") != _admin_token_env:
         raise HTTPException(status_code=403, detail="Invalid token")
 
     try:
@@ -8510,6 +8531,153 @@ def rescore_single_entity(entity_id: int):
         return {"ok": True, "entity_id": entity_id, "results": counts}
     except Exception as exc:
         logger.error("rescore entity error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── UNSUBSCRIBE / SUPPRESSIONS — UK PECR Reg 22/23 compliance ────────────────
+# Public one-click unsubscribe link rendered in every outbound email.
+# Token is HMAC-SHA256 of the normalised email + scope, first 12 hex chars.
+# GAS computes the same token using Utilities.computeHmacSha256Signature.
+# Secret lives in env: UNSUBSCRIBE_HMAC_SECRET.
+
+import hmac as _hmac
+import hashlib as _hashlib
+from fastapi import Request as _Request
+from fastapi.responses import HTMLResponse as _HTMLResponse, PlainTextResponse as _PlainTextResponse
+
+_UNSUB_SECRET = os.environ.get("UNSUBSCRIBE_HMAC_SECRET", "")
+_OPS_TOKEN_ENV = os.environ.get("OPS_TOKEN", "")
+
+def _normalize_email(value: str) -> str:
+    return (value or "").strip().lower()
+
+def _unsub_token(email: str) -> str:
+    if not _UNSUB_SECRET:
+        return ""
+    msg = (_normalize_email(email) + "|unsub").encode("utf-8")
+    return _hmac.new(_UNSUB_SECRET.encode("utf-8"), msg, _hashlib.sha256).hexdigest()[:12]
+
+def _verify_unsub_token(email: str, token: str) -> bool:
+    expected = _unsub_token(email)
+    if not expected or not token:
+        return False
+    return _hmac.compare_digest(expected, token)
+
+def _persist_suppression(email: str, reason: str, source: str,
+                          created_by: str = None, request_ip: str = None,
+                          user_agent: str = None, notes: str = None) -> bool:
+    norm = _normalize_email(email)
+    if not norm or "@" not in norm:
+        return False
+    try:
+        with db.get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO email_suppressions
+                    (email, email_normalized, reason, source, created_by, request_ip, user_agent, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (email_normalized) DO NOTHING
+                RETURNING id
+                """,
+                (email, norm, reason, source, created_by, request_ip, user_agent, notes),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return row is not None
+    except Exception as exc:
+        logger.error("persist_suppression failed for %s: %s", norm, exc)
+        return False
+
+_UNSUB_PAGE_OK = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Unsubscribed — AskMiro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>body{font-family:-apple-system,Segoe UI,sans-serif;background:#F4F8FB;color:#0D1C2E;margin:0;padding:48px 16px;line-height:1.6}
+.card{max-width:520px;margin:0 auto;background:#fff;padding:40px 32px;border-radius:14px;box-shadow:0 8px 28px rgba(13,28,46,0.08)}
+h1{font-size:22px;margin:0 0 12px;color:#0A9688}p{margin:0 0 14px;color:#3D5A74;font-size:15px}
+.email{font-family:JetBrains Mono,Menlo,monospace;background:#F0F7FA;padding:2px 8px;border-radius:6px;font-size:13px}
+.foot{margin-top:28px;padding-top:20px;border-top:1px solid #E5E7EB;font-size:12px;color:#4E6F8A}</style></head>
+<body><div class="card">
+<h1>Unsubscribed</h1>
+<p>We've removed <span class="email">{email}</span> from AskMiro Cleaning Services outreach.</p>
+<p>You will not receive any further emails from us, and this address is now on our permanent suppression list. If you change your mind, just reply to any earlier email and we'll re-add you manually.</p>
+<p>For other data-protection requests (access, correction, full erasure), email <a href="mailto:office@askmiro.com">office@askmiro.com</a>.</p>
+<div class="foot">AskMiro Cleaning Services &middot; A trading name of Miro Partners Ltd &middot; Company #16315754</div>
+</div></body></html>"""
+
+_UNSUB_PAGE_BAD = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Invalid unsubscribe link &mdash; AskMiro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>body{font-family:-apple-system,Segoe UI,sans-serif;background:#F4F8FB;color:#0D1C2E;margin:0;padding:48px 16px;line-height:1.6}
+.card{max-width:520px;margin:0 auto;background:#fff;padding:40px 32px;border-radius:14px;box-shadow:0 8px 28px rgba(13,28,46,0.08)}
+h1{font-size:22px;margin:0 0 12px;color:#cc3a21}p{margin:0 0 14px;color:#3D5A74;font-size:15px}</style></head>
+<body><div class="card">
+<h1>Link could not be verified</h1>
+<p>This unsubscribe link is missing or invalid. To opt out, email <a href="mailto:office@askmiro.com?subject=Unsubscribe">office@askmiro.com</a> with the subject "Unsubscribe" and we will action it within 28 days.</p>
+</div></body></html>"""
+
+
+@app.get("/unsubscribe", include_in_schema=False)
+def public_unsubscribe(request: _Request, e: str = "", t: str = ""):
+    """Public one-click unsubscribe. HMAC-signed token prevents enumeration."""
+    norm = _normalize_email(e)
+    if not norm or not _verify_unsub_token(norm, t):
+        return _HTMLResponse(_UNSUB_PAGE_BAD, status_code=400)
+    _persist_suppression(
+        email=norm,
+        reason="unsubscribe_link",
+        source="unsubscribe_endpoint",
+        request_ip=(request.client.host if request.client else None),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return _HTMLResponse(_UNSUB_PAGE_OK.replace("{email}", norm))
+
+
+@app.post("/unsubscribe", include_in_schema=False)
+def public_unsubscribe_one_click(request: _Request, e: str = "", t: str = ""):
+    """RFC 8058 List-Unsubscribe-Post one-click POST. Same logic, plain-text 200."""
+    norm = _normalize_email(e)
+    if not norm or not _verify_unsub_token(norm, t):
+        return _PlainTextResponse("invalid", status_code=400)
+    _persist_suppression(
+        email=norm,
+        reason="unsubscribe_link",
+        source="unsubscribe_endpoint_one_click",
+        request_ip=(request.client.host if request.client else None),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return _PlainTextResponse("unsubscribed", status_code=200)
+
+
+@app.post("/api/admin/suppressions/add", include_in_schema=False)
+def admin_suppressions_add(payload: dict = Body(...)):
+    """GAS pushes reply-detected unsubscribes here. Auth via payload.auth == OPS_TOKEN."""
+    if (payload.get("auth") or "") != _OPS_TOKEN_ENV or not _OPS_TOKEN_ENV:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    email = _normalize_email(payload.get("email", ""))
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="email required")
+    added = _persist_suppression(
+        email=email,
+        reason=payload.get("reason", "unsubscribe_reply"),
+        source=payload.get("source", "gas_reply_scanner"),
+        created_by=payload.get("created_by"),
+        notes=payload.get("notes"),
+    )
+    return {"ok": True, "email": email, "newly_added": added}
+
+
+@app.get("/api/admin/suppressions/list", include_in_schema=False)
+def admin_suppressions_list(auth: str = ""):
+    """GAS pulls the full suppression list (cached daily) for pre-send filter."""
+    if not _OPS_TOKEN_ENV or auth != _OPS_TOKEN_ENV:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    try:
+        with db.get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT email_normalized FROM email_suppressions ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return {"ok": True, "count": len(rows), "emails": [r[0] for r in rows]}
+    except Exception as exc:
+        logger.error("suppressions_list failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 

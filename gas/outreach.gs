@@ -297,8 +297,24 @@ function _runAutoSend() {
   // ── Phase 1: New leads ready for first contact ───────────────
   // Priority = 40% lead score + 35% sector reply rate + 25% template freshness
   const _perfSnapshot = _getPerfData();
+  // PECR pre-send: refresh suppression cache once per batch.
+  _refreshSuppressionsCache();
+
   const readyQueue = allLeads
     .filter(r => r.outreachStatus === OS.READY_FOR_OUTREACH)
+    .filter(r => {
+      if (_isSuppressed(r.email)) {
+        Logger.log('autoSend BLOCKED — suppression list hit for ' + r.id + ' (' + r.email + ')');
+        updateRow('Leads', r.id, {
+          outreachStatus:    OS.UNSUBSCRIBED,
+          replyStatus:       'UNSUBSCRIBE',
+          replyNextAction:   'Email on suppression list — never contact',
+          needsHumanAction:  'false',
+        });
+        return false;
+      }
+      return true;
+    })
     .map(r => ({ lead: r, weight: _calcPriorityWeight(r, _perfSnapshot) }))
     .sort((a, b) => b.weight - a.weight)
     .map(x => x.lead)
@@ -457,7 +473,7 @@ function _autoSendInitial(lead) {
     replyTo:  'info@askmiro.com',
     bcc:      'info@askmiro.com',
     htmlBody: htmlBody,
-    headers:  _unsubHeaders(),
+    headers:  _unsubHeaders(lead.email),
   });
   const message = draft.send();
   const thread  = message.getThread();
@@ -742,8 +758,16 @@ function _buildEmail(lead, phase) {
     }
   }
 
+  // PECR Reg 23: every outbound must contain a visible, easy unsubscribe.
+  // Append both to plain text and (via _buildHtml below) to the HTML footer.
+  const unsubUrl = _buildUnsubUrl(lead.email);
+  const unsubLine = unsubUrl
+    ? '\n\n— — —\nNot the right contact, or prefer not to hear from us? Unsubscribe in one click: ' + unsubUrl
+    : '\n\n— — —\nNot the right contact, or prefer not to hear from us? Reply with "unsubscribe" and we will remove you immediately.';
+  textBody = textBody + unsubLine;
+
   const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
-  const htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach');
+  const htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach', unsubUrl);
   return { subject, textBody, htmlBody, templateKey };
 }
 
@@ -768,7 +792,7 @@ function _sendInThread(lead, subject, textBody, htmlBody) {
     name:     'Mike Kato — AskMiro',
     replyTo:  'info@askmiro.com',
     bcc:      'info@askmiro.com',
-    headers:  _unsubHeaders(),
+    headers:  _unsubHeaders(lead.email),
   });
 }
 
@@ -915,6 +939,9 @@ function scanOutreachReplies() {
         case 'UNSUBSCRIBE':
           newOutreachStatus = OS.UNSUBSCRIBED;
           replyNextAction   = 'Unsubscribed — no further contact';
+          // PECR: push to permanent suppression list so re-imports of the
+          // same address never re-contact. The Leads row alone is not enough.
+          _pushSuppression(lead.email, 'unsubscribe_reply');
           break;
         case 'NOT_INTERESTED':
           newOutreachStatus = OS.NOT_INTERESTED;
@@ -1319,7 +1346,7 @@ function sendOutreachEmail(body, auth) {
       replyTo:  'info@askmiro.com',
       bcc:      'info@askmiro.com',
       htmlBody: htmlBody,
-      headers:  _unsubHeaders(),
+      headers:  _unsubHeaders(lead.email),
     });
 
     Utilities.sleep(1200);
@@ -1410,8 +1437,11 @@ var _FONT    = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans
 var _LOGO    = '<img src="https://www.askmiro.com/favicon-32x32.png" width="40" height="40" alt="AskMiro" style="display:block;border:0;border-radius:8px" border="0">';
 var _LOGO_SM = '<img src="https://www.askmiro.com/favicon-32x32.png" width="30" height="30" alt="AskMiro" style="display:block;border:0;border-radius:6px" border="0">';
 
-function _buildHtml(text, label) {
+function _buildHtml(text, label, unsubUrl) {
   label = label || 'Outreach';
+  // Strip the plain-text unsubscribe footer before HTML rendering — we render
+  // it separately, styled, in the dark footer. Keeps the HTML body clean.
+  text = (text || '').replace(/\n\n— — —\nNot the right contact[\s\S]*$/, '');
 
   // Plain text → HTML paragraphs
   var paras = (text || '').split('\n\n').map(function(p) {
@@ -1492,20 +1522,120 @@ function _buildHtml(text, label) {
     + '<td style="font-family:' + _FONT + ';font-size:11px;color:rgba(255,255,255,0.28)">&#10003; Residential &amp; Commercial</td>\n'
     + '</tr></table>\n'
     + '<p style="font-family:' + _FONT + ';font-size:10px;color:rgba(255,255,255,0.18);margin:14px 0 0;line-height:1.7">\n'
-    + 'Sent by Mike Kato on behalf of AskMiro Cleaning Services. Reply to: info@askmiro.com.<br>\n'
-    + 'We will never share your details with third parties.\n'
-    + '&nbsp;&nbsp;<a href="mailto:info@askmiro.com?subject=Unsubscribe" style="color:rgba(255,255,255,0.28);text-decoration:underline">Unsubscribe</a>\n'
+    + 'Sent by Mike Kato on behalf of AskMiro Cleaning Services (a trading name of Miro Partners Ltd, company no. 16315754). We process your contact details under the legitimate-interests basis of UK GDPR for the purpose of B2B sales outreach. <a href="https://www.askmiro.com/privacy-policy.html" style="color:rgba(255,255,255,0.45);text-decoration:underline">Privacy notice</a>.<br>\n'
+    + 'Don\'t want to hear from us? &nbsp;'
+    + (unsubUrl
+        ? '<a href="' + unsubUrl + '" style="color:rgba(255,255,255,0.85);text-decoration:underline;font-weight:600">Unsubscribe in one click</a>'
+        : '<a href="mailto:office@askmiro.com?subject=Unsubscribe" style="color:rgba(255,255,255,0.85);text-decoration:underline;font-weight:600">Unsubscribe</a>')
+    + ' &middot; we honour every opt-out permanently.\n'
     + '</p></td></tr></table></td></tr>\n'
 
     + '</table></td></tr></table>\n'
     + '</body></html>';
 }
 
-function _unsubHeaders() {
+function _unsubHeaders(email) {
+  // RFC 8058 one-click: include BOTH a URL and a mailto so corporate gateways
+  // that strip one form still see the other. Gmail, Outlook 365, and Yahoo
+  // honour List-Unsubscribe-Post one-click for the URL form.
+  const url = _buildUnsubUrl(email);
+  const list = url
+    ? '<' + url + '>, <mailto:office@askmiro.com?subject=Unsubscribe>'
+    : '<mailto:office@askmiro.com?subject=Unsubscribe>';
   return {
-    'List-Unsubscribe':      '<mailto:info@askmiro.com?subject=Unsubscribe>',
+    'List-Unsubscribe':      list,
     'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
   };
+}
+
+// HMAC-SHA256 token shared with api.py /unsubscribe endpoint.
+// Secret lives in Script Properties: UNSUBSCRIBE_HMAC_SECRET.
+// Token = first 12 hex chars of HMAC_SHA256(secret, lowercase(email) + '|unsub').
+function _unsubToken(email) {
+  const secret = PropertiesService.getScriptProperties().getProperty('UNSUBSCRIBE_HMAC_SECRET');
+  if (!secret || !email) return '';
+  const msg = String(email).trim().toLowerCase() + '|unsub';
+  const raw = Utilities.computeHmacSha256Signature(msg, secret);
+  let hex = '';
+  for (var i = 0; i < raw.length; i++) {
+    var b = raw[i];
+    if (b < 0) b += 256;
+    hex += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return hex.substring(0, 12);
+}
+
+function _buildUnsubUrl(email) {
+  if (!email) return '';
+  const token = _unsubToken(email);
+  if (!token) return '';
+  const base = (CFG.PUBLIC_BASE_URL || 'https://www.askmiro.com').replace(/\/$/, '');
+  return base + '/unsubscribe?e=' + encodeURIComponent(String(email).trim().toLowerCase()) + '&t=' + token;
+}
+
+// ── SUPPRESSION CHECK (PECR pre-send guard) ───────────────────────────────
+// Pulls the suppression list from Railway once per day, caches in Script
+// Properties. Every send is checked against this cache. Belt-and-braces:
+// if the cache is empty (cold start, network failure) we DO NOT block — we
+// fail-open and log a warning, because blocking all sends is worse than
+// missing one suppression. The reply scanner + List-Unsubscribe headers
+// remain as the second-layer guard.
+function _refreshSuppressionsCache() {
+  if (!CFG.RAILWAY_URL || !CFG.OPS_TOKEN) return;
+  try {
+    const url = CFG.RAILWAY_URL + '/api/admin/suppressions/list?auth=' + encodeURIComponent(CFG.OPS_TOKEN);
+    const resp = UrlFetchApp.fetch(url, { method: 'GET', muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) return;
+    const data = JSON.parse(resp.getContentText() || '{}');
+    if (!data || !data.emails) return;
+    PropertiesService.getScriptProperties().setProperty(
+      'suppressions_cache',
+      JSON.stringify({ refreshed_at: new Date().toISOString(), emails: data.emails })
+    );
+    Logger.log('suppressions cache refreshed: ' + data.emails.length + ' entries');
+  } catch (e) {
+    Logger.log('suppressions cache refresh failed (non-fatal): ' + e.message);
+  }
+}
+
+function _isSuppressed(email) {
+  if (!email) return false;
+  const norm = String(email).trim().toLowerCase();
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty('suppressions_cache');
+  if (!raw) {
+    _refreshSuppressionsCache();
+    return false;  // fail-open on cold start
+  }
+  let data;
+  try { data = JSON.parse(raw); } catch (_) { return false; }
+  if (!data || !data.emails) return false;
+  // Refresh if older than 24h
+  const refreshed = new Date(data.refreshed_at || 0).getTime();
+  if (Date.now() - refreshed > 24 * 60 * 60 * 1000) _refreshSuppressionsCache();
+  return data.emails.indexOf(norm) !== -1;
+}
+
+// Called from the reply scanner when an UNSUBSCRIBE intent is detected.
+// Pushes the email to the Railway suppression list so the cache picks it
+// up on next refresh AND future imports of the same address are blocked.
+function _pushSuppression(email, reason) {
+  if (!email || !CFG.RAILWAY_URL || !CFG.OPS_TOKEN) return;
+  try {
+    UrlFetchApp.fetch(CFG.RAILWAY_URL + '/api/admin/suppressions/add', {
+      method:             'POST',
+      headers:            { 'Content-Type': 'application/json' },
+      payload:            JSON.stringify({
+        auth:    CFG.OPS_TOKEN,
+        email:   email,
+        reason:  reason || 'unsubscribe_reply',
+        source:  'gas_reply_scanner',
+      }),
+      muteHttpExceptions: true,
+    });
+  } catch (e) {
+    Logger.log('_pushSuppression failed (non-fatal): ' + e.message);
+  }
 }
 
 function _findSentThread(toEmail, subject) {

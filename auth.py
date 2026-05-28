@@ -30,6 +30,18 @@ AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() not in ("false", "0", "
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "askmiro-dev-secret-change-me")
+
+# Warn loudly when the dev-default session secret is in use in a production-like
+# environment. Sessions remain forgeable until SESSION_SECRET is rotated.
+# Logged (not raised) so the API never crash-loops on a missing env var.
+_ENV_NAME = (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENV") or "").lower()
+if _ENV_NAME and _ENV_NAME not in ("dev", "development", "local") and \
+   SESSION_SECRET == "askmiro-dev-secret-change-me":
+    logger.error(
+        "SECURITY: SESSION_SECRET is the dev default in env=%s. Sessions are forgeable. "
+        "Set SESSION_SECRET (openssl rand -hex 32) in Railway env immediately.",
+        _ENV_NAME,
+    )
 ALLOWED_EMAILS = [
     e.strip().lower()
     for e in os.getenv("AUTH_ALLOWED_EMAILS", "*").split(",")
@@ -47,6 +59,12 @@ PUBLIC_PATHS = {
     "/auth/login",
     "/auth/callback",
     "/auth/status",
+    # Unsubscribe — verified by HMAC token in URL, not Google session.
+    # Recipients must be able to opt out without logging in.
+    "/unsubscribe",
+    # Suppression admin endpoints — verified by OPS_TOKEN, called by GAS.
+    "/api/admin/suppressions/add",
+    "/api/admin/suppressions/list",
 }
 PUBLIC_PREFIXES = ("/assets/", "/favicon", "/icons")
 

@@ -39,7 +39,8 @@ def main():
 
     if not GOOGLE_PLACES_API_KEY:
         logger.error("GOOGLE_PLACES_API_KEY not set.")
-        logger.error("Run: export GOOGLE_PLACES_API_KEY='AIzaSyBFCYbbli_hpf_gVpriXtoqgFlZF-XUACk'")
+        logger.error("Set it in your environment: export GOOGLE_PLACES_API_KEY='<your-key>'")
+        logger.error("(Do NOT paste the key into source files — rotate via console.cloud.google.com if exposed.)")
         sys.exit(1)
 
     csv_path = Path(args.csv)
