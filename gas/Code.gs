@@ -40,7 +40,21 @@ const CFG = {
   // detection; do NOT flag the lead. Non-quota transient errors are retried
   // up to MAX_SEND_RETRIES before flagging human action.
   MAX_SEND_RETRIES:                 3,
-  QUOTA_PAUSE_PROPERTY:             'quota_pause_until'  // PropertiesService key
+  QUOTA_PAUSE_PROPERTY:             'quota_pause_until',  // PropertiesService key
+
+  // ── Cold-outreach copy + delivery (2026-05-22 rewrite) ─────────────────
+  // Plain-text sends for cold outreach + first follow-ups. The HTML
+  // letterhead screams "marketing email" and tanks reply rate. Branded
+  // HTML returns for QUOTES, PROPOSALS, and post-engagement comms.
+  PLAIN_TEXT_COLD_SENDS:            true,
+  COLD_SEND_FROM:                   'mike@askmiro.com',    // must be a Send-as alias on the GAS-running account
+  COLD_SEND_NAME:                   'Mike Kato',
+  COLD_REPLY_TO:                    'mike@askmiro.com',
+  // Active cold-outreach template variant. Rotate via A/B test.
+  // Allowed: 'intro_commercial' (Template A — Short & Direct, default),
+  //          'intro_research'   (Template B — Research-Led, needs streetName),
+  //          'intro_permission' (Template C — Permission Ask)
+  COLD_TEMPLATE_DEFAULT:            'intro_commercial'
 };
 const SHEET_LEADS      = 'Leads';
 const SHEET_QUOTES     = 'Quotes';

@@ -66,83 +66,143 @@ const AUTO_BATCH_SIZE = 20;   // emails per autoSendOutreach() run
 const FOLLOW_UP_DAYS  = [3, 7, 14];  // days between touches (contact, FU1, FU2)
 const MAX_FOLLOW_UPS  = 3;           // CONTACTED + FU1 + FU2 → then FINAL_FOLLOW_UP
 
-// ── FALLBACK EMAIL TEMPLATES (used only if Python email body absent) ──────────
+// ── COLD EMAIL TEMPLATES — rewritten 2026-05-22 for reply-rate ───────────────
+// Doctrine:
+//   • Plain-text only on cold sends (CFG.PLAIN_TEXT_COLD_SENDS gate)
+//   • No company description, no service list, no "we specialise"
+//   • One question, one CTA — easy to reply yes/no in 30 seconds
+//   • Sender = Mike Kato <mike@askmiro.com> (real human, not info@)
+//   • Subject lines lowercase, sub-30 chars, look like personal email
+//   • Follow-up cadence: +4 days, then +7 days, then stop (3 touches max)
+//
+// A/B variants for initial send:
+//   intro_commercial → Template A (Short & Direct)    DEFAULT
+//   intro_research   → Template B (Research-Led)      needs streetName field
+//   intro_permission → Template C (Permission Ask)
+//
+// Switch the default via CFG.COLD_TEMPLATE_DEFAULT in Code.gs.
+//
+// PECR: the visible unsubscribe footer is appended to textBody in _buildEmail
+//       — it MUST stay attached. Do not strip it from template bodies.
+
 const OUTREACH_TEMPLATES = {
+
+  // ── TEMPLATE A — Short & Direct (default) ──────────────────────────────
   intro_commercial: {
-    label:   'Intro — Commercial',
-    subject: 'Professional cleaning for {{companyName}} — AskMiro',
+    label:   'Intro — Short & Direct',
+    subject: '{{companyName}} — quick one',
     body:
-`Hi {{contactName}},
+`Hi {{firstName}},
 
-I hope this finds you well. I'm reaching out because AskMiro Cleaning Services specialises in {{serviceType}} cleaning for businesses across London — and {{companyName}} caught my attention.
+Quick one — are you the right person to ask about {{companyName}}'s office cleaning?
 
-Our teams are DBS-checked, fully insured, and we work around your schedule to minimise disruption.
+We clean offices around {{borough}} (currently working with a few similar-sized teams nearby) and I'm trying to figure out if it's worth me sending you a benchmark on what they pay vs what you're paying.
 
-I'd love to put together a no-obligation quote within 24 hours — would that work for you?
+If you're not the right person, no worries — happy to be redirected.
 
-Best,
-Mike Kato
-Co-founder, AskMiro Cleaning Services
-T: 020 8073 0621  |  E: info@askmiro.com`
+Cheers,
+Mike`
   },
 
+  // ── TEMPLATE B — Research-Led (use when streetName is populated) ──────
+  intro_research: {
+    label:   'Intro — Research-Led',
+    subject: 'covering {{postcode}}',
+    body:
+`Hi {{firstName}},
+
+Saw {{companyName}} are at {{streetName}} — we clean a couple of offices on the same street so I wanted to drop you a quick line.
+
+Two questions if you've got 30 seconds:
+
+1. Is your current cleaner working out, or is there room for improvement?
+2. Would a comparison quote (no obligation, just a number for you to keep on file) be useful?
+
+That's it. Happy to leave you alone if not.
+
+Cheers,
+Mike
+AskMiro Cleaning Services`
+  },
+
+  // ── TEMPLATE C — Permission Ask (lowest-friction) ─────────────────────
+  intro_permission: {
+    label:   'Intro — Permission Ask',
+    subject: 'wrong person?',
+    body:
+`Hi {{firstName}},
+
+Sorry to land cold — are you the one who looks after office cleaning at {{companyName}}, or is it someone else?
+
+If it's you, I'd love to send a quick benchmark on what offices your size in {{borough}} are paying. If not, who's the right person?
+
+No pressure either way.
+
+Cheers,
+Mike
+AskMiro`
+  },
+
+  // ── RESIDENTIAL — kept short, reply-asking ────────────────────────────
   intro_residential: {
     label:   'Intro — Residential / Airbnb',
-    subject: 'Reliable end-of-tenancy cleaning — AskMiro',
+    subject: '{{companyName}} — turnaround cleans',
     body:
-`Hi {{contactName}},
+`Hi {{firstName}},
 
-AskMiro specialises in end-of-tenancy and Airbnb turnaround cleaning in London — DBS-checked, fully insured, same-week availability.
+Quick one — are you the right person to ask about end-of-tenancy or turnaround cleans at {{companyName}}?
 
-Happy to send rates and availability. Would a brief chat work?
+We cover {{borough}} with same-week availability and could send rates if useful.
 
-Best,
-Mike Kato
-AskMiro Cleaning Services
-T: 020 8073 0621  |  E: info@askmiro.com`
+If wrong person, happy to be redirected.
+
+Cheers,
+Mike`
   },
 
+  // ── FOLLOW-UP #1 — sent +4 days, in-thread ────────────────────────────
   follow_up_1: {
     label:   'Follow-up #1',
-    subject: 'Re: Cleaning services for {{companyName}}',
+    subject: 'Re: {{companyName}} — quick one',
     body:
-`Hi {{contactName}},
+`Hi {{firstName}},
 
-Just a quick follow-up on my note about cleaning services for {{companyName}}.
+Bumping this in case it got buried — just chasing a quick yes/no on whether you'd like that benchmark.
 
-If the timing isn't right, no worries — but if you'd like a quick quote or have any questions I'm happy to help within 24 hours.
+If you're the wrong person, happy to be redirected. If you're the right person and the answer's no, also fine — just let me know and I'll stop.
 
-Best,
-Mike Kato
-AskMiro  |  020 8073 0621`
+Cheers,
+Mike`
   },
 
+  // ── FOLLOW-UP #2 — sent +7 days, in-thread, final touch ───────────────
   follow_up_2: {
-    label:   'Follow-up #2',
-    subject: 'Cleaning for {{companyName}} — one last note',
+    label:   'Follow-up #2 (final)',
+    subject: 'Re: {{companyName}}',
     body:
-`Hi {{contactName}},
+`{{firstName}} — last note from me.
 
-One last note before I leave you in peace — if you ever need a reliable cleaning team in London, we're always at info@askmiro.com.
+Closing this out unless I hear back. If office cleaning is ever on your radar, my number's below.
 
-Wishing you all the best,
-Mike Kato
-AskMiro Cleaning Services`
+Cheers,
+Mike
+07549 354362`
   },
 
+  // ── FINAL — kept for backwards compatibility with autoSendFinal path ──
+  // The 3-touch cadence (initial + fu1 + fu2) is the working sequence;
+  // this final entry only fires if MAX_FOLLOW_UPS is raised above 3.
   final_follow_up: {
-    label:   'Final Follow-up',
-    subject: 'Still here if you need us — AskMiro for {{companyName}}',
+    label:   'Final Follow-up (legacy)',
+    subject: 'Re: {{companyName}}',
     body:
-`Hi {{contactName}},
+`{{firstName}} — closing the loop.
 
-I won't keep following up — just wanted to leave this here in case the timing is better down the line.
+If anything changes on the cleaning front, my number's below.
 
-If you ever need a reliable cleaning partner in London, we're at info@askmiro.com or 020 8073 0621.
-
-All the best,
-Mike Kato
-AskMiro Cleaning Services`
+Cheers,
+Mike
+07549 354362`
   },
 };
 
@@ -721,7 +781,7 @@ function _buildEmail(lead, phase) {
     templateKey     = lead.outreachTemplate || (
       (lead.segment || '').toLowerCase() === 'residential'
         ? 'intro_residential'
-        : 'intro_commercial'
+        : (CFG.COLD_TEMPLATE_DEFAULT || 'intro_commercial')
     );
     const tmpl      = OUTREACH_TEMPLATES[templateKey] || OUTREACH_TEMPLATES.intro_commercial;
     subject         = _merge(tmpl.subject, lead);
@@ -759,41 +819,67 @@ function _buildEmail(lead, phase) {
   }
 
   // PECR Reg 23: every outbound must contain a visible, easy unsubscribe.
-  // Append both to plain text and (via _buildHtml below) to the HTML footer.
+  // Append to plain text (always) and to the HTML footer (when HTML is built).
   const unsubUrl = _buildUnsubUrl(lead.email);
   const unsubLine = unsubUrl
     ? '\n\n— — —\nNot the right contact, or prefer not to hear from us? Unsubscribe in one click: ' + unsubUrl
     : '\n\n— — —\nNot the right contact, or prefer not to hear from us? Reply with "unsubscribe" and we will remove you immediately.';
   textBody = textBody + unsubLine;
 
-  const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
-  const htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach', unsubUrl);
+  // Plain-text-only mode for cold outreach (2026-05-22 doctrine).
+  // CFG.PLAIN_TEXT_COLD_SENDS gates HTML rendering for initial + follow-up
+  // phases. The PECR unsubscribe footer is already inside textBody so it
+  // travels with the email regardless of HTML state. Branded HTML remains
+  // available for quotes / proposals / post-engagement comms.
+  const plainOnly = CFG.PLAIN_TEXT_COLD_SENDS &&
+                    (phase === 'initial' || phase === 'followup' || phase === 'final');
+
+  let htmlBody = '';
+  if (!plainOnly) {
+    const labelMap = { initial: 'Introduction', followup: 'Follow-up', final: 'Final Note' };
+    htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach', unsubUrl);
+  }
+
   return { subject, textBody, htmlBody, templateKey };
 }
 
 
 // ── SEND IN-THREAD (reply) OR FRESH EMAIL ────────────────────
 function _sendInThread(lead, subject, textBody, htmlBody) {
+  // Build send options. htmlBody is only attached if non-empty (plain-text
+  // mode produces empty htmlBody — must NOT pass empty string or some clients
+  // render a blank HTML pane).
+  const fromAlias = CFG.COLD_SEND_FROM || 'mike@askmiro.com';
+  const fromName  = CFG.COLD_SEND_NAME || 'Mike Kato';
+  const replyTo   = CFG.COLD_REPLY_TO  || fromAlias;
+
+  const replyOpts = {
+    name:    fromName,
+    from:    fromAlias,     // requires Send-as alias on the GAS-running account
+    replyTo: replyTo,
+  };
+  const sendOpts = {
+    name:    fromName,
+    from:    fromAlias,
+    replyTo: replyTo,
+    bcc:     replyTo,        // keep a copy in the sender's mailbox
+    headers: _unsubHeaders(lead.email),
+  };
+  if (htmlBody && htmlBody.length > 0) {
+    replyOpts.htmlBody = htmlBody;
+    sendOpts.htmlBody  = htmlBody;
+  }
+
   if (lead.threadId) {
     try {
       const thread = GmailApp.getThreadById(lead.threadId);
       if (thread) {
-        thread.reply(textBody, {
-          htmlBody: htmlBody,
-          name:     'Mike Kato — AskMiro',
-          replyTo:  'info@askmiro.com',
-        });
+        thread.reply(textBody, replyOpts);
         return;
       }
     } catch(_) {}
   }
-  GmailApp.sendEmail(lead.email, subject, textBody, {
-    htmlBody: htmlBody,
-    name:     'Mike Kato — AskMiro',
-    replyTo:  'info@askmiro.com',
-    bcc:      'info@askmiro.com',
-    headers:  _unsubHeaders(lead.email),
-  });
+  GmailApp.sendEmail(lead.email, subject, textBody, sendOpts);
 }
 
 
@@ -1341,13 +1427,16 @@ function sendOutreachEmail(body, auth) {
       htmlBody = _buildHtml(textBody, labelMap[phase] || 'Outreach');
     }
 
-    GmailApp.sendEmail(lead.email, subject, textBody, {
-      name:     'Mike Kato — AskMiro',
-      replyTo:  'info@askmiro.com',
-      bcc:      'info@askmiro.com',
-      htmlBody: htmlBody,
+    const _from = CFG.COLD_SEND_FROM || 'mike@askmiro.com';
+    const _opts = {
+      name:     CFG.COLD_SEND_NAME || 'Mike Kato',
+      from:     _from,
+      replyTo:  CFG.COLD_REPLY_TO  || _from,
+      bcc:      CFG.COLD_REPLY_TO  || _from,
       headers:  _unsubHeaders(lead.email),
-    });
+    };
+    if (htmlBody && htmlBody.length > 0) _opts.htmlBody = htmlBody;
+    GmailApp.sendEmail(lead.email, subject, textBody, _opts);
 
     Utilities.sleep(1200);
     const sentThread = _findSentThread(lead.email, subject);
@@ -1412,10 +1501,30 @@ function _safeLeadFields(r) {
 }
 
 function _merge(str, lead) {
+  // First-name derivation: split contactName on space/comma, take token 1.
+  // Falls back to a neutral opener so we never send "Hi there,".
+  var firstName = '';
+  var raw = (lead.contactName || '').trim();
+  if (raw) {
+    var tok = raw.split(/[\s,]/)[0] || '';
+    // Skip honorifics
+    if (/^(mr|mrs|ms|miss|dr|prof)\.?$/i.test(tok)) {
+      tok = raw.split(/[\s,]/)[1] || tok;
+    }
+    firstName = (tok || '').trim();
+  }
+  var borough = (lead.borough || lead.area || '').trim();
+  var postcode = (lead.postcode || '').trim();
+  var streetName = (lead.streetName || lead.street || '').trim();
+
   return (str || '')
     .replace(/\{\{companyName\}\}/g,  lead.companyName  || 'your company')
-    .replace(/\{\{contactName\}\}/g,  lead.contactName  || 'there')
+    .replace(/\{\{contactName\}\}/g,  lead.contactName  || '')
+    .replace(/\{\{firstName\}\}/g,    firstName         || 'there')
     .replace(/\{\{serviceType\}\}/g,  lead.serviceType  || 'cleaning')
+    .replace(/\{\{borough\}\}/g,      borough           || 'your area')
+    .replace(/\{\{postcode\}\}/g,     postcode          || 'your area')
+    .replace(/\{\{streetName\}\}/g,   streetName        || 'your road')
     .replace(/\{\{email\}\}/g,        lead.email        || '');
 }
 
