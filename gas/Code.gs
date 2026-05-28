@@ -43,10 +43,11 @@ const CFG = {
   QUOTA_PAUSE_PROPERTY:             'quota_pause_until',  // PropertiesService key
 
   // ── Cold-outreach copy + delivery (2026-05-22 rewrite) ─────────────────
-  // Plain-text sends for cold outreach + first follow-ups. The HTML
-  // letterhead screams "marketing email" and tanks reply rate. Branded
-  // HTML returns for QUOTES, PROPOSALS, and post-engagement comms.
-  PLAIN_TEXT_COLD_SENDS:            true,
+  // Plain-text mode is supported but DISABLED by operator choice — Mike
+  // prefers the branded HTML letterhead (logo + teal gradient + accreditation
+  // badges) for credibility with FM / council / contractor recipients. Flip
+  // to true to A/B test plain vs branded later.
+  PLAIN_TEXT_COLD_SENDS:            false,
   COLD_SEND_FROM:                   'mike@askmiro.com',    // must be a Send-as alias on the GAS-running account
   COLD_SEND_NAME:                   'Mike Kato',
   COLD_REPLY_TO:                    'mike@askmiro.com',
