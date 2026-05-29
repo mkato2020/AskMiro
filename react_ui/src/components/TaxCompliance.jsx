@@ -82,13 +82,15 @@ export default function TaxCompliance(){
         </div>
       </Card>
 
-      {/* Director's loan exposure */}
-      {dla?.outflow_unevidenced>0 && (
-        <Card style={{borderLeft:'3px solid var(--danger)'}}>
-          <SectionTitle action={<Badge tone="danger">s455 risk</Badge>}>Director's Loan — unevidenced</SectionTitle>
+      {/* Director's loan account */}
+      {(dla?.outflow_unevidenced>0 || dla?.inflow_capital_introduced>0) && (
+        <Card style={{borderLeft:`3px solid ${dla.net_owed_by_director>0?'var(--danger)':'var(--success)'}`}}>
+          <SectionTitle action={<Badge tone={dla.net_owed_by_director>0?'danger':'success'}>
+            {dla.net_owed_by_director>0?'s455 risk':'no s455'}</Badge>}>Director's Loan Account</SectionTitle>
           <div style={{display:'flex',gap:28,flexWrap:'wrap',marginBottom:10}}>
-            <Row label="Paid to director (no receipt)" value={formatGBP(dla.outflow_unevidenced)}/>
-            <Row label="Transfers" value={dla.records}/>
+            <Row label="Drawn by director (no receipt)" value={formatGBP(dla.outflow_unevidenced)}/>
+            <Row label="Capital introduced" value={formatGBP(dla.inflow_capital_introduced)}/>
+            <Row label="Net owed by director" value={formatGBP(dla.net_owed_by_director)}/>
             <Row label="s455 tax if unrepaid (33.75%)" value={formatGBP(dla.s455_risk_estimate)}/>
           </div>
           <div style={{fontSize:'.8rem',color:'var(--text-2)',lineHeight:1.5}}>{dla.note}</div>

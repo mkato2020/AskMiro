@@ -99,10 +99,13 @@ class FinancialPeriod:
     income_records: int = 0             # count of income transactions on file
     expense_records: int = 0
     has_bank_records: bool = False
-    # Money paid to a director's personal account WITHOUT a supplier receipt.
-    # Not a P&L expense — a director's loan movement. Overdrawn DLA at year-end,
-    # unrepaid within 9 months, triggers s455 tax at 33.75% (CTA 2010 s455).
+    # Director's loan account (DLA) — bidirectional and NETS OFF.
+    #  • outflow: money to the director without a supplier receipt (drawings).
+    #  • inflow: money the director put INTO the company (capital introduced).
+    # s455 tax (33.75%, CTA 2010 s455) only applies to the NET amount the
+    # director OWES the company, if still outstanding 9 months after year-end.
     directors_loan_outflow: float = 0.0
+    directors_loan_inflow: float = 0.0
     directors_loan_records: int = 0
 
 
@@ -170,8 +173,12 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
     # insurance premium) means the period is NOT dormant.
     period_has_activity = (fy.revenue > 0 or fy.expenses > 0 or
                            fy.income_records > 0 or fy.expense_records > 0 or
-                           fy.directors_loan_outflow > 0 or fy.directors_loan_records > 0)
+                           fy.directors_loan_outflow > 0 or fy.directors_loan_inflow > 0 or
+                           fy.directors_loan_records > 0)
     dormant_candidate = not period_has_activity
+
+    # Net DLA position. Positive = director owes the company (s455 territory).
+    dla_net_owed_by_director = round(max(0.0, fy.directors_loan_outflow - fy.directors_loan_inflow), 2)
 
     # Profit + CT estimate
     profit = round(fy.revenue - fy.expenses, 2)
@@ -256,20 +263,29 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
                         "detail": "Missing: " + ", ".join(m.replace("_", " ") for m in missing)
                                   + ". Companies Act 2006 s386 requires adequate accounting records."})
 
-    # Director's loan exposure — transfers to a director without supplier receipts.
-    dla = round(fy.directors_loan_outflow, 2)
-    if dla > 0:
-        s455 = round(dla * 0.3375, 2)
-        actions.append({
-            "priority": "high",
-            "title": f"Provide receipts for £{dla:,.0f} paid to director, or treat as a loan",
-            "due": _fmt(_add_months(ard, 9)), "days_left": _days_until(_add_months(ard, 9), today),
-            "detail": (f"£{dla:,.0f} was transferred to a director's personal account with no supplier "
-                       f"receipt on file. These are NOT deductible expenses until itemised receipts exist. "
-                       f"Untreated, this is an overdrawn director's loan: if not repaid or evidenced within "
-                       f"9 months of year-end, HMRC charges s455 tax of ~£{s455:,.0f} (33.75%). "
-                       f"Send the supplier receipts to reclassify as expenses, or repay the company."),
-        })
+    # Director's loan exposure — net of capital the director introduced.
+    if fy.directors_loan_outflow > 0 or fy.directors_loan_inflow > 0:
+        s455 = round(dla_net_owed_by_director * 0.3375, 2)
+        if dla_net_owed_by_director > 0:
+            actions.append({
+                "priority": "high",
+                "title": f"Clear/evidence £{dla_net_owed_by_director:,.0f} net director's loan",
+                "due": _fmt(_add_months(ard, 9)), "days_left": _days_until(_add_months(ard, 9), today),
+                "detail": (f"£{fy.directors_loan_outflow:,.0f} was paid to the director without supplier "
+                           f"receipts; £{fy.directors_loan_inflow:,.0f} was introduced by the director — "
+                           f"netting to £{dla_net_owed_by_director:,.0f} owed to the company. Provide receipts "
+                           f"to reclassify outflows as deductible expenses, or repay within 9 months of "
+                           f"year-end to avoid s455 tax of ~£{s455:,.0f} (33.75%)."),
+            })
+        else:
+            actions.append({
+                "priority": "low",
+                "title": "Reconcile director's loan account (no s455 exposure)",
+                "due": None, "days_left": None,
+                "detail": (f"Director introduced £{fy.directors_loan_inflow:,.0f} and drew "
+                           f"£{fy.directors_loan_outflow:,.0f} — net the company owes the director, so no "
+                           f"s455 charge. Keep receipts for the drawings to maximise deductible expenses."),
+            })
 
     order = {"high": 0, "medium": 1, "low": 2}
     actions.sort(key=lambda a: (order.get(a["priority"], 3), a.get("days_left") or 9999))
@@ -311,10 +327,12 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
         "books_completeness": {"score_pct": completeness, "checks": checks},
         "directors_loan": {
             "outflow_unevidenced": round(fy.directors_loan_outflow, 2),
+            "inflow_capital_introduced": round(fy.directors_loan_inflow, 2),
+            "net_owed_by_director": dla_net_owed_by_director,
             "records": fy.directors_loan_records,
-            "s455_risk_estimate": round(fy.directors_loan_outflow * 0.3375, 2) if fy.directors_loan_outflow > 0 else 0.0,
-            "note": ("Transfers to a director without supplier receipts. Provide receipts to reclassify "
-                     "as deductible expenses, or repay within 9 months of year-end to avoid s455 tax."),
+            "s455_risk_estimate": round(dla_net_owed_by_director * 0.3375, 2),
+            "note": ("Director's loan nets drawings against capital introduced. s455 tax applies only to "
+                     "the net amount the director owes the company at year-end if unrepaid within 9 months."),
         },
         "actions": actions,
     }
@@ -334,4 +352,14 @@ if __name__ == "__main__":
     fy1 = FinancialPeriod(revenue=0, expenses=39.79, rolling_12m_turnover=570,
                           income_records=0, expense_records=1, has_bank_records=True)
     print("── FY1 (14 Mar 2025 → 31 Mar 2026) ──")
-    print(json.dumps(assess(miro, fy1, today=date(2026, 5, 22)), indent=2))
+    print(json.dumps(assess(miro, fy1, today=date(2026, 5, 22))["accounts_basis"], indent=2))
+
+    # FY2 reconciled from Tide statement: revenue £570; deductible expenses
+    # = insurance £79.64 + bank/card fees £6.16; director out £561, in £290.
+    fy2 = FinancialPeriod(revenue=570, expenses=85.80, rolling_12m_turnover=570,
+                          income_records=2, expense_records=8, has_bank_records=True,
+                          directors_loan_outflow=561, directors_loan_inflow=290, directors_loan_records=9)
+    a2 = assess(miro, fy2, today=date(2026, 5, 27))
+    print("── FY2 director's loan ──")
+    print(json.dumps(a2["directors_loan"], indent=2))
+    print("FY2 profit:", a2["profit_and_tax"]["profit"], "| CT est:", a2["profit_and_tax"]["corporation_tax_estimate"])

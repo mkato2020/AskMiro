@@ -8601,6 +8601,12 @@ def finance_compliance_endpoint():
             dla_records = int(_sum(
                 "SELECT COUNT(*) FROM fin_expenses WHERE expense_date BETWEEN %s AND %s "
                 "AND category ILIKE %s", (p_start, p_end, "Director%")))
+            # Capital the director introduced (money IN, ref 'MY BUSINESS ACC').
+            # Stored as fin_transactions type 'adjustment', category 'Director Loan%'.
+            dla_in = _sum(
+                "SELECT COALESCE(SUM(amount_gross),0) FROM fin_transactions WHERE status='active' "
+                "AND type='adjustment' AND category ILIKE %s "
+                "AND transaction_date BETWEEN %s AND %s", ("Director%", p_start, p_end))
             inc_records = int(_sum(
                 "SELECT COUNT(*) FROM fin_transactions WHERE status='active' "
                 "AND type IN ('income','payment') AND transaction_date BETWEEN %s AND %s", (p_start, p_end)))
@@ -8617,8 +8623,9 @@ def finance_compliance_endpoint():
             fy = fc.FinancialPeriod(
                 revenue=revenue, expenses=expenses, rolling_12m_turnover=rolling,
                 income_records=inc_records, expense_records=exp_records,
-                has_bank_records=(has_bank or dla_records > 0),
-                directors_loan_outflow=dla, directors_loan_records=dla_records,
+                has_bank_records=(has_bank or dla_records > 0 or dla_in > 0),
+                directors_loan_outflow=dla, directors_loan_inflow=dla_in,
+                directors_loan_records=dla_records,
             )
             return fc.assess(profile, fy)
     except Exception as exc:
@@ -8675,7 +8682,13 @@ def finance_seed_verified(payload: dict = Body(default={})):
                 ("2026-03-03", "Insurance", "Simply Business — public/employers liability (monthly)", "Simply Business", 39.79, "bank"),
                 ("2026-04-02", "Insurance", "Simply Business — monthly premium", "Simply Business", 39.82, "bank"),
                 ("2026-05-05", "Insurance", "Simply Business — monthly premium", "Simply Business", 39.82, "bank"),
-                ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — operational equipment (no receipt; may be capital/AIA)", "Kato M", 60.00, None),
+                # Bank + card processing fees (deductible). From Tide statement.
+                ("2026-05-05", "Bank Charges", "Card processing fee (Toby Hughes payout: £350 gross, £344.64 net)", "Tide/ClearBank", 5.36, "bank"),
+                ("2026-05-18", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
+                ("2026-05-20", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
+                ("2026-05-26", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
+                ("2026-05-26", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
+                ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — carpet cleaner (no receipt; may be capital/AIA)", "Kato M", 60.00, None),
                 ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 40.00, None),
                 ("2026-05-01", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 100.00, None),
                 ("2026-05-03", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 51.00, None),
@@ -8698,6 +8711,26 @@ def finance_seed_verified(payload: dict = Body(default={})):
                     "VALUES (%s,%s,%s,%s,%s,%s,0,%s,%s)",
                     (edt, cat, edesc, supp, gross, gross, rref, "Yes" if cat == "Insurance" else "No"))
                 seeded["expenses"] += 1
+
+            # Capital introduced by director (money IN, ref 'MY BUSINESS ACC').
+            # Booked as DLA credit — NOT revenue. type='adjustment' so it never
+            # counts toward turnover/VAT.
+            capital_in = [
+                ("2026-04-01", 40.00), ("2026-04-24", 100.00), ("2026-05-13", 150.00),
+            ]
+            seeded["capital_introduced"] = 0
+            for cdt, camt in capital_in:
+                dup = db_pg.fetchval(conn,
+                    "SELECT id FROM fin_transactions WHERE transaction_date=%s AND amount_gross=%s "
+                    "AND type='adjustment' AND category='Director Loan / Capital Introduced'", (cdt, camt))
+                if dup:
+                    continue
+                db_pg.execute(conn,
+                    "INSERT INTO fin_transactions (transaction_date,type,category,description,party,"
+                    "amount_gross,amount_net,amount_vat,status) "
+                    "VALUES (%s,'adjustment','Director Loan / Capital Introduced',%s,'Kato M',%s,%s,0,'active')",
+                    (cdt, "Director introduced capital (ref: MY BUSINESS ACC)", camt, camt))
+                seeded["capital_introduced"] += 1
         return {"ok": True, "seeded": seeded,
                 "note": ("Verified data only. Revenue £570 (2 jobs, FY2). Insurance booked as "
                          "deductible (incl. £39.79 on 3 Mar 2026 — so FY1 is NOT dormant). "
