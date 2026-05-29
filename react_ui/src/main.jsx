@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query'
 import App from './App'
+import {ToastProvider} from './components/Toast'
 
 const qc=new QueryClient({defaultOptions:{queries:{staleTime:60000,refetchOnWindowFocus:false,retry:1}}})
 
@@ -60,14 +61,32 @@ style.textContent=`
   :root {
     --bg-base: #F8FAFC;
     --bg-surface: #FFFFFF;
+    --bg-subtle: #F1F5F9;
     --border: #E5E7EB;
+    --border-strong: #CBD5E1;
     --teal: #0D9488;
+    --teal-dark: #0F766E;
+    --teal-wash: #F0FDFA;
     --text-1: #1F2937;
     --text-2: #374151;
     --text-muted: #6B7280;
+    --success: #10B981;
+    --success-wash: #ECFDF5;
+    --warning: #F59E0B;
+    --warning-wash: #FFFBEB;
+    --danger: #EF4444;
+    --danger-wash: #FEF2F2;
+    --info: #3B82F6;
+    --info-wash: #EFF6FF;
+    --r-xs: 6px;
     --r-sm: 8px;
+    --r-md: 10px;
     --r-lg: 12px;
+    --r-xl: 16px;
+    --ring: 0 0 0 3px rgba(13,148,136,.25);
     --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.05), 0 10px 20px rgba(0,0,0,.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,.08), 0 20px 48px rgba(0,0,0,.10);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -95,7 +114,9 @@ document.head.appendChild(link)
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <QueryClientProvider client={qc}>
-      <App/>
+      <ToastProvider>
+        <App/>
+      </ToastProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 )

@@ -1,84 +1,108 @@
-import {useState} from 'react'
 import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
+import {PageHeader, KPICard, Card, Badge, Button, EmptyState, Skeleton, SkeletonKPIs} from '../components/ui'
+import {useToast} from '../components/Toast'
 
 const TYPE_META={
-  call:{icon:'📞',label:'Call',color:'#3b82f6'},
-  follow_up:{icon:'🔄',label:'Follow Up',color:'#f59e0b'},
-  email:{icon:'📧',label:'Email',color:'#10b981'},
-  review_signal:{icon:'📡',label:'Review Signal',color:'#8b5cf6'},
-  renewal_check:{icon:'🔄',label:'Renewal',color:'#06b6d4'},
-  site_visit:{icon:'🏢',label:'Site Visit',color:'#ec4899'},
-  quote:{icon:'💰',label:'Quote',color:'#f59e0b'},
-  admin:{icon:'📋',label:'Admin',color:'#6b7280'},
+  call:{icon:'📞',label:'Call',tone:'info'},
+  follow_up:{icon:'🔄',label:'Follow Up',tone:'warning'},
+  email:{icon:'📧',label:'Email',tone:'success'},
+  review_signal:{icon:'📡',label:'Review Signal',tone:'teal'},
+  renewal_check:{icon:'🔄',label:'Renewal',tone:'info'},
+  site_visit:{icon:'🏢',label:'Site Visit',tone:'danger'},
+  quote:{icon:'💰',label:'Quote',tone:'warning'},
+  admin:{icon:'📋',label:'Admin',tone:'neutral'},
 }
+const PRIORITY=[
+  {key:'high',label:'🔴 High Priority',test:t=>t.priority==='high'},
+  {key:'medium',label:'🟡 Medium Priority',test:t=>t.priority==='medium'},
+  {key:'low',label:'🟢 Normal',test:t=>!t.priority||t.priority==='low'},
+]
 
 export default function Today(){
   const qc=useQueryClient()
+  const toast=useToast()
   const {data,isLoading}=useQuery({queryKey:['tasks-today'],queryFn:api.tasks})
-  const complete=useMutation({mutationFn:api.completeTask,onSuccess:()=>qc.invalidateQueries({queryKey:['tasks-today']})})
-  const snooze=useMutation({mutationFn:api.snoozeTask,onSuccess:()=>qc.invalidateQueries({queryKey:['tasks-today']})})
+
+  // Optimistic complete: remove the task from the cache immediately, roll back on error.
+  const complete=useMutation({
+    mutationFn:api.completeTask,
+    onMutate:async(id)=>{
+      await qc.cancelQueries({queryKey:['tasks-today']})
+      const prev=qc.getQueryData(['tasks-today'])
+      qc.setQueryData(['tasks-today'],old=>{
+        const list=Array.isArray(old?.tasks)?old.tasks:Array.isArray(old)?old:[]
+        const next=list.map(t=>t.id===id?{...t,completed:true}:t)
+        return Array.isArray(old?.tasks)?{...old,tasks:next}:next
+      })
+      return {prev}
+    },
+    onError:(e,id,ctx)=>{ if(ctx?.prev) qc.setQueryData(['tasks-today'],ctx.prev); toast.error('Could not complete task — '+(e.message||'try again')) },
+    onSuccess:()=>toast.success('Task completed'),
+    onSettled:()=>qc.invalidateQueries({queryKey:['tasks-today']}),
+  })
+  const snooze=useMutation({
+    mutationFn:api.snoozeTask,
+    onSuccess:()=>{toast.info('Task snoozed to tomorrow');qc.invalidateQueries({queryKey:['tasks-today']})},
+    onError:e=>toast.error('Could not snooze — '+(e.message||'try again')),
+  })
 
   const tasks=Array.isArray(data?.tasks)?data.tasks:Array.isArray(data)?data:[]
   const summary=data?.summary||{}
-  const today=new Date()
-  const greeting=today.getHours()<12?'Good morning':'Good afternoon'
-  const dateStr=today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-
-  // Group by priority
-  const high=tasks.filter(t=>t.priority==='high'&&!t.completed)
-  const medium=tasks.filter(t=>t.priority==='medium'&&!t.completed)
-  const low=tasks.filter(t=>(!t.priority||t.priority==='low')&&!t.completed)
+  const open=tasks.filter(t=>!t.completed)
   const done=tasks.filter(t=>t.completed)
+  const today=new Date()
+  const greeting=today.getHours()<12?'Good morning':today.getHours()<18?'Good afternoon':'Good evening'
+  const dateStr=today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
 
   return(
     <div style={{padding:'28px 36px',maxWidth:1000,margin:'0 auto'}}>
-      {/* Header */}
-      <div style={{marginBottom:28}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-          <span style={{background:'var(--teal)',color:'white',fontSize:'0.65rem',fontWeight:700,padding:'3px 10px',borderRadius:4,textTransform:'uppercase'}}>Today</span>
-          <h1 style={{fontSize:'1.35rem',fontWeight:800,color:'var(--text-1)',margin:0}}>Today's Priorities</h1>
-        </div>
-        <div style={{fontSize:'0.85rem',color:'var(--text-muted)'}}>{greeting} · {dateStr}</div>
-      </div>
+      <PageHeader badge="Today" title="Today's Priorities" subtitle={`${greeting} · ${dateStr}`}/>
 
-      {/* KPIs */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:28}}>
-        <KPI label="Tasks Due" value={tasks.filter(t=>!t.completed).length} color="var(--teal)"/>
-        <KPI label="Calls to Make" value={summary.calls||tasks.filter(t=>t.type==='call'&&!t.completed).length} color="#3b82f6"/>
-        <KPI label="Follow-ups" value={summary.follow_ups||tasks.filter(t=>t.type==='follow_up'&&!t.completed).length} color="#f59e0b"/>
-        <KPI label="Completed" value={done.length} color="#10b981"/>
-      </div>
-
-      {isLoading?(
-        <div style={{textAlign:'center',padding:60,color:'var(--text-muted)'}}>Loading today's tasks...</div>
-      ):tasks.length===0?(
-        <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:60,textAlign:'center'}}>
-          <div style={{fontSize:'2.5rem',marginBottom:12}}>🎯</div>
-          <div style={{fontSize:'1rem',fontWeight:700,color:'var(--text-1)'}}>All clear for today</div>
-          <div style={{fontSize:'0.82rem',color:'var(--text-muted)',marginTop:8}}>No tasks scheduled. The system will generate daily priorities from your pipeline, signals, and renewals.</div>
-        </div>
-      ):(
-        <div>
-          {/* High Priority */}
-          {high.length>0&&<TaskGroup label="🔴 High Priority" tasks={high} complete={complete} snooze={snooze}/>}
-          {/* Medium Priority */}
-          {medium.length>0&&<TaskGroup label="🟡 Medium Priority" tasks={medium} complete={complete} snooze={snooze}/>}
-          {/* Low / Other */}
-          {low.length>0&&<TaskGroup label="🟢 Normal" tasks={low} complete={complete} snooze={snooze}/>}
-          {/* Completed */}
-          {done.length>0&&(
-            <div style={{marginTop:24}}>
-              <div style={{fontSize:'0.85rem',fontWeight:700,color:'var(--text-muted)',marginBottom:10}}>✓ Completed ({done.length})</div>
-              {done.map((t,i)=>(
-                <div key={t.id||i} style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',opacity:0.5}}>
-                  <span style={{textDecoration:'line-through',color:'var(--text-muted)',fontSize:'0.82rem'}}>{t.description||t.title||'Task'}</span>
-                </div>
-              ))}
-            </div>
-          )}
+      {isLoading ? <SkeletonKPIs count={4}/> : (
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14}}>
+          <KPICard label="Tasks Due" value={open.length} color="var(--teal)" icon="🎯"/>
+          <KPICard label="Calls to Make" value={summary.calls??open.filter(t=>t.type==='call').length} color="var(--info)" icon="📞"/>
+          <KPICard label="Follow-ups" value={summary.follow_ups??open.filter(t=>t.type==='follow_up').length} color="var(--warning)" icon="🔄"/>
+          <KPICard label="Completed" value={done.length} color="var(--success)" icon="✓"/>
         </div>
       )}
+
+      <div style={{marginTop:28}}>
+        {isLoading ? (
+          <Card><div style={{display:'flex',flexDirection:'column',gap:18}}>
+            {Array.from({length:4}).map((_,i)=>(
+              <div key={i} style={{display:'flex',gap:14,alignItems:'center'}}>
+                <Skeleton w={28} h={28} r={8}/>
+                <div style={{flex:1}}><Skeleton w="40%" h={11}/><div style={{height:7}}/><Skeleton w="75%" h={13}/></div>
+              </div>
+            ))}
+          </div></Card>
+        ) : open.length===0 ? (
+          <EmptyState icon="🎯" title="All clear for today"
+            message="No tasks scheduled. The system generates daily priorities from your pipeline, signals, and renewals."/>
+        ) : (
+          <>
+            {PRIORITY.map(g=>{
+              const items=open.filter(g.test)
+              if(!items.length) return null
+              return <TaskGroup key={g.key} label={g.label} tasks={items} complete={complete} snooze={snooze}/>
+            })}
+            {done.length>0 && (
+              <div style={{marginTop:24}}>
+                <div style={{fontSize:'.85rem',fontWeight:700,color:'var(--text-muted)',marginBottom:10}}>✓ Completed ({done.length})</div>
+                <Card padding={0}>
+                  {done.map((t,i)=>(
+                    <div key={t.id||i} style={{padding:'11px 16px',borderBottom:i<done.length-1?'1px solid var(--border)':'none',opacity:.55}}>
+                      <span style={{textDecoration:'line-through',color:'var(--text-muted)',fontSize:'.82rem'}}>{t.description||t.title||'Task'}</span>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -86,38 +110,31 @@ export default function Today(){
 function TaskGroup({label,tasks,complete,snooze}){
   return(
     <div style={{marginBottom:20}}>
-      <div style={{fontSize:'0.85rem',fontWeight:700,color:'var(--text-1)',marginBottom:10}}>{label}</div>
-      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden'}}>
+      <div style={{fontSize:'.85rem',fontWeight:700,color:'var(--text-1)',marginBottom:10}}>{label}</div>
+      <Card padding={0}>
         {tasks.map((t,i)=>{
-          const meta=TYPE_META[t.type]||{icon:'📌',label:t.type||'Task',color:'#6b7280'}
+          const meta=TYPE_META[t.type]||{icon:'📌',label:t.type||'Task',tone:'neutral'}
+          const busy=complete.isPending&&complete.variables===t.id
           return(
-            <div key={t.id||i} style={{padding:'14px 18px',borderBottom:i<tasks.length-1?'1px solid var(--border)':'none',display:'flex',alignItems:'center',gap:14}}>
+            <div key={t.id||i} style={{padding:'14px 18px',borderBottom:i<tasks.length-1?'1px solid var(--border)':'none',
+              display:'flex',alignItems:'center',gap:14}}>
               <span style={{fontSize:'1.2rem'}}>{meta.icon}</span>
-              <div style={{flex:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{padding:'2px 8px',borderRadius:4,fontSize:'0.65rem',fontWeight:700,color:meta.color,background:meta.color+'18'}}>{meta.label}</span>
-                  {t.entity_name&&<span style={{fontSize:'0.82rem',fontWeight:600,color:'var(--teal)'}}>{t.entity_name}</span>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                  <Badge tone={meta.tone}>{meta.label}</Badge>
+                  {t.entity_name&&<span style={{fontSize:'.82rem',fontWeight:600,color:'var(--teal)'}}>{t.entity_name}</span>}
                 </div>
-                <div style={{fontSize:'0.85rem',color:'var(--text-1)',marginTop:3}}>{t.description||t.title||'—'}</div>
-                {t.due_time&&<div style={{fontSize:'0.7rem',color:'var(--text-muted)',marginTop:2}}>Due: {t.due_time}</div>}
+                <div style={{fontSize:'.85rem',color:'var(--text-1)',marginTop:3}}>{t.description||t.title||'—'}</div>
+                {t.due_time&&<div style={{fontSize:'.7rem',color:'var(--text-muted)',marginTop:2}}>Due: {t.due_time}</div>}
               </div>
-              <div style={{display:'flex',gap:6}}>
-                <button onClick={()=>complete.mutate(t.id)} style={{padding:'6px 14px',borderRadius:'var(--r-sm)',border:'none',background:'#10b98118',color:'#10b981',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>✓ Done</button>
-                <button onClick={()=>snooze.mutate(t.id)} style={{padding:'6px 14px',borderRadius:'var(--r-sm)',border:'none',background:'#f59e0b18',color:'#f59e0b',fontSize:'0.75rem',fontWeight:600,cursor:'pointer'}}>Snooze</button>
+              <div style={{display:'flex',gap:6,flexShrink:0}}>
+                <Button variant="success" size="sm" loading={busy} onClick={()=>complete.mutate(t.id)}>✓ Done</Button>
+                <Button variant="ghost" size="sm" onClick={()=>snooze.mutate(t.id)}>Snooze</Button>
               </div>
             </div>
           )
         })}
-      </div>
-    </div>
-  )
-}
-
-function KPI({label,value,color}){
-  return(
-    <div style={{background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'18px 20px'}}>
-      <div style={{fontSize:'0.7rem',fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:6}}>{label}</div>
-      <div style={{fontSize:'1.5rem',fontWeight:800,color:color||'var(--text-1)'}}>{value}</div>
+      </Card>
     </div>
   )
 }
