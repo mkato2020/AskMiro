@@ -8588,14 +8588,25 @@ def finance_compliance_endpoint():
                 "SELECT COALESCE(SUM(amount_net),SUM(amount_gross)) FROM fin_transactions "
                 "WHERE status='active' AND type IN ('income','payment') "
                 "AND transaction_date BETWEEN %s AND %s", (p_start, p_end))
+            # DEDUCTIBLE expenses only — exclude director's-loan / pending-receipt categories.
             expenses = _sum(
                 "SELECT COALESCE(SUM(amount_net),SUM(amount_gross)) FROM fin_expenses "
-                "WHERE expense_date BETWEEN %s AND %s", (p_start, p_end))
+                "WHERE expense_date BETWEEN %s AND %s AND category NOT ILIKE %s",
+                (p_start, p_end, "Director%"))
+            # Director's-loan outflow — money to a director without a supplier receipt.
+            dla = _sum(
+                "SELECT COALESCE(SUM(amount_gross),0) FROM fin_expenses "
+                "WHERE expense_date BETWEEN %s AND %s AND category ILIKE %s",
+                (p_start, p_end, "Director%"))
+            dla_records = int(_sum(
+                "SELECT COUNT(*) FROM fin_expenses WHERE expense_date BETWEEN %s AND %s "
+                "AND category ILIKE %s", (p_start, p_end, "Director%")))
             inc_records = int(_sum(
                 "SELECT COUNT(*) FROM fin_transactions WHERE status='active' "
                 "AND type IN ('income','payment') AND transaction_date BETWEEN %s AND %s", (p_start, p_end)))
             exp_records = int(_sum(
-                "SELECT COUNT(*) FROM fin_expenses WHERE expense_date BETWEEN %s AND %s", (p_start, p_end)))
+                "SELECT COUNT(*) FROM fin_expenses WHERE expense_date BETWEEN %s AND %s "
+                "AND category NOT ILIKE %s", (p_start, p_end, "Director%")))
             # Rolling 12-month turnover for VAT threshold (most recent 365 days).
             rolling = _sum(
                 "SELECT COALESCE(SUM(amount_gross),0) FROM fin_transactions "
@@ -8605,7 +8616,9 @@ def finance_compliance_endpoint():
 
             fy = fc.FinancialPeriod(
                 revenue=revenue, expenses=expenses, rolling_12m_turnover=rolling,
-                income_records=inc_records, expense_records=exp_records, has_bank_records=has_bank,
+                income_records=inc_records, expense_records=exp_records,
+                has_bank_records=(has_bank or dla_records > 0),
+                directors_loan_outflow=dla, directors_loan_records=dla_records,
             )
             return fc.assess(profile, fy)
     except Exception as exc:
@@ -8653,9 +8666,43 @@ def finance_seed_verified(payload: dict = Body(default={})):
                     "VALUES (%s,'income','Cleaning Revenue',%s,%s,%s,%s,0,%s,'active')",
                     (dt, desc, cust, amt, amt, inv_no))
                 seeded["transactions"] += 1
+
+            # Verified bank expenses (source: business bank statement, May 2026).
+            # Insurance = deductible. Transfers to "Kato M" = director's loan
+            # (NOT deductible until supplier receipts are provided).
+            expenses = [
+                # date, category, description, supplier, gross, receipt_ref
+                ("2026-03-03", "Insurance", "Simply Business — public/employers liability (monthly)", "Simply Business", 39.79, "bank"),
+                ("2026-04-02", "Insurance", "Simply Business — monthly premium", "Simply Business", 39.82, "bank"),
+                ("2026-05-05", "Insurance", "Simply Business — monthly premium", "Simply Business", 39.82, "bank"),
+                ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — operational equipment (no receipt; may be capital/AIA)", "Kato M", 60.00, None),
+                ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 40.00, None),
+                ("2026-05-01", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 100.00, None),
+                ("2026-05-03", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 51.00, None),
+                ("2026-05-05", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 50.00, None),
+                ("2026-05-18", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 200.00, None),
+                ("2026-05-20", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 20.00, None),
+                ("2026-05-26", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 20.00, None),
+                ("2026-05-26", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 20.00, None),
+            ]
+            seeded["expenses"] = 0
+            for edt, cat, edesc, supp, gross, rref in expenses:
+                dup = db_pg.fetchval(conn,
+                    "SELECT id FROM fin_expenses WHERE expense_date=%s AND amount_gross=%s "
+                    "AND description=%s", (edt, gross, edesc))
+                if dup:
+                    continue
+                db_pg.execute(conn,
+                    "INSERT INTO fin_expenses (expense_date,category,description,supplier,"
+                    "amount_gross,amount_net,amount_vat,receipt_ref,recurring) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,0,%s,%s)",
+                    (edt, cat, edesc, supp, gross, gross, rref, "Yes" if cat == "Insurance" else "No"))
+                seeded["expenses"] += 1
         return {"ok": True, "seeded": seeded,
-                "note": "Verified ledger only (£570 across 2 paid jobs). FY1 to 31 Mar 2026 remains "
-                        "dormant-candidate — these jobs are dated April 2026 (FY2)."}
+                "note": ("Verified data only. Revenue £570 (2 jobs, FY2). Insurance booked as "
+                         "deductible (incl. £39.79 on 3 Mar 2026 — so FY1 is NOT dormant). "
+                         "£561 of transfers to director booked as director's-loan / pending-receipt "
+                         "— NOT deductible until supplier receipts are provided.")}
     except Exception as exc:
         logger.error("finance_seed_verified failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))

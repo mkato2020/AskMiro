@@ -22,7 +22,7 @@ export default function TaxCompliance(){
   if(error) return <EmptyState icon="⚠️" title="Compliance engine unavailable" message={String(error.message||error)}/>
   if(!data) return null
 
-  const {company,accounting_period:ap,filing_deadlines:fd,profit_and_tax:pt,vat,accounts_basis:ab,books_completeness:bc,actions}=data
+  const {company,accounting_period:ap,filing_deadlines:fd,profit_and_tax:pt,vat,accounts_basis:ab,books_completeness:bc,directors_loan:dla,actions}=data
   const dl = fd||{}
 
   return (
@@ -81,6 +81,19 @@ export default function TaxCompliance(){
             :`${formatGBP(vat?.headroom)} of headroom before mandatory registration.`}
         </div>
       </Card>
+
+      {/* Director's loan exposure */}
+      {dla?.outflow_unevidenced>0 && (
+        <Card style={{borderLeft:'3px solid var(--danger)'}}>
+          <SectionTitle action={<Badge tone="danger">s455 risk</Badge>}>Director's Loan — unevidenced</SectionTitle>
+          <div style={{display:'flex',gap:28,flexWrap:'wrap',marginBottom:10}}>
+            <Row label="Paid to director (no receipt)" value={formatGBP(dla.outflow_unevidenced)}/>
+            <Row label="Transfers" value={dla.records}/>
+            <Row label="s455 tax if unrepaid (33.75%)" value={formatGBP(dla.s455_risk_estimate)}/>
+          </div>
+          <div style={{fontSize:'.8rem',color:'var(--text-2)',lineHeight:1.5}}>{dla.note}</div>
+        </Card>
+      )}
 
       {/* Prioritised actions */}
       <div>

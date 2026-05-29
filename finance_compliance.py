@@ -94,11 +94,16 @@ class CompanyProfile:
 class FinancialPeriod:
     """Figures for one accounting period."""
     revenue: float = 0.0
-    expenses: float = 0.0
-    rolling_12m_turnover: float = 0.0  # for VAT threshold (most recent 12 months)
-    income_records: int = 0            # count of income transactions on file
+    expenses: float = 0.0               # DEDUCTIBLE, receipt-backed expenses only
+    rolling_12m_turnover: float = 0.0   # for VAT threshold (most recent 12 months)
+    income_records: int = 0             # count of income transactions on file
     expense_records: int = 0
     has_bank_records: bool = False
+    # Money paid to a director's personal account WITHOUT a supplier receipt.
+    # Not a P&L expense — a director's loan movement. Overdrawn DLA at year-end,
+    # unrepaid within 9 months, triggers s455 tax at 33.75% (CTA 2010 s455).
+    directors_loan_outflow: float = 0.0
+    directors_loan_records: int = 0
 
 
 # ── ARD + period logic (Companies Act 2006) ──────────────────────────────────
@@ -161,9 +166,11 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
         review = _add_months(profile.incorporation_date, 12)
         cs_due = review + timedelta(days=14)
 
-    # Dormancy: trading in the period drives whether FY1 can be filed dormant.
+    # Dormancy: ANY transaction (incl. a director's-loan movement or a single
+    # insurance premium) means the period is NOT dormant.
     period_has_activity = (fy.revenue > 0 or fy.expenses > 0 or
-                           fy.income_records > 0 or fy.expense_records > 0)
+                           fy.income_records > 0 or fy.expense_records > 0 or
+                           fy.directors_loan_outflow > 0 or fy.directors_loan_records > 0)
     dormant_candidate = not period_has_activity
 
     # Profit + CT estimate
@@ -249,6 +256,21 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
                         "detail": "Missing: " + ", ".join(m.replace("_", " ") for m in missing)
                                   + ". Companies Act 2006 s386 requires adequate accounting records."})
 
+    # Director's loan exposure — transfers to a director without supplier receipts.
+    dla = round(fy.directors_loan_outflow, 2)
+    if dla > 0:
+        s455 = round(dla * 0.3375, 2)
+        actions.append({
+            "priority": "high",
+            "title": f"Provide receipts for £{dla:,.0f} paid to director, or treat as a loan",
+            "due": _fmt(_add_months(ard, 9)), "days_left": _days_until(_add_months(ard, 9), today),
+            "detail": (f"£{dla:,.0f} was transferred to a director's personal account with no supplier "
+                       f"receipt on file. These are NOT deductible expenses until itemised receipts exist. "
+                       f"Untreated, this is an overdrawn director's loan: if not repaid or evidenced within "
+                       f"9 months of year-end, HMRC charges s455 tax of ~£{s455:,.0f} (33.75%). "
+                       f"Send the supplier receipts to reclassify as expenses, or repay the company."),
+        })
+
     order = {"high": 0, "medium": 1, "low": 2}
     actions.sort(key=lambda a: (order.get(a["priority"], 3), a.get("days_left") or 9999))
 
@@ -287,6 +309,13 @@ def assess(profile: CompanyProfile, fy: FinancialPeriod, today: Optional[date] =
                                    else "Small-company accounts (FRS 102 1A)"),
         },
         "books_completeness": {"score_pct": completeness, "checks": checks},
+        "directors_loan": {
+            "outflow_unevidenced": round(fy.directors_loan_outflow, 2),
+            "records": fy.directors_loan_records,
+            "s455_risk_estimate": round(fy.directors_loan_outflow * 0.3375, 2) if fy.directors_loan_outflow > 0 else 0.0,
+            "note": ("Transfers to a director without supplier receipts. Provide receipts to reclassify "
+                     "as deductible expenses, or repay within 9 months of year-end to avoid s455 tax."),
+        },
         "actions": actions,
     }
 
@@ -301,7 +330,8 @@ if __name__ == "__main__":
         confirmation_statement_due_override=date(2027, 3, 11),
         vat_registered=False, employees=0,
     )
-    # FY1 (to 31 Mar 2026): the two paid jobs were April 2026 → FY2, so FY1 likely dormant.
-    fy1 = FinancialPeriod(revenue=0, expenses=0, rolling_12m_turnover=570,
-                          income_records=0, expense_records=0, has_bank_records=False)
+    # FY1 (to 31 Mar 2026): NOT dormant — one insurance premium £39.79 on 3 Mar 2026.
+    fy1 = FinancialPeriod(revenue=0, expenses=39.79, rolling_12m_turnover=570,
+                          income_records=0, expense_records=1, has_bank_records=True)
+    print("── FY1 (14 Mar 2025 → 31 Mar 2026) ──")
     print(json.dumps(assess(miro, fy1, today=date(2026, 5, 22)), indent=2))
