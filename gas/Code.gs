@@ -57,6 +57,30 @@ const CFG = {
   //          'intro_permission' (Template C — Permission Ask)
   COLD_TEMPLATE_DEFAULT:            'intro_commercial'
 };
+
+// ── CONFIG HYDRATION FROM SCRIPT PROPERTIES ──────────────────────────────────
+// CRITICAL: secrets and environment-specific values must NOT live in source.
+// CFG ships with safe defaults (OPS_TOKEN:'', etc.); this block overrides them
+// at load time from Script Properties (Project Settings → Script Properties).
+// Without this, CFG.OPS_TOKEN stays '' and EVERY Ops→OS Railway call
+// (readiness sync, outreach event logging, suppression list pull/push) sends an
+// empty bearer token and silently fails. Runs once per execution; one
+// getProperties() read — negligible quota cost. Mutating const-object fields is
+// valid JS (const only freezes the binding, not the object contents).
+(function _hydrateConfigFromScriptProperties() {
+  try {
+    var props = PropertiesService.getScriptProperties().getProperties() || {};
+    if (props.OPS_TOKEN)               CFG.OPS_TOKEN              = props.OPS_TOKEN;
+    if (props.RAILWAY_URL)             CFG.RAILWAY_URL            = props.RAILWAY_URL;
+    if (props.PUBLIC_BASE_URL)         CFG.PUBLIC_BASE_URL        = props.PUBLIC_BASE_URL;
+    if (props.UNSUBSCRIBE_HMAC_SECRET) CFG.UNSUBSCRIBE_HMAC_SECRET = props.UNSUBSCRIBE_HMAC_SECRET;
+    if (props.COLD_TEMPLATE_DEFAULT)   CFG.COLD_TEMPLATE_DEFAULT  = props.COLD_TEMPLATE_DEFAULT;
+  } catch (e) {
+    // PropertiesService can throw in some trigger contexts — never block load.
+    if (typeof Logger !== 'undefined') Logger.log('config hydration skipped: ' + e.message);
+  }
+})();
+
 const SHEET_LEADS      = 'Leads';
 const SHEET_QUOTES     = 'Quotes';
 const SHEET_SETTINGS   = 'Intelligence_Settings';

@@ -8566,24 +8566,26 @@ def _verify_unsub_token(email: str, token: str) -> bool:
 def _persist_suppression(email: str, reason: str, source: str,
                           created_by: str = None, request_ip: str = None,
                           user_agent: str = None, notes: str = None) -> bool:
+    """Add an email to the shared suppression list (email_guard.email_suppressions).
+
+    Uses the canonical email_guard helpers so this stays consistent with the
+    pre-send check the rest of the system already uses. The existing schema
+    (email UNIQUE, reason, source, active, suppressed_at, domain) does not
+    store IP / user-agent / notes — those kwargs are accepted for call-site
+    compatibility and logged only. Returns True if newly added (was not
+    already suppressed), False if it was already on the list or invalid.
+    """
     norm = _normalize_email(email)
     if not norm or "@" not in norm:
         return False
     try:
-        with db.get_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO email_suppressions
-                    (email, email_normalized, reason, source, created_by, request_ip, user_agent, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (email_normalized) DO NOTHING
-                RETURNING id
-                """,
-                (email, norm, reason, source, created_by, request_ip, user_agent, notes),
-            )
-            row = cur.fetchone()
-            conn.commit()
-            return row is not None
+        from email_guard import is_suppressed, add_suppression
+        already = is_suppressed(norm)
+        add_suppression(norm, reason, source)
+        if request_ip or user_agent or notes:
+            logger.info("suppression meta for %s: ip=%s ua=%s notes=%s",
+                        norm, request_ip, (user_agent or "")[:80], notes)
+        return not already
     except Exception as exc:
         logger.error("persist_suppression failed for %s: %s", norm, exc)
         return False
@@ -8672,10 +8674,11 @@ def admin_suppressions_list(auth: str = ""):
     if not _OPS_TOKEN_ENV or auth != _OPS_TOKEN_ENV:
         raise HTTPException(status_code=401, detail="unauthorized")
     try:
-        with db.get_conn() as conn, conn.cursor() as cur:
-            cur.execute("SELECT email_normalized FROM email_suppressions ORDER BY created_at DESC")
-            rows = cur.fetchall()
-            return {"ok": True, "count": len(rows), "emails": [r[0] for r in rows]}
+        with db_pg.transaction() as conn:
+            rows = db_pg.fetchall(conn,
+                "SELECT email FROM email_suppressions WHERE active = TRUE ORDER BY suppressed_at DESC")
+        emails = [r["email"] for r in rows]   # RealDictCursor → dict rows
+        return {"ok": True, "count": len(emails), "emails": emails}
     except Exception as exc:
         logger.error("suppressions_list failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))

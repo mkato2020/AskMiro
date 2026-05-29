@@ -1677,8 +1677,13 @@ function _unsubToken(email) {
 function _buildUnsubUrl(email) {
   if (!email) return '';
   const token = _unsubToken(email);
-  if (!token) return '';
-  const base = (CFG.PUBLIC_BASE_URL || 'https://www.askmiro.com').replace(/\/$/, '');
+  if (!token) return '';   // no HMAC secret set → fall back to plain-text "reply to unsubscribe" line
+  // The /unsubscribe route is served by the Railway FastAPI app, NOT the
+  // Netlify marketing site. Prefer an explicit PUBLIC_BASE_URL (e.g. a
+  // Netlify proxy/redirect to Railway, for a trustworthy-looking link), then
+  // the Railway host directly. www.askmiro.com is the LAST resort and only
+  // works if a /unsubscribe redirect is configured there.
+  const base = (CFG.PUBLIC_BASE_URL || CFG.RAILWAY_URL || 'https://www.askmiro.com').replace(/\/$/, '');
   return base + '/unsubscribe?e=' + encodeURIComponent(String(email).trim().toLowerCase()) + '&t=' + token;
 }
 
