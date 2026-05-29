@@ -56,6 +56,7 @@ export const api = {
   snoozeTask:(id)=>req('/api/tasks/'+id+'/snooze',{method:'POST'}),
   outreach:(id)=>req('/api/outreach/'+id),
   generateOutreach:(id)=>req('/api/outreach/'+id+'/generate',{method:'POST'}),
+  financeCompliance:()=>req('/api/finance/compliance'),
   adminStatus:()=>req('/api/admin/status'),
   rescore:()=>req('/api/admin/rescore',{method:'POST'}),
   runConnector:(src)=>req('/api/admin/connectors/'+src,{method:'POST'}),

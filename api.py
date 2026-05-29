@@ -8534,6 +8534,133 @@ def rescore_single_entity(entity_id: int):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# ── FINANCE: HMRC / COMPANIES HOUSE COMPLIANCE INTELLIGENCE ──────────────────
+# The "accountant brain". Reads the company profile from fin_settings (seeded
+# with verified Miro Partners facts, overridable) + sums real transactions for
+# the statutory accounting period, then returns the full filing position.
+
+# Verified default profile — Companies House register, 2026-05-21.
+# Overridable per-key via fin_settings so this generalises to any tenant.
+_COMPANY_DEFAULTS = {
+    "company_name": "Miro Partners Ltd",
+    "company_number": "16315754",
+    "incorporation_date": "2025-03-14",
+    "accounts_due_override": "2026-12-14",
+    "confirmation_statement_due_override": "2027-03-11",
+    "vat_registered": "false",
+    "employees": "0",
+    "balance_sheet_total": "0",
+}
+
+def _finance_settings(conn) -> dict:
+    rows = db_pg.fetchall(conn, "SELECT key, value FROM fin_settings")
+    return {r["key"]: r["value"] for r in rows}
+
+@app.get("/api/finance/compliance", include_in_schema=False)
+def finance_compliance_endpoint():
+    """Full UK statutory position: accounting periods, filing deadlines,
+    Corporation Tax estimate, VAT threshold, dormancy/micro-entity basis,
+    books completeness, prioritised actions. Driven by REAL data only."""
+    try:
+        import finance_compliance as fc
+        from datetime import date as _date
+        with db_pg.transaction() as conn:
+            s = {**_COMPANY_DEFAULTS, **_finance_settings(conn)}
+            profile = fc.CompanyProfile(
+                name=s.get("company_name") or "Company",
+                company_number=s.get("company_number") or "",
+                incorporation_date=fc._parse(s.get("incorporation_date")) or _date.today(),
+                ard_override=fc._parse(s.get("ard_override")),
+                accounts_due_override=fc._parse(s.get("accounts_due_override")),
+                confirmation_statement_due_override=fc._parse(s.get("confirmation_statement_due_override")),
+                vat_registered=str(s.get("vat_registered", "false")).lower() in ("true", "1", "yes"),
+                employees=int(float(s.get("employees", 0) or 0)),
+                balance_sheet_total=float(s.get("balance_sheet_total", 0) or 0),
+            )
+            ard = fc.compute_ard(profile)
+            p_start, p_end = profile.incorporation_date, ard
+
+            def _sum(sql, params):
+                return float(db_pg.fetchval(conn, sql, params) or 0)
+
+            # Revenue/expenses within the statutory period (paid income + expenses).
+            revenue = _sum(
+                "SELECT COALESCE(SUM(amount_net),SUM(amount_gross)) FROM fin_transactions "
+                "WHERE status='active' AND type IN ('income','payment') "
+                "AND transaction_date BETWEEN %s AND %s", (p_start, p_end))
+            expenses = _sum(
+                "SELECT COALESCE(SUM(amount_net),SUM(amount_gross)) FROM fin_expenses "
+                "WHERE expense_date BETWEEN %s AND %s", (p_start, p_end))
+            inc_records = int(_sum(
+                "SELECT COUNT(*) FROM fin_transactions WHERE status='active' "
+                "AND type IN ('income','payment') AND transaction_date BETWEEN %s AND %s", (p_start, p_end)))
+            exp_records = int(_sum(
+                "SELECT COUNT(*) FROM fin_expenses WHERE expense_date BETWEEN %s AND %s", (p_start, p_end)))
+            # Rolling 12-month turnover for VAT threshold (most recent 365 days).
+            rolling = _sum(
+                "SELECT COALESCE(SUM(amount_gross),0) FROM fin_transactions "
+                "WHERE status='active' AND type IN ('income','payment') "
+                "AND transaction_date >= (CURRENT_DATE - INTERVAL '365 days')", ())
+            has_bank = inc_records > 0 or exp_records > 0
+
+            fy = fc.FinancialPeriod(
+                revenue=revenue, expenses=expenses, rolling_12m_turnover=rolling,
+                income_records=inc_records, expense_records=exp_records, has_bank_records=has_bank,
+            )
+            return fc.assess(profile, fy)
+    except Exception as exc:
+        logger.error("finance_compliance failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/admin/finance/seed-verified", include_in_schema=False)
+def finance_seed_verified(payload: dict = Body(default={})):
+    """Idempotent: seed the verified company profile into fin_settings and the
+    two real paid jobs (INV-2026-201 £220, INV-2026-202 £350) into
+    fin_invoices + fin_transactions. ADMIN_TOKEN-gated. Real figures only."""
+    _admin = os.environ.get("ADMIN_TOKEN", "")
+    if not _admin or (payload.get("token") or "") != _admin:
+        raise HTTPException(status_code=403, detail="Invalid token")
+    seeded = {"settings": 0, "invoices": 0, "transactions": 0}
+    try:
+        with db_pg.transaction() as conn:
+            for k, v in _COMPANY_DEFAULTS.items():
+                db_pg.execute(conn,
+                    "INSERT INTO fin_settings (key,value) VALUES (%s,%s) "
+                    "ON CONFLICT (key) DO NOTHING", (k, v))
+                seeded["settings"] += 1
+            # Verified ledger (source: payments-ledger.json). VAT £0 (not registered).
+            jobs = [
+                ("INV-2026-201", "Tiana Tasevska", "2026-04-20", 220.00,
+                 "End of Tenancy Cleaning — 301 Lumiere Apartments SW11 (Landlord Standard)"),
+                ("INV-2026-202", "Toby Hughes", "2026-04-30", 350.00,
+                 "End of Tenancy Deep Clean — 3 Bed, Seymour Walk, Chelsea"),
+            ]
+            for inv_no, cust, dt, amt, desc in jobs:
+                exists = db_pg.fetchval(conn,
+                    "SELECT id FROM fin_invoices WHERE invoice_number=%s", (inv_no,))
+                if exists:
+                    continue
+                db_pg.execute(conn,
+                    "INSERT INTO fin_invoices (invoice_number,customer_name,invoice_date,due_date,"
+                    "subtotal_net,vat_amount,total_gross,amount_paid,balance_due,status,notes) "
+                    "VALUES (%s,%s,%s,%s,%s,0,%s,%s,0,'Paid',%s)",
+                    (inv_no, cust, dt, dt, amt, amt, amt, desc))
+                seeded["invoices"] += 1
+                db_pg.execute(conn,
+                    "INSERT INTO fin_transactions (transaction_date,type,category,description,party,"
+                    "amount_gross,amount_net,amount_vat,external_ref,status) "
+                    "VALUES (%s,'income','Cleaning Revenue',%s,%s,%s,%s,0,%s,'active')",
+                    (dt, desc, cust, amt, amt, inv_no))
+                seeded["transactions"] += 1
+        return {"ok": True, "seeded": seeded,
+                "note": "Verified ledger only (£570 across 2 paid jobs). FY1 to 31 Mar 2026 remains "
+                        "dormant-candidate — these jobs are dated April 2026 (FY2)."}
+    except Exception as exc:
+        logger.error("finance_seed_verified failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── UNSUBSCRIBE / SUPPRESSIONS — UK PECR Reg 22/23 compliance ────────────────
 # Public one-click unsubscribe link rendered in every outbound email.
 # Token is HMAC-SHA256 of the normalised email + scope, first 12 hex chars.

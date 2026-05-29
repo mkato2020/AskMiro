@@ -4,6 +4,8 @@ import {api} from '../api'
 import {gasClient} from '../gasClient'
 import {formatGBP,formatDate} from '../utils'
 import Spinner from '../components/Spinner'
+import TaxCompliance from '../components/TaxCompliance'
+import {SectionTitle} from '../components/ui'
 
 /* ── constants ────────────────────────────────────────────────────── */
 const TABS=['Overview','Transactions','Invoices','Expenses','Profitability','Tax & HMRC','Assistant']
@@ -663,6 +665,11 @@ export default function Finance(){
     const healthColor=cash.health==='good'?'#34d399':cash.health==='warning'?'#fbbf24':'#f87171'
     return(
       <div style={{display:'flex',flexDirection:'column',gap:20}}>
+        {/* HMRC / Companies House statutory position — the accountant brain */}
+        <div>
+          <SectionTitle>Statutory Filing Position — HMRC &amp; Companies House</SectionTitle>
+          <TaxCompliance/>
+        </div>
         {/* Cash Flow Forecast */}
         <div>
           <div style={{fontSize:'0.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',marginBottom:10}}>Cash Flow Forecast</div>
