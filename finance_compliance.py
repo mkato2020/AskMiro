@@ -354,11 +354,12 @@ if __name__ == "__main__":
     print("── FY1 (14 Mar 2025 → 31 Mar 2026) ──")
     print(json.dumps(assess(miro, fy1, today=date(2026, 5, 22))["accounts_basis"], indent=2))
 
-    # FY2 reconciled from Tide statement: revenue £570; deductible expenses
-    # = insurance £79.64 + bank/card fees £6.16; director out £561, in £290.
-    fy2 = FinancialPeriod(revenue=570, expenses=85.80, rolling_12m_turnover=570,
-                          income_records=2, expense_records=8, has_bank_records=True,
-                          directors_loan_outflow=561, directors_loan_inflow=290, directors_loan_records=9)
+    # FY2 reconciled from Tide statement + receipts: revenue £570; deductible
+    # expenses = insurance £79.64 + fees £6.16 + receipts £81.84 = £167.64;
+    # director out £561, in £371.84 (£290 capital + £81.84 receipts).
+    fy2 = FinancialPeriod(revenue=570, expenses=167.64, rolling_12m_turnover=570,
+                          income_records=2, expense_records=11, has_bank_records=True,
+                          directors_loan_outflow=561, directors_loan_inflow=371.84, directors_loan_records=9)
     a2 = assess(miro, fy2, today=date(2026, 5, 27))
     print("── FY2 director's loan ──")
     print(json.dumps(a2["directors_loan"], indent=2))

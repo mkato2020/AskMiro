@@ -8688,6 +8688,11 @@ def finance_seed_verified(payload: dict = Body(default={})):
                 ("2026-05-20", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
                 ("2026-05-26", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
                 ("2026-05-26", "Bank Charges", "Tide transfer fee", "Tide", 0.20, "bank"),
+                # Receipted business purchases (director paid personally — receipts on file).
+                # These are deductible AND credit the director's loan account.
+                ("2026-04-19", "Cleaning Supplies", "Tesco Yiewsley — oven cleaner, glass/kitchen/bathroom sprays, bleach, scourers, gloves, Cif, toilet gel", "Tesco Stores Ltd", 39.85, "rcpt:5D74-1YZF-R052-JM23"),
+                ("2026-04-19", "Equipment", "B&M — Eready 10m extension reel", "B&M Retail Ltd", 15.00, "rcpt:114519"),
+                ("2026-04-19", "Equipment", "Toolstation West Drayton — tool/equipment", "Toolstation Ltd", 26.99, "rcpt:4525"),
                 ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — carpet cleaner (no receipt; may be capital/AIA)", "Kato M", 60.00, None),
                 ("2026-04-22", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 40.00, None),
                 ("2026-05-01", "Director Loan (awaiting receipt)", "Transfer to director — office supplies (no receipt)", "Kato M", 100.00, None),
@@ -8715,11 +8720,16 @@ def finance_seed_verified(payload: dict = Body(default={})):
             # Capital introduced by director (money IN, ref 'MY BUSINESS ACC').
             # Booked as DLA credit — NOT revenue. type='adjustment' so it never
             # counts toward turnover/VAT.
+            # Credits to the director's loan account: capital introduced (money IN)
+            # + business expenses the director paid personally (receipts on file).
             capital_in = [
-                ("2026-04-01", 40.00), ("2026-04-24", 100.00), ("2026-05-13", 150.00),
+                ("2026-04-01", 40.00, "Director introduced capital (ref: MY BUSINESS ACC)"),
+                ("2026-04-24", 100.00, "Director introduced capital (ref: MY BUSINESS ACC)"),
+                ("2026-05-13", 150.00, "Director introduced capital (ref: MY BUSINESS ACC)"),
+                ("2026-04-19", 81.84, "Director paid business expenses personally — receipts on file (Tesco/B&M/Toolstation)"),
             ]
             seeded["capital_introduced"] = 0
-            for cdt, camt in capital_in:
+            for cdt, camt, cdesc in capital_in:
                 dup = db_pg.fetchval(conn,
                     "SELECT id FROM fin_transactions WHERE transaction_date=%s AND amount_gross=%s "
                     "AND type='adjustment' AND category='Director Loan / Capital Introduced'", (cdt, camt))
@@ -8729,13 +8739,14 @@ def finance_seed_verified(payload: dict = Body(default={})):
                     "INSERT INTO fin_transactions (transaction_date,type,category,description,party,"
                     "amount_gross,amount_net,amount_vat,status) "
                     "VALUES (%s,'adjustment','Director Loan / Capital Introduced',%s,'Kato M',%s,%s,0,'active')",
-                    (cdt, "Director introduced capital (ref: MY BUSINESS ACC)", camt, camt))
+                    (cdt, cdesc, camt, camt))
                 seeded["capital_introduced"] += 1
         return {"ok": True, "seeded": seeded,
-                "note": ("Verified data only. Revenue £570 (2 jobs, FY2). Insurance booked as "
-                         "deductible (incl. £39.79 on 3 Mar 2026 — so FY1 is NOT dormant). "
-                         "£561 of transfers to director booked as director's-loan / pending-receipt "
-                         "— NOT deductible until supplier receipts are provided.")}
+                "note": ("Verified data only. Revenue £570 (2 jobs, FY2). Deductible expenses: "
+                         "insurance £119.43 (incl. £39.79 on 3 Mar 2026 — FY1 NOT dormant), bank/card "
+                         "fees £6.16, receipted supplies/equipment £81.84 (Tesco/B&M/Toolstation). "
+                         "Director's loan: £561 drawn, £371.84 credited (£290 capital + £81.84 receipts) "
+                         "→ net £189.16 owed; s455 risk £63.84.")}
     except Exception as exc:
         logger.error("finance_seed_verified failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
