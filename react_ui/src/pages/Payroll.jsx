@@ -3,6 +3,8 @@ import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
 import {formatDate} from '../utils'
 import Spinner from '../components/Spinner'
+import {PageHeader,KPICard,EmptyState,SkeletonKPIs,SkeletonTable} from '../components/ui'
+import {useToast} from '../components/Toast'
 
 /* ─── constants ─── */
 const TABS=['Entries','Workers','Payroll','Payslips']
@@ -50,11 +52,7 @@ const statusPill=(s)=>{
 
 /* ─── sub-components ─── */
 const KPI=({label,value,sub,color})=>(
-  <div style={{flex:1,minWidth:160,background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'18px 20px'}}>
-    <div style={{fontSize:'0.7rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{label}</div>
-    <div style={{fontSize:'1.5rem',fontWeight:800,color:color||'var(--text-1)',letterSpacing:'-.02em'}}>{value}</div>
-    {sub&&<div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>{sub}</div>}
-  </div>
+  <div style={{flex:1,minWidth:160}}><KPICard label={label} value={value} hint={sub} color={color||'var(--teal)'}/></div>
 )
 
 const TH=({children,right})=>(
@@ -379,6 +377,7 @@ function exportCSV(entries){
 /* ─── Main Component ─── */
 export default function Payroll(){
   const qc=useQueryClient()
+  const toast=useToast()
   const [tab,setTab]=useState('Entries')
   const [statusFilter,setStatusFilter]=useState('All')
   const [showLogModal,setShowLogModal]=useState(false)
@@ -396,11 +395,13 @@ export default function Payroll(){
   const groups=Array.isArray(pr.payroll_groups)?pr.payroll_groups:[]
 
   /* mutations */
-  const createEntry=useMutation({mutationFn:api.createPayEntry,onSuccess:()=>{qc.invalidateQueries({queryKey:['payroll']});setShowLogModal(false)}})
-  const createWorker=useMutation({mutationFn:api.createPayWorker,onSuccess:()=>{qc.invalidateQueries({queryKey:['payroll']});setShowWorkerModal(false);setEditWorker(null)}})
-  const updateWorker=useMutation({mutationFn:({id,...body})=>api.updatePayWorker(id,body),onSuccess:()=>{qc.invalidateQueries({queryKey:['payroll']});setShowWorkerModal(false);setEditWorker(null)}})
-  const approveMut=useMutation({mutationFn:api.approvePayroll,onSuccess:()=>{qc.invalidateQueries({queryKey:['payroll']});setConfirmApprove(null)}})
-  const markPaidMut=useMutation({mutationFn:api.markPayrollPaid,onSuccess:()=>qc.invalidateQueries({queryKey:['payroll']})})
+  const _inv=()=>qc.invalidateQueries({queryKey:['payroll']})
+  const _err=(verb)=>(e)=>toast.error(`Could not ${verb} — `+(e.message||'try again'))
+  const createEntry=useMutation({mutationFn:api.createPayEntry,onSuccess:()=>{_inv();setShowLogModal(false);toast.success('Hours logged')},onError:_err('log hours')})
+  const createWorker=useMutation({mutationFn:api.createPayWorker,onSuccess:()=>{_inv();setShowWorkerModal(false);setEditWorker(null);toast.success('Worker added')},onError:_err('add worker')})
+  const updateWorker=useMutation({mutationFn:({id,...body})=>api.updatePayWorker(id,body),onSuccess:()=>{_inv();setShowWorkerModal(false);setEditWorker(null);toast.success('Worker updated')},onError:_err('update worker')})
+  const approveMut=useMutation({mutationFn:api.approvePayroll,onSuccess:()=>{_inv();setConfirmApprove(null);toast.success('Payroll approved')},onError:_err('approve payroll')})
+  const markPaidMut=useMutation({mutationFn:api.markPayrollPaid,onSuccess:()=>{_inv();toast.success('Marked as paid')},onError:_err('mark as paid')})
 
   /* filtered entries */
   const filteredEntries=useMemo(()=>{
@@ -456,12 +457,7 @@ export default function Payroll(){
   return(
     <div style={{padding:'28px 32px',maxWidth:1200,margin:'0 auto'}}>
       {/* Header */}
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:24}}>
-        <div>
-          <h1 style={{fontSize:'1.5rem',fontWeight:800,letterSpacing:'-.02em',margin:0}}>Payroll</h1>
-          <p style={{fontSize:'0.875rem',color:'var(--text-3)',marginTop:4}}>Staff hours, pay runs & payslips</p>
-        </div>
-      </div>
+      <PageHeader badge="Payroll" title="Payroll" subtitle="Staff hours, pay runs & payslips"/>
 
       {/* Tabs */}
       <div style={{display:'flex',gap:4,marginBottom:20,borderBottom:'1px solid var(--border)',paddingBottom:0}}>
@@ -475,7 +471,7 @@ export default function Payroll(){
         ))}
       </div>
 
-      {isLoading&&<div style={{textAlign:'center',padding:60}}><Spinner/></div>}
+      {isLoading&&<><SkeletonKPIs count={4}/><div style={{height:20}}/><SkeletonTable rows={6} cols={5}/></>}
 
       {/* ════════════════ Tab 1: Entries ════════════════ */}
       {tab==='Entries'&&!isLoading&&(
