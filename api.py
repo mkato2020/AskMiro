@@ -8556,6 +8556,19 @@ def _finance_settings(conn) -> dict:
     rows = db_pg.fetchall(conn, "SELECT key, value FROM fin_settings")
     return {r["key"]: r["value"] for r in rows}
 
+@app.get("/api/finance/reconciliation", include_in_schema=False)
+def finance_reconciliation_endpoint():
+    """Accuracy gate: prove the booked ledger ties to the bank statement to the
+    penny. Returns RECONCILED only if arithmetic balances AND every line is
+    categorised. The system withholds trust from unreconciled figures."""
+    try:
+        import finance_reconciliation as fr
+        return fr.miro_tide_27feb_27may().as_dict()
+    except Exception as exc:
+        logger.error("finance_reconciliation failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/api/finance/compliance", include_in_schema=False)
 def finance_compliance_endpoint():
     """Full UK statutory position: accounting periods, filing deadlines,
