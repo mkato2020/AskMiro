@@ -73,3 +73,11 @@ class TestMiroRegression:
         rec = r.miro_tide_27feb_27may()
         assert rec.uncategorised == []
         assert rec.unsourced == []
+
+    def test_fy1_reconciles_to_year_end_cash(self):
+        # FY1: £40 capital in − £39.79 insurance = £0.21 closing. Loss £39.79.
+        rec = r.miro_fy1()
+        assert rec.reconciled is True
+        assert rec.discrepancy_pence == 0
+        assert rec.as_dict()["closing_balance_computed"] == 0.21
+        assert rec.total_out_pence == r.to_pence(39.79)   # the only FY1 expense

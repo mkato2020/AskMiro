@@ -140,6 +140,24 @@ def miro_tide_27feb_27may() -> Reconciliation:
     return reconcile(40.00, 213.41, movements)
 
 
+# ── Miro Partners — FY1 (first accounting period), the set due 14 Dec 2026 ────
+# 14 Mar 2025 → 31 Mar 2026. Confirmed: NO transactions before 27 Feb 2026
+# (incorporated but not trading). Account opened 27 Feb 2026 with £40 capital;
+# one insurance premium £39.79 on 3 Mar 2026. Year-end cash £0.21.
+# This is the complete, reconciled FY1 — a micro-entity loss of £39.79.
+def miro_fy1() -> Reconciliation:
+    M = Movement.gbp
+    movements = [
+        M("2026-02-27", "Capital introduced — account opening", "in", 40.00, "Director Loan", "tide:open"),
+        M("2026-03-03", "Simply Business insurance (first premium)", "out", 39.79, "Insurance", "tide:DD-101"),
+    ]
+    # Opening £0 at incorporation (no bank account, no activity) → closing £0.21.
+    return reconcile(0.00, 0.21, movements)
+
+
 if __name__ == "__main__":
     import json
+    print("── FY1 (14 Mar 2025 → 31 Mar 2026) ──")
+    print(json.dumps(miro_fy1().as_dict(), indent=2))
+    print("── Statement window (27 Feb → 27 May 2026) ──")
     print(json.dumps(miro_tide_27feb_27may().as_dict(), indent=2))
