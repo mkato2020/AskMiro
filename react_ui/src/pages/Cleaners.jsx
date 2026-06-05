@@ -3,6 +3,8 @@ import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api,computeCleanerCoverage,fetchCleanerMatch} from '../api'
 import {formatDate} from '../utils'
 import Spinner from '../components/Spinner'
+import {PageHeader,KPICard,EmptyState,SkeletonKPIs,SkeletonTable} from '../components/ui'
+import {useToast} from '../components/Toast'
 
 /* ── colour palettes ── */
 const AVATAR_COLORS=['#0DBDAD','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#ec4899','#14b8a6','#6366f1']
@@ -27,13 +29,9 @@ function deployBadge(c){if(c.compliance_status==='Ready'&&c.currently_available=
 const pill=(bg,color,text,extra)=>({display:'inline-flex',alignItems:'center',gap:4,background:bg,color,fontSize:'0.7rem',fontWeight:700,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap',...(extra||{})})
 const actionBtn={background:'none',border:'none',fontSize:'0.95rem',cursor:'pointer',padding:'4px 2px',borderRadius:4,lineHeight:1}
 
-/* ── KPI card ── */
+/* ── KPI card — adapter onto the shared design-system card ── */
 const KPI=({label,value,sub,color})=>(
-  <div style={{flex:'1 1 130px',minWidth:120,background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'16px 18px'}}>
-    <div style={{fontSize:'0.65rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{label}</div>
-    <div style={{fontSize:'1.35rem',fontWeight:800,color:color||'var(--text-1)',letterSpacing:'-.02em'}}>{value}</div>
-    {sub&&<div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:4}}>{sub}</div>}
-  </div>
+  <div style={{flex:'1 1 130px',minWidth:120}}><KPICard label={label} value={value} hint={sub} color={color||'var(--teal)'}/></div>
 )
 
 /* ── Select dropdown component ── */
@@ -90,6 +88,7 @@ const Section=({title})=>(
 /* ════════════════ MAIN COMPONENT ════════════════ */
 export default function Cleaners(){
   const qc=useQueryClient()
+  const toast=useToast()
   const {data,isLoading}=useQuery({queryKey:['cleaners'],queryFn:api.cleaners,staleTime:60000})
 
   /* ── state ── */
@@ -107,10 +106,15 @@ export default function Cleaners(){
 
   /* ── mutations ── */
   const invalidate=()=>qc.invalidateQueries({queryKey:['cleaners']})
-  const createMut=useMutation({mutationFn:body=>api.createCleaner(body),onSuccess:invalidate})
-  const updateMut=useMutation({mutationFn:({id,body})=>api.updateCleaner(id,body),onSuccess:invalidate})
-  const archiveMut=useMutation({mutationFn:id=>api.archiveCleaner(id),onSuccess:invalidate})
-  const toggleMut=useMutation({mutationFn:id=>api.toggleCleanerAvailable(id),onSuccess:invalidate})
+  const onErr=(verb)=>(e)=>toast.error(`Could not ${verb} — `+(e.message||'try again'))
+  const createMut=useMutation({mutationFn:body=>api.createCleaner(body),
+    onSuccess:()=>{invalidate();toast.success('Cleaner added')},onError:onErr('add cleaner')})
+  const updateMut=useMutation({mutationFn:({id,body})=>api.updateCleaner(id,body),
+    onSuccess:()=>{invalidate();toast.success('Cleaner updated')},onError:onErr('update cleaner')})
+  const archiveMut=useMutation({mutationFn:id=>api.archiveCleaner(id),
+    onSuccess:()=>{invalidate();toast.info('Cleaner archived')},onError:onErr('archive cleaner')})
+  const toggleMut=useMutation({mutationFn:id=>api.toggleCleanerAvailable(id),
+    onSuccess:()=>{invalidate();toast.success('Availability updated')},onError:onErr('update availability')})
 
   /* ── derived data ── */
   const raw=data||{}
@@ -154,14 +158,10 @@ export default function Cleaners(){
   return(
     <div style={{padding:'28px 32px',maxWidth:1320,margin:'0 auto'}}>
       {/* ── Header ── */}
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:24}}>
-        <div>
-          <h1 style={{fontSize:'1.5rem',fontWeight:800,letterSpacing:'-.02em',margin:0}}>Cleaners</h1>
-          <p style={{fontSize:'0.875rem',color:'var(--text-3)',marginTop:4}}>Workforce database, compliance & availability</p>
-        </div>
-      </div>
+      <PageHeader badge="Workforce" title="Cleaners" subtitle="Workforce database, compliance & availability"/>
 
       {/* ── KPI Row ── */}
+      {isLoading?<div style={{marginBottom:24}}><SkeletonKPIs count={7}/></div>:
       <div style={{display:'flex',gap:14,marginBottom:24,flexWrap:'wrap'}}>
         <KPI label="Total Cleaners" value={total} sub={`${active} active`}/>
         <KPI label="Active" value={active} sub={total?Math.round(active/total*100)+'% of roster':'—'} color="var(--teal)"/>
@@ -170,7 +170,7 @@ export default function Cleaners(){
         <KPI label="Compliance Ready" value={raw.compliance_ready||0}/>
         <KPI label="DBS Checked" value={raw.dbs_checked||0}/>
         <KPI label="Own Vehicle" value={raw.own_vehicle||0}/>
-      </div>
+      </div>}
 
       {/* ── Toolbar ── */}
       <div style={{display:'flex',gap:10,marginBottom:20,alignItems:'center',flexWrap:'wrap'}}>
@@ -185,13 +185,13 @@ export default function Cleaners(){
       </div>
 
       {/* ── Loading ── */}
-      {isLoading&&<div style={{textAlign:'center',padding:60}}><Spinner/></div>}
+      {isLoading&&<SkeletonTable rows={6} cols={7}/>}
 
       {/* ── Empty state ── */}
       {!isLoading&&filtered.length===0&&(
-        <div style={{padding:60,textAlign:'center',color:'var(--text-muted)'}}>
-          {search||fStatus!=='All'||fType!=='All'||fArea!=='All'||fCompliance!=='All'||fDBS!=='All'||fTransport!=='All'?'No cleaners match your filters.':'No cleaners added yet.'}
-        </div>
+        (search||fStatus!=='All'||fType!=='All'||fArea!=='All'||fCompliance!=='All'||fDBS!=='All'||fTransport!=='All')
+          ?<EmptyState icon="🔍" title="No cleaners match your filters" message="Try clearing a filter or adjusting your search."/>
+          :<EmptyState icon="👥" title="No cleaners added yet" message="Add your first cleaner to build the workforce roster, track compliance, and match staff to contracts."/>
       )}
 
       {/* ── Table ── */}
