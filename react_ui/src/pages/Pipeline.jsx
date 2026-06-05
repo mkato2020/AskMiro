@@ -3,6 +3,8 @@ import {useQuery,useMutation,useQueryClient} from '@tanstack/react-query'
 import {api} from '../api'
 import {createContract,fetchFeasibility} from '../api'
 import Spinner from '../components/Spinner'
+import {KPICard,SkeletonKPIs,SkeletonTable} from '../components/ui'
+import {useToast} from '../components/Toast'
 
 /* ── constants ─────────────────────────────────────────── */
 const STAGES=[
@@ -298,14 +300,7 @@ function ScoreBadge({score}){
 
 /* ── KPI component ─────────────────────────────────────── */
 function KPI({label,value,color,sub}){
-  return(
-    <div style={{flex:1,minWidth:140,background:'var(--bg-surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'18px 20px',position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:color||'var(--border)',opacity:.6}}/>
-      <div style={{fontSize:'0.68rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8,fontWeight:600}}>{label}</div>
-      <div style={{fontSize:'1.5rem',fontWeight:800,letterSpacing:'-.03em',color:color||'var(--text-1)',lineHeight:1}}>{value}</div>
-      {sub&&<div style={{fontSize:'0.65rem',color:'var(--text-muted)',marginTop:6}}>{sub}</div>}
-    </div>
-  )
+  return <div style={{flex:1,minWidth:140}}><KPICard label={label} value={value} hint={sub} color={color||'var(--teal)'}/></div>
 }
 
 /* ── Lead card (Kanban) ────────────────────────────────── */
@@ -420,6 +415,7 @@ export default function Pipeline({openLead}){
   const [contractOpp,setContractOpp]=useState(null)
   const [contractAdvanceAfter,setContractAdvanceAfter]=useState(false)
   const qc=useQueryClient()
+  const toast=useToast()
 
   /* data */
   const {data:pipeData,isLoading:pipeLoading,error:pipeError}=useQuery({queryKey:['pipeline-leads'],queryFn:api.pipelineLeads,staleTime:30000})
@@ -473,14 +469,18 @@ export default function Pipeline({openLead}){
     onSuccess:(data,{stage})=>{
       if(stage==='quote_prepared'&&data?.quote_generated){
         qc.invalidateQueries({queryKey:['quotes']})
-        alert('✅ Quote auto-generated with AI recommendations, pricing scenarios & cleaner matches. Check the Quotes tab.')
+        toast.success('Quote auto-generated with AI pricing & cleaner matches — see the Quotes tab',{duration:7000})
       }
-      if(stage==='won'&&data?.recommended_cleaner){
+      else if(stage==='won'&&data?.recommended_cleaner){
         const c=data.recommended_cleaner
         qc.invalidateQueries({queryKey:['contracts']})
-        alert(`🏆 Contract won! Best cleaner match: ${c.name} — ${c.distance} mi away, ${c.travel_time} min travel, ${c.match_quality} match. Check Contracts to assign.`)
+        toast.success(`Contract won! Best match: ${c.name} (${c.distance}mi, ${c.travel_time}min, ${c.match_quality}) — assign in Contracts`,{duration:8000})
+      }
+      else{
+        toast.success('Lead advanced')
       }
     },
+    onError:(e)=>toast.error('Could not advance lead — '+(e.message||'try again')),
     onSettled:()=>{setAdvancingId(null);qc.invalidateQueries({queryKey:['pipeline-leads']});qc.invalidateQueries({queryKey:['pipeline-analytics']})},
   })
 
@@ -501,9 +501,11 @@ export default function Pipeline({openLead}){
 
   /* loading / error */
   if(pipeLoading&&!pipeData)return(
-    <div style={{padding:'80px 32px',textAlign:'center'}}>
-      <Spinner/>
-      <div style={{marginTop:16,color:'var(--text-muted)',fontSize:'0.85rem',fontWeight:500}}>Loading pipeline...</div>
+    <div style={{padding:'28px 32px',maxWidth:1500,margin:'0 auto'}}>
+      <div style={{height:40}}/>
+      <SkeletonKPIs count={6}/>
+      <div style={{height:24}}/>
+      <SkeletonTable rows={8} cols={5}/>
     </div>
   )
 
