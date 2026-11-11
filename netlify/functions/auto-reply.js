@@ -146,7 +146,7 @@ function buildChatReply(d) {
         <ul style="margin:0;padding-left:18px;color:#3D5A74;font-size:14px;line-height:1.9">
           <li>Managed commercial cleaning across London</li>
           <li>All staff DBS-checked, BICSc trained &amp; uniformed</li>
-          <li>£10M public liability insurance</li>
+          <li>Public liability and employers’ liability insurance</li>
           <li>Fixed monthly rates — no hidden charges</li>
           <li>Quality audits &amp; dedicated account management included</li>
         </ul>

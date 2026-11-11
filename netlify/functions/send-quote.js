@@ -249,7 +249,7 @@ async function generateQuotePdf(d) {
 
   // ── CERTIFICATIONS STRIP ─────────────────────────────────────
   if (y > 80) {
-    const certs = ['Fully Insured', 'COSHH Compliant', 'ISO Quality Standards', 'London & UK'];
+    const certs = ['Fully Insured', 'COSHH Compliant', 'Supervisor Quality Checks', 'London & UK'];
     const stripH = 26;
     rect(M, y - stripH, W - 2*M, stripH, C.tealBg);
     rect(M, y - stripH, W - 2*M, 1, C.tealBd);

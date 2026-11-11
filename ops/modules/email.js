@@ -1003,13 +1003,13 @@ Thanks again and nice to meet you.`;
         ? _checklist([
             '<strong>All materials &amp; professional equipment included</strong> — nothing for you to provide',
             '<strong>Eco-conscious, low-odour products</strong> — safe for families and pets',
-            '<strong>Fully insured team</strong> — £10M public liability cover',
+            '<strong>Fully insured team</strong> — public liability and employers’ liability cover',
             '<strong>Satisfaction guaranteed</strong> — if anything is missed we\'ll return to put it right',
           ])
         : _checklist([
             'No obligation — the site visit or photo review is completely free',
             '<strong>Eco-conscious, low-odour products</strong> — safe for families and pets',
-            '<strong>Fully insured team</strong> — £10M public liability cover',
+            '<strong>Fully insured team</strong> — public liability and employers’ liability cover',
             'Fixed price confirmed before any work begins — no surprises',
           ]);
 
@@ -1076,7 +1076,7 @@ Thanks again and nice to meet you.`;
           '<strong>Consistent, site-trained teams</strong> — same people every visit, not rotating agency staff',
           '<strong>Managed quality checks</strong> — supervisor oversight and written inspection reports',
           '<strong>COSHH-compliant documentation</strong> — RAMS and safety data sheets as standard',
-          '<strong>£10M public liability</strong> — fully insured, certificates on request',
+          '<strong>Fully insured</strong> — public and employers’ liability, certificates on request',
           '<strong>Fixed monthly pricing</strong> — no hidden costs, no surprise invoices',
         ]) +
         _sm(sectorCreds) +
@@ -1133,7 +1133,7 @@ Thanks again and nice to meet you.`;
           '<strong>Supervisor quality audits</strong> — scored inspections with written reports, issues corrected same day',
           '<strong>Re-clean guarantee</strong> — if anything is missed, we return at no charge',
         ]) +
-        _info('All AskMiro healthcare cleaning staff complete additional infection control training specific to your sector. We hold £10M public liability insurance and are fully COSHH compliant.') +
+        _info('All AskMiro healthcare cleaning staff complete additional infection control training specific to your sector. We hold public liability and employers’ liability insurance and are fully COSHH compliant.') +
         _cta('Accept Proposal', `mailto:${BRAND.replyTo}?subject=Accepting%20cleaning%20proposal%20for%20${encodeURIComponent(f.site||'')}`, T.teal),
         sender
       );
@@ -1248,7 +1248,7 @@ Thanks again and nice to meet you.`;
           'Monthly supervisor quality inspection with written report',
           'Absence cover — schedule maintained regardless of staff absence',
           'Re-clean guarantee — any missed items corrected within 24 hours at no charge',
-          '£10M public liability insurance — certificate available on request',
+          'Public liability and employers’ liability insurance — certificate available on request',
           'COSHH risk assessments and RAMS documentation',
         ]) +
         _info('To confirm this agreement, simply reply to this email with "Confirmed" or call us on ' + BRAND.phone + '. We will then arrange the site induction and confirm your cleaning team.') +

@@ -225,7 +225,7 @@ Business summary: {website_summary or 'Not available'}
 Likely pain points / reason to target: {pain_points or 'Standard commercial cleaning needs'}{type_line}{contract_line}
 {type_context}
 AskMiro offers: managed commercial cleaning, consistent teams, COSHH compliance,
-£10M liability cover, eco-conscious methods, supervisor-led quality checks.
+full liability cover, eco-conscious methods, supervisor-led quality checks.
 Phone: 020 8073 0621. Website: www.askmiro.com
 
 IMPORTANT — Sender identity for all emails:

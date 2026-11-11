@@ -18,7 +18,7 @@ function seoGenerate(body, auth) {
     '- Typical contract: £800–£5,000/month\n' +
     '- Services: office, commercial, end of tenancy, deep cleaning, residential blocks, medical/healthcare, schools, automotive, warehouses, gyms, retail, hospitality\n' +
     '- All staff: DBS-checked, BICSc trained, uniformed, insured\n' +
-    '- £10M public liability insurance, COSHH-compliant\n' +
+    '- Public liability and employers’ liability insurance, COSHH-compliant\n' +
     '- Fixed monthly rates, no hidden charges\n' +
     '- Covers: London and surrounding areas\n' +
     '- USPs: quality audits, dedicated account management, out-of-hours available, eco-friendly options, re-clean guarantee\n\n' +

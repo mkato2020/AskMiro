@@ -629,7 +629,7 @@ function buildInboxAutoReplyEmail(senderName, originalSubject) {
       '<strong>Managed commercial cleaning</strong> — offices, residential blocks, healthcare, automotive & more',
       '<strong>Consistent, site-trained teams</strong> — same people every visit, not rotating agency staff',
       '<strong>Free site visit & fixed monthly quote</strong> — no hidden costs, turnaround within 24 hours',
-      '<strong>COSHH-compliant & fully insured</strong> — £10M public liability cover, audit-ready documentation',
+      '<strong>COSHH-compliant & fully insured</strong> — public liability and employers’ liability cover, audit-ready documentation',
     ]) +
     cta('&#128197; Request a Free Quote', 'https://www.askmiro.com/get-quote.html') +
     div() +

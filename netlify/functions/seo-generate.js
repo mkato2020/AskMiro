@@ -12,7 +12,7 @@ AskMiro Cleaning Services — professional managed cleaning company in London.
 - Typical contract value: £800–£5,000/month
 - Services: Office cleaning, commercial cleaning, end of tenancy, deep cleaning, residential blocks, medical/healthcare, schools, automotive, warehouses, gyms, retail, hospitality
 - All staff: DBS-checked, BICSc trained, uniformed, insured
-- £10M public liability insurance, COSHH-compliant
+- Public liability and employers’ liability insurance, COSHH-compliant
 - Fixed monthly rates, no hidden charges
 - Covers: London and surrounding areas
 - Key USPs: quality audits, dedicated account management, out-of-hours available, eco-friendly options, re-clean guarantee
