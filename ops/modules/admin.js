@@ -196,6 +196,14 @@ ${UI.secHd('Admin & Settings','System configuration, users and company documents
         tag:'Client-facing · 16 pages',
         tagCls:'pg',
         action:"Documents.openPackModal()"
+      },
+      {
+        icon:'&#9997;',
+        title:'Service Agreement',
+        sub:'The contract a client signs when they accept a quote &mdash; fee, schedule, term and notice.',
+        tag:'Client-facing · 3 pages',
+        tagCls:'pg',
+        action:"Documents.openAgreementModal()"
       }
     ];
     return `

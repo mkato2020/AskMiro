@@ -764,6 +764,188 @@ ${[
 </div>`; /* end dp-doc */
   }
 
+  // ── SERVICE AGREEMENT ─────────────────────────────────────────
+  // The document a client signs when a quote is accepted. Terms mirror the
+  // quote email and terms.html: fixed monthly fee, monthly in advance,
+  // 14-day terms, 30 days' notice after the first three months.
+  function openAgreementModal() {
+    const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+    UI.openModal(`
+<div class="modal-hd">
+  <h2>Generate Service Agreement</h2>
+  <button class="xbtn" onclick="UI.closeModal()">&#x2715;</button>
+</div>
+<div class="modal-body">
+  <div style="font-size:12px;color:var(--ll);line-height:1.6;margin-bottom:18px;padding:10px 12px;background:#f8fafc;border-left:3px solid #0D9488">
+    The agreement a client signs once they accept a quote. Use the figures from the accepted quote.
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Client &mdash; Company Name <span class="req">*</span></label>
+      <input class="fin" id="sa-client" placeholder="e.g. Head Gear Films Ltd" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Client Contact</label>
+      <input class="fin" id="sa-contact" placeholder="e.g. Laura Smith, Office Manager"></div>
+  </div>
+  <div class="fg"><label class="fl">Site Address <span class="req">*</span></label>
+    <input class="fin" id="sa-site" placeholder="e.g. Ashley House, 12 Great Portland Street, London W1W 8QN"></div>
+  <div class="fg"><label class="fl">Services <span class="req">*</span></label>
+    <input class="fin" id="sa-services" placeholder="e.g. Daily office cleaning; monthly internal window cleaning"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Schedule <span class="req">*</span></label>
+      <input class="fin" id="sa-schedule" placeholder="e.g. Mon&ndash;Fri, 2 hours per visit, after 6pm"></div>
+    <div class="fg"><label class="fl">Monthly Fee (&pound;, ex. VAT) <span class="req">*</span></label>
+      <input class="fin" id="sa-fee" type="number" min="0" step="0.01" placeholder="e.g. 1255"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Start Date <span class="req">*</span></label>
+      <input class="fin" id="sa-start" placeholder="e.g. 01 December 2026"></div>
+    <div class="fg"><label class="fl">Quote Reference</label>
+      <input class="fin" id="sa-ref" placeholder="e.g. QUOTE-MUYPRL0WPDQ4"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Cleaning Products Supplied By</label>
+      <select class="fin" id="sa-products"><option value="us">AskMiro</option><option value="client">The Client</option></select></div>
+    <div class="fg"><label class="fl">Agreement Date</label>
+      <input class="fin" id="sa-date" value="${_esc(date)}"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn bo" onclick="UI.closeModal()">Cancel</button>
+    <button class="btn bp" onclick="Documents._genAgreement()">Generate Agreement &rarr;</button>
+  </div>
+</div>`);
+    setTimeout(() => { const el = document.getElementById('sa-client'); if (el) el.focus(); }, 80);
+  }
+
+  function _genAgreement() {
+    for (const id of ['sa-client','sa-site','sa-services','sa-schedule','sa-fee','sa-start']) {
+      if (!UI.rq(id)) return;
+    }
+    const fee = parseFloat(UI.gv('sa-fee'));
+    if (!(fee > 0)) { alert('Enter the monthly fee as a number greater than zero.'); return; }
+    const a = {
+      client: UI.gv('sa-client'), contact: UI.gv('sa-contact'), site: UI.gv('sa-site'),
+      services: UI.gv('sa-services'), schedule: UI.gv('sa-schedule'), fee,
+      start: UI.gv('sa-start'), ref: UI.gv('sa-ref'), date: UI.gv('sa-date'),
+      products: UI.gv('sa-products') === 'client' ? 'client' : 'us'
+    };
+    UI.closeModal();
+    _injectStyles();
+    const ex = document.getElementById('dp-overlay');
+    if (ex) ex.remove();
+    const ov = document.createElement('div');
+    ov.id = 'dp-overlay';
+    ov.innerHTML = _agreementHtml(a);
+    document.body.appendChild(ov);
+    ov.style.display = 'block';
+    ov.scrollTop = 0;
+  }
+
+  function _agreementHtml(a) {
+    const total = 3;
+    let pg = 0;
+    const p = (sec, content) => { pg++; return page(sec, pg, total, content); };
+    const gbp = n => '&pound;' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const products = a.products === 'client'
+      ? 'The Client supplies cleaning chemicals and consumables. AskMiro supplies its own equipment.'
+      : 'AskMiro supplies all cleaning equipment, chemicals and materials. Washroom and kitchen consumables (paper, soap, bin liners) are supplied by the Client unless the Services above say otherwise.';
+    const sig = `
+<div class="dp-sig">
+  <div class="dp-sig-cell"><div class="dp-sig-name">Signed for ${CO}</div><div class="dp-sig-role">${LEGAL} &nbsp;&bull;&nbsp; Name, position and date</div></div>
+  <div class="dp-sig-cell"><div class="dp-sig-name">Signed for ${_esc(a.client)}</div><div class="dp-sig-role">Name, position and date</div></div>
+</div>`;
+
+    return `
+<div class="dp-bar no-print">
+  <div class="dp-bar-title">Cleaning Services Agreement &mdash; ${_esc(a.client)}</div>
+  <div style="display:flex;gap:8px">
+    <button class="dp-btn-pdf" onclick="window.print()">Save as PDF</button>
+    <button class="dp-btn-close" onclick="document.getElementById('dp-overlay').remove()">&#x2715; Close</button>
+  </div>
+</div>
+
+<div class="dp-doc">
+
+${p('Cleaning Services Agreement', `
+<div class="dp-h2">Cleaning Services Agreement</div>
+<div class="dp-body"><p>This agreement is made on <strong>${_esc(a.date)}</strong> between <strong>${LEGAL}</strong> trading as ${CO}, of ${ADDR} (&ldquo;AskMiro&rdquo;, &ldquo;we&rdquo;) and <strong>${_esc(a.client)}</strong> (&ldquo;the Client&rdquo;, &ldquo;you&rdquo;).</p></div>
+
+<div class="dp-h2">1. The Services</div>
+<table class="dp-tbl">
+  <tr><th style="width:30%">Item</th><th>Agreed</th></tr>
+  <tr><td>Site</td><td>${_esc(a.site)}</td></tr>
+  <tr><td>Services</td><td>${_esc(a.services)}</td></tr>
+  <tr><td>Schedule</td><td>${_esc(a.schedule)}</td></tr>
+  <tr><td>Start date</td><td>${_esc(a.start)}</td></tr>
+  <tr><td>Monthly fee</td><td><strong>${gbp(a.fee)}</strong> per month, excluding VAT (${gbp(a.fee * 12)} per year)</td></tr>
+  ${a.contact ? `<tr><td>Client contact</td><td>${_esc(a.contact)}</td></tr>` : ''}
+  ${a.ref ? `<tr><td>Quote reference</td><td>${_esc(a.ref)}</td></tr>` : ''}
+</table>
+<div class="dp-body"><p>The detailed task list is the cleaning specification agreed at the site visit and attached to, or referenced in, the quote. Work outside that specification is quoted separately before it is carried out.</p></div>
+
+<div class="dp-h2">2. Fee and Payment</div>
+<div class="dp-body"><ul>
+  <li>The monthly fee is fixed and is invoiced monthly in advance.</li>
+  <li>Invoices are payable within 14 days of the invoice date, by bank transfer.</li>
+  <li>The fee excludes VAT, which is added only if and when it applies.</li>
+  <li>We may suspend the Services, on 7 days&rsquo; written notice, while any invoice is more than 14 days overdue.</li>
+  <li>The fee is reviewed once a year in line with the London Living Wage. We give at least 30 days&rsquo; written notice of any change.</li>
+</ul></div>
+`)}
+
+${p('Cleaning Services Agreement', `
+<div class="dp-h2">3. Term and Ending the Agreement</div>
+<div class="dp-body"><ul>
+  <li>The agreement starts on the start date and runs for an initial term of 12 months, then continues month to month.</li>
+  <li>After the first three months, either of us may end it at any time by giving 30 days&rsquo; written notice.</li>
+  <li>Either of us may end it immediately in writing if the other commits a serious breach and does not put it right within 14 days of being asked to.</li>
+  <li>Fees remain payable for Services delivered up to the end date.</li>
+</ul></div>
+
+<div class="dp-h2">4. What We Will Do</div>
+<div class="dp-body"><ul>
+  <li>Deliver the Services with reasonable care and skill, to the agreed specification and schedule.</li>
+  <li>Assign a named cleaner to your site, with a briefed backup, so that holiday and sickness are covered.</li>
+  <li>Use trained, vetted and uniformed staff who are paid at least the London Living Wage.</li>
+  <li>${products}</li>
+  <li>Carry out regular quality checks and give you a single point of contact.</li>
+  <li>Put right any missed item you report within 24 hours of the clean, at no charge, by our next visit or sooner.</li>
+  <li>Work safely: risk assessments, COSHH assessments and method statements are available on request.</li>
+</ul></div>
+
+<div class="dp-h2">5. What We Need From You</div>
+<div class="dp-body"><ul>
+  <li>Access to the site at the agreed times, including any keys, fobs, alarm codes or building sign-in arrangements.</li>
+  <li>Hot water, electricity and a lockable space for equipment and materials.</li>
+  <li>A safe place to work, and notice of any hazards, building rules or changes that affect the clean.</li>
+  <li>At least 48 hours&rsquo; notice if a visit needs to be moved or cancelled. Visits cancelled at shorter notice are charged.</li>
+</ul></div>
+
+<div class="dp-h2">6. Changes</div>
+<div class="dp-body"><p>Either of us may ask to change the Services, schedule or site. A change takes effect once we have both agreed it, and any change to the fee, in writing. Email is sufficient.</p></div>
+`)}
+
+${p('Cleaning Services Agreement', `
+<div class="dp-h2">7. Our Staff</div>
+<div class="dp-body"><p>While this agreement runs and for six months after it ends, you agree not to employ or engage directly any person we have supplied to your site, unless we agree in writing.</p></div>
+
+<div class="dp-h2">8. Insurance and Liability</div>
+<div class="dp-body"><ul>
+  <li>We hold public liability and employers&rsquo; liability insurance and will provide certificates on request.</li>
+  <li>Please tell us about any damage or loss within 48 hours of the visit concerned so that we can investigate.</li>
+  <li>Nothing in this agreement limits liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot be limited by law. Otherwise our total liability in any 12-month period is limited to the fees paid in that period, or the amount recovered under our insurance if greater. Neither of us is liable for indirect or consequential loss.</li>
+</ul></div>
+
+<div class="dp-h2">9. Keys, Security and Confidentiality</div>
+<div class="dp-body"><p>We keep keys, fobs and codes secure, record who holds them, and return them when the agreement ends. We keep confidential anything we see or learn at your site, and we handle personal data in line with UK data protection law.</p></div>
+
+<div class="dp-h2">10. General</div>
+<div class="dp-body"><p>This agreement, together with the quote it refers to, is the whole agreement between us for the Services. Neither of us is responsible for delay caused by events outside our reasonable control. The agreement is governed by the law of England and Wales.</p></div>
+
+${sig}
+`)}
+
+</div>`;
+  }
+
   // ── PUBLIC API ─────────────────────────────────────────────────
-  return { openPackModal, _gen };
+  return { openPackModal, _gen, openAgreementModal, _genAgreement };
 })();
