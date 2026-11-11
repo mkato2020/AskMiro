@@ -9,9 +9,14 @@ window.Dashboard = (() => {
     catch(e) { app.innerHTML = `<div class="alert alert-r">&times; Failed to load dashboard: ${e.message}</div>`; return; }
 
     const k = d.kpis || {};
-    const REV = d.recentFinance ? d.recentFinance.map(r => parseFloat(r.revenue||0)) : [92000,95000,98000,102000,112000,121000];
-    const MGN = d.recentFinance ? d.recentFinance.map(r => { const rv=parseFloat(r.revenue||0),dc=parseFloat(r.directCost||0); return rv>0?(rv-dc)/rv*100:0; }) : [43,44,45,45,46,47];
-    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun'];
+    // Real figures only: no sample data when the Finance sheet is empty.
+    const FIN = Array.isArray(d.recentFinance) ? d.recentFinance : [];
+    const REV = FIN.map(r => parseFloat(r.revenue||0));
+    const MGN = FIN.map(r => { const rv=parseFloat(r.revenue||0),dc=parseFloat(r.directCost||0); return rv>0?(rv-dc)/rv*100:0; });
+    const MONTHS = FIN.map((r,i) => String(r.month || r.period || r.label || ('M'+(i+1))).slice(0,8));
+    const HAS_REV = REV.some(v => v > 0);
+    const NOW = new Date();
+    const PERIOD = (NOW.getMonth() < 6 ? 'H1 ' : 'H2 ') + NOW.getFullYear();
 
     const attnRows = (d.attention||[]).map(s => `<tr onclick="UI.openDrawer('${s.name}', Dashboard.siteDrawer(${JSON.stringify(JSON.stringify(s))}))">
       <td class="tfw">${s.name}</td>
@@ -46,7 +51,7 @@ window.Dashboard = (() => {
     </div>` : '';
 
     app.innerHTML = `
-${UI.secHd('Overview', 'Executive Dashboard', 'H1 2025')}
+${UI.secHd('Overview', 'Executive Dashboard', PERIOD)}
 
 ${webLeadBanner}
 
@@ -65,8 +70,8 @@ ${webLeadBanner}
 
 <div class="gch">
   <div class="card">
-    <div class="card-hd"><div class="card-title">&#128200; Revenue &amp; Margin % &#8212; H1</div><span class="card-meta">6 months</span></div>
-    <div class="card-body chart-wrap">${UI.barLineChart(MONTHS, REV, MGN)}</div>
+    <div class="card-hd"><div class="card-title">&#128200; Revenue &amp; Margin %</div><span class="card-meta">${HAS_REV ? 'last ' + REV.length + ' months' : 'no data yet'}</span></div>
+    <div class="card-body chart-wrap">${HAS_REV ? UI.barLineChart(MONTHS, REV, MGN) : '<div style="padding:36px 12px;text-align:center;color:var(--ll);font-size:13px">No revenue recorded yet. This chart fills in once the first invoice is logged in Finance.</div>'}</div>
   </div>
   <div class="card">
     <div class="card-hd"><div class="card-title">&#10003; Audit Scores by Site</div></div>

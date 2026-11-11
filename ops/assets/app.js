@@ -22,7 +22,10 @@
   Router.register('payroll',   Payroll.render);
   Router.register('email',     Email.render);
   Router.register('seo',       SEO.render);
-  Router.register('documents', Documents.render);
+  // Documents has no page of its own: the document library lives on the
+  // Admin page's Documents tab. Registering Documents.render (undefined)
+  // made the router fall back to Quotes.
+  Router.register('documents', async () => { await Admin.render(); Admin._tab('documents'); });
   Router.register('admin',     Admin.render);
 
   // ── SIDEBAR NAVIGATION ────────────────────────────────────
