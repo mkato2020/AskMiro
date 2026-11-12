@@ -266,7 +266,7 @@ window.SEO = (() => {
     const panel = document.getElementById('gen-panel');
     const slug  = data.slug || 'generated-article';
     const title = (data.article && data.article.title) ? data.article.title : keyword;
-    const liveUrl = pubData.url || ('https://askmiro.co.uk/' + slug);
+    const liveUrl = pubData.url || ('https://www.askmiro.com/' + slug);
 
     panel.innerHTML = `
       <div class="card" style="padding:0;overflow:hidden;border-color:#059669">
@@ -379,7 +379,7 @@ window.SEO = (() => {
           <!-- After publish: submit to Search Console reminder -->
           <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:12px 14px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0369A1;margin-bottom:5px">After publishing</div>
-            <div style="font-size:12px;color:#0C4A6E;line-height:1.6">Submit <code style="background:#E0F2FE;padding:1px 4px;border-radius:3px">https://askmiro.co.uk/${_esc(slug)}</code> to <strong>Google Search Console</strong> to get it indexed faster.</div>
+            <div style="font-size:12px;color:#0C4A6E;line-height:1.6">Submit <code style="background:#E0F2FE;padding:1px 4px;border-radius:3px">https://www.askmiro.com/${_esc(slug)}</code> to <strong>Google Search Console</strong> to get it indexed faster.</div>
           </div>
 
         </div>

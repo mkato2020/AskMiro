@@ -5,7 +5,7 @@
 //
 // Wire up in Netlify UI:
 //   Site → Forms → get-quote → Notifications → Outgoing webhook
-//   URL: https://askmiro.co.uk/api/form-reply
+//   URL: https://www.askmiro.com/api/form-reply
 // ============================================================
 
 export default async (req) => {
@@ -23,9 +23,15 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers });
   }
 
-  // Netlify sends form data under body.data (outgoing webhook format)
-  // or directly as fields if called via API
-  const data = body.data || body;
+  // One acknowledgement per enquiry. The quote form calls this endpoint itself
+  // with the full details; Netlify's outgoing form webhook then delivers the
+  // same submission a second time (as { data: {...}, form_name, ... }) with no
+  // service field. That second copy used to send a second, vaguer email to
+  // the customer in the same second, so it is acknowledged and dropped.
+  if (body && (body.data || body.form_name || body.form_id)) {
+    return new Response(JSON.stringify({ skipped: true, reason: 'duplicate of the form\'s own call' }), { status: 200, headers });
+  }
+  const data = body;
 
   if (!data.email) {
     console.warn('form-reply: no email in payload', JSON.stringify(data).slice(0, 200));

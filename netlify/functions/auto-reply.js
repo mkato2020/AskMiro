@@ -8,7 +8,7 @@
 const FROM = 'AskMiro <info@askmiro.com>';
 const REPLY_TO = 'info@askmiro.com';
 const PHONE = '020 8073 0621';
-const SITE = 'https://askmiro.co.uk';
+const SITE = 'https://www.askmiro.com';
 
 // ── ENTRY POINT (also callable as a standalone function) ──
 export default async (req) => {
@@ -250,7 +250,7 @@ function baseTemplate(body, { name, type }) {
           AskMiro Cleaning Services Ltd &middot; London, UK<br>
           <a href="${SITE}/privacy-policy.html" style="color:#7A9BB5;text-decoration:underline">Privacy Policy</a>
           &nbsp;&middot;&nbsp;
-          <a href="${SITE}" style="color:#7A9BB5;text-decoration:underline">askmiro.co.uk</a>
+          <a href="${SITE}" style="color:#7A9BB5;text-decoration:underline">askmiro.com</a>
         </p>
       </td></tr>
 

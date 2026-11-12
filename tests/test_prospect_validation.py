@@ -118,7 +118,7 @@ class TestGate2MultiSplit:
 class TestGate3RFC:
     @pytest.mark.parametrize("email,expected", [
         ("info@example.com", True),
-        ("first.last+tag@askmiro.co.uk", True),
+        ("first.last+tag@askmiro.com", True),
         ("missing.at.com", False),
         ("two@@example.com", False),
         ("nodomain@", False),

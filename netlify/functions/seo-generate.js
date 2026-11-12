@@ -8,7 +8,7 @@
 const ASKMIRO_CONTEXT = `
 AskMiro Cleaning Services — professional managed cleaning company in London.
 - Director: Mike Kato
-- Contact: info@askmiro.com | 020 8073 0621 | www.askmiro.co.uk
+- Contact: info@askmiro.com | 020 8073 0621 | www.askmiro.com
 - Typical contract value: £800–£5,000/month
 - Services: Office cleaning, commercial cleaning, end of tenancy, deep cleaning, residential blocks, medical/healthcare, schools, automotive, warehouses, gyms, retail, hospitality
 - All staff: DBS-checked, BICSc trained, uniformed, insured
@@ -190,7 +190,7 @@ Return ONLY raw JSON (no markdown):
       const fileBody = {
         message: `feat(seo): add article — ${title || slug}`,
         content: Buffer.from(html).toString('base64'),
-        committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+        committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.com' },
       };
       if (existingSha) fileBody.sha = existingSha;
 
@@ -212,7 +212,7 @@ Return ONLY raw JSON (no markdown):
         if (smRes.ok) {
           const smData = await smRes.json();
           const currentXml = Buffer.from(smData.content, 'base64').toString('utf8');
-          const newUrl = `https://askmiro.co.uk/${slug}`;
+          const newUrl = `https://www.askmiro.com/${slug}`;
 
           if (!currentXml.includes(newUrl)) {
             const today = new Date().toISOString().split('T')[0];
@@ -226,7 +226,7 @@ Return ONLY raw JSON (no markdown):
                 message: `feat(seo): add ${slug} to sitemap`,
                 content: Buffer.from(updatedXml).toString('base64'),
                 sha: smData.sha,
-                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.com' },
               }),
             });
             sitemapUpdated = true;
@@ -253,7 +253,7 @@ Return ONLY raw JSON (no markdown):
                 message: `feat(seo): add redirect for ${slug}`,
                 content: Buffer.from(updated).toString('base64'),
                 sha: rdData.sha,
-                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+                committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.com' },
               }),
             });
           }
@@ -282,7 +282,7 @@ Return ONLY raw JSON (no markdown):
           const piBody = {
             message: `feat(seo): register ${slug} in pages index`,
             content: Buffer.from(JSON.stringify(pages, null, 2)).toString('base64'),
-            committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.co.uk' },
+            committer: { name: 'AskMiro SEO Bot', email: 'seo@askmiro.com' },
           };
           if (piSha) piBody.sha = piSha;
           await fetch(`${GH_API}/repos/${REPO}/contents/${PAGES_INDEX_PATH}`, {
@@ -296,7 +296,7 @@ Return ONLY raw JSON (no markdown):
       const pushData = await pushRes.json();
       return new Response(JSON.stringify({
         success: true,
-        url: `https://askmiro.co.uk/${slug}`,
+        url: `https://www.askmiro.com/${slug}`,
         commitUrl: pushData.commit?.html_url,
         sitemapUpdated,
         updated: !!existingSha,
@@ -359,12 +359,12 @@ function buildHTML(a) {
 <title>${escHtml(a.title)}</title>
 <meta name="description" content="${escAttr(a.metaDescription)}">
 <meta name="keywords" content="${escAttr(a.metaKeywords)}">
-<link rel="canonical" href="https://askmiro.co.uk/${escAttr(a.slug)}">
+<link rel="canonical" href="https://www.askmiro.com/${escAttr(a.slug)}">
 
 <meta property="og:title" content="${escAttr(a.ogTitle)}">
 <meta property="og:description" content="${escAttr(a.metaDescription)}">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://askmiro.co.uk/${escAttr(a.slug)}">
+<meta property="og:url" content="https://www.askmiro.com/${escAttr(a.slug)}">
 <meta property="og:site_name" content="AskMiro Cleaning Services">
 
 <script type="application/ld+json">
@@ -374,7 +374,7 @@ function buildHTML(a) {
   "headline": ${JSON.stringify(a.schemaHeadline || a.title)},
   "description": ${JSON.stringify(a.metaDescription)},
   "author": { "@type": "Organization", "name": "AskMiro Cleaning Services" },
-  "publisher": { "@type": "Organization", "name": "AskMiro Cleaning Services", "url": "https://askmiro.co.uk" },
+  "publisher": { "@type": "Organization", "name": "AskMiro Cleaning Services", "url": "https://www.askmiro.com" },
   "datePublished": "${pubDate}",
   "dateModified": "${pubDate}"
 }
