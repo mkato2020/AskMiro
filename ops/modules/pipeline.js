@@ -132,6 +132,21 @@ window.Pipeline = (() => {
     }
   }
 
+  // The first time the Owner presses "Read mailbox now", also switch on the
+  // two-hourly background read so the worklist stays right when Ops is closed.
+  async function _ensureBackground() {
+    let done = false;
+    try { done = localStorage.getItem('pl_background') === 'on'; } catch (e) {}
+    if (done) return;
+    try {
+      const r = await API.post('pipeline.setup', {});
+      if (r && r.trigger === 'installed') {
+        try { localStorage.setItem('pl_background', 'on'); } catch (e) {}
+        UI.toast('Background mailbox reading is on (every 2 hours).', 'g', 5000);
+      }
+    } catch (e) { /* not the Owner, or not available: the manual read still runs */ }
+  }
+
   // Each call is a short, bounded slice of the mailbox; loop until it is done.
   async function sync(manual) {
     if (_syncing) return;
@@ -140,6 +155,7 @@ window.Pipeline = (() => {
     if (b) { b.disabled = true; b.textContent = 'Reading mailbox…'; }
     const moved = [];
     try {
+      if (manual) await _ensureBackground();
       for (let i = 0; i < 5; i++) {
         const r = await API.post('pipeline.sync', { full: !!manual });
         if (!r || r.error) throw new Error((r && r.error) || 'Sync failed');
