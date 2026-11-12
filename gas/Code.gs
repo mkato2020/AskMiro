@@ -19,7 +19,7 @@ const CFG = {
   CACHE_TTL_ROWS:      1800,  // 30 min sheet row cache (invalidated on writes)
   MIN_MARGIN_PCT:      20,
   LLW_RATE:            13.85,
-  ONCOST_PCT:          0.22,
+  ONCOST_PCT:          0.36,   // matches the Ops quote builder; Admin → Settings overrides (see _plOncost)
   SQ_FT_TO_M2:         0.0929,
   VERSION:             '3.1.0',
 
@@ -180,6 +180,7 @@ function routeGet(action, params, auth) {
     case 'outreach.sequence':     return getSequenceForLead(params, auth);
     case 'outreach.performance':  return getOutreachPerformance(params, auth);
     case 'outreach.score':        return scoreEmail(params, auth);
+    case 'pipeline.today':        return getPipelineToday(params, auth);
     default:             return { error: 'Unknown action: ' + action };
   }
 }
@@ -242,6 +243,11 @@ function routePost(action, body, auth) {
     case 'outreach.assist':                return outreachAssistant(body, auth);
     case 'lead.runIntel':                  return runIntelForLead(body, auth);
     case 'admin.fixSchema':                return fixSheetSchema(auth);
+    case 'quote.record':                   return pipelineRecordQuote(body, auth);
+    case 'pipeline.sync':                  return pipelineSyncApi(body, auth);
+    case 'pipeline.chaseDraft':            return pipelineChaseDraft(body, auth);
+    case 'pipeline.snooze':                return pipelineSnooze(body, auth);
+    case 'pipeline.setup':                 return pipelineSetup(body, auth);
     default:                               return { error: 'Unknown action: ' + action };
   }
 }
@@ -849,6 +855,8 @@ function sendQuote(body, auth) {
   updateRow('Quotes', body.id, { status: 'Sent', sentAt: new Date().toISOString(), sentBy: auth.userId });
   _logEmail({ to: body.toEmail, subject, type: 'QuoteSend', relatedType: 'Quote', relatedId: body.id, sentBy: auth.userId, settings });
   auditLog(auth.userId, 'SEND', 'Quote', body.id, { status: q.status }, { status: 'Sent' });
+  // Move the lead to Quote Sent and start the chase clock. Never blocks the send.
+  try { _plOnOpsQuoteSent(q, body.toEmail, auth); } catch (e) { logError(e); }
   return { ok: true };
 }
 function approveQuote(body, auth) {

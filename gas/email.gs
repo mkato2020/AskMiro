@@ -446,9 +446,9 @@ function webhookLead(params) {
           replyTo:  email
         });
     } catch(emailErr) { Logger.log('Notification email failed: ' + emailErr.message); }
-    try {
-      sendInboxAutoReply(email, lead.contactName, 'Your cleaning enquiry');
-    } catch(arErr) { Logger.log('Auto-reply failed: ' + arErr.message); }
+    // No acknowledgement from here: the website already sends one from
+    // info@askmiro.com. This one went out from the personal Gmail address and
+    // was the customer's third "thanks" in a second.
 
     // ── Mirror lead to AskMiro OS — hardcoded fallback URL so it always fires ──
     try {
@@ -643,7 +643,7 @@ function runIntelligenceEngine(ss, lead) {
   const hoursPerWeek    = +(hoursPerVisit * visitsPerWeek).toFixed(2);
   const hoursPerMonth   = +(hoursPerWeek * 4.333).toFixed(2);
   const llwRate            = settings.llwRate    || CFG.LLW_RATE;
-  const oncostPct          = settings.oncostPct  || CFG.ONCOST_PCT;
+  const oncostPct          = _plOncostLive();
   const labourCostPerMonth = +(hoursPerMonth * llwRate * (1 + oncostPct)).toFixed(2);
   const suppliesPerMonth   = Math.max(+(areaMq * (bm.suppliesPerM2PerMonth || settings.defaultSuppliesPerM2 || 0.08)).toFixed(2), settings.minSuppliesPerMonth || 15);
   const travelAllowance    = resolveTravelAllowance(lead.postcode, settings);
@@ -682,7 +682,7 @@ function assessRisks(ctx) {
   const travelPct = travelAllowance / directCostPerMonth;
   if (travelPct > 0.10)
     risks.push({ code:'TRAVEL_HIGH', severity:'medium', message:'Travel allowance is ' + (travelPct*100).toFixed(0) + '% of direct cost', action:'Verify site location and consider travel surcharge' });
-  if (scenarios.aggressive.hourlyRate < llwRate * 1.05 * (1 + (settings.oncostPct || CFG.ONCOST_PCT)) * 1.10)
+  if (scenarios.aggressive.hourlyRate < llwRate * 1.05 * (1 + _plOncostLive()) * 1.10)
     risks.push({ code:'WAGE_SENSITIVITY', severity:'high', message:'Aggressive scenario margin erodes below minimum with 5% wage rise', action:'Use Balanced or Protected scenario for this contract' });
   if (suppliesPerMonth < (settings.minSuppliesPerMonth || 15))
     risks.push({ code:'SUPPLIES_BELOW_MIN', severity:'medium', message:'Supplies estimate £' + suppliesPerMonth.toFixed(2) + ' is below £' + (settings.minSuppliesPerMonth || 15) + ' minimum', action:'Apply minimum supplies floor before quoting' });

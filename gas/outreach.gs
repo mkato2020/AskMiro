@@ -444,6 +444,7 @@ function _runAutoSend() {
       (!r.replyStatus || r.replyStatus === '') &&   // Hackney-bug guard: never follow up if any reply has been classified
       r.nextFollowUpAt &&
       new Date(r.nextFollowUpAt) <= now &&
+      !_followUpIsStale(r, now) &&
       Number(r.followUpCount || 0) < MAX_FOLLOW_UPS
     )
     .sort((a, b) => new Date(a.nextFollowUpAt) - new Date(b.nextFollowUpAt))
@@ -488,6 +489,7 @@ function _runAutoSend() {
       (!r.replyStatus || r.replyStatus === '') &&   // Hackney-bug guard
       r.nextFollowUpAt &&
       new Date(r.nextFollowUpAt) <= now &&
+      !_followUpIsStale(r, now) &&
       Number(r.followUpCount || 0) >= MAX_FOLLOW_UPS - 1
     )
     .slice(0, batchLeft2);
@@ -515,6 +517,14 @@ function _runAutoSend() {
   Logger.log('autoSendOutreach complete. sent=' + sent + ' total today=' + (_getSentTodayCount()));
 }
 
+
+// A follow-up to an email sent more than 30 days ago is not a follow-up, it is
+// a second cold email out of context. Those leads wait for a human decision.
+function _followUpIsStale(lead, now) {
+  const last = new Date(lead.lastContactedAt || lead.handoffAt || '');
+  if (isNaN(last.getTime())) return false;
+  return (now.getTime() - last.getTime()) > 30 * 24 * 60 * 60 * 1000;
+}
 
 // ── SEND INITIAL EMAIL ────────────────────────────────────────
 function _autoSendInitial(lead) {
@@ -870,12 +880,25 @@ function _sendInThread(lead, subject, textBody, htmlBody) {
     sendOpts.htmlBody  = htmlBody;
   }
 
+  // thread.reply() answers the sender of the LAST message. When that message
+  // is our own (no reply yet — the normal follow-up case) it addresses AskMiro,
+  // not the prospect: every follow-up before 2026-11 went to info@/mike@.
+  // Only reply in-thread when the prospect spoke last; otherwise send to them.
+  if (_plIsOwn(lead.email) || !_plValidEmail(lead.email)) {
+    throw new Error('Refusing to send: "' + lead.email + '" is not a usable prospect address');
+  }
   if (lead.threadId) {
     try {
       const thread = GmailApp.getThreadById(lead.threadId);
       if (thread) {
-        thread.reply(textBody, replyOpts);
-        return;
+        const msgs = thread.getMessages();
+        const last = msgs[msgs.length - 1];
+        if (_plAddr(last.getFrom()) === _plAddr(lead.email)) {
+          thread.reply(textBody, replyOpts);
+          return;
+        }
+        const first = thread.getFirstMessageSubject() || subject;
+        subject = /^re:/i.test(first) ? first : 'Re: ' + first;
       }
     } catch(_) {}
   }
@@ -989,7 +1012,7 @@ function scanOutreachReplies() {
         place_id:   lead.id,
         event_type: 'REPLY_RECEIVED',
         direction:  'INBOUND_HUMAN',
-        email:      mailDir.from,
+        email:      latestReply.getFrom(),   // was mailDir.from — undefined when the classifier flag is off, which threw and skipped every reply
         thread_id:  thread.getId(),
         detail:     'Human reply received — classifying intent',
       });
@@ -1578,7 +1601,7 @@ function _buildHtml(text, label, unsubUrl) {
     + '<table cellpadding="0" cellspacing="0"><tr>'
     + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; Fully Insured</td>'
     + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; COSHH Compliant</td>'
-    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; ISO Standards</td>'
+    + '<td style="padding-right:18px;font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; Quality Checks</td>'
     + '<td style="font-family:' + _FONT + ';font-size:11px;color:' + _T.teal + ';font-weight:600">&#10003; London &amp; UK</td>'
     + '</tr></table></td></tr></table>'
     + '</td></tr></table>';

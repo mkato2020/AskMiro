@@ -14,7 +14,7 @@ function seoGenerate(body, auth) {
 
   var prompt = 'You are an expert SEO content writer for AskMiro Cleaning Services, a professional B2B commercial cleaning company in London.\n\n' +
     'Company facts:\n' +
-    '- Director: Mike Kato | info@askmiro.com | 020 8073 0621 | www.askmiro.co.uk\n' +
+    '- Director: Mike Kato | info@askmiro.com | 020 8073 0621 | www.askmiro.com\n' +
     '- Typical contract: £800–£5,000/month\n' +
     '- Services: office, commercial, end of tenancy, deep cleaning, residential blocks, medical/healthcare, schools, automotive, warehouses, gyms, retail, hospitality\n' +
     '- All staff: DBS-checked, BICSc trained, uniformed, insured\n' +
@@ -136,17 +136,17 @@ function _buildArticleHTML(a) {
     '<title>' + _escHtml(a.title) + '</title>\n' +
     '<meta name="description" content="' + _escAttr(a.metaDescription) + '">\n' +
     '<meta name="keywords" content="' + _escAttr(a.metaKeywords) + '">\n' +
-    '<link rel="canonical" href="https://askmiro.co.uk/' + _escAttr(a.slug) + '">\n\n' +
+    '<link rel="canonical" href="https://www.askmiro.com/' + _escAttr(a.slug) + '">\n\n' +
     '<meta property="og:title" content="' + _escAttr(a.ogTitle) + '">\n' +
     '<meta property="og:description" content="' + _escAttr(a.metaDescription) + '">\n' +
     '<meta property="og:type" content="article">\n' +
-    '<meta property="og:url" content="https://askmiro.co.uk/' + _escAttr(a.slug) + '">\n' +
+    '<meta property="og:url" content="https://www.askmiro.com/' + _escAttr(a.slug) + '">\n' +
     '<meta property="og:site_name" content="AskMiro Cleaning Services">\n\n' +
     '<script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@type": "Article",\n' +
     '  "headline": ' + JSON.stringify(a.schemaHeadline || a.title) + ',\n' +
     '  "description": ' + JSON.stringify(a.metaDescription) + ',\n' +
     '  "author": { "@type": "Organization", "name": "AskMiro Cleaning Services" },\n' +
-    '  "publisher": { "@type": "Organization", "name": "AskMiro Cleaning Services", "url": "https://askmiro.co.uk" },\n' +
+    '  "publisher": { "@type": "Organization", "name": "AskMiro Cleaning Services", "url": "https://www.askmiro.com" },\n' +
     '  "datePublished": "' + pubDate + '",\n  "dateModified": "' + pubDate + '"\n}\n</script>\n' +
     '<script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@type": "FAQPage",\n  "mainEntity": [\n' +
     faqSchema + '\n  ]\n}\n</script>\n\n' +
