@@ -735,7 +735,7 @@ window.Outreach = (() => {
             <table cellpadding="0" cellspacing="0"><tr>
               <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; Fully Insured</td>
               <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; COSHH Compliant</td>
-              <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; ISO Standards</td>
+              <td style="padding-right:16px;font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; Quality Checks</td>
               <td style="font-family:${F};font-size:11px;color:${T.teal};font-weight:600">&#10003; London &amp; UK</td>
             </tr></table>
           </td></tr></table>

@@ -55,6 +55,8 @@ ${UI.secHd('Overview', 'Executive Dashboard', PERIOD)}
 
 ${webLeadBanner}
 
+<div id="pl-today"></div>
+
 <div class="kpi-grid">
   <div class="kpi kpi-t"><div class="kpi-label">Active Sites</div><div class="kpi-value">${k.activeSites||0}</div><div class="kpi-delta delta-g">&#9650; Portfolio</div></div>
   <div class="kpi kpi-g"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${UI.fmtk(k.totalRevenue||0)}</div><div class="kpi-delta delta-g">&#9650; Growing</div></div>
@@ -105,6 +107,9 @@ ${UI.secHd('Attention', 'Sites Needing Review', (d.attention||[]).length + ' sit
     </div>
   </div>
 </div>`;
+
+    // Today's worklist loads on its own so a slow mailbox never holds up the page.
+    if (window.Pipeline) Pipeline.mount('pl-today');
   }
 
   function siteDrawer(jsonStr) {

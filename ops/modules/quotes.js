@@ -408,6 +408,7 @@ ${UI.secHd('Quotes', 'Quote Builder', _quotes.length + ' quotes')}
     <div style="flex:1"></div>
     <button class="btn bo" onclick="UI.closeModal()">Close</button>
     <button class="btn bo" onclick="Quotes.loadIntoBuilder(${JSON.stringify(JSON.stringify(q))})">&#9998; Edit</button>
+    ${(q.status !== 'Sent' && window.Pipeline) ? `<button class="btn bo" onclick="UI.closeModal();Pipeline.openLog('${q._isLeadOnly ? _escHtml(q.id) : ''}','${q._isLeadOnly ? '' : _escHtml(q.id)}')">&#10003; Log as sent</button>` : ''}
     ${!blocked ? `
     <button class="btn bo" onclick="Quotes._sendProposal(${JSON.stringify(JSON.stringify(q))})" style="border-color:#0D9488;color:#0D9488">&#9993; Send Proposal</button>
     <button class="btn bp" onclick="Quotes.openSend('${_escHtml(q.id)}','${clientNameSafe}')">&#9992; Send Quote</button>` : ''}

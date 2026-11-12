@@ -327,7 +327,7 @@ window.Email = (() => {
             <table cellpadding="0" cellspacing="0"><tr>
               <td style="padding-right:18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">&#10003; Fully Insured</td>
               <td style="padding-right:18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">&#10003; COSHH Compliant</td>
-              <td style="padding-right:18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">&#10003; ISO Standards</td>
+              <td style="padding-right:18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">&#10003; Quality Checks</td>
               <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;color:${T.teal};font-weight:600">&#10003; London &amp; UK</td>
             </tr></table>
           </td></tr>
